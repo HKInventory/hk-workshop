@@ -228,6 +228,7 @@
   <!-- REQUEST ORDER -->
   <div class="page" id="page-order">
     <button class="back-btn" onclick="showPage('home')">← Back</button>
+
     <label class="field-label">Your Name</label>
     <select id="orderName">
       <option value="">— Select your name —</option>
@@ -236,10 +237,21 @@
       <option>Sam Lally</option><option>Jayden Aginsky</option>
       <option>Will Webster</option><option>Christian Oom</option>
     </select>
-    <label class="field-label">Part / SKU</label>
-    <input type="text" id="orderPart" placeholder="e.g. Front Pad or 1381181">
+
+    <label class="field-label">Search Part</label>
+    <input class="search-input" type="text" id="orderSearch" placeholder="Type to search parts..." oninput="filterOrderParts()" autocomplete="off" style="margin-bottom:8px;">
+    <div id="orderPartsList" style="max-height:200px;overflow-y:auto;margin-bottom:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.1);display:none;"></div>
+
+    <div id="selectedPartBox" style="display:none;background:rgba(0,229,255,0.08);border:1.5px solid rgba(0,229,255,0.3);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;color:#00e5ff;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Selected Part</div>
+      <div id="selectedPartDesc" style="font-size:16px;font-weight:700;color:#fff;"></div>
+      <div id="selectedPartMeta" style="font-size:12px;color:#888;margin-top:4px;"></div>
+      <div style="margin-top:8px;"><button onclick="clearSelectedPart()" style="background:none;border:none;color:#ff6e6e;font-size:12px;cursor:pointer;">✕ Clear</button></div>
+    </div>
+
     <label class="field-label">Notes (optional)</label>
     <input type="text" id="orderNotes" placeholder="e.g. urgent, qty needed...">
+
     <button class="submit-btn" onclick="submitOrder()">📋 Send Order Request</button>
     <div id="msg"></div>
   </div>
@@ -416,6 +428,8 @@ function showPage(id) {
   // Manager tile
   document.getElementById('manager-tile').style.display = (isManager && id==='home') ? 'flex' : 'none';
 
+  // Load parts for order search
+  if (id==='order') { if(parts.length===0) loadParts('order'); }
   // Pre-fill name on order page
   if (id==='order' && currentUser) {
     var sel = document.getElementById('orderName');
@@ -622,25 +636,75 @@ function loadManager(){
 }
 
 // ── Request Order ──
-var orderSent=false;
+var orderSent = false;
+var selectedPart = null;
+
+function filterOrderParts() {
+  var q = document.getElementById('orderSearch').value.toLowerCase().trim();
+  var list = document.getElementById('orderPartsList');
+  if (!q || parts.length === 0) { list.style.display='none'; return; }
+  var filtered = parts.filter(function(p){
+    return p.desc.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+  }).slice(0,15);
+  if (!filtered.length) { list.style.display='none'; return; }
+  var html = '';
+  filtered.forEach(function(p){
+    var sc = p.qty==0?'#ff5252':p.qty<=p.reorder?'#ffd600':'#00e5ff';
+    var st = p.qty==0?'🔴 Out':p.qty<=p.reorder?'🟡 Low: '+p.qty:'🟢 '+p.qty;
+    html += '<div onclick="selectOrderPart(''+p.sku+'')" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='none'">'
+      +'<div style="font-size:14px;font-weight:600;color:#fff;">'+p.desc+'</div>'
+      +'<div style="font-size:11px;color:#666;margin-top:2px;">SKU: '+p.sku+(p.loc?' · 📍 '+p.loc:'')+'  <span style="color:'+sc+'">'+st+'</span></div>'
+      +'</div>';
+  });
+  list.innerHTML = html;
+  list.style.display = 'block';
+}
+
+function selectOrderPart(sku) {
+  selectedPart = parts.find(function(p){ return p.sku===sku; });
+  if (!selectedPart) return;
+  document.getElementById('orderSearch').value = '';
+  document.getElementById('orderPartsList').style.display = 'none';
+  document.getElementById('selectedPartBox').style.display = 'block';
+  document.getElementById('selectedPartDesc').innerText = selectedPart.desc;
+  var meta = 'SKU: '+selectedPart.sku;
+  if (selectedPart.loc) meta += '  📍 '+selectedPart.loc;
+  var st = selectedPart.qty==0?'🔴 Out of Stock':selectedPart.qty<=selectedPart.reorder?'🟡 Low — '+selectedPart.qty+' remaining':'🟢 '+selectedPart.qty+' in stock';
+  meta += '  '+st;
+  document.getElementById('selectedPartMeta').innerText = meta;
+}
+
+function clearSelectedPart() {
+  selectedPart = null;
+  document.getElementById('selectedPartBox').style.display = 'none';
+  document.getElementById('orderSearch').value = '';
+}
+
 function submitOrder(){
-  if(orderSent)return;
-  var btn=document.querySelector('.submit-btn');
-  var name=document.getElementById('orderName').value;
-  var part=document.getElementById('orderPart').value;
-  var notes=document.getElementById('orderNotes').value;
-  var msg=document.getElementById('msg');
-  if(!name){msg.className='error';msg.innerText='Please select your name';return;}
-  if(!part){msg.className='error';msg.innerText='Please enter a part or SKU';return;}
+  if(orderSent) return;
+  var btn  = document.querySelector('.submit-btn');
+  var name = document.getElementById('orderName').value;
+  var notes= document.getElementById('orderNotes').value;
+  var msg  = document.getElementById('msg');
+  if(!name){ msg.className='error'; msg.innerText='Please select your name'; return; }
+  if(!selectedPart){ msg.className='error'; msg.innerText='Please search and select a part'; return; }
   orderSent=true; btn.disabled=true; btn.innerText='Sending...'; btn.style.opacity='0.5';
   msg.className='loading'; msg.innerText='Sending request...';
-  jsonp(APP+'?action=requestorder&name='+encodeURIComponent(name)+'&part='+encodeURIComponent(part)+'&notes='+encodeURIComponent(notes),function(r){
+  var params = '?action=requestorder'
+    +'&name='+encodeURIComponent(name)
+    +'&sku='+encodeURIComponent(selectedPart.sku)
+    +'&part='+encodeURIComponent(selectedPart.desc)
+    +'&loc='+encodeURIComponent(selectedPart.loc||'')
+    +'&qty='+encodeURIComponent(selectedPart.qty)
+    +'&reorder='+encodeURIComponent(selectedPart.reorder)
+    +'&notes='+encodeURIComponent(notes);
+  jsonp(APP+params, function(r){
     if(r!==null){
-      msg.className='success'; msg.innerText='✅ Order request sent!';
-      document.getElementById('orderPart').value='';
+      msg.className='success'; msg.innerText='✅ Order request sent to Ross & Harvey!';
+      clearSelectedPart();
       document.getElementById('orderNotes').value='';
       btn.innerText='✅ Sent!';
-      setTimeout(function(){orderSent=false;btn.disabled=false;btn.innerText='📋 Send Order Request';btn.style.opacity='1';},15000);
+      setTimeout(function(){ orderSent=false; btn.disabled=false; btn.innerText='📋 Send Order Request'; btn.style.opacity='1'; }, 15000);
     } else {
       msg.className='error'; msg.innerText='❌ Failed. Try again.';
       orderSent=false; btn.disabled=false; btn.innerText='📋 Send Order Request'; btn.style.opacity='1';

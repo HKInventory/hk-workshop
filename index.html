@@ -413,9 +413,9 @@ function beep(){
     var o=ctx.createOscillator(),g=ctx.createGain();
     o.connect(g);g.connect(ctx.destination);
     o.frequency.value=1200;o.type='sine';
-    g.gain.setValueAtTime(0.3,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.15);
-    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.15);
+    g.gain.setValueAtTime(1.0,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.6);
   }catch(e){}
 }
 function startScan(){
@@ -433,7 +433,7 @@ window._doScan=function(video){
   try{
     qrScanner=new window.QrScanner(video,function(r){
       var url=r.data||r;
-      if(url){beep();stopScan();setTimeout(function(){window.location.href=url;},150);}
+      if(url){beep();stopScan();setTimeout(function(){ var dest=url; if(currentUser&&url.indexOf('name=')===-1) dest+=((url.indexOf('?')===-1?'?':'&')+'name='+encodeURIComponent(currentUser.name)); window.location.href=dest; },150);}
     },{preferredCamera:'environment',highlightScanRegion:true});
     qrScanner.start().then(function(){document.getElementById('scan-status').innerText='Point at QR code...';})
     .catch(function(){

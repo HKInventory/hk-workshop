@@ -77,28 +77,27 @@
     @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-11px)}40%,80%{transform:translateX(11px)}}
     .dots.sh{animation:shake .42s ease}
 
-    /* ── Welcome / green studio ── */
-    #s-welcome{background:#0a2a0a;overflow:hidden}
-    /* Radial green studio light */
+    /* ── Welcome - dark background ── */
+    #s-welcome{background:#000;overflow:hidden}
+    /* Subtle ambient glow */
     #s-welcome::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
       background:
-        radial-gradient(ellipse 100% 60% at 50% 110%,rgba(0,255,80,0.25) 0%,transparent 60%),
-        radial-gradient(ellipse 80% 80% at 50% 50%,rgba(0,200,60,0.12) 0%,transparent 70%),
-        linear-gradient(180deg,#071a07 0%,#0d2e0d 40%,#061206 100%)}
+        radial-gradient(ellipse 80% 50% at 50% 30%,rgba(0,207,255,0.08) 0%,transparent 65%),
+        radial-gradient(ellipse 60% 40% at 50% 110%,rgba(0,207,255,0.06) 0%,transparent 60%)}
 
     .wel-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;z-index:2}
     @keyframes welIn{0%{opacity:0;transform:scale(0.8) translateY(30px)}60%{transform:scale(1.04) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0)}}
     .wel-content{animation:welIn .9s cubic-bezier(0.34,1.56,0.64,1) both}
     @keyframes efloat{0%,100%{transform:translateY(0)}35%{transform:translateY(-18px)}70%{transform:translateY(-7px)}}
     .we{font-size:clamp(56px,16vw,80px);display:block;animation:efloat 2s ease .5s infinite}
-    .wname{font-size:clamp(26px,8vw,36px);font-weight:900;letter-spacing:-0.8px;margin-top:6px;color:#fff;text-shadow:0 0 40px rgba(0,255,80,0.4)}
-    .wrole{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(0,255,120,0.8);margin-top:4px}
-    .wbar{width:32px;height:2px;background:linear-gradient(90deg,#00FF50,#00CFFF);border-radius:2px;margin-top:12px}
+    .wname{font-size:clamp(26px,8vw,36px);font-weight:900;letter-spacing:-0.8px;margin-top:6px;color:#fff;text-shadow:0 0 40px rgba(0,207,255,0.4)}
+    .wrole{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(0,207,255,0.85);margin-top:4px}
+    .wbar{width:32px;height:2px;background:linear-gradient(90deg,#00CFFF,#6E42FF);border-radius:2px;margin-top:12px}
 
     /* ── Kart stage ── */
     .kart-stage{height:120px;position:relative;z-index:2;overflow:hidden;flex-shrink:0;margin:0 -20px}
     /* Ground reflection */
-    .kart-stage::before{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,rgba(0,255,80,0.08))}
+    .kart-stage::before{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,rgba(0,207,255,0.08))}
 
     @keyframes kartIn{0%{transform:translateX(110vw)}65%{transform:translateX(calc(50vw - 150px))}78%{transform:translateX(calc(50vw - 135px))}88%{transform:translateX(calc(50vw - 142px))}100%{transform:translateX(calc(50vw - 138px))}}
     @keyframes kartIdle{0%,100%{transform:translateX(calc(50vw - 138px)) translateY(0)}50%{transform:translateX(calc(50vw - 138px)) translateY(-3px)}}
@@ -115,7 +114,7 @@
 
     /* Loading bar */
     #lbar{position:absolute;bottom:0;left:0;right:0;height:3px;z-index:10;display:none;background:rgba(255,255,255,0.06)}
-    #lbp{height:100%;width:0%;background:linear-gradient(90deg,#00FF50,#00CFFF);border-radius:2px}
+    #lbp{height:100%;width:0%;background:linear-gradient(90deg,#00CFFF,#6E42FF);border-radius:2px}
     @keyframes lbf{0%{width:0%}40%{width:55%}75%{width:82%}100%{width:100%}}
     #lbar.run #lbp{animation:lbf 3.4s cubic-bezier(0.4,0,0.2,1) forwards}
 
@@ -148,7 +147,7 @@
     .tile:active{transform:scale(0.92)}
     .tc {background:linear-gradient(145deg,#0088BB,#005577);border:1px solid rgba(0,207,255,0.35)}
     .tse{background:linear-gradient(145deg,#4C1D95,#2D1058);border:1px solid rgba(139,92,246,0.4)}
-    .tlo{background:linear-gradient(145deg,#92400E,#6B2D0A);border:1px solid rgba(255,149,0,0.4)}
+    .tlo{background:linear-gradient(145deg,#FFD600,#B8860B);border:1px solid rgba(255,214,0,0.5)}
     .tor{background:linear-gradient(145deg,#065F46,#04402E);border:1px solid rgba(0,200,83,0.4)}
     /* Subtle top sheen */
     .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(rgba(255,255,255,0.08),transparent);pointer-events:none}
@@ -160,8 +159,8 @@
     .wide:active{transform:scale(0.97)}
     .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
     .wide{position:relative}
-    .wide.race{background:linear-gradient(145deg,#7C1A00,#4A1000);border-color:rgba(255,94,0,0.35)}
-    .wide.mgr{background:linear-gradient(145deg,#78350F,#4A200A);border-color:rgba(255,149,0,0.35)}
+    .wide.race{background:linear-gradient(145deg,#B91C1C,#7F1D1D);border-color:rgba(239,68,68,0.5)}
+    .wide.mgr{background:linear-gradient(145deg,#4338CA,#1E1B4B);border-color:rgba(99,102,241,0.5)}
     .wi{font-size:clamp(20px,5vw,26px);flex-shrink:0}
     .wl{font-size:clamp(13px,3.5vw,15px);font-weight:800;color:#fff}
     .ws{font-size:clamp(10px,2.5vw,11px);color:rgba(255,255,255,0.5);margin-top:2px}
@@ -297,7 +296,7 @@
       <div class="kart-stage">
         <svg class="kart-svg" id="kart" width="280" height="95" viewBox="0 0 280 95" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="bd" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00CFFF"/><stop offset="50%" stop-color="#0099CC"/><stop offset="100%" stop-color="#006699"/></linearGradient>
+            <linearGradient id="bd" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="50%" stop-color="#0a0a0a"/><stop offset="100%" stop-color="#000"/></linearGradient>
             <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00CFFF"/><stop offset="100%" stop-color="#0099CC"/></linearGradient>
             <linearGradient id="dk" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#1a1a3e"/><stop offset="100%" stop-color="#0a0a1a"/></linearGradient>
             <filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
@@ -331,20 +330,20 @@
           <!-- Underbody -->
           <path d="M50 70 L50 76 L220 74 L230 70 Z" fill="#04080a"/>
           <!-- Side pod -->
-          <path d="M88 68 L88 42 L170 40 L170 68 Z" fill="rgba(0,0,0,0.22)"/>
+          <path d="M88 68 L88 42 L170 40 L170 68 Z" fill="rgba(0,0,0,0.5)"/>
           <!-- Intake -->
           <ellipse cx="92" cy="56" rx="10" ry="15" fill="#060a0c" stroke="#0099CC" stroke-width="1.5"/>
           <ellipse cx="92" cy="56" rx="6" ry="10" fill="#020408"/>
           <!-- Top highlight -->
-          <path d="M85 36 L190 34 L225 44 L218 40 L188 32 L87 34 Z" fill="rgba(255,255,255,0.16)"/>
+          <path d="M85 36 L190 34 L225 44 L218 40 L188 32 L87 34 Z" fill="rgba(0,207,255,0.18)"/>
           <!-- HK branding -->
-          <rect x="105" y="50" width="42" height="14" rx="3" fill="rgba(0,0,0,0.45)"/>
-          <text x="126" y="61" font-family="Arial" font-weight="900" font-size="11" fill="#00CFFF" text-anchor="middle" letter-spacing="2">HK</text>
+          <rect x="100" y="48" width="52" height="18" rx="3" fill="rgba(0,207,255,0.95)"/>
+          <text x="126" y="61" font-family="Arial" font-weight="900" font-size="14" fill="#000" text-anchor="middle" letter-spacing="2">HK</text>
           <!-- Cockpit -->
           <path d="M115 36 L120 16 L168 14 L178 36 Z" fill="url(#dk)"/>
           <path d="M120 36 L124 18 L164 16 L172 36 Z" fill="#080818"/>
-          <path d="M115 36 L120 16 L124 18 L120 36 Z" fill="#00CFFF" opacity="0.5"/>
-          <path d="M178 36 L168 14 L164 16 L172 36 Z" fill="#00CFFF" opacity="0.5"/>
+          <path d="M115 36 L120 16 L124 18 L120 36 Z" fill="#00CFFF" opacity="0.8"/>
+          <path d="M178 36 L168 14 L164 16 L172 36 Z" fill="#00CFFF" opacity="0.8"/>
           <!-- Windscreen -->
           <path d="M124 34 L127 20 L161 18 L167 34 Z" fill="rgba(0,207,255,0.1)" stroke="rgba(0,207,255,0.2)" stroke-width=".8"/>
           <!-- Helmet -->
@@ -389,7 +388,7 @@
             <div class="tile tor" id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
           </div>
           <div class="wide race wa1" id="wrace" onclick="go('race')"><div class="wi">🏎️</div><div><div class="wl">Racefacer</div><div class="ws">Track & session data</div></div></div>
-          <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">👑</div><div><div class="wl" style="color:var(--amb)">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
+          <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">👑</div><div><div class="wl">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
         </div>
       </div>
     </div>
@@ -546,28 +545,32 @@ function back(){
 // ── Swipe back ──
 var sx=0,sy=0,sw=false,swC=null,swP=null;
 var nav=document.getElementById('nav');
-nav.addEventListener('touchstart',function(e){
+document.addEventListener('touchstart',function(e){
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;sw=false;
   if(sx>44||stk.length<=1) return;
   var ae=document.querySelector('.scr.active');
-  var sb=ae?ae.querySelector('.sb'):null;
+  if(!ae) return;
+  // Check if any scrollable inner is scrolled
+  var sb=ae.querySelector('.sb');
   if(sb&&sb.scrollTop>4) return;
   swC=s(stk[stk.length-1]);swP=s(stk[stk.length-2]);
+  if(!swC||!swP) return;
   swC.style.transition='none';swC.style.transform='translateX(0)';
   swP.style.transition='none';swP.style.transform='translateX(-28%)';
-  swP.classList.remove('active');swP.classList.add('behind');sw=true;
+  swP.classList.remove('active');swP.classList.add('behind');
+  sw=true;
 },{passive:true});
-nav.addEventListener('touchmove',function(e){
+document.addEventListener('touchmove',function(e){
   if(!sw||!swC||!swP) return;
   var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
   if(dy>dx+10){sw=false;csw();return;}if(dx<=0) return;
-  var W=nav.offsetWidth,p=Math.min(dx/W,1);
+  var W=document.getElementById('nav').offsetWidth,p=Math.min(dx/W,1);
   swC.style.transform='translateX('+dx+'px)';
   swP.style.transform='translateX(calc(-28% + '+(p*28)+'%))';
 },{passive:true});
-nav.addEventListener('touchend',function(e){
+document.addEventListener('touchend',function(e){
   if(!sw) return;sw=false;
-  var dx=e.changedTouches[0].clientX-sx,W=nav.offsetWidth;
+  var dx=e.changedTouches[0].clientX-sx,W=document.getElementById('nav').offsetWidth;
   if(dx>W*0.3||dx>140){
     var dur=Math.max(160,Math.min(300,(W-dx)/W*380));
     swC.style.transition='transform '+dur+'ms cubic-bezier(.25,.46,.45,.94)';

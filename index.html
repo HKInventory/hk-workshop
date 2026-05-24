@@ -266,7 +266,7 @@
       <div class="sf">
         <div class="home-inner" id="home-inner">
           <div class="tiles" id="tiles">
-            <div class="tile tc" id="tscan" onclick="go('scan')"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
+            <div class="tile tc" id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
             <div class="tile tse" onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
             <div class="tile tlo" onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
             <div class="tile tor" id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
@@ -282,8 +282,8 @@
       <button class="back" onclick="stopScan();back()"> Back</button>
       <div class="scanf">
         <div id="qrvc"><video id="qrv" playsinline autoplay muted></video></div>
-        <p class="shint" id="sst">Tap Start and align QR code in frame</p>
-        <button class="btnp" id="sbn" onclick="startScan()">Start Scanner</button>
+        <p class="shint" id="sst">Starting camera...</p>
+        <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
       </div>
     </div>
@@ -690,25 +690,32 @@ function beep(){
   }catch(e){}
 }
 function startScan(){
+  if(qrs) return;
   if(cu&&cu.role==='Read Only'){document.getElementById('sst').innerText='Not available for office access.';return;}
   document.getElementById('sbn').style.display='none';
   document.getElementById('ssp').style.display='block';
-
-  if(window.QrScanner){
-    _initScanner();
-  } else if(window.qrLibError){
-    document.getElementById('sst').innerText='Scanner failed to load. Check internet.';
-    document.getElementById('sbn').style.display='block';
-    document.getElementById('ssp').style.display='none';
-  } else {
-    document.getElementById('sst').innerText='Loading scanner...';
-    window.onQrReady = _initScanner;
-    setTimeout(function(){
-      if(!window.QrScanner&&!qrs){
-        document.getElementById('sst').innerText='Scanner taking too long — try again';
-      }
-    },10000);
-  }
+  document.getElementById('sst').innerText='Opening camera...';
+  // Poll for library + video element ready (up to 5 seconds)
+  var tries=0;
+  var poll=setInterval(function(){
+    tries++;
+    var v=document.getElementById('qrv');
+    var ready=window.QrScanner&&v&&v.offsetWidth>20;
+    if(ready){
+      clearInterval(poll);
+      _initScanner();
+    } else if(window.qrLibError){
+      clearInterval(poll);
+      document.getElementById('sst').innerText='Scanner failed to load. Check internet.';
+      document.getElementById('sbn').style.display='block';
+      document.getElementById('ssp').style.display='none';
+    } else if(tries>50){
+      clearInterval(poll);
+      document.getElementById('sst').innerText='Scanner timed out — try again';
+      document.getElementById('sbn').style.display='block';
+      document.getElementById('ssp').style.display='none';
+    }
+  },100);
 }
 
 function _initScanner(){
@@ -749,7 +756,7 @@ function stopScan(){
   }
   document.getElementById('sbn').style.display='block';
   document.getElementById('ssp').style.display='none';
-  document.getElementById('sst').innerText='Tap Start and align QR code in frame';
+  document.getElementById('sst').innerText='Camera stopped';
 }
 
 // ── Order ──

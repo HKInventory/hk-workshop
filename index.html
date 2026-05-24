@@ -116,7 +116,7 @@
     #lbar{position:absolute;bottom:0;left:0;right:0;height:3px;z-index:10;display:none;background:rgba(255,255,255,0.06)}
     #lbp{height:100%;width:0%;background:linear-gradient(90deg,#00CFFF,#6E42FF);border-radius:2px}
     @keyframes lbf{0%{width:0%}40%{width:55%}75%{width:82%}100%{width:100%}}
-    #lbar.run #lbp{animation:lbf 3.4s cubic-bezier(0.4,0,0.2,1) forwards}
+    #lbar.run #lbp{animation:lbf 2.5s cubic-bezier(0.4,0,0.2,1) forwards}
 
     /* ── HOME ── */
     /* Animated ambient glow */
@@ -474,7 +474,19 @@
 </div>
 <script>
 var APP='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
-var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,STAFF=[],homeAnimated=false;
+var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false;
+// Hardcoded staff as instant fallback — sheet fetch updates in background
+var STAFF=[
+  {name:'Ross McArthur',  role:'Manager',          pin:'1234',emoji:'⭐'},
+  {name:'Harvey Betts',   role:'Assistant Manager',pin:'2345',emoji:'⭐'},
+  {name:'Rafael Hewitt',  role:'Mechanic',         pin:'3456',emoji:'🔧'},
+  {name:'Alex Harper',    role:'Mechanic',         pin:'4567',emoji:'🔧'},
+  {name:'Sam Lally',      role:'Mechanic',         pin:'5678',emoji:'🔧'},
+  {name:'Jayden Aginsky', role:'Mechanic',         pin:'6789',emoji:'🔧'},
+  {name:'Will Webster',   role:'Mechanic',         pin:'7890',emoji:'🔧'},
+  {name:'Christian Oom',  role:'Mechanic',         pin:'8901',emoji:'🔧'},
+  {name:'Office View',    role:'Read Only',        pin:'0000',emoji:'🏢'}
+];
 
 // ── Sizing ──
 function sz(){
@@ -660,13 +672,7 @@ function pd2(){pin3=pin3.slice(0,-1);udots();}
 function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin3.length?d.classList.add('on'):d.classList.remove('on');}}
 
 function chk(){
-  // Use cached staff if available, otherwise use hardcoded fallback while fetching
-  if(!STAFF.length){
-    // Try one more time synchronously from cache
-    var c=sessionStorage.getItem('hk_s');
-    if(c){try{STAFF=JSON.parse(c);}catch(e){}}
-    if(!STAFF.length){fetchStaff(function(){chk();});return;}
-  }
+  // STAFF is always pre-populated with hardcoded fallback — validates instantly
   var m=null;for(var i=0;i<STAFF.length;i++){if(String(STAFF[i].pin)===pin3){m=STAFF[i];break;}}
   if(m){
     cu=m;sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());
@@ -687,8 +693,8 @@ function chk(){
     var lb=document.getElementById('lbar');lb.style.display='block';lb.classList.remove('run');void lb.offsetWidth;lb.classList.add('run');
 
     // Kart: arrive already started (CSS), idle after 1.2s, leave at 2.9s
-    setTimeout(function(){var k=document.getElementById('kart');if(k)k.classList.add('kart-idle');},1200);
-    setTimeout(function(){var k=document.getElementById('kart');if(k){k.classList.remove('kart-idle');k.classList.add('kart-out');}},2900);
+    setTimeout(function(){var k=document.getElementById('kart');if(k)k.classList.add('kart-idle');},1000);
+    setTimeout(function(){var k=document.getElementById('kart');if(k){k.classList.remove('kart-idle');k.classList.add('kart-out');}},2100);
 
     // Pre-load parts
     if(!parts.length){var c=sessionStorage.getItem('hk_p');if(c){try{parts=JSON.parse(c);}catch(e){}}
@@ -712,7 +718,7 @@ function chk(){
         // Reset kart for next time
         var k=document.getElementById('kart');if(k){k.classList.remove('kart-idle','kart-out');k.style.animation='none';void k.offsetWidth;k.style.animation='';}
       },440);
-    },3300);
+    },2500);
   } else {
     pin3='';udots();document.getElementById('pe').innerText='Incorrect PIN — try again';
     var pd=document.getElementById('pd');pd.classList.add('sh');setTimeout(function(){pd.classList.remove('sh');},440);

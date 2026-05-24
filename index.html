@@ -48,17 +48,39 @@
 
     /* ── PIN ── */
     /* Animated gradient background */
-    #s-pin{background:var(--bg)}
-    #s-pin::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
-      background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,207,255,0.08) 0%,transparent 65%),
-                 radial-gradient(ellipse 60% 50% at 100% 100%,rgba(110,66,255,0.08) 0%,transparent 60%),
-                 radial-gradient(ellipse 40% 40% at 0% 80%,rgba(0,207,255,0.05) 0%,transparent 60%);
-      animation:pinbg 7s ease-in-out infinite alternate}
-    @keyframes pinbg{0%{opacity:.7;transform:scale(1)}100%{opacity:1;transform:scale(1.1)}}
+    #s-pin{background:#000;overflow:hidden}
 
-    /* Floating orbs */
-    .orb{position:absolute;border-radius:50%;pointer-events:none;z-index:0;opacity:0;animation:orbFloat linear infinite}
-    @keyframes orbFloat{0%{opacity:0;transform:translateY(0) scale(0)}10%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translateY(-80px) scale(1.2)}}
+    /* Moving aurora blobs */
+    .aur{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0;mix-blend-mode:screen;will-change:transform,opacity}
+    .aur-1{width:280px;height:280px;background:radial-gradient(circle,#00CFFF 0%,transparent 70%);top:-80px;left:-60px;animation:aurMove1 14s ease-in-out infinite alternate}
+    .aur-2{width:320px;height:320px;background:radial-gradient(circle,#6E42FF 0%,transparent 70%);bottom:-100px;right:-80px;animation:aurMove2 18s ease-in-out infinite alternate}
+    .aur-3{width:240px;height:240px;background:radial-gradient(circle,#E040FB 0%,transparent 70%);top:30%;right:-100px;animation:aurMove3 16s ease-in-out infinite alternate}
+    .aur-4{width:200px;height:200px;background:radial-gradient(circle,#00C853 0%,transparent 70%);bottom:25%;left:-80px;animation:aurMove4 20s ease-in-out infinite alternate}
+
+    @keyframes aurMove1{
+      0%{transform:translate(0,0) scale(1);opacity:0.55}
+      50%{transform:translate(60px,80px) scale(1.2);opacity:0.75}
+      100%{transform:translate(120px,40px) scale(0.95);opacity:0.6}
+    }
+    @keyframes aurMove2{
+      0%{transform:translate(0,0) scale(1);opacity:0.5}
+      50%{transform:translate(-70px,-50px) scale(1.15);opacity:0.7}
+      100%{transform:translate(-100px,-80px) scale(0.9);opacity:0.55}
+    }
+    @keyframes aurMove3{
+      0%{transform:translate(0,0) scale(1);opacity:0.4}
+      50%{transform:translate(-100px,60px) scale(1.25);opacity:0.6}
+      100%{transform:translate(-160px,120px) scale(0.85);opacity:0.45}
+    }
+    @keyframes aurMove4{
+      0%{transform:translate(0,0) scale(1);opacity:0.35}
+      50%{transform:translate(80px,-60px) scale(1.18);opacity:0.55}
+      100%{transform:translate(140px,-100px) scale(0.9);opacity:0.4}
+    }
+
+    /* Subtle floating dust particles */
+    @keyframes dust{0%{transform:translateY(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-100vh);opacity:0}}
+    .dust{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,0.6);pointer-events:none;z-index:0;animation:dust linear infinite}
 
     .pin-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:16px 22px;position:relative;z-index:1}
     @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -272,6 +294,16 @@
 
     <!-- PIN -->
     <div class="scr active" id="s-pin">
+      <div class="aur aur-1"></div>
+      <div class="aur aur-2"></div>
+      <div class="aur aur-3"></div>
+      <div class="aur aur-4"></div>
+      <div class="dust" style="left:12%;animation-duration:18s;animation-delay:0s"></div>
+      <div class="dust" style="left:28%;animation-duration:22s;animation-delay:3s"></div>
+      <div class="dust" style="left:45%;animation-duration:16s;animation-delay:6s"></div>
+      <div class="dust" style="left:62%;animation-duration:20s;animation-delay:2s"></div>
+      <div class="dust" style="left:78%;animation-duration:24s;animation-delay:8s"></div>
+      <div class="dust" style="left:88%;animation-duration:19s;animation-delay:5s"></div>
       <div class="pin-wrap">
         <div><div class="pin-h2">Welcome back</div><div class="pin-p">Enter your PIN to continue</div></div>
         <div class="dots" id="pd"><div class="dot" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>

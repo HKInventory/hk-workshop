@@ -571,7 +571,18 @@ var nav=document.getElementById('nav');
 
 nav.addEventListener('touchstart',function(e){
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;swiping=false;
+  // DEBUG: red flash bar at top — confirms touchstart fired
+  var dbg=document.getElementById('swipeDbg');
+  if(!dbg){dbg=document.createElement('div');dbg.id='swipeDbg';dbg.style.cssText='position:fixed;top:0;left:0;right:0;height:3px;z-index:99999;background:red;pointer-events:none;transition:opacity .4s';document.body.appendChild(dbg);}
+  dbg.style.background='red';dbg.style.opacity='1';
+  setTimeout(function(){dbg.style.opacity='0';},300);
+  // DEBUG: log sx value as orange text in top corner
+  var lbl=document.getElementById('swipeLbl');
+  if(!lbl){lbl=document.createElement('div');lbl.id='swipeLbl';lbl.style.cssText='position:fixed;top:8px;left:8px;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:3px 6px;border-radius:3px;pointer-events:none';document.body.appendChild(lbl);}
+  lbl.innerText='sx='+Math.round(sx)+' stk='+stk.length;
   if(sx>55||stk.length<=1) return;
+  // DEBUG: green when we proceed past edge check
+  dbg.style.background='lime';
   var curId=stk[stk.length-1];
   var prevId=stk[stk.length-2];
   if(!curId||!prevId) return;
@@ -584,6 +595,8 @@ nav.addEventListener('touchstart',function(e){
   swipePrev.style.display='flex';
   swipeCur.style.transition='none';
   swiping=true;
+  // DEBUG: blue when setup complete
+  dbg.style.background='cyan';
 },{passive:true});
 
 nav.addEventListener('touchmove',function(e){

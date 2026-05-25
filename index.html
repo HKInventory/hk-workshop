@@ -45,7 +45,7 @@
       .wl { font-size: clamp(17px,1.5vw,20px); }
       .ws { font-size: clamp(13px,1vw,14px); }
     }
-    /* ── WIDE DESKTOP ── */
+    /* ── WIDE DESKTOP (≥900px) ── */
     @media (min-width: 900px) {
       .sb, .sf { max-width: 1200px; padding: 0 48px; }
       #hdr { padding-left: 48px; padding-right: 48px; }
@@ -58,38 +58,70 @@
       #s-manager .mc { display: inline-block; width: calc(50% - 8px); vertical-align: top; margin-right: 16px; }
       #s-manager .mc:nth-child(2n) { margin-right: 0; }
 
-      /* ── LAYOUT A: 2x2 TILE GRID (Mechanic/Manager) ── */
-      .home-inner.lay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; padding-top: 28px; }
-      .home-inner.lay-grid .tiles { display: contents; }
-      .home-inner.lay-grid .tile { min-height: 240px; border-radius: 26px; padding: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-      .home-inner.lay-grid .tile .ti { font-size: 56px; margin-bottom: 18px; }
-      .home-inner.lay-grid .tile .tl { font-size: 26px; }
-      .home-inner.lay-grid .tile .ts { font-size: 15px; margin-top: 6px; }
-      /* Racefacer becomes a tile */
-      .home-inner.lay-grid .wide.race { flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 240px; padding: 36px; border-radius: 26px; gap: 0; }
-      .home-inner.lay-grid .wide.race .wi { font-size: 56px; margin-bottom: 18px; }
-      .home-inner.lay-grid .wide.race .wl { font-size: 26px; }
-      .home-inner.lay-grid .wide.race .ws { font-size: 15px; margin-top: 6px; }
-      /* Manager Dashboard spans both columns */
-      .home-inner.lay-grid .wide.mgr { grid-column: 1 / -1; padding: 24px 32px; border-radius: 22px; }
-      .home-inner.lay-grid .wide.mgr .wi { font-size: 34px; }
-      .home-inner.lay-grid .wide.mgr .wl { font-size: 20px; }
-      .home-inner.lay-grid .wide.mgr .ws { font-size: 14px; }
-
-      /* ── LAYOUT B: 2-col tiles + wide bars (Read Only / Office) ── */
-      .home-inner.lay-bars { padding-top: 28px; gap: 20px; }
-      .home-inner.lay-bars .tiles { grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; }
-      .home-inner.lay-bars .tile { min-height: 220px; border-radius: 26px; padding: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-      .home-inner.lay-bars .tile .ti { font-size: 52px; margin-bottom: 18px; }
-      .home-inner.lay-bars .tile .tl { font-size: 24px; }
-      .home-inner.lay-bars .tile .ts { font-size: 15px; margin-top: 6px; }
-      .home-inner.lay-bars .wide { max-width: 1100px; margin: 0 auto; padding: 24px 32px; border-radius: 22px; min-height: 80px; }
-      .home-inner.lay-bars .wide .wi { font-size: 34px; }
-      .home-inner.lay-bars .wide .wl { font-size: 20px; }
-      .home-inner.lay-bars .wide .ws { font-size: 14px; }
+      /* ── Home page: all roles get 2x2 grid layout ── */
+      #s-home .sf { display: flex; align-items: flex-start; justify-content: center; padding-top: 32px; }
+      .home-inner {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        max-width: 1100px;
+        width: 100%;
+        height: auto !important;
+        padding: 0 !important;
+      }
+      .home-inner .tiles { display: contents; }
+      /* Every tile / wide becomes a square block */
+      .home-inner .tile,
+      .home-inner .wide {
+        min-height: 240px;
+        padding: 40px;
+        border-radius: 28px;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center;
+        gap: 0;
+      }
+      .home-inner .tile .ti,
+      .home-inner .wide .wi {
+        font-size: 60px;
+        margin-bottom: 20px;
+        flex-shrink: 0;
+      }
+      .home-inner .tile .tl,
+      .home-inner .wide .wl {
+        font-size: 28px;
+        font-weight: 800;
+      }
+      .home-inner .tile .ts,
+      .home-inner .wide .ws {
+        font-size: 16px;
+        margin-top: 8px;
+      }
+      /* For MANAGER role: Manager Dashboard becomes a thinner bar spanning full width below the 2x2 */
+      .home-inner.role-mgr .wide.mgr {
+        grid-column: 1 / -1;
+        flex-direction: row !important;
+        min-height: 88px;
+        padding: 24px 36px;
+        text-align: left;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 22px;
+      }
+      .home-inner.role-mgr .wide.mgr .wi {
+        font-size: 38px;
+        margin-bottom: 0;
+      }
+      .home-inner.role-mgr .wide.mgr > div:last-child {
+        text-align: left;
+      }
+      .home-inner.role-mgr .wide.mgr .wl { font-size: 22px; }
+      .home-inner.role-mgr .wide.mgr .ws { font-size: 14px; margin-top: 4px; }
     }
 
-    /* ── Shell ── */
+        /* ── Shell ── */
     #app{display:flex;flex-direction:column;overflow:hidden}
 
     /* ── Header ── */
@@ -605,23 +637,17 @@ function applyRoleVisibility(){
   var ts=document.getElementById('tscan'),to=document.getElementById('tord');
   if(ts) ts.style.display=hideScan?'none':'flex';
   if(to) to.style.display=isRO?'none':'flex';
-  // On desktop: arrange Racefacer as a 4th TILE for Mechanic/Manager (symmetrical 2x2)
-  // Read Only keeps wide-bar layout (looks good already)
+  // Desktop home layout: tag with role for CSS targeting
   var hi=document.getElementById('home-inner');
   if(hi){
-    hi.classList.remove('lay-grid','lay-bars');
-    if(isDesktop) hi.classList.add('lay-bars');
-    // Set grid columns based on visible tile count
-    var ts=document.getElementById('tiles');
-    if(ts&&isDesktop){
-      var visibleCount=0;
-      for(var i=0;i<ts.children.length;i++){
-        if(ts.children[i].style.display!=='none') visibleCount++;
-      }
-      ts.style.gridTemplateColumns=visibleCount>=3?'1fr 1fr 1fr':'1fr 1fr';
-    } else if(ts) {
-      ts.style.gridTemplateColumns='';
+    hi.classList.remove('role-mgr','role-mech','role-office');
+    if(isDesktop){
+      if(isM) hi.classList.add('role-mgr');
+      else if(isRO) hi.classList.add('role-office');
+      else hi.classList.add('role-mech');
     }
+    var ts2=document.getElementById('tiles');
+    if(ts2) ts2.style.gridTemplateColumns='';
   }
 }
 

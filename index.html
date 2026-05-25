@@ -142,7 +142,7 @@
 
     /* ── Nav ── */
     #nav{flex:1;position:relative;overflow:hidden;min-height:0}
-    .scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translateX(100%);will-change:transform}
+    .scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translateX(100%);will-change:transform;touch-action:pan-y}
     .scr.active{transform:translateX(0)}
     .scr.behind{transform:translateX(-28%)}
     .scr.behind::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.45);pointer-events:none;z-index:99}
@@ -599,10 +599,12 @@ document.addEventListener('touchmove',function(e){
   // Cancel if vertical
   if(dy>dx+10){sw=false;csw();return;}
   if(dx<=0) return;
+  // Claim the gesture — prevents iOS from doing its own scrolling/zooming
+  e.preventDefault();
   var W=getNavW(),p=Math.min(dx/W,1);
   swC.style.transform='translateX('+dx+'px)';
   swP.style.transform='translateX(calc(-28% + '+(p*28)+'%))';
-},{passive:true});
+},{passive:false});
 
 document.addEventListener('touchend',function(e){
   if(!sw) return; sw=false;

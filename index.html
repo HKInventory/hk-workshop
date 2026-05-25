@@ -485,6 +485,24 @@
   </div>
 </div>
 <script>
+// === DEBUG (runs first, before anything else) ===
+window.addEventListener('error',function(ev){
+  var ee=document.getElementById('jsErr');
+  if(!ee){ee=document.createElement('div');ee.id='jsErr';ee.style.cssText='position:fixed;top:30px;left:0;right:0;background:red;color:#fff;font:bold 11px monospace;padding:6px;z-index:99999998;white-space:pre-wrap';document.body.appendChild(ee);}
+  ee.innerText='JS ERROR: '+ev.message+' @ line '+ev.lineno;
+});
+var dbgPanel=document.createElement('div');
+dbgPanel.id='dbgPanel';
+dbgPanel.style.cssText='position:fixed;top:60px;left:8px;z-index:99999998;background:#000;color:#0f0;font:bold 13px monospace;padding:8px 10px;border-radius:6px;border:2px solid #0f0;pointer-events:none;min-width:160px';
+dbgPanel.innerHTML='STEP: 1 (script started)<br>DOC: 0<br>NAV: 0';
+document.body.appendChild(dbgPanel);
+var dbgDoc=0,dbgNav=0,dbgStep=1;
+document.addEventListener('touchstart',function(e){
+  dbgDoc++;
+  dbgPanel.innerHTML='STEP: '+dbgStep+'<br>DOC: '+dbgDoc+'<br>NAV: '+dbgNav+'<br>sx: '+Math.round(e.touches[0].clientX)+'<br>stk: '+(typeof stk!=='undefined'?stk.length:'?');
+},{passive:true});
+
+dbgStep=2;
 var APP='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
 var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0;
 // Hardcoded staff as instant fallback — sheet fetch updates in background
@@ -500,6 +518,7 @@ var STAFF=[
   {name:'Office',         role:'Office Access',        pin:'0000',emoji:'🏢'}
 ];
 
+dbgStep=3;
 // ── Sizing ──
 function sz(){
   var app=document.getElementById('app');
@@ -510,6 +529,7 @@ function sz(){
 sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility();});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/hk-inventory/sw.js').catch(function(){});
 
+dbgStep=4;
 // ── Fetch staff ──
 function fetchStaff(cb){
   var c=sessionStorage.getItem('hk_s'),ts=sessionStorage.getItem('hk_st');
@@ -520,6 +540,7 @@ function fetchStaff(cb){
   });
 }
 
+dbgStep=5;
 // ── Session ──
 var stk=[];
 (function(){
@@ -532,6 +553,7 @@ var stk=[];
   stk=['pin'];showRoot('pin');
 })();
 
+dbgStep=6;
 // ── Nav ──
 function s(id){return document.getElementById('s-'+id);}
 function showRoot(id){
@@ -566,27 +588,15 @@ function back(){
   },390);
 }
 
+dbgStep=7;
 // ── Swipe back (iOS-style, working version from earlier session) ──
 var sx=0,sy=0,swiping=false,swipeCur=null,swipePrev=null;
 var nav=document.getElementById('nav');
 
-// === BIG VISIBLE DEBUG ===
-// Persistent panel showing event counts
-var dbgPanel=document.createElement('div');
-dbgPanel.id='dbgPanel';
-dbgPanel.style.cssText='position:fixed;top:50px;left:8px;z-index:999999;background:#000;color:#0f0;font:13px monospace;padding:8px 10px;border-radius:6px;border:2px solid #0f0;pointer-events:none;min-width:160px';
-dbgPanel.innerHTML='DOC: 0<br>NAV: 0<br>sx: -<br>stk: -';
-document.body.appendChild(dbgPanel);
-var dbgDoc=0,dbgNav=0;
-document.addEventListener('touchstart',function(e){
-  dbgDoc++;
-  dbgPanel.innerHTML='DOC: '+dbgDoc+'<br>NAV: '+dbgNav+'<br>sx: '+Math.round(e.touches[0].clientX)+'<br>stk: '+stk.length;
-},{passive:true});
-
 nav.addEventListener('touchstart',function(e){
   dbgNav++;
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;swiping=false;
-  dbgPanel.innerHTML='DOC: '+dbgDoc+'<br>NAV: '+dbgNav+'<br>sx: '+Math.round(sx)+'<br>stk: '+stk.length;
+  dbgPanel.innerHTML='STEP: 99<br>DOC: '+dbgDoc+'<br>NAV: '+dbgNav+'<br>sx: '+Math.round(sx)+'<br>stk: '+stk.length;
   if(sx>55||stk.length<=1) return;
   var curId=stk[stk.length-1];
   var prevId=stk[stk.length-2];
@@ -644,6 +654,7 @@ nav.addEventListener('touchend',function(e){
   }
 },{passive:true});
 
+dbgStep=8;
 function cancelSwipe(){
   if(swipeCur){
     swipeCur.style.transition='transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';

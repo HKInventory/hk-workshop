@@ -408,15 +408,9 @@ var STAFF=[
 
 // ── Sizing ──
 function sz(){
-  var isDesktop=window.innerWidth>=600;
   var app=document.getElementById('app');
-  if(isDesktop){
-    // CSS handles app dimensions on desktop
-    app.style.height='';
-  } else {
-    app.style.height=window.innerHeight+'px';
-  }
-  document.getElementById('nav').style.height=(app.offsetHeight-document.getElementById('hdr').offsetHeight)+'px';
+  app.style.height=window.innerHeight+'px';
+  document.getElementById('nav').style.height=(window.innerHeight-document.getElementById('hdr').offsetHeight)+'px';
   if(stk.length&&stk[stk.length-1]==='home') sizeTiles();
 }
 sz();window.addEventListener('resize',sz);window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
@@ -565,10 +559,14 @@ function applyRoleVisibility(){
   if(!cu) return;
   var isM=cu.role==='Manager'||cu.role==='Assistant Manager';
   var isRO=cu.role==='Read Only';
+  // Detect device with no camera (desktop without webcam OR no touch + wide screen)
+  var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
+  var isDesktop=window.innerWidth>=900&&!('ontouchstart' in window);
+  var hideScan=isRO||noCam||isDesktop;
   var mt=document.getElementById('mgrt');
   if(mt) mt.style.display=(isM||isRO)?'flex':'none';
   var ts=document.getElementById('tscan'),to=document.getElementById('tord');
-  if(ts) ts.style.display=isRO?'none':'flex';
+  if(ts) ts.style.display=hideScan?'none':'flex';
   if(to) to.style.display=isRO?'none':'flex';
 }
 
@@ -587,9 +585,6 @@ function sizeTiles(){
   var navH=document.getElementById('nav').offsetHeight;
   var wides=(isM||isRO)?2:1,wH=55,gap=10,pt=14+16;
   var isWide=window.innerWidth>=900;
-  // 4-col on wide desktop = 1 row of tiles, need less vertical space
-  var rowsOfTiles=isWide?1:2;
-  // On desktop, tiles take a fixed reasonable height instead of filling everything
   if(window.innerWidth>=600){
     var tH=Math.min(navH-pt-(wides*(wH+gap))-gap, isWide?180:420);
     var g=document.getElementById('tiles');g.style.height=tH+'px';g.style.flex='none';

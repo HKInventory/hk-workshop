@@ -24,6 +24,22 @@
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
     html,body{height:100%;background:var(--bg);font-family:'Inter',-apple-system,sans-serif;color:var(--t1);overflow:hidden;-webkit-font-smoothing:antialiased}
 
+    /* Desktop: center the app in a phone-shaped column */
+    @media (min-width: 600px) {
+      body { background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
+      #app {
+        width: 440px !important;
+        max-width: 440px;
+        height: min(900px, 92vh) !important;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 60px rgba(0,207,255,0.03);
+      }
+      /* Show subtle keyboard hint on desktop */
+      .pin-p::after { content: ' · or use your keyboard'; color: var(--t3); font-size: 12px; }
+    }
+
     /* ── Shell ── */
     #app{display:flex;flex-direction:column;overflow:hidden}
 
@@ -246,10 +262,10 @@
         <div class="dots" id="pd"><div class="dot" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>
         <div class="perr" id="pe">&nbsp;</div>
         <div class="pad">
-          <div class="k" ontouchstart="pp('1')">1</div><div class="k" ontouchstart="pp('2')">2</div><div class="k" ontouchstart="pp('3')">3</div>
-          <div class="k" ontouchstart="pp('4')">4</div><div class="k" ontouchstart="pp('5')">5</div><div class="k" ontouchstart="pp('6')">6</div>
-          <div class="k" ontouchstart="pp('7')">7</div><div class="k" ontouchstart="pp('8')">8</div><div class="k" ontouchstart="pp('9')">9</div>
-          <div class="k emp"></div><div class="k" ontouchstart="pp('0')">0</div><div class="k del" ontouchstart="pd2()">⌫</div>
+          <div class="k" onclick="pp('1')">1</div><div class="k" onclick="pp('2')">2</div><div class="k" onclick="pp('3')">3</div>
+          <div class="k" onclick="pp('4')">4</div><div class="k" onclick="pp('5')">5</div><div class="k" onclick="pp('6')">6</div>
+          <div class="k" onclick="pp('7')">7</div><div class="k" onclick="pp('8')">8</div><div class="k" onclick="pp('9')">9</div>
+          <div class="k emp"></div><div class="k" onclick="pp('0')">0</div><div class="k del" onclick="pd2()">⌫</div>
         </div>
       </div>
     </div>
@@ -381,9 +397,15 @@ var STAFF=[
 
 // ── Sizing ──
 function sz(){
-  var h=window.innerHeight;
-  document.getElementById('app').style.height=h+'px';
-  document.getElementById('nav').style.height=(h-document.getElementById('hdr').offsetHeight)+'px';
+  var isDesktop=window.innerWidth>=600;
+  var app=document.getElementById('app');
+  if(isDesktop){
+    // CSS handles app dimensions on desktop
+    app.style.height='';
+  } else {
+    app.style.height=window.innerHeight+'px';
+  }
+  document.getElementById('nav').style.height=(app.offsetHeight-document.getElementById('hdr').offsetHeight)+'px';
   if(stk.length&&stk[stk.length-1]==='home') sizeTiles();
 }
 sz();window.addEventListener('resize',sz);window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
@@ -563,6 +585,15 @@ function animTiles(){
 }
 
 // ── PIN ──
+// Keyboard support for desktop / external keyboards
+document.addEventListener('keydown',function(e){
+  var pinActive=document.getElementById('s-pin').classList.contains('active');
+  if(!pinActive) return;
+  if(e.key>='0'&&e.key<='9'){pp(e.key);e.preventDefault();}
+  else if(e.key==='Backspace'){pd2();e.preventDefault();}
+  else if(e.key==='Enter'&&pin3.length===4){chk();e.preventDefault();}
+});
+
 function pp(d){if(pin3.length>=4)return;pin3+=d;udots();document.getElementById('pe').innerHTML='&nbsp;';if(pin3.length===4)setTimeout(chk,100);}
 function pd2(){pin3=pin3.slice(0,-1);udots();}
 function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin3.length?d.classList.add('on'):d.classList.remove('on');}}

@@ -235,21 +235,9 @@
     .ws{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.6);margin-top:3px}
 
     /* ── Back btn ── */
-    .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:16px 0 8px;flex-shrink:0;font-family:'Inter',sans-serif}
-    /* Header row with back + refresh — sticks to top while scrolling */
-    .phdr{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;
-      position:sticky;top:0;z-index:20;
-      background:linear-gradient(to bottom,var(--bg) 80%,rgba(0,0,0,0));
-      margin-left:-20px;margin-right:-20px;
-      padding:0 20px 6px;
-    }
-    /* Standalone back button (Race, Manager) — also sticky */
-    .sb > .back{
-      position:sticky;top:0;z-index:20;
-      background:linear-gradient(to bottom,var(--bg) 80%,rgba(0,0,0,0));
-      margin-left:-20px;margin-right:-20px;
-      padding-left:20px;padding-right:20px;
-    }
+    .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:8px 0;flex-shrink:0;font-family:'Inter',sans-serif}
+    /* Header row with back + refresh (positioned OUTSIDE scroll area) */
+    .phdr{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;padding:8px 20px 6px;background:var(--bg);position:relative;z-index:2}
     .refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--b1);border-radius:999px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;padding:6px 12px;font-family:'Inter',sans-serif;transition:all .15s}
     .refresh-btn:active{background:var(--card2);color:var(--acc)}
     .refresh-btn.spinning{color:var(--acc)}
@@ -268,7 +256,10 @@
     .sin::placeholder{color:var(--t3)}
 
     /* ── Part cards ── */
-    .pcard{background:var(--card);border:1px solid var(--b1);border-radius:16px;padding:14px 16px;margin-bottom:8px}
+    .pcard{border-radius:16px;padding:14px 16px;margin-bottom:8px;background:var(--card);border:1px solid var(--b1)}
+    .pcard.h{background:rgba(0,200,83,.05);border:1px solid rgba(0,200,83,.25);box-shadow:0 0 14px rgba(0,200,83,0.10)}
+    .pcard.l{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.30);box-shadow:0 0 16px rgba(255,214,0,0.13)}
+    .pcard.z{background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.28);box-shadow:0 0 16px rgba(255,59,48,0.12)}
     .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
     .cname{font-size:14px;font-weight:600;line-height:1.4;flex:1}
     .cpr{font-size:13px;font-weight:700;color:var(--acc);flex-shrink:0}
@@ -282,8 +273,9 @@
     .stxt.g{color:var(--grn)}.stxt.y{color:#FFD600}.stxt.r{color:var(--red)}
     .cmeta-sk{font-size:11px;color:var(--t2)}
     .lcard{border-radius:16px;padding:14px 16px;margin-bottom:8px}
-    .lcard.z{background:rgba(255,59,48,.04);border:1px solid rgba(255,59,48,.15)}
-    .lcard.l{background:rgba(255,149,0,.04);border:1px solid rgba(255,149,0,.15)}
+    .lcard.h{background:rgba(0,200,83,.05);border:1px solid rgba(0,200,83,.25);box-shadow:0 0 14px rgba(0,200,83,0.10)}
+    .lcard.z{background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.28);box-shadow:0 0 16px rgba(255,59,48,0.12)}
+    .lcard.l{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.30);box-shadow:0 0 16px rgba(255,214,0,0.13)}
 
     /* ── Scan ── */
     .scanf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 20px}
@@ -417,11 +409,11 @@
 
     <!-- SEARCH -->
     <div class="scr" id="s-search">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-search" onclick="refreshParts('search')"><span class="ricon">🔄</span><span id="rt-search">Refresh</span></button>
+      </div>
       <div class="sb">
-        <div class="phdr">
-          <button class="back" onclick="back()"> Back</button>
-          <button class="refresh-btn" id="rb-search" onclick="refreshParts('search')"><span class="ricon">🔄</span><span id="rt-search">Refresh</span></button>
-        </div>
         <div class="pgtitle">Search Parts</div>
         <div class="sinw"><span class="sico">🔍</span><input class="sin" type="text" id="si" placeholder="Name or SKU..." oninput="fpt()" autocomplete="off"></div>
         <div id="sr"><div class="emp"><span class="empic">🔍</span>Start typing to search</div></div>
@@ -430,11 +422,11 @@
 
     <!-- LOW STOCK -->
     <div class="scr" id="s-lowstock">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-lowstock" onclick="refreshParts('lowstock')"><span class="ricon">🔄</span><span id="rt-lowstock">Refresh</span></button>
+      </div>
       <div class="sb">
-        <div class="phdr">
-          <button class="back" onclick="back()"> Back</button>
-          <button class="refresh-btn" id="rb-lowstock" onclick="refreshParts('lowstock')"><span class="ricon">🔄</span><span id="rt-lowstock">Refresh</span></button>
-        </div>
         <div class="pgtitle">Low Stock</div>
         <div id="lr"><div class="emp"><span class="empic">⚠️</span>Loading...</div></div>
       </div>
@@ -442,11 +434,11 @@
 
     <!-- ORDER -->
     <div class="scr" id="s-order">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-order" onclick="refreshParts('order')"><span class="ricon">🔄</span><span id="rt-order">Refresh</span></button>
+      </div>
       <div class="sb">
-        <div class="phdr">
-          <button class="back" onclick="back()"> Back</button>
-          <button class="refresh-btn" id="rb-order" onclick="refreshParts('order')"><span class="ricon">🔄</span><span id="rt-order">Refresh</span></button>
-        </div>
         <div class="pgtitle">Request Order</div>
         <div class="flbl">Your name</div>
         <div class="finput" id="on" style="display:flex;align-items:center;gap:10px;color:var(--t1);cursor:not-allowed;opacity:0.85">
@@ -466,8 +458,8 @@
 
     <!-- RACEFACER -->
     <div class="scr" id="s-race">
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <button class="back" onclick="back()"> Back</button>
         <div class="pgtitle">Racefacer</div>
         <div class="rcard">
           <div style="font-size:56px;margin-bottom:16px">🏎️</div>
@@ -480,8 +472,8 @@
 
     <!-- MANAGER -->
     <div class="scr" id="s-manager">
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <button class="back" onclick="back()"> Back</button>
         <div class="pgtitle">Manager Dashboard</div>
         <div class="mc"><div class="mct">Active Today</div><div id="mli"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Today's Activity</div><div id="mta"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -879,7 +871,8 @@ function rS(q){
   if(!l.length){se('search','<div class="emp"><span class="empic">🔍</span>No parts found</div>');return;}
   var h='';
   l.slice(0,60).forEach(function(p){
-    h+='<div class="pcard">'
+    var pc=p.qty===0?'z':p.qty<=p.reorder?'l':'h';
+    h+='<div class="pcard '+pc+'">'
       +'<div class="ctop"><div class="cname">'+p.desc+'</div>'+(p.price&&p.price>0?'<div class="cpr">$'+parseFloat(p.price).toFixed(2)+'</div>':'')+'</div>'
       +'<div class="cmeta">'+sdot(p)+'</div>'
       +(p.sku||p.loc?'<div style="margin-top:7px;display:flex;gap:8px;flex-wrap:wrap">'

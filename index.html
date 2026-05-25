@@ -146,8 +146,8 @@
     .scr.active{transform:translateX(0)}
     .scr.behind{transform:translateX(-28%)}
     .scr.behind::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.45);pointer-events:none;z-index:99}
-    .sb{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 20px max(env(safe-area-inset-bottom),24px);-webkit-overflow-scrolling:touch}
-    .sf{flex:1;overflow:hidden;padding:0 20px max(env(safe-area-inset-bottom),16px)}
+    .sb{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 20px calc(max(env(safe-area-inset-bottom),0px) + 60px);-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    .sf{flex:1;overflow:hidden;padding:0 20px calc(max(env(safe-area-inset-bottom),0px) + 16px)}
 
     /* ── PIN ── */
     /* Animated gradient background */
@@ -574,16 +574,11 @@ function getNavW(){return nav.offsetWidth;}
 document.addEventListener('touchstart',function(e){
   if(!e.touches||!e.touches[0])return;
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;sw=false;
-  // Must start near left edge
-  if(sx>44) return;
+  // Must start near left edge — wider zone (60px)
+  if(sx>60) return;
   // Must have a page to go back to
   if(stk.length<=1) return;
-  // Check active page scroll position
-  var ae=document.querySelector('.scr.active');
-  if(!ae) return;
-  var sb=ae.querySelector('.sb');
-  if(sb&&sb.scrollTop>4) return;
-  // Set up swipe
+  // Set up swipe (works regardless of scroll position — edge zone is too narrow to conflict with scrolling)
   swC=s(stk[stk.length-1]);
   swP=s(stk[stk.length-2]);
   if(!swC||!swP) return;

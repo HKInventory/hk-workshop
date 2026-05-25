@@ -236,6 +236,14 @@
 
     /* ── Back btn ── */
     .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:16px 0 8px;flex-shrink:0;font-family:'Inter',sans-serif}
+    /* Header row with back + refresh */
+    .phdr{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+    .refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--b1);border-radius:999px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;padding:6px 12px;font-family:'Inter',sans-serif;transition:all .15s}
+    .refresh-btn:active{background:var(--card2);color:var(--acc)}
+    .refresh-btn.spinning{color:var(--acc)}
+    .refresh-btn.spinning .ricon{animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .stamp{font-size:11px;color:var(--t2)}
     .back:active{opacity:.6}
     .back::before{content:'←'}
     .pgtitle{font-size:clamp(20px,5vw,24px);font-weight:800;letter-spacing:-0.4px;margin-bottom:18px;flex-shrink:0}
@@ -398,7 +406,10 @@
     <!-- SEARCH -->
     <div class="scr" id="s-search">
       <div class="sb">
-        <button class="back" onclick="back()"> Back</button>
+        <div class="phdr">
+          <button class="back" onclick="back()"> Back</button>
+          <button class="refresh-btn" id="rb-search" onclick="refreshParts('search')"><span class="ricon">🔄</span><span id="rt-search">Refresh</span></button>
+        </div>
         <div class="pgtitle">Search Parts</div>
         <div class="sinw"><span class="sico">🔍</span><input class="sin" type="text" id="si" placeholder="Name or SKU..." oninput="fpt()" autocomplete="off"></div>
         <div id="sr"><div class="emp"><span class="empic">🔍</span>Start typing to search</div></div>
@@ -408,7 +419,10 @@
     <!-- LOW STOCK -->
     <div class="scr" id="s-lowstock">
       <div class="sb">
-        <button class="back" onclick="back()"> Back</button>
+        <div class="phdr">
+          <button class="back" onclick="back()"> Back</button>
+          <button class="refresh-btn" id="rb-lowstock" onclick="refreshParts('lowstock')"><span class="ricon">🔄</span><span id="rt-lowstock">Refresh</span></button>
+        </div>
         <div class="pgtitle">Low Stock</div>
         <div id="lr"><div class="emp"><span class="empic">⚠️</span>Loading...</div></div>
       </div>
@@ -417,7 +431,10 @@
     <!-- ORDER -->
     <div class="scr" id="s-order">
       <div class="sb">
-        <button class="back" onclick="back()"> Back</button>
+        <div class="phdr">
+          <button class="back" onclick="back()"> Back</button>
+          <button class="refresh-btn" id="rb-order" onclick="refreshParts('order')"><span class="ricon">🔄</span><span id="rt-order">Refresh</span></button>
+        </div>
         <div class="pgtitle">Request Order</div>
         <div class="flbl">Your name</div>
         <div class="finput" id="on" style="display:flex;align-items:center;gap:10px;color:var(--t1);cursor:not-allowed;opacity:0.85">
@@ -468,7 +485,7 @@
 </div>
 <script>
 var APP='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
-var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false;
+var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0;
 // Hardcoded staff as instant fallback — sheet fetch updates in background
 var STAFF=[
   {name:'Ross McArthur',  role:'Manager',          pin:'1234',emoji:'⭐'},
@@ -767,11 +784,46 @@ function jsonp(url,cb){
 
 // ── Parts ──
 function lp(t){
-  if(parts.length>0){rnd(t);return;}
-  var cc=sessionStorage.getItem('hk_p');if(cc){try{var pp=JSON.parse(cc);if(pp.length&&pp[0].hasOwnProperty('used90')){parts=pp.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});rnd(t);return;}else sessionStorage.removeItem('hk_p');}catch(e){sessionStorage.removeItem('hk_p');}}
+  // Show cached data immediately (if any), then refresh in background
+  if(parts.length===0){
+    var cc=sessionStorage.getItem('hk_p');
+    if(cc){
+      try{
+        var pp=JSON.parse(cc);
+        if(pp.length&&pp[0].hasOwnProperty('used90')){
+          parts=pp.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
+        } else sessionStorage.removeItem('hk_p');
+      }catch(e){sessionStorage.removeItem('hk_p');}
+    }
+  }
+  // Render whatever we have immediately
+  if(parts.length>0){
+    rnd(t);
+  } else {
+    se(t,'<div class="emp"><span class="empic">⏳</span>Loading parts...</div>');
+  }
+  // Always refresh in background to ensure data is current
+  refreshParts(t,true);
+}
+
+function refreshParts(t,silent){
+  var btn=document.getElementById('rb-'+t),lbl=document.getElementById('rt-'+t);
+  if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   jsonp(APP+'?action=getparts',function(d){
-    if(!d){se(t,'<div class="emp"><span class="empic">⚠️</span>Could not load parts</div>');return;}
-    parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}rnd(t);
+    if(d){
+      parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
+      try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}
+      partsLastFetch=Date.now();
+      // Re-render current page if it's a parts page
+      if(t==='search'){if(document.getElementById('si'))fpt();else rS('');}
+      else if(t==='lowstock') rL();
+      else if(t==='order'){if(document.getElementById('os').value)fodp();}
+      if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Updated · just now';}
+      setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);
+    } else {
+      if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
+      if(!silent&&!parts.length) se(t==='order'?'_':t,'<div class="emp"><span class="empic">⚠️</span>Could not load parts</div>');
+    }
   });
 }
 function se(t,h){document.getElementById(t==='search'?'sr':'lr').innerHTML=h;}
@@ -977,7 +1029,7 @@ function stopScan(){
 }
 
 // ── Order ──
-function iord(){if(parts.length===0)lp('_');if(cu){var sel=document.getElementById('on');if(sel)sel.value=cu.name;}}
+function iord(){if(parts.length===0)lp('order');else refreshParts('order',true);if(cu){var sel=document.getElementById('on');if(sel)sel.value=cu.name;}}
 function fodp(){
   var q=document.getElementById('os').value.toLowerCase().trim(),dl=document.getElementById('oddl');
   if(!q||!parts.length){dl.style.display='none';return;}

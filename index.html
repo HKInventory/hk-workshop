@@ -338,31 +338,29 @@
     .emp{text-align:center;color:var(--t2);font-size:14px;padding:32px 0}
     .empic{font-size:32px;display:block;margin-bottom:10px;opacity:.25}
 
-    /* TAKE / RESTOCK in-app page */
-    .tk-row{display:flex;gap:10px;margin-bottom:12px}
-    .tk-box{flex:1;background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:12px 14px}
-    .tk-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px;color:var(--t2)}
-    .tk-lbl-cy{color:#00CFFF}
-    .tk-lbl-pk{color:#E040FB}
-    .tk-val{font-size:24px;font-weight:700;color:var(--t1);line-height:1.1}
-    .tk-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:14px 16px;margin-bottom:12px;text-align:center}
-    .tk-desc{font-size:18px;font-weight:700;color:var(--t1);margin-top:2px}
-    .tk-loc{font-size:18px;font-weight:700;color:var(--t1);margin-top:2px}
-    .tk-user-card{background:rgba(0,229,255,0.06);border:1.5px solid rgba(0,229,255,0.22);border-radius:14px;padding:12px 16px;margin-bottom:12px}
-    .tk-name{font-size:18px;font-weight:700;color:var(--t1);margin-top:2px}
+    /* TAKE / RESTOCK in-app page (compact, matches app design) */
+    .tk-name-hdr{font-size:clamp(24px,6.5vw,30px);font-weight:700;color:var(--t1);line-height:1.15;margin:4px 0 10px}
+    .tk-stock-row{display:flex;align-items:center;gap:7px;margin-bottom:11px;font-size:14px}
+    .tk-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+    .tk-pill{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:5px 11px;border-radius:7px}
+    .tk-pill-sku{color:#00CFFF;background:rgba(0,207,255,0.08);border:1px solid rgba(0,207,255,0.22)}
+    .tk-pill-loc{color:#E040FB;background:rgba(224,64,251,0.08);border:1px solid rgba(224,64,251,0.22)}
+    .tk-user-line{font-size:13px;color:var(--t2);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--b1)}
+    .tk-user-line span{color:var(--t1);font-weight:700}
+    .tk-mini-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--t2);margin-bottom:6px}
     .tk-qty-wrap{margin-bottom:14px}
-    .tk-qty-wrap input{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;color:var(--t1);font-size:18px;font-weight:600;font-family:'Inter',sans-serif;-webkit-appearance:none}
+    .tk-qty-wrap input{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;color:var(--t1);font-size:18px;font-weight:600;font-family:'Inter',sans-serif;-webkit-appearance:none;box-sizing:border-box}
     .tk-qty-wrap input:focus{outline:none;border-color:var(--acc)}
-    .tk-btn-row{display:flex;gap:10px;margin-bottom:14px}
-    .tk-take,.tk-restock{flex:1;border:none;border-radius:14px;padding:18px;font-size:17px;font-weight:700;font-family:'Inter',sans-serif;color:#fff;cursor:pointer;transition:opacity 0.2s}
+    .tk-btn-row{display:flex;gap:10px;margin-bottom:12px}
+    .tk-take,.tk-restock{flex:1;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;color:#fff;cursor:pointer;transition:opacity 0.2s}
     .tk-take{background:#E53935}
     .tk-restock{background:#43A047}
     .tk-take:active,.tk-restock:active{opacity:0.7}
     .tk-take:disabled,.tk-restock:disabled{opacity:0.5;cursor:not-allowed}
-    #tkMsg{margin-top:8px}
-    .tkmsg-ok{background:rgba(0,200,83,0.1);border:1.5px solid rgba(0,200,83,0.35);color:#00C853;padding:12px 14px;border-radius:12px;font-weight:600;text-align:center}
-    .tkmsg-err{background:rgba(255,59,48,0.1);border:1.5px solid rgba(255,59,48,0.35);color:#FF5252;padding:12px 14px;border-radius:12px;font-weight:600;text-align:center}
-    .tkmsg-loading{background:rgba(0,207,255,0.08);border:1.5px solid rgba(0,207,255,0.25);color:#00CFFF;padding:12px 14px;border-radius:12px;font-weight:600;text-align:center}
+    #tkMsg{margin-top:4px}
+    .tkmsg-ok{background:rgba(0,200,83,0.1);border:1.5px solid rgba(0,200,83,0.35);color:#00C853;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
+    .tkmsg-err{background:rgba(255,59,48,0.1);border:1.5px solid rgba(255,59,48,0.35);color:#FF5252;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
+    .tkmsg-loading{background:rgba(0,207,255,0.08);border:1.5px solid rgba(0,207,255,0.25);color:#00CFFF;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
   </style>
 </head>
 <body>
@@ -437,24 +435,15 @@
     <div class="scr" id="s-take">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="tk-row">
-          <div class="tk-box"><div class="tk-lbl tk-lbl-cy">SKU</div><div class="tk-val" id="tkSku">—</div></div>
-          <div class="tk-box"><div class="tk-lbl tk-lbl-pk">In Stock</div><div class="tk-val" id="tkQty">—</div></div>
+        <div class="tk-name-hdr" id="tkDesc">—</div>
+        <div class="tk-stock-row" id="tkMeta">—</div>
+        <div class="tk-pill-row">
+          <span class="tk-pill tk-pill-sku" id="tkSku">—</span>
+          <span class="tk-pill tk-pill-loc" id="tkLocPill" style="display:none">📍 <span id="tkLoc"></span></span>
         </div>
-        <div class="tk-card">
-          <div class="tk-lbl tk-lbl-cy" style="text-align:center">Part Description</div>
-          <div class="tk-desc" id="tkDesc">—</div>
-        </div>
-        <div class="tk-card" id="tkLocBox">
-          <div class="tk-lbl tk-lbl-pk" style="text-align:center">Location</div>
-          <div class="tk-loc">📍 <span id="tkLoc"></span></div>
-        </div>
-        <div class="tk-user-card">
-          <div class="tk-lbl tk-lbl-cy">Logged In As</div>
-          <div class="tk-name" id="tkName">—</div>
-        </div>
+        <div class="tk-user-line">Logged in as <span id="tkName">—</span></div>
         <div class="tk-qty-wrap">
-          <div class="tk-lbl tk-lbl-cy">Quantity</div>
+          <div class="tk-mini-lbl">Quantity</div>
           <input type="number" id="tkInput" min="1" value="1" inputmode="numeric"/>
         </div>
         <div class="tk-btn-row">
@@ -1118,13 +1107,15 @@ function _showTakePage(sku){
   var p=parts.find(function(x){return x.sku===sku;});
   if(!p){alert('Part not found: '+sku);return;}
   currentTakeSku=sku;
-  document.getElementById('tkSku').innerText=p.sku;
-  var stockEl=document.getElementById('tkQty');
-  stockEl.innerText=p.qty;
-  stockEl.style.color=p.qty===0?'#FF3B30':p.qty<=p.reorder?'#FFD600':'#00C853';
   document.getElementById('tkDesc').innerText=p.desc;
-  if(p.loc){document.getElementById('tkLoc').innerText=p.loc;document.getElementById('tkLocBox').style.display='';}
-  else {document.getElementById('tkLocBox').style.display='none';}
+  document.getElementById('tkSku').innerText=p.sku;
+  document.getElementById('tkMeta').innerHTML=sdot(p);
+  if(p.loc){
+    document.getElementById('tkLoc').innerText=p.loc;
+    document.getElementById('tkLocPill').style.display='';
+  } else {
+    document.getElementById('tkLocPill').style.display='none';
+  }
   document.getElementById('tkName').innerText=cu?cu.name:'';
   document.getElementById('tkInput').value='1';
   document.getElementById('tkMsg').innerHTML='';
@@ -1149,9 +1140,7 @@ function submitTake(action){
       if(p){
         if(action==='take') p.qty=Math.max(0,p.qty-qty);
         else p.qty=p.qty+qty;
-        var stockEl=document.getElementById('tkQty');
-        stockEl.innerText=p.qty;
-        stockEl.style.color=p.qty===0?'#FF3B30':p.qty<=p.reorder?'#FFD600':'#00C853';
+        document.getElementById('tkMeta').innerHTML=sdot(p);
         try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}
       }
     } else {

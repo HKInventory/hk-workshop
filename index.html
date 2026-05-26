@@ -1051,6 +1051,15 @@ function daysLeftPill(p){
   var col=days<90?'#FF3B30':days<=120?'#FFD600':'#00C853';
   return '<span style="font-size:11px;color:'+col+';font-weight:700;background:'+col+'14;padding:3px 9px;border-radius:6px;border:1px solid '+col+'33">~'+days+'d left</span>';
 }
+// Smart reorder pill — based on 90-day usage. Shows BOTH:
+//   • Min: recommended reorder point (when to order, covers 90-day lead time)
+//   • Order: 6-month supply quantity (how much to order each time)
+function reorderPill(p){
+  if(!p.recommendedReorder||!p.used90) return '';
+  // Only show if it meaningfully differs from current setting (avoid noise)
+  if(p.reorder && Math.abs(p.recommendedReorder - p.reorder) < 3) return '';
+  return '<span style="font-size:11px;color:#00CFFF;font-weight:700;background:rgba(0,207,255,0.08);padding:3px 9px;border-radius:6px;border:1px solid rgba(0,207,255,0.2)" title="Recommended minimum stock based on 90-day usage and RIMO 90-day lead time. Order quantity = '+p.orderQuantity+' (6 months supply)">💡 Min: '+p.recommendedReorder+' · Order: '+p.orderQuantity+'</span>';
+}
 
 function rS(q){
   var l=parts.filter(function(p){return !q||p.desc.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q);});
@@ -1065,6 +1074,7 @@ function rS(q){
         +(p.sku?'<span style="font-size:11px;color:#00CFFF;font-weight:700;background:rgba(0,207,255,0.08);padding:3px 9px;border-radius:6px;border:1px solid rgba(0,207,255,0.2)">'+p.sku+'</span>':'')
         +(p.loc?'<span style="font-size:11px;color:#E040FB;font-weight:700;background:rgba(224,64,251,0.08);padding:3px 9px;border-radius:6px;border:1px solid rgba(224,64,251,0.2)">📍 '+p.loc+'</span>':'')
         +daysLeftPill(p)
+        +reorderPill(p)
         +'</div>'
       +'</div>';
   });

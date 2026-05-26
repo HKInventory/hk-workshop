@@ -59,31 +59,45 @@
       .back { font-size: 16px; padding-top: 20px; }
       .sin { padding: 16px 18px 16px 50px; font-size: 16px; }
       .sico { left: 18px; font-size: 17px; }
-      /* ── Home page: all roles get 2x2 grid layout ── */
-      #s-home .sf { display: flex; align-items: center; justify-content: center; padding: 24px 48px; overflow-y: auto; }
+      /* ── Home page: uses ALL the horizontal dead-space, every item equal-sized ── */
+      #s-home .sf {
+        display: flex; align-items: center; justify-content: center;
+        max-width: 100% !important;  /* override the 1200px constraint just for home */
+        padding: 24px 48px;
+        overflow-y: auto;
+      }
       .home-inner {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 26px;
-        max-width: 1400px;
+        display: flex !important;
+        flex-direction: column;
+        gap: 24px;
+        max-width: 1800px;  /* use more of the monitor — was 1400 */
         width: 100%;
         height: auto !important;
         padding: 0 !important;
       }
-      .home-inner .tiles { display: contents; }
-      /* Every tile / wide becomes a square block */
+      /* Both tiles and wides become auto-fit grids — visible items fill the row equally */
+      .home-inner .tiles,
+      .home-inner .wides-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+      }
+      /* Override the mobile span rule on desktop — auto-fit handles symmetry */
+      .home-inner .wides-grid > .wide:last-child:nth-child(odd) { grid-column: auto; }
+      /* Every tile and wide becomes a uniform big square */
       .home-inner .tile,
       .home-inner .wide {
-        min-height: 260px;
-        padding: 44px;
-        border-radius: 28px;
+        min-height: 240px;
+        height: auto;
+        padding: 36px 28px;
+        border-radius: 26px;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         gap: 0;
       }
-      /* Ensure hidden tiles stay hidden on desktop */
+      /* Hidden items don't take grid space */
       .home-inner .tile[style*="display: none"],
       .home-inner .wide[style*="display: none"],
       .home-inner .tile[style*="display:none"],
@@ -92,40 +106,21 @@
       }
       .home-inner .tile .ti,
       .home-inner .wide .wi {
-        font-size: 64px;
-        margin-bottom: 20px;
+        font-size: 56px;
+        margin-bottom: 18px;
         flex-shrink: 0;
       }
       .home-inner .tile .tl,
       .home-inner .wide .wl {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 800;
       }
       .home-inner .tile .ts,
       .home-inner .wide .ws {
-        font-size: 16px;
-        margin-top: 8px;
+        font-size: 14px;
+        margin-top: 6px;
+        color: rgba(255,255,255,0.7);
       }
-      /* For MANAGER role: Manager Dashboard becomes a thinner bar spanning full width below the 2x2 */
-      .home-inner.role-mgr .wide.mgr {
-        grid-column: 1 / -1;
-        flex-direction: row;
-        min-height: 80px;
-        padding: 22px 36px;
-        text-align: left;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 22px;
-      }
-      .home-inner.role-mgr .wide.mgr .wi {
-        font-size: 38px;
-        margin-bottom: 0;
-      }
-      .home-inner.role-mgr .wide.mgr > div:last-child {
-        text-align: left;
-      }
-      .home-inner.role-mgr .wide.mgr .wl { font-size: 22px; }
-      .home-inner.role-mgr .wide.mgr .ws { font-size: 14px; margin-top: 4px; }
     }
 
         /* ── Shell ── */
@@ -207,12 +202,10 @@
     .ta .tile:nth-child(3){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 140ms both}
     .ta .tile:nth-child(4){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 210ms both}
     @keyframes wideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-    /* Wides grid — symmetric auto-layout. 1 wide stretches full width;
-       2 = side by side; 3 = 2 + 1 full-width; 4 = 2x2 */
-    .wides-grid{display:flex;flex-wrap:wrap;gap:10px;flex-shrink:0}
-    .wides-grid > .wide{flex:1 1 calc(50% - 5px);min-width:0}
-    /* Phone narrow viewports: stack the wides — too tight side-by-side */
-    @media (max-width:380px){.wides-grid > .wide{flex:1 1 100%}}
+    /* Wides grid — same 2-column layout as tiles so every item is equal size.
+       A lone last item spans both columns to stay symmetric. */
+    .wides-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
+    .wides-grid > .wide:last-child:nth-child(odd){grid-column:span 2}
     /* New entrance animation slots for fin + gord (slight stagger) */
     .wa3{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 420ms both}
     .wa4{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 490ms both}
@@ -236,14 +229,14 @@
     .tl{font-size:clamp(15px,4vw,18px);font-weight:800;color:#fff;letter-spacing:-0.3px;position:relative;z-index:1}
     .ts{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.65);margin-top:4px;position:relative;z-index:1}
 
-    .wide{flex:0 0 auto;height:78px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:16px;padding:clamp(13px,3vw,17px) 20px;cursor:pointer;flex-shrink:0;transition:transform .12s;user-select:none}
+    .wide{height:78px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:12px;padding:clamp(11px,2.5vw,17px) clamp(14px,3.5vw,20px);cursor:pointer;transition:transform .12s;user-select:none;min-width:0;overflow:hidden}
     .wide:active{transform:scale(0.97)}
     .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
     .wide{flex:0 0 auto;height:78px;position:relative}
     .wide.race{background:linear-gradient(145deg,#991B1B,#5B0F0F);border-color:rgba(220,38,38,0.4)}
     .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
     .wide.fin{background:linear-gradient(145deg,#BE185D,#831843);border-color:rgba(244,114,182,0.4)}
-    .wide.gord{background:linear-gradient(145deg,#C2410C,#7C2D12);border-color:rgba(251,146,60,0.4)}
+    .wide.gord{background:linear-gradient(145deg,#4338CA,#1E1B4B);border-color:rgba(129,140,248,0.45)}
     .wi{font-size:clamp(22px,5.5vw,28px);flex-shrink:0}
     .wl{font-size:clamp(15px,4vw,17px);font-weight:800;color:#fff}
     .ws{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.6);margin-top:3px}
@@ -342,6 +335,24 @@
     .pin-input{background:rgba(0,207,255,0.08);border:1px solid rgba(0,207,255,0.3);border-radius:8px;padding:6px 10px;color:#00CFFF;font-weight:800;font-size:15px;font-family:Monaco,Consolas,monospace;width:80px;text-align:center;letter-spacing:3px;-webkit-appearance:none;appearance:none}
     .pin-input:focus{outline:none;border-color:#00CFFF;background:rgba(0,207,255,0.15)}
     .pin-input.invalid{border-color:#FF3B30;background:rgba(255,59,48,0.1);color:#FF3B30}
+    /* Finance: horizontal bar charts + category bars (rose theme) */
+    .fbar-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px}
+    .fbar-row .fbar-label{flex:0 0 70px;color:var(--t2);font-weight:600;font-size:11px}
+    .fbar-row .fbar-track{flex:1;height:18px;background:rgba(244,114,182,0.08);border-radius:6px;overflow:hidden;position:relative}
+    .fbar-row .fbar-fill{height:100%;background:linear-gradient(90deg,#EC4899,#BE185D);border-radius:6px;transition:width .4s ease}
+    .fbar-row .fbar-value{flex:0 0 75px;text-align:right;font-weight:700;color:#fff;font-size:12px;font-variant-numeric:tabular-nums}
+    .fbar-row.zero .fbar-fill{background:rgba(244,114,182,0.15)}
+    .fbar-row.zero .fbar-value{color:var(--t2)}
+    /* Category percentage badge */
+    .fcat-pct{display:inline-block;padding:1px 8px;font-size:10px;font-weight:700;color:#EC4899;background:rgba(236,72,153,0.12);border-radius:999px;margin-left:6px;letter-spacing:0.3px}
+    /* YoY indicator */
+    .fyoy-block{display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:14px}
+    .fyoy-col{flex:1;text-align:center}
+    .fyoy-lbl{font-size:10px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+    .fyoy-val{font-size:18px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+    .fyoy-arrow{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+    .fyoy-arrow.up{color:#FF5252}    /* spending UP = warning */
+    .fyoy-arrow.down{color:#43A047}  /* spending DOWN = good */
     /* Manager Dashboard stat cards */
     .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
     .stat-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
@@ -609,7 +620,15 @@
           <div class="stat-card stat-finC"><div class="stat-num" id="fst-ytd">—</div><div class="stat-lbl">Spend · YTD</div></div>
           <div class="stat-card stat-finD"><div class="stat-num" id="fst-daily">—</div><div class="stat-lbl">Daily Avg (90d)</div></div>
         </div>
-        <div class="mc"><div class="mct">Awaiting Configuration</div><div class="emp" style="padding:14px 4px;font-size:13px;color:var(--t2);line-height:1.6">Tell Claude which finance sections you want and they will appear here. The four stat cards above are placeholders.</div></div>
+        <div class="mc"><div class="mct">📈 Monthly Spend · Last 12 Months</div><div id="fin-monthly"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">📉 vs Last Year</div><div id="fin-yoy"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">📊 Spend by Category · YTD</div><div id="fin-cat"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">💎 Top 10 Most Expensive in Stock</div><div id="fin-expensive"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">💸 Most Expensive Parts Taken This Month</div><div id="fin-topmonth"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">😴 Dead Stock Value</div><div id="fin-dead"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">🛒 Reorder Forecast Cost</div><div id="fin-reorder"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">🏎 Cost per Repair</div><div class="emp" style="padding:14px 4px;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div>
+        <div class="mc"><div class="mct">🏎 Cost per Kart per Month</div><div class="emp" style="padding:14px 4px;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div>
       </div>
     </div>
 
@@ -622,10 +641,10 @@
         <div class="pgtitle">Generate Order</div>
         <div class="rcard">
           <div style="font-size:56px;margin-bottom:16px">📦</div>
-          <div style="font-size:18px;font-weight:800;color:#FB923C;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:18px;font-weight:800;color:#818CF8;margin-bottom:10px">Coming Soon</div>
           <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📊&nbsp; Auto-build RIMO order from reorder data<br>🧮&nbsp; Smart 6-month order cycle<br>💰&nbsp; Total cost preview before sending<br>📄&nbsp; Export as PDF<br>📧&nbsp; Send directly to RIMO via email<br>📑&nbsp; Order history & status tracking<br>🔁&nbsp; One-tap reorder from history</div>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Manager-only tab · setup pending<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Manager-only tab · setup pending<br><span style="color:#818CF8;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -1595,26 +1614,108 @@ function loadMgr(){
 }
 
 
-// ── Finance page (skeleton) ──
+// ── Finance page (full implementation) ──
 function loadFin(){
   var btn=document.getElementById('rb-fin'),lbl=document.getElementById('rt-fin');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
-  // Backend not yet wired — uses local parts data for stock-value placeholder math.
-  var totalValue=0;
+  // Show instant local stock-value while we wait for the full payload
+  var localVal=0;
   if(parts&&parts.length){
-    parts.forEach(function(p){
-      var pr=parseFloat(p.price)||0,q=Number(p.qty)||0;
-      totalValue+=pr*q;
-    });
+    parts.forEach(function(p){var pr=parseFloat(p.price)||0,q=Number(p.qty)||0;localVal+=pr*q;});
   }
-  document.getElementById('fst-value').innerText=totalValue?('$'+Math.round(totalValue).toLocaleString()):'—';
-  document.getElementById('fst-month').innerText='—';
-  document.getElementById('fst-ytd').innerText='—';
-  document.getElementById('fst-daily').innerText='—';
-  if(btn){
-    btn.classList.remove('spinning');
-    if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}
-  }
+  document.getElementById('fst-value').innerText=localVal?('$'+Math.round(localVal).toLocaleString()):'—';
+
+  jsonp(APP+'?action=getfinancedata',function(d){
+    if(!d||d.error){
+      if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
+      return;
+    }
+    var fmt=function(n){return '$'+Math.round(n).toLocaleString();};
+    // Top stat cards
+    document.getElementById('fst-value').innerText=fmt(d.stockValue);
+    document.getElementById('fst-month').innerText=fmt(d.spendMonth);
+    document.getElementById('fst-ytd').innerText=fmt(d.spendYTD);
+    document.getElementById('fst-daily').innerText=fmt(d.dailyAvg);
+
+    // 12-month bar chart (relative to peak month)
+    var peakMonth=1;
+    (d.monthly12||[]).forEach(function(m){if(m.total>peakMonth) peakMonth=m.total;});
+    var monthlyHtml=(d.monthly12||[]).map(function(m){
+      var pct=peakMonth>0?Math.max(2,(m.total/peakMonth*100)):0;
+      var zero=m.total===0?' zero':'';
+      return '<div class="fbar-row'+zero+'"><div class="fbar-label">'+m.month+'</div><div class="fbar-track"><div class="fbar-fill" style="width:'+pct+'%"></div></div><div class="fbar-value">'+fmt(m.total)+'</div></div>';
+    }).join('');
+    document.getElementById('fin-monthly').innerHTML=monthlyHtml||'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">No spend recorded yet</div>';
+
+    // Year-over-year comparison
+    var yoyHtml='';
+    if(d.spendLastYr===0){
+      yoyHtml='<div class="emp" style="padding:8px 0;font-size:13px;color:var(--t2)">No data from last year to compare</div>';
+    } else {
+      var changeStr=d.yoyChange!==null?(d.yoyChange>=0?'+':'')+d.yoyChange.toFixed(1)+'%':'—';
+      var arrowCls=d.yoyChange>=0?'up':'down';
+      var arrowSym=d.yoyChange>=0?'▲':'▼';
+      yoyHtml='<div class="fyoy-block">'
+        +'<div class="fyoy-col"><div class="fyoy-lbl">Last Year</div><div class="fyoy-val">'+fmt(d.spendLastYr)+'</div></div>'
+        +'<div class="fyoy-col"><div class="fyoy-arrow '+arrowCls+'">'+arrowSym+' '+changeStr+'</div></div>'
+        +'<div class="fyoy-col"><div class="fyoy-lbl">This Year</div><div class="fyoy-val">'+fmt(d.spendYTD)+'</div></div>'
+        +'</div>';
+    }
+    document.getElementById('fin-yoy').innerHTML=yoyHtml;
+
+    // Spend by category — horizontal bars
+    var peakCat=1;
+    (d.categoryList||[]).forEach(function(c){if(c.value>peakCat) peakCat=c.value;});
+    var catHtml=(d.categoryList||[]).map(function(c){
+      var pct=Math.max(2,(c.value/peakCat*100));
+      return '<div class="fbar-row"><div class="fbar-label" style="flex:0 0 130px">'+c.cat+'</div><div class="fbar-track"><div class="fbar-fill" style="width:'+pct+'%"></div></div><div class="fbar-value">'+fmt(c.value)+'<span class="fcat-pct">'+c.pct.toFixed(0)+'%</span></div></div>';
+    }).join('');
+    document.getElementById('fin-cat').innerHTML=catHtml||'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">No category data yet</div>';
+
+    // Top 10 most expensive in stock
+    var expHtml=(d.expensiveInStock||[]).map(function(p,i){
+      return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'<br><span style="font-size:11px;color:var(--t2)">'+p.qty+' × $'+p.price.toFixed(2)+'</span></div><div class="mrr" style="color:#EC4899;font-weight:700">'+fmt(p.value)+'</div></div>';
+    }).join('');
+    document.getElementById('fin-expensive').innerHTML=expHtml||'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">No stock value data yet</div>';
+
+    // Most expensive parts taken this month
+    var topMHtml=(d.topTakenMonth||[]).map(function(p,i){
+      return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#FF5252;font-weight:700">'+fmt(p.cost)+'</div></div>';
+    }).join('');
+    document.getElementById('fin-topmonth').innerHTML=topMHtml||'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">No spend this month yet</div>';
+
+    // Dead stock
+    var deadHtml='';
+    if(!(d.deadStockItems||[]).length){
+      deadHtml='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">No high-value dead stock ✓</div>';
+    } else {
+      deadHtml='<div style="font-size:13px;color:var(--t2);margin-bottom:10px;padding:8px 12px;background:rgba(244,114,182,0.06);border-radius:8px"><strong style="color:#EC4899;font-size:16px">'+fmt(d.deadStockValue)+'</strong> tied up in stock that hasn\'t moved in 90+ days</div>';
+      deadHtml+=d.deadStockItems.map(function(p,i){
+        return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'<br><span style="font-size:11px;color:var(--t2)">'+p.qty+' units · last used: '+p.lastUsed+'</span></div><div class="mrr" style="color:#EC4899;font-weight:700">'+fmt(p.value)+'</div></div>';
+      }).join('');
+    }
+    document.getElementById('fin-dead').innerHTML=deadHtml;
+
+    // Reorder forecast
+    var reHtml='';
+    if(!(d.reorderForecastItems||[]).length){
+      reHtml='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">No reorder needed ✓</div>';
+    } else {
+      reHtml='<div style="font-size:13px;color:var(--t2);margin-bottom:10px;padding:8px 12px;background:rgba(244,114,182,0.06);border-radius:8px">Estimated total to fully restock low-stock items: <strong style="color:#EC4899;font-size:16px">'+fmt(d.reorderForecastCost)+'</strong></div>';
+      reHtml+=d.reorderForecastItems.slice(0,15).map(function(p){
+        return '<div class="mr"><div class="mrl">'+p.desc+'<br><span style="font-size:11px;color:var(--t2)">Order '+p.orderQty+' @ $'+p.price.toFixed(2)+' (current stock: '+p.qty+')</span></div><div class="mrr" style="color:#EC4899;font-weight:700">'+fmt(p.cost)+'</div></div>';
+      }).join('');
+      if(d.reorderForecastItems.length>15){
+        reHtml+='<div style="text-align:center;font-size:12px;color:var(--t2);padding:8px 0">+ '+(d.reorderForecastItems.length-15)+' more items</div>';
+      }
+    }
+    document.getElementById('fin-reorder').innerHTML=reHtml;
+
+    if(btn){
+      btn.classList.remove('spinning');
+      if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}
+    }
+  });
 }
 
 // ── Staff PIN editing (Manager Dashboard) ──
@@ -1636,10 +1737,11 @@ function renderStaffPins(){
     mpi.innerHTML=STAFF.map(function(x){
       return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';
     }).join('');
-    if(hdr) hdr.innerHTML='<span>Staff PINs</span><button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button>';
+    var canEdit = cu && (cu.role==='Manager' || cu.role==='Assistant Manager');
+    if(hdr) hdr.innerHTML='<span>Staff PINs</span>'+(canEdit ? '<button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button>' : '');
   }
 }
-function toggleStaffEdit(){staffEditMode=true;renderStaffPins();}
+function toggleStaffEdit(){if(!cu||(cu.role!=='Manager'&&cu.role!=='Assistant Manager'))return;staffEditMode=true;renderStaffPins();}
 function cancelStaffEdit(){staffEditMode=false;renderStaffPins();}
 function saveStaffPins(){
   var inputs=document.querySelectorAll('.pin-input');

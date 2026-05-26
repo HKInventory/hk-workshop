@@ -207,6 +207,15 @@
     .ta .tile:nth-child(3){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 140ms both}
     .ta .tile:nth-child(4){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 210ms both}
     @keyframes wideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    /* Wides grid — symmetric auto-layout. 1 wide stretches full width;
+       2 = side by side; 3 = 2 + 1 full-width; 4 = 2x2 */
+    .wides-grid{display:flex;flex-wrap:wrap;gap:10px;flex-shrink:0}
+    .wides-grid > .wide{flex:1 1 calc(50% - 5px);min-width:0}
+    /* Phone narrow viewports: stack the wides — too tight side-by-side */
+    @media (max-width:380px){.wides-grid > .wide{flex:1 1 100%}}
+    /* New entrance animation slots for fin + gord (slight stagger) */
+    .wa3{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 420ms both}
+    .wa4{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 490ms both}
     .wa1{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 280ms both}
     .wa2{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 350ms both}
 
@@ -233,6 +242,8 @@
     .wide{flex:0 0 auto;height:78px;position:relative}
     .wide.race{background:linear-gradient(145deg,#991B1B,#5B0F0F);border-color:rgba(220,38,38,0.4)}
     .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
+    .wide.fin{background:linear-gradient(145deg,#BE185D,#831843);border-color:rgba(244,114,182,0.4)}
+    .wide.gord{background:linear-gradient(145deg,#C2410C,#7C2D12);border-color:rgba(251,146,60,0.4)}
     .wi{font-size:clamp(22px,5.5vw,28px);flex-shrink:0}
     .wl{font-size:clamp(15px,4vw,17px);font-weight:800;color:#fff}
     .ws{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.6);margin-top:3px}
@@ -341,6 +352,10 @@
     .stat-restock{--clr:#43A047}
     .stat-staff{--clr:#FFD600}
     .stat-soon{--clr:#FF9800}
+    .stat-finA{--clr:#EC4899}
+    .stat-finB{--clr:#A855F7}
+    .stat-finC{--clr:#F472B6}
+    .stat-finD{--clr:#C084FC}
     @media (min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr)}.stat-num{font-size:32px}}
 
     /* ── Manager ── */
@@ -444,8 +459,12 @@
             <div class="tile tlo" onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
             <div class="tile tor" id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
           </div>
-          <div class="wide race wa1" id="wrace" onclick="go('race')"><div class="wi">🏎️</div><div><div class="wl">Racefacer</div><div class="ws">Track & session data</div></div></div>
-          <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">⭐</div><div><div class="wl">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
+          <div class="wides-grid" id="wides-grid">
+            <div class="wide race wa1" id="wrace" onclick="go('race')"><div class="wi">🏎️</div><div><div class="wl">Racefacer</div><div class="ws">Track & session data</div></div></div>
+            <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">⭐</div><div><div class="wl">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
+            <div class="wide fin wa3" id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="wi">💰</div><div><div class="wl">Finance</div><div class="ws">Stock value & spend</div></div></div>
+            <div class="wide gord wa4" id="wgord" style="display:none" onclick="go('genorder')"><div class="wi">📦</div><div><div class="wl">Generate Order</div><div class="ws">Auto-build RIMO order</div></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -572,6 +591,41 @@
         <div class="mc"><div class="mct">🚨 Racefacer Discrepancies</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct">📦 Racefacer Warehouse Stock</div><div id="mrfw"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct" id="staff-pin-header" style="display:flex;justify-content:space-between;align-items:center"><span>Staff PINs</span><button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button></div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="scr" id="s-finance">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-fin" onclick="loadFin()"><span class="ricon">🔄</span><span id="rt-fin">Refresh</span></button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Finance</div>
+        <!-- Quick stat cards (pink/rose accents to match Finance branding) -->
+        <div class="stats-grid">
+          <div class="stat-card stat-finA"><div class="stat-num" id="fst-value">—</div><div class="stat-lbl">Stock Value</div></div>
+          <div class="stat-card stat-finB"><div class="stat-num" id="fst-month">—</div><div class="stat-lbl">Spend · Month</div></div>
+          <div class="stat-card stat-finC"><div class="stat-num" id="fst-ytd">—</div><div class="stat-lbl">Spend · YTD</div></div>
+          <div class="stat-card stat-finD"><div class="stat-num" id="fst-daily">—</div><div class="stat-lbl">Daily Avg (90d)</div></div>
+        </div>
+        <div class="mc"><div class="mct">Awaiting Configuration</div><div class="emp" style="padding:14px 4px;font-size:13px;color:var(--t2);line-height:1.6">Tell Claude which finance sections you want and they will appear here. The four stat cards above are placeholders.</div></div>
+      </div>
+    </div>
+
+    <!-- GENERATE ORDER -->
+    <div class="scr" id="s-genorder">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Generate Order</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">📦</div>
+          <div style="font-size:18px;font-weight:800;color:#FB923C;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📊&nbsp; Auto-build RIMO order from reorder data<br>🧮&nbsp; Smart 6-month order cycle<br>💰&nbsp; Total cost preview before sending<br>📄&nbsp; Export as PDF<br>📧&nbsp; Send directly to RIMO via email<br>📑&nbsp; Order history & status tracking<br>🔁&nbsp; One-tap reorder from history</div>
+        </div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Manager-only tab · setup pending<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -883,6 +937,12 @@ function applyRoleVisibility(){
   var hideScan=isRO||noCam||isDesktop;
   var mt=document.getElementById('mgrt');
   if(mt) mt.style.display=(isM||isRO)?'flex':'none';
+  // Finance: visible to Managers + Office
+  var wfin=document.getElementById('wfin');
+  if(wfin) wfin.style.display=(isM||isRO)?'flex':'none';
+  // Generate Order: Managers only
+  var wgord=document.getElementById('wgord');
+  if(wgord) wgord.style.display=isM?'flex':'none';
   var ts=document.getElementById('tscan'),to=document.getElementById('tord');
   if(ts) ts.style.display=hideScan?'none':'flex';
   if(to) to.style.display=isRO?'none':'flex';
@@ -1532,6 +1592,29 @@ function loadMgr(){
     if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Updated · just now';}
     setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);
   });
+}
+
+
+// ── Finance page (skeleton) ──
+function loadFin(){
+  var btn=document.getElementById('rb-fin'),lbl=document.getElementById('rt-fin');
+  if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
+  // Backend not yet wired — uses local parts data for stock-value placeholder math.
+  var totalValue=0;
+  if(parts&&parts.length){
+    parts.forEach(function(p){
+      var pr=parseFloat(p.price)||0,q=Number(p.qty)||0;
+      totalValue+=pr*q;
+    });
+  }
+  document.getElementById('fst-value').innerText=totalValue?('$'+Math.round(totalValue).toLocaleString()):'—';
+  document.getElementById('fst-month').innerText='—';
+  document.getElementById('fst-ytd').innerText='—';
+  document.getElementById('fst-daily').innerText='—';
+  if(btn){
+    btn.classList.remove('spinning');
+    if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}
+  }
 }
 
 // ── Staff PIN editing (Manager Dashboard) ──

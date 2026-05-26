@@ -224,10 +224,10 @@
     .tl{font-size:clamp(15px,4vw,18px);font-weight:800;color:#fff;letter-spacing:-0.3px;position:relative;z-index:1}
     .ts{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.65);margin-top:4px;position:relative;z-index:1}
 
-    .wide{flex:1 1 0;min-height:60px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:16px;padding:clamp(13px,3vw,17px) 20px;cursor:pointer;flex-shrink:0;transition:transform .12s;user-select:none}
+    .wide{flex:0 0 auto;height:78px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:16px;padding:clamp(13px,3vw,17px) 20px;cursor:pointer;flex-shrink:0;transition:transform .12s;user-select:none}
     .wide:active{transform:scale(0.97)}
     .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
-    .wide{flex:1 1 0;min-height:60px;position:relative}
+    .wide{flex:0 0 auto;height:78px;position:relative}
     .wide.race{background:linear-gradient(145deg,#991B1B,#5B0F0F);border-color:rgba(220,38,38,0.4)}
     .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
     .wi{font-size:clamp(22px,5.5vw,28px);flex-shrink:0}
@@ -564,10 +564,19 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('/hk-inventory
 
 // ── Fetch staff ──
 function fetchStaff(cb){
+  // Office Access is ALWAYS available — hardcoded as a permanent fallback
+  // even if not in the server's Staff sheet
+  var OFFICE_USER={name:'Office',role:'Office Access',pin:'0000',emoji:'🏢'};
+  function ensureOffice(list){
+    var hasOffice=list.some(function(s){return String(s.pin)==='0000'||s.role==='Office Access';});
+    if(!hasOffice) list.push(OFFICE_USER);
+    return list;
+  }
   var c=sessionStorage.getItem('hk_s'),ts=sessionStorage.getItem('hk_st');
-  if(c&&ts&&Date.now()-Number(ts)<300000){try{STAFF=JSON.parse(c);if(cb)cb();return;}catch(e){}}
+  if(c&&ts&&Date.now()-Number(ts)<300000){try{STAFF=ensureOffice(JSON.parse(c));if(cb)cb();return;}catch(e){}}
   jsonp(APP+'?action=getstaff',function(d){
-    if(d&&d.length){STAFF=d;try{sessionStorage.setItem('hk_s',JSON.stringify(d));sessionStorage.setItem('hk_st',Date.now());}catch(e){}}
+    if(d&&d.length){STAFF=ensureOffice(d);try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}}
+    else {STAFF=ensureOffice(STAFF);}
     if(cb)cb();
   });
 }

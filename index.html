@@ -143,7 +143,9 @@
 
     /* ── Nav ── */
     #nav{flex:1;position:relative;overflow:hidden;min-height:0}
-    .scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translate3d(100%,0,0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;contain:layout style paint}
+    .scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translate3d(100%,0,0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;contain:layout style paint;transform-origin:0 0;isolation:isolate;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;pointer-events:none}
+    .scr.active{pointer-events:auto}
+    .scr.behind{pointer-events:none}
     .scr.active{transform:translate3d(0,0,0)}
     .scr.behind{transform:translate3d(-28%,0,0)}
     

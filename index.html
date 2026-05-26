@@ -615,10 +615,10 @@ function go(id){
   // Force reflow so the browser commits the starting state before the transition
   void nxt.offsetWidth;
   // Now trigger the transitions
-  nxt.style.transition='transform 380ms '+ease;
+  nxt.style.transition='transform 480ms '+ease;
   nxt.style.transform='translate3d(0,0,0)';
   if(cur){
-    cur.style.transition='transform 380ms '+ease;
+    cur.style.transition='transform 480ms '+ease;
     cur.style.transform='translate3d(-28%,0,0)';
   }
   setTimeout(function(){
@@ -637,7 +637,7 @@ function go(id){
       cur.style.transform='translate3d(-28%,0,0)';
     }
     requestAnimationFrame(function(){updateUI(id);});
-  },400);
+  },500);
 }
 function back(){
   if(stk.length<=1) return;
@@ -652,9 +652,9 @@ function back(){
   // Force reflow
   void from.offsetWidth;
   // Trigger the transitions
-  from.style.transition='transform 380ms '+ease;
+  from.style.transition='transform 480ms '+ease;
   from.style.transform='translate3d(100%,0,0)';
-  to.style.transition='transform 380ms '+ease;
+  to.style.transition='transform 480ms '+ease;
   to.style.transform='translate3d(0,0,0)';
   setTimeout(function(){
     // CRITICAL FIX: align cascade (class state) BEFORE touching inline transforms.
@@ -673,7 +673,7 @@ function back(){
     from.style.transform='translate3d(100%,0,0)';
     if(fromId==='scan') stopScan();
     requestAnimationFrame(function(){updateUI(toId);});
-  },400);
+  },500);
 }
 
 // ── Swipe back (lazy setup — only activates on real movement) ──

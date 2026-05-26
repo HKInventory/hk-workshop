@@ -54,7 +54,7 @@
       .sin { padding: 16px 18px 16px 50px; font-size: 16px; }
       .sico { left: 18px; font-size: 17px; }
       /* Manager dashboard cards in 2 columns */
-      #s-manager .sb { max-width: 1300px; align-self: center; width: 100%; }
+      #s-manager .mgr-content { max-width: 1300px; margin: 0 auto; }
       #s-manager .mc { display: inline-block; width: calc(50% - 8px); vertical-align: top; margin-right: 16px; }
       #s-manager .mc:nth-child(2n) { margin-right: 0; }
 
@@ -523,6 +523,7 @@
     <div class="scr" id="s-manager">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
+        <div class="mgr-content">
         <div class="pgtitle">Manager Dashboard</div>
         <div class="mc"><div class="mct">Active Today</div><div id="mli"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Today's Activity</div><div id="mta"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -531,6 +532,7 @@
         <div class="mc"><div class="mct">Low Stock</div><div id="mls"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Staff PINs</div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        </div>
       </div>
     </div>
 
@@ -1134,15 +1136,17 @@ function rL(){
 function beep(){
   try{
     var ctx=new(window.AudioContext||window.webkitAudioContext)();
-    // Two-tone beep like a real scanner
-    [0,0.12].forEach(function(delay){
+    // Loud long beep with multiple oscillators stacked for max volume
+    var dur=0.45;
+    [1800,1800,1800].forEach(function(freq){
       var o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=1800;o.type='square';
-      g.gain.setValueAtTime(0,ctx.currentTime+delay);
-      g.gain.linearRampToValueAtTime(0.6,ctx.currentTime+delay+0.01);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.1);
-      o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+0.12);
+      o.frequency.value=freq;o.type='square';
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(1.0,ctx.currentTime+0.005);
+      g.gain.setValueAtTime(1.0,ctx.currentTime+dur-0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+      o.start(ctx.currentTime);o.stop(ctx.currentTime+dur);
     });
   }catch(e){}
 }

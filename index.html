@@ -543,7 +543,7 @@
           <div class="stat-card stat-take"><div class="stat-num" id="st-takes">—</div><div class="stat-lbl">Taken Today</div></div>
           <div class="stat-card stat-restock"><div class="stat-num" id="st-restocks">—</div><div class="stat-lbl">Restocked Today</div></div>
           <div class="stat-card stat-staff"><div class="stat-num" id="st-staff">—</div><div class="stat-lbl">Active Staff</div></div>
-          <div class="stat-card stat-soon"><div class="stat-num" id="st-soon">—</div><div class="stat-lbl">Stockouts ≤30d</div></div>
+          <div class="stat-card stat-soon"><div class="stat-num" id="st-soon">—</div><div class="stat-lbl">Stockouts ≤90d</div></div>
         </div>
         <div class="mc"><div class="mct">Active Today</div><div id="mli"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Today's Activity</div><div id="mta"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -1428,7 +1428,7 @@ function loadMgr(){
       if(r.action==='RESTOCK') totalRestock+=r.qty;
     });
     var li=d.loggedInToday||[];
-    var soon=(d.stockouts||[]).filter(function(p){return p.daysLeft<=30;}).length;
+    var soon=(d.stockouts||[]).filter(function(p){return p.daysLeft<=90;}).length;
     // Populate stat cards
     document.getElementById('st-takes').innerText=totalTake;
     document.getElementById('st-restocks').innerText=totalRestock;
@@ -1443,7 +1443,7 @@ function loadMgr(){
     var med=['🥇','🥈','🥉'];
     document.getElementById('mlb').innerHTML=!(d.staffList||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No activity this week</div>':d.staffList.map(function(x,i){return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+x.name+'</div><div class="mrr"><span class="bdg bt">−'+x.taken+'</span> <span class="bdg br">+'+x.restocked+'</span></div></div>';}).join('');
     document.getElementById('mtp').innerHTML=!(d.topWeek||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No data this week</div>':d.topWeek.map(function(p,i){return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#f87171;font-weight:700">'+p.qty+'</div></div>';}).join('');
-    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.daysLeft<=7?'var(--red)':p.daysLeft<=14?'var(--amb)':'var(--t2)';return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
+    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.daysLeft<90?'#FF3B30':p.daysLeft<=120?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
     document.getElementById('mpi').innerHTML=STAFF.map(function(x){return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';}).join('');
   });
 }

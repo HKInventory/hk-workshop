@@ -195,7 +195,7 @@
     #s-home .sf{position:relative;z-index:1}
 
     .home-inner{display:flex;flex-direction:column;height:100%;gap:10px;padding-top:14px;padding-bottom:calc(env(safe-area-inset-bottom) + 12px);box-sizing:border-box}
-    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1 1 0;min-height:0}
+    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:2 1 0;min-height:0}
 
     /* Tile entrance */
     @keyframes tileIn{from{opacity:0;transform:translateY(28px) scale(0.92)}to{opacity:1;transform:none}}
@@ -224,10 +224,10 @@
     .tl{font-size:clamp(15px,4vw,18px);font-weight:800;color:#fff;letter-spacing:-0.3px;position:relative;z-index:1}
     .ts{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.65);margin-top:4px;position:relative;z-index:1}
 
-    .wide{flex:1 1 0;min-height:55px;max-height:90px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:16px;padding:clamp(13px,3vw,17px) 20px;cursor:pointer;flex-shrink:0;transition:transform .12s;user-select:none}
+    .wide{flex:1 1 0;min-height:60px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:16px;padding:clamp(13px,3vw,17px) 20px;cursor:pointer;flex-shrink:0;transition:transform .12s;user-select:none}
     .wide:active{transform:scale(0.97)}
     .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
-    .wide{flex:1 1 0;min-height:55px;max-height:90px;position:relative}
+    .wide{flex:1 1 0;min-height:60px;position:relative}
     .wide.race{background:linear-gradient(145deg,#991B1B,#5B0F0F);border-color:rgba(220,38,38,0.4)}
     .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
     .wi{font-size:clamp(22px,5.5vw,28px);flex-shrink:0}

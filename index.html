@@ -1065,7 +1065,7 @@ function rS(q){
   var l=parts.filter(function(p){return !q||p.desc.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q);});
   if(!l.length){se('search','<div class="emp"><span class="empic">🔍</span>No parts found</div>');return;}
   var h='';
-  l.slice(0,60).forEach(function(p){
+  l.forEach(function(p){
     var pc=p.qty===0?'z':p.qty<=p.reorder?'l':'h';
     h+='<div class="pcard '+pc+'">'
       +'<div class="ctop"><div class="cname">'+p.desc+'</div>'+(p.price&&p.price>0?'<div class="cpr">$'+parseFloat(p.price).toFixed(2)+'</div>':'')+'</div>'

@@ -535,7 +535,10 @@
 
     <!-- MANAGER -->
     <div class="scr" id="s-manager">
-      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-mgr" onclick="loadMgr()"><span class="ricon">🔄</span><span id="rt-mgr">Refresh</span></button>
+      </div>
       <div class="sb">
         <div class="pgtitle">Manager Dashboard</div>
         <!-- Quick stats row -->
@@ -1419,8 +1422,13 @@ function subord(){
 
 // ── Manager ──
 function loadMgr(){
+  var btn=document.getElementById('rb-mgr'),lbl=document.getElementById('rt-mgr');
+  if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   jsonp(APP+'?action=getmanagerdata',function(d){
-    if(!d)return;
+    if(!d){
+      if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
+      return;
+    }
     // Compute daily totals for stat cards
     var totalTake=0,totalRestock=0;
     (d.todayLog||[]).forEach(function(r){
@@ -1445,6 +1453,8 @@ function loadMgr(){
     document.getElementById('mtp').innerHTML=!(d.topWeek||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No data this week</div>':d.topWeek.map(function(p,i){return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#f87171;font-weight:700">'+p.qty+'</div></div>';}).join('');
     document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.daysLeft<90?'#FF3B30':p.daysLeft<=120?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
     document.getElementById('mpi').innerHTML=STAFF.map(function(x){return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';}).join('');
+    if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Updated · just now';}
+    setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);
   });
 }
 </script>

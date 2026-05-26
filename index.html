@@ -561,7 +561,8 @@
         <div class="mc"><div class="mct">Leaderboard · This Week</div><div id="mlb"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Most Taken · This Week</div><div id="mtp"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
-        <div class="mc"><div class="mct">🚨 Racefacer Mismatches</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
+        <div class="mc"><div class="mct">🚨 Racefacer Discrepancies</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
+        <div class="mc"><div class="mct">📦 Racefacer Warehouse Stock</div><div id="mrfw"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct">Staff PINs</div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
       </div>
     </div>
@@ -1471,15 +1472,53 @@ function loadMgr(){
     document.getElementById('mlb').innerHTML=!(d.staffList||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No activity this week</div>':d.staffList.map(function(x,i){return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+x.name+'</div><div class="mrr"><span class="bdg bt">−'+x.taken+'</span> <span class="bdg br">+'+x.restocked+'</span></div></div>';}).join('');
     document.getElementById('mtp').innerHTML=!(d.topWeek||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No data this week</div>':d.topWeek.map(function(p,i){return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#f87171;font-weight:700">'+p.qty+'</div></div>';}).join('');
     document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.daysLeft<90?'#FF3B30':p.daysLeft<=120?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
-    // Racefacer mismatch section — populated once API is integrated.
-    // Expected format: d.racefacerMismatches = [{ desc:'25mm Silent Block', sku:'1384023', appQty:93, rfQty:88, diff:-5 }, ...]
-    var rfm=d.racefacerMismatches;
-    if(rfm===undefined){
+    // Racefacer Discrepancies — repair-based cross-check between app QR scans and Racefacer repair logs.
+    // Expected format from API once integrated:
+    //   d.racefacerDiscrepancies = [
+    //     {
+    //       repairId: 'RF12345',
+    //       kart: '17',
+    //       time: '14:30',
+    //       date: '26 May',
+    //       mechanic: 'Rafael Hewitt',
+    //       problem: 'Motor not engaging when accelerator pressed',
+    //       repairNote: 'Replaced motor unit and tested.',
+    //       notScanned: [{ sku:'1382446', desc:'Motor', qty:1 }],  // Deducted from RF stock but never scanned out via app
+    //       notLogged:  [{ sku:'1384023', desc:'Silent Block', qty:1 }] // Scanned via app but no matching RF repair
+    //     }, ...
+    //   ];
+    var rfd=d.racefacerDiscrepancies;
+    if(rfd===undefined){
       document.getElementById('mrf').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div>';
-    } else if(!rfm.length){
-      document.getElementById('mrf').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">All parts in sync ✓</div>';
+    } else if(!rfd.length){
+      document.getElementById('mrf').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">No discrepancies · all repairs match ✓</div>';
     } else {
-      document.getElementById('mrf').innerHTML=rfm.map(function(p){var d=p.diff||0;var cl=Math.abs(d)>=5?'#FF3B30':'#FFD600';var sign=d>0?'+':'';return '<div class="mr"><div class="mrl">'+p.desc+(p.sku?'<br><span style="font-size:11px;color:var(--t2)">SKU: '+p.sku+'</span>':'')+'</div><div class="mrr" style="color:'+cl+';font-weight:700;text-align:right"><div style="font-size:11px;color:var(--t2);font-weight:500">App: '+p.appQty+' · RF: '+p.rfQty+'</div><div>'+sign+d+'</div></div></div>';}).join('');
+      document.getElementById('mrf').innerHTML=rfd.map(function(r){
+        var hdr='<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:6px"><span>Kart #'+(r.kart||'?')+' · '+(r.mechanic||'Unknown')+'</span><span style="font-size:11px;color:var(--t2);font-weight:500">'+(r.date||'')+' '+(r.time||'')+'</span></div>';
+        var prob=r.problem?'<div style="font-size:12px;color:var(--t2);margin-bottom:4px"><span style="color:#FFB74D">⚠</span> '+r.problem+'</div>':'';
+        var note=r.repairNote?'<div style="font-size:12px;color:var(--t2);margin-bottom:8px"><span style="color:#81C784">✓</span> '+r.repairNote+'</div>':'';
+        var notScannedHtml='';
+        if(r.notScanned&&r.notScanned.length){
+          notScannedHtml='<div style="background:rgba(255,59,48,0.08);border-left:3px solid #FF3B30;padding:8px 10px;border-radius:6px;margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Used on RF · Not scanned in app</div>'+r.notScanned.map(function(p){return '<div style="font-size:13px">'+p.desc+' × '+p.qty+(p.sku?' <span style="color:var(--t2);font-size:11px">('+p.sku+')</span>':'')+'</div>';}).join('')+'</div>';
+        }
+        var notLoggedHtml='';
+        if(r.notLogged&&r.notLogged.length){
+          notLoggedHtml='<div style="background:rgba(255,214,0,0.08);border-left:3px solid #FFD600;padding:8px 10px;border-radius:6px"><div style="font-size:11px;font-weight:700;color:#FFD600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Scanned in app · No RF repair logged</div>'+r.notLogged.map(function(p){return '<div style="font-size:13px">'+p.desc+' × '+p.qty+(p.sku?' <span style="color:var(--t2);font-size:11px">('+p.sku+')</span>':'')+'</div>';}).join('')+'</div>';
+        }
+        return '<div style="background:var(--card2);border:1px solid var(--b1);border-radius:10px;padding:12px;margin-bottom:8px">'+hdr+prob+note+notScannedHtml+notLoggedHtml+'</div>';
+      }).join('');
+    }
+
+    // Racefacer Warehouse Stock — tracks RF-side warehouse levels (separate from our app stock).
+    // Expected format: d.racefacerWarehouse = [{ sku:'1382446', desc:'Motor', qty:0, status:'out' }, { sku:'...', desc:'...', qty:3, status:'low' }];
+    // status: 'out' (red, qty 0), 'low' (yellow, ≤ reorder), 'ok' (green, healthy — usually not shown)
+    var rfw=d.racefacerWarehouse;
+    if(rfw===undefined){
+      document.getElementById('mrfw').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div>';
+    } else if(!rfw.length){
+      document.getElementById('mrfw').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">RF warehouse stock healthy ✓</div>';
+    } else {
+      document.getElementById('mrfw').innerHTML=rfw.map(function(p){var cl=p.status==='out'?'#FF3B30':p.status==='low'?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+(p.sku?'<br><span style="font-size:11px;color:var(--t2)">SKU: '+p.sku+'</span>':'')+'</div><div class="mrr" style="color:'+cl+';font-weight:700">'+p.qty+'</div></div>';}).join('');
     }
     document.getElementById('mpi').innerHTML=STAFF.map(function(x){return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';}).join('');
     if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Updated · just now';}

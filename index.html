@@ -61,26 +61,35 @@
       .sico { left: 18px; font-size: 17px; }
       /* ── Home page: uses ALL the horizontal dead-space, every item equal-sized ── */
       #s-home .sf {
-        display: flex; align-items: center; justify-content: center;
-        max-width: 100% !important;  /* override the 1200px constraint just for home */
-        padding: 24px 48px;
+        display: block;  /* not flex — block + auto margins on home-inner centers it cleanly */
+        max-width: 100% !important;
+        padding: 32px 48px;
         overflow-y: auto;
+        height: 100%;
+        box-sizing: border-box;
       }
       .home-inner {
         display: flex !important;
         flex-direction: column;
         gap: 24px;
-        max-width: 1800px;  /* use more of the monitor — was 1400 */
+        max-width: 1800px;
         width: 100%;
+        margin: 0 auto;
         height: auto !important;
+        min-height: 0 !important;
         padding: 0 !important;
       }
-      /* Both tiles and wides become auto-fit grids — visible items fill the row equally */
+      /* Both tiles and wides become auto-fit grids — visible items fill the row equally.
+         flex:none crucial — overrides the .tiles flex:3 1 0 from base rule that was
+         making it grow uncontrollably and overlap with .wides-grid. */
       .home-inner .tiles,
       .home-inner .wides-grid {
         display: grid !important;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 24px;
+        flex: none !important;
+        min-height: 0 !important;
+        width: 100%;
       }
       /* Override the mobile span rule on desktop — auto-fit handles symmetry */
       .home-inner .wides-grid > .wide:last-child:nth-child(odd) { grid-column: auto; }
@@ -123,7 +132,9 @@
       }
     }
 
-        /* ── Shell ── */
+        /* During screen transitions, block all taps to prevent multi-tab opening */
+    #app.nav-locked, #app.nav-locked * { pointer-events: none !important; }
+    /* ── Shell ── */
     #app{display:flex;flex-direction:column;overflow:hidden}
 
     /* ── Header ── */
@@ -229,7 +240,8 @@
     .tl{font-size:clamp(15px,4vw,18px);font-weight:800;color:#fff;letter-spacing:-0.3px;position:relative;z-index:1}
     .ts{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.65);margin-top:4px;position:relative;z-index:1}
 
-    .wide{height:78px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;align-items:center;gap:12px;padding:clamp(11px,2.5vw,17px) clamp(14px,3.5vw,20px);cursor:pointer;transition:transform .12s;user-select:none;min-width:0;overflow:hidden}
+    .wide{min-height:140px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0;padding:18px 14px;cursor:pointer;transition:transform .12s;user-select:none;min-width:0;overflow:hidden}
+    .wide > div:not(.wi){display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-width:0}
     .wide:active{transform:scale(0.97)}
     .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
     .wide{flex:0 0 auto;height:78px;position:relative}
@@ -237,9 +249,9 @@
     .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
     .wide.fin{background:linear-gradient(145deg,#BE185D,#831843);border-color:rgba(244,114,182,0.4)}
     .wide.gord{background:linear-gradient(145deg,#4338CA,#1E1B4B);border-color:rgba(129,140,248,0.45)}
-    .wi{font-size:clamp(22px,5.5vw,28px);flex-shrink:0}
-    .wl{font-size:clamp(15px,4vw,17px);font-weight:800;color:#fff}
-    .ws{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.6);margin-top:3px}
+    .wi{font-size:clamp(28px,7vw,36px);margin-bottom:6px;flex-shrink:0}
+    .wl{font-size:clamp(14px,3.8vw,16px);font-weight:800;color:#fff;line-height:1.15}
+    .ws{font-size:clamp(11px,2.8vw,12px);color:rgba(255,255,255,0.65);margin-top:3px;line-height:1.3}
 
     /* ── Back btn ── */
     .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:8px 0;flex-shrink:0;font-family:'Inter',sans-serif}
@@ -652,7 +664,7 @@
 </div>
 <script>
 var APP='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
-var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0;
+var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0,navLock=false;
 // Hardcoded staff as instant fallback — sheet fetch updates in background
 var STAFF=[
   {name:'Ross McArthur',  role:'Manager',          pin:'1234',emoji:'⭐'},
@@ -726,8 +738,13 @@ function showRoot(id){
   s(id).classList.add('active');s(id).style.cssText='';updateUI(id);
 }
 function go(id){
+  if(navLock) return;  // block spam taps during in-flight transition
   var curId=stk.length?stk[stk.length-1]:null,cur=curId?s(curId):null,nxt=s(id);
-  if(!nxt||id===curId) return;stk.push(id);
+  if(!nxt||id===curId) return;
+  navLock=true;
+  var appEl=document.getElementById('app');
+  if(appEl) appEl.classList.add('nav-locked');
+  stk.push(id);
   // Reset scroll position to top whenever entering a screen
   var sb=nxt.querySelector('.sb');
   if(sb) sb.scrollTop=0;
@@ -765,10 +782,16 @@ function go(id){
       cur.style.transform='translate3d(-28%,0,0)';
     }
     requestAnimationFrame(function(){updateUI(id);});
+    navLock=false;
+    if(appEl) appEl.classList.remove('nav-locked');
   },500);
 }
 function back(){
+  if(navLock) return;
   if(stk.length<=1) return;
+  navLock=true;
+  var appEl2=document.getElementById('app');
+  if(appEl2) appEl2.classList.add('nav-locked');
   var fromId=stk.pop(),toId=stk[stk.length-1],from=s(fromId),to=s(toId);
   var ease='cubic-bezier(0.32,0.72,0,1)';
   // Set starting positions WITHOUT transition
@@ -801,6 +824,8 @@ function back(){
     from.style.transform='translate3d(100%,0,0)';
     if(fromId==='scan') stopScan();
     requestAnimationFrame(function(){updateUI(toId);});
+    navLock=false;
+    if(appEl2) appEl2.classList.remove('nav-locked');
   },500);
 }
 
@@ -1071,8 +1096,10 @@ function chk(){
 function goHome(){
   // Don't do anything if not logged in, already on home, or on pin/welcome screens
   if(!cu) return;
+  if(navLock) return;
   var current=stk[stk.length-1];
   if(current==='home'||current==='pin'||current==='welcome') return;
+  navLock=true;
   // Single animated transition: current screen slides off right, home slides in from left
   var from=s(current),to=s('home');
   if(!from||!to) return;
@@ -1107,6 +1134,7 @@ function goHome(){
     from.style.transform='translate3d(100%,0,0)';
     stk=['home'];
     requestAnimationFrame(function(){updateUI('home');});
+    navLock=false;
   },500);
 }
 

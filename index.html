@@ -323,6 +323,14 @@
     #msg.ld{background:var(--acc2);border:1px solid rgba(0,207,255,.15);color:var(--acc);display:block}
 
 
+    /* Staff PIN edit controls */
+    .staff-edit-btn{background:rgba(0,207,255,0.1);color:#00CFFF;border:1px solid rgba(0,207,255,0.3);font-size:10px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;font-family:'Inter',sans-serif;transition:all .15s}
+    .staff-edit-btn:active{transform:scale(0.96)}
+    .staff-edit-btn.save{background:rgba(67,160,71,0.15);color:#43A047;border-color:rgba(67,160,71,0.4);margin-left:6px}
+    .staff-edit-btn.cancel{background:rgba(255,82,82,0.1);color:#FF5252;border-color:rgba(255,82,82,0.3)}
+    .pin-input{background:rgba(0,207,255,0.08);border:1px solid rgba(0,207,255,0.3);border-radius:8px;padding:6px 10px;color:#00CFFF;font-weight:800;font-size:15px;font-family:Monaco,Consolas,monospace;width:80px;text-align:center;letter-spacing:3px;-webkit-appearance:none;appearance:none}
+    .pin-input:focus{outline:none;border-color:#00CFFF;background:rgba(0,207,255,0.15)}
+    .pin-input.invalid{border-color:#FF3B30;background:rgba(255,59,48,0.1);color:#FF3B30}
     /* Manager Dashboard stat cards */
     .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
     .stat-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
@@ -563,7 +571,7 @@
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">🚨 Racefacer Discrepancies</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct">📦 Racefacer Warehouse Stock</div><div id="mrfw"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
-        <div class="mc"><div class="mct">Staff PINs</div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct" id="staff-pin-header" style="display:flex;justify-content:space-between;align-items:center"><span>Staff PINs</span><button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button></div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
       </div>
     </div>
 
@@ -1520,11 +1528,66 @@ function loadMgr(){
     } else {
       document.getElementById('mrfw').innerHTML=rfw.map(function(p){var cl=p.status==='out'?'#FF3B30':p.status==='low'?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+(p.sku?'<br><span style="font-size:11px;color:var(--t2)">SKU: '+p.sku+'</span>':'')+'</div><div class="mrr" style="color:'+cl+';font-weight:700">'+p.qty+'</div></div>';}).join('');
     }
-    document.getElementById('mpi').innerHTML=STAFF.map(function(x){return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';}).join('');
+    renderStaffPins();
     if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Updated · just now';}
     setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);
   });
 }
+
+// ── Staff PIN editing (Manager Dashboard) ──
+var staffEditMode=false;
+function renderStaffPins(){
+  var mpi=document.getElementById('mpi');
+  var hdr=document.getElementById('staff-pin-header');
+  if(!mpi) return;
+  if(staffEditMode){
+    mpi.innerHTML=STAFF.map(function(x){
+      return '<div class="prow">'
+        +'<span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name
+        +'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span>'
+        +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]*" data-staff="'+x.name.replace(/"/g,'&quot;')+'" value="'+x.pin+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')">'
+        +'</div>';
+    }).join('');
+    if(hdr) hdr.innerHTML='<span>Staff PINs</span><span><button class="staff-edit-btn cancel" onclick="cancelStaffEdit()">Cancel</button><button class="staff-edit-btn save" id="staff-save-btn" onclick="saveStaffPins()">Save</button></span>';
+  } else {
+    mpi.innerHTML=STAFF.map(function(x){
+      return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';
+    }).join('');
+    if(hdr) hdr.innerHTML='<span>Staff PINs</span><button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button>';
+  }
+}
+function toggleStaffEdit(){staffEditMode=true;renderStaffPins();}
+function cancelStaffEdit(){staffEditMode=false;renderStaffPins();}
+function saveStaffPins(){
+  var inputs=document.querySelectorAll('.pin-input');
+  var updates=[],hasError=false,pinsSeen={};
+  inputs.forEach(function(inp){
+    var pin=inp.value.trim();
+    inp.classList.remove('invalid');
+    if(!/^\d{4}$/.test(pin)){inp.classList.add('invalid');hasError=true;return;}
+    if(pinsSeen[pin]){inp.classList.add('invalid');hasError=true;return;}
+    pinsSeen[pin]=true;
+    updates.push({name:inp.dataset.staff,pin:pin});
+  });
+  if(hasError){alert('PINs must be 4 digits and unique. Fix the highlighted fields.');return;}
+  var sb=document.getElementById('staff-save-btn');
+  if(sb){sb.innerText='Saving...';sb.disabled=true;}
+  jsonp(APP+'?action=updatestaffpins&data='+encodeURIComponent(JSON.stringify(updates)),function(r){
+    if(r&&r.success){
+      // Update local STAFF array immediately
+      updates.forEach(function(u){
+        var st=STAFF.find(function(s){return s.name===u.name;});
+        if(st) st.pin=u.pin;
+      });
+      staffEditMode=false;
+      renderStaffPins();
+    } else {
+      alert('Save failed: '+(r&&r.error?r.error:'connection issue'));
+      if(sb){sb.innerText='Save';sb.disabled=false;}
+    }
+  });
+}
+
 </script>
 <script type="module">
   try {

@@ -53,13 +53,6 @@
       .back { font-size: 16px; padding-top: 20px; }
       .sin { padding: 16px 18px 16px 50px; font-size: 16px; }
       .sico { left: 18px; font-size: 17px; }
-      /* Manager dashboard cards in 2 columns */
-      /* Center the ENTIRE manager dashboard view (header + cards) on the screen */
-      #s-manager { align-items: center; }
-      #s-manager .phdr, #s-manager .sb { max-width: 1300px; width: 100%; }
-      #s-manager .mc { display: inline-block; width: calc(50% - 8px); vertical-align: top; margin-right: 16px; }
-      #s-manager .mc:nth-child(2n) { margin-right: 0; }
-
       /* ── Home page: all roles get 2x2 grid layout ── */
       #s-home .sf { display: flex; align-items: center; justify-content: center; padding: 24px 48px; overflow-y: auto; }
       .home-inner {
@@ -525,7 +518,6 @@
     <div class="scr" id="s-manager">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="mgr-content">
         <div class="pgtitle">Manager Dashboard</div>
         <div class="mc"><div class="mct">Active Today</div><div id="mli"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Today's Activity</div><div id="mta"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -534,7 +526,6 @@
         <div class="mc"><div class="mct">Low Stock</div><div id="mls"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Staff PINs</div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
-        </div>
       </div>
     </div>
 

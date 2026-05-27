@@ -291,6 +291,7 @@
         text-align: left;
         align-items: center;
         justify-content: flex-start;
+        grid-column: span 2 !important;  /* Always strip full-width on phone */
       }
       .wide.gord .wi { font-size: 28px !important; margin-bottom: 0 !important; }
       .wide.gord > div:not(.wi) { align-items: flex-start !important; flex-direction: row !important; gap: 12px !important; flex-wrap: wrap; }
@@ -346,6 +347,7 @@
     .wa3{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 420ms both}
     .wa4{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 490ms both}
     .wa5{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 560ms both}
+    .wa6{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 630ms both}
     .wa1{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 280ms both}
     .wa2{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 350ms both}
 
@@ -376,6 +378,7 @@
     .wide.fin{background:linear-gradient(145deg,#BE185D,#831843);border-color:rgba(244,114,182,0.4)}
     .wide.gord{background:linear-gradient(145deg,#4338CA,#1E1B4B);border-color:rgba(129,140,248,0.45)}
     .wide.beacon{background:linear-gradient(145deg,#65A30D,#3F6212);border-color:rgba(190,242,100,0.5)}
+    .wide.kartinfo{background:linear-gradient(145deg,#92400E,#451A03);border-color:rgba(245,158,11,0.45)}
     .wi{font-size:clamp(28px,8vw,52px);margin-bottom:6px;flex-shrink:0}
     .wl{font-size:clamp(14px,4.5vw,22px);font-weight:800;color:#fff;line-height:1.15}
     .ws{font-size:clamp(11px,3.2vw,16px);color:rgba(255,255,255,0.65);margin-top:3px;line-height:1.3}
@@ -406,7 +409,7 @@
     .sin::placeholder{color:var(--t3)}
 
     /* ── Part cards ── */
-    .pcard{border-radius:16px;padding:14px 16px;margin-bottom:8px;background:var(--card);border:1px solid var(--b1);content-visibility:auto;contain-intrinsic-size:0 110px}
+    .pcard{border-radius:16px;padding:14px 16px;margin-bottom:8px;background:var(--card);border:1px solid var(--b1);content-visibility:auto;contain-intrinsic-size:0 110px;min-width:0;word-wrap:break-word;overflow-wrap:anywhere}
     .pcard.h{background:rgba(0,200,83,.05);border:1px solid rgba(0,200,83,.32)}
     .pcard.l{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.38)}
     .pcard.z{background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.35)}
@@ -475,11 +478,11 @@
     .pin-input:focus{outline:none;border-color:#00CFFF;background:rgba(0,207,255,0.15)}
     .pin-input.invalid{border-color:#FF3B30;background:rgba(255,59,48,0.1);color:#FF3B30}
     /* Finance: horizontal bar charts + category bars (rose theme) */
-    .fbar-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px}
-    .fbar-row .fbar-label{flex:0 0 70px;color:var(--t2);font-weight:600;font-size:11px}
-    .fbar-row .fbar-track{flex:1;height:18px;background:rgba(244,114,182,0.08);border-radius:6px;overflow:hidden;position:relative}
+    .fbar-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px;min-width:0;flex-wrap:nowrap}
+    .fbar-row .fbar-label{flex:0 0 clamp(60px,18vw,90px);color:var(--t2);font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .fbar-row .fbar-track{flex:1 1 auto;min-width:30px;height:18px;background:rgba(244,114,182,0.08);border-radius:6px;overflow:hidden;position:relative}
     .fbar-row .fbar-fill{height:100%;background:linear-gradient(90deg,#EC4899,#BE185D);border-radius:6px;transition:width .4s ease}
-    .fbar-row .fbar-value{flex:0 0 75px;text-align:right;font-weight:700;color:#fff;font-size:12px;font-variant-numeric:tabular-nums}
+    .fbar-row .fbar-value{flex:0 0 auto;text-align:right;font-weight:700;color:#fff;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
     .fbar-row.zero .fbar-fill{background:rgba(244,114,182,0.15)}
     .fbar-row.zero .fbar-value{color:var(--t2)}
     /* Category percentage badge */
@@ -497,13 +500,71 @@
     .staff-edit-row:last-child{border-bottom:none}
     .staff-del-btn{background:rgba(255,82,82,0.12);color:#FF5252;border:1px solid rgba(255,82,82,0.3);width:24px;height:24px;border-radius:50%;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-family:inherit;transition:all .12s}
     .staff-del-btn:active{transform:scale(0.9);background:rgba(255,82,82,0.25)}
-    .staff-edit-meta{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+    .staff-edit-meta{flex:1 1 0;display:flex;flex-direction:column;gap:4px;min-width:0}
     .staff-name-input{background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;color:#fff;font-size:13px;font-weight:600;font-family:inherit;width:100%;-webkit-appearance:none;appearance:none}
     .staff-name-input:focus{outline:none;border-color:rgba(0,207,255,0.4);background:rgba(0,207,255,0.05)}
     .staff-role-select{background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:8px;padding:4px 8px;color:var(--t2);font-size:11px;font-family:inherit;font-weight:500;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 4px center;background-size:14px;padding-right:22px}
     .staff-role-select:focus{outline:none;border-color:rgba(0,207,255,0.4)}
     .staff-add-btn{background:rgba(0,207,255,0.08);color:#00CFFF;border:1px dashed rgba(0,207,255,0.35);border-radius:10px;padding:10px;width:100%;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;font-family:inherit;cursor:pointer;margin-top:10px;transition:all .12s}
     .staff-add-btn:active{transform:scale(0.98);background:rgba(0,207,255,0.15)}
+
+    /* ── Kart Info screen — fully responsive (iPhone SE → Mac monitor) ── */
+    .kart-legend{display:flex;align-items:center;font-size:clamp(10px,2.8vw,12px);color:var(--t2);margin-bottom:14px;flex-wrap:wrap;gap:6px 12px;line-height:1.5}
+    .kl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0}
+    .kl-ok{background:#22C55E}
+    .kl-maint{background:#FFD600}
+    .kl-damaged{background:#FF3B30}
+    /* Kart chip grid — auto-fills any width: 5 cols on phone narrow, 10+ on Mac */
+    .kart-chip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;margin-bottom:18px}
+    @media (min-width:600px){.kart-chip-grid{gap:10px;grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}}
+    @media (min-width:1000px){.kart-chip-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}}
+    .kart-chip{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px 6px;cursor:pointer;text-align:center;position:relative;transition:transform .12s,background .12s,border-color .12s;user-select:none;min-width:0;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
+    .kart-chip:active{transform:scale(0.95)}
+    .kart-chip:hover{border-color:rgba(245,158,11,0.4)}
+    .kart-chip.selected{background:rgba(245,158,11,0.15);border-color:#F59E0B}
+    .kart-chip .kc-num{font-size:clamp(16px,4.5vw,22px);font-weight:800;color:#fff;line-height:1}
+    .kart-chip .kc-badge{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%}
+    .kart-chip[data-status="ok"] .kc-badge{background:#22C55E}
+    .kart-chip[data-status="maint"] .kc-badge{background:#FFD600}
+    .kart-chip[data-status="damaged"] .kc-badge{background:#FF3B30}
+    /* Selected kart header — flexes to fit any width, wraps on tight screens */
+    .kart-detail-header{display:flex;align-items:center;gap:clamp(12px,3vw,20px);padding:clamp(14px,3vw,20px);background:var(--card);border:1px solid var(--b1);border-radius:16px;margin-bottom:14px;flex-wrap:wrap}
+    .kart-num-big{font-size:clamp(32px,8vw,52px);font-weight:800;color:#F59E0B;line-height:1;letter-spacing:-1px;flex-shrink:0;min-width:50px;text-align:center}
+    .kart-meta{flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px}
+    .kart-name{font-size:clamp(15px,4vw,18px);font-weight:700;color:#fff;word-wrap:break-word;overflow-wrap:anywhere}
+    .kart-id-line{font-size:clamp(10px,2.8vw,12px);color:var(--t2);font-family:Monaco,Consolas,monospace;word-wrap:break-word;overflow-wrap:anywhere}
+    .kart-status-pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:999px;align-self:flex-start;margin-top:2px}
+    .kart-status-pill.ok{background:rgba(34,197,94,0.15);color:#22C55E}
+    .kart-status-pill.maint{background:rgba(255,214,0,0.15);color:#FFD600}
+    .kart-status-pill.damaged{background:rgba(255,59,48,0.15);color:#FF3B30}
+    /* Sub-tab pills — horizontal scroll when needed, no overflow */
+    .subtabs{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 8px;margin:0 -2px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .subtabs::-webkit-scrollbar{display:none}
+    .subtab{background:transparent;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:999px;white-space:nowrap;font-weight:600;font-size:clamp(11px,3vw,13px);cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .15s}
+    .subtab:active{transform:scale(0.96)}
+    .subtab.active{background:rgba(245,158,11,0.15);color:#F59E0B;border-color:#F59E0B}
+    .kart-pane{padding-bottom:20px}
+    /* Spec grid — adapts from 2-col phone up to 4-col Mac */
+    .spec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+    .spec-card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;min-width:0}
+    .spec-lbl{font-size:10px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .spec-val{font-size:clamp(14px,3.6vw,16px);font-weight:700;color:#fff;line-height:1.25;word-wrap:break-word;overflow-wrap:anywhere}
+    /* Repair entry */
+    .repair-entry{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-bottom:8px;min-width:0}
+    .repair-entry-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+    .repair-date{font-size:11px;color:var(--t2);font-family:Monaco,Consolas,monospace;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .repair-cost{font-size:13px;font-weight:700;color:#F59E0B;flex-shrink:0}
+    .repair-desc{font-size:clamp(12px,3.4vw,14px);color:#fff;line-height:1.5;margin-bottom:6px;word-wrap:break-word;overflow-wrap:anywhere}
+    .repair-meta{font-size:11px;color:var(--t2);display:flex;gap:6px 14px;flex-wrap:wrap}
+    /* Wiring diagram pane */
+    .wiring-card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:clamp(14px,3vw,18px);margin-bottom:14px}
+    .wiring-card h4{font-size:13px;font-weight:700;color:#F59E0B;margin:0 0 10px;text-transform:uppercase;letter-spacing:1px}
+    .wiring-card > div{word-wrap:break-word;overflow-wrap:anywhere}
+    /* Troubleshooting */
+    .ts-entry{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:10px;border-left:3px solid #F59E0B;min-width:0}
+    .ts-symptom{font-size:clamp(13px,3.6vw,15px);font-weight:700;color:#fff;margin-bottom:6px;word-wrap:break-word;overflow-wrap:anywhere}
+    .ts-fix{font-size:clamp(12px,3.2vw,14px);color:var(--t2);line-height:1.6;word-wrap:break-word;overflow-wrap:anywhere}
+
     /* Manager Dashboard stat cards */
     .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
     .stat-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:14px 14px;position:relative;overflow:hidden;min-width:0}
@@ -626,7 +687,8 @@
             <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">⭐</div><div><div class="wl">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
             <div class="wide fin wa3" id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="wi">💰</div><div><div class="wl">Finance</div><div class="ws">Stock value & spend</div></div></div>
             <div class="wide beacon wa4" id="wbeacon" onclick="go('beacons')"><div class="wi">📡</div><div><div class="wl">Beacons</div><div class="ws">Track layouts & maps</div></div></div>
-            <div class="wide gord wa5" id="wgord" style="display:none" onclick="go('genorder')"><div class="wi">📦</div><div><div class="wl">Generate Order</div><div class="ws">Auto-build RIMO order</div></div></div>
+            <div class="wide kartinfo wa5" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="wi">🏎️</div><div><div class="wl">Kart Info</div><div class="ws">Diagnostics & history</div></div></div>
+            <div class="wide gord wa6" id="wgord" style="display:none" onclick="go('genorder')"><div class="wi">📦</div><div><div class="wl">Generate Order</div><div class="ws">Auto-build RIMO order</div></div></div>
           </div>
         </div>
       </div>
@@ -797,6 +859,50 @@
           <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">🗺️&nbsp; Visual map per track layout<br>📍&nbsp; Beacon positions marked<br>🚧&nbsp; Barrier placement reference<br>⚡&nbsp; Dehaardt electrical loop config<br>🔄&nbsp; Auto-sync from Racefacer layout<br>📋&nbsp; Setup checklist per layout<br>📐&nbsp; Distance &amp; positioning data</div>
         </div>
         <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Track configuration reference · awaiting setup<br><span style="color:#A3E635;font-weight:600">Coming soon</span></div></div>
+      </div>
+    </div>
+
+    <!-- KART INFO -->
+    <div class="scr" id="s-kartinfo">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-kart" onclick="loadKartInfo()"><span class="ricon">🔄</span><span id="rt-kart">Refresh</span></button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Kart Info</div>
+        <!-- Status legend -->
+        <div class="kart-legend"><span class="kl-dot kl-ok"></span>OK&nbsp;&nbsp;<span class="kl-dot kl-maint"></span>Maintenance&nbsp;&nbsp;<span class="kl-dot kl-damaged"></span>Damaged</div>
+        <!-- Kart filter -->
+        <div class="sinw"><span class="sico">🔍</span><input class="sin" type="text" id="kart-search" placeholder="Search by kart #..." oninput="filterKarts(this.value)"></div>
+        <!-- Kart chip grid -->
+        <div class="kart-chip-grid" id="kart-chips"></div>
+        <!-- Selected kart detail -->
+        <div id="kart-detail" style="display:none">
+          <div class="kart-detail-header">
+            <div class="kart-num-big" id="kd-num">—</div>
+            <div class="kart-meta">
+              <div class="kart-name" id="kd-name">—</div>
+              <div class="kart-id-line" id="kd-idline">—</div>
+              <div class="kart-status-pill" id="kd-status">—</div>
+            </div>
+          </div>
+          <!-- Sub-tab pills (horizontally scrollable) -->
+          <div class="subtabs">
+            <button class="subtab active" data-tab="overview" onclick="selectKartTab('overview')">Overview</button>
+            <button class="subtab" data-tab="repairs" onclick="selectKartTab('repairs')">Repairs</button>
+            <button class="subtab" data-tab="wiring" onclick="selectKartTab('wiring')">Wiring</button>
+            <button class="subtab" data-tab="logs" onclick="selectKartTab('logs')">Logs</button>
+            <button class="subtab" data-tab="beaconlogs" onclick="selectKartTab('beaconlogs')">Beacons</button>
+            <button class="subtab" data-tab="help" onclick="selectKartTab('help')">Help</button>
+          </div>
+          <!-- Sub-tab content panels -->
+          <div id="kt-overview" class="kart-pane"></div>
+          <div id="kt-repairs" class="kart-pane" style="display:none"></div>
+          <div id="kt-wiring" class="kart-pane" style="display:none"></div>
+          <div id="kt-logs" class="kart-pane" style="display:none"></div>
+          <div id="kt-beaconlogs" class="kart-pane" style="display:none"></div>
+          <div id="kt-help" class="kart-pane" style="display:none"></div>
+        </div>
       </div>
     </div>
 
@@ -1894,6 +2000,220 @@ function loadFin(){
 
 // ── Staff PIN editing (Manager Dashboard) ──
 var staffEditMode=false;
+
+// ── Kart Info ─────────────────────────────────────────────────────────────────
+// Sample data — when Racefacer API is integrated, replace KART_LIST with API fetch.
+// Status: "ok" / "maint" (for maintenance) / "damaged"
+var KART_LIST=[
+  {num:4,  status:'maint',    name:'Adult Track',kartId:'FR-13',transponder:'104942',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:118402,laps:301245,hours:4892,cost:8420.50,startDate:'08.11.2021'},
+  {num:15, status:'ok',       name:'Adult Track',kartId:'FR-24',transponder:'104947',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:121553,laps:308112,hours:4955,cost:8123.10,startDate:'08.11.2021'},
+  {num:16, status:'damaged',  name:'Adult Track',kartId:'FR-25',transponder:'104948',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:124881,laps:315402,hours:5010,cost:9248.75,startDate:'08.11.2021'},
+  {num:18, status:'damaged',  name:'Adult Track',kartId:'FR-27',transponder:'104950',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:123014,laps:311208,hours:4988,cost:8901.30,startDate:'08.11.2021'},
+  {num:19, status:'maint',    name:'Adult Track',kartId:'FR-28',transponder:'104951',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:120218,laps:305773,hours:4946,cost:7902.50,startDate:'08.11.2021'},
+  {num:20, status:'damaged',  name:'Adult Track',kartId:'FR-29',transponder:'104952',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:122745,laps:310845,hours:4972,cost:8612.00,startDate:'08.11.2021'},
+  {num:22, status:'damaged',  name:'Adult Track',kartId:'FR-31',transponder:'104953',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:125606,laps:317426,hours:5024,cost:9912.29,startDate:'08.11.2021'},
+  {num:23, status:'ok',       name:'Adult Track',kartId:'FR-32',transponder:'104954',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:119987,laps:304102,hours:4928,cost:7811.45,startDate:'08.11.2021'},
+  {num:24, status:'damaged',  name:'Adult Track',kartId:'FR-33',transponder:'104955',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:121440,laps:307891,hours:4961,cost:8487.10,startDate:'08.11.2021'},
+  {num:26, status:'ok',       name:'Adult Track',kartId:'FR-35',transponder:'104957',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:119102,laps:301847,hours:4906,cost:7642.00,startDate:'08.11.2021'},
+  {num:27, status:'maint',    name:'Adult Track',kartId:'FR-36',transponder:'104958',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:122388,laps:309920,hours:4984,cost:8330.85,startDate:'08.11.2021'},
+  {num:28, status:'damaged',  name:'Adult Track',kartId:'FR-37',transponder:'104959',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:124012,laps:313800,hours:5005,cost:9100.50,startDate:'08.11.2021'},
+  {num:29, status:'ok',       name:'Adult Track',kartId:'FR-38',transponder:'104960',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:118780,laps:300915,hours:4885,cost:7388.20,startDate:'08.11.2021'},
+  {num:30, status:'maint',    name:'Adult Track',kartId:'FR-39',transponder:'104961',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:120902,laps:306214,hours:4940,cost:8044.60,startDate:'08.11.2021'},
+  {num:32, status:'damaged',  name:'Adult Track',kartId:'FR-41',transponder:'104963',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:123567,laps:312577,hours:4997,cost:8775.40,startDate:'08.11.2021'},
+  {num:33, status:'damaged',  name:'Adult Track',kartId:'FR-42',transponder:'104964',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:121810,laps:308432,hours:4970,cost:8520.15,startDate:'08.11.2021'},
+  {num:34, status:'maint',    name:'Adult Track',kartId:'FR-43',transponder:'104965',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:122044,laps:309017,hours:4974,cost:8602.00,startDate:'08.11.2021'},
+  {num:35, status:'damaged',  name:'Adult Track',kartId:'FR-44',transponder:'104966',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:124433,laps:314845,hours:5013,cost:9015.25,startDate:'08.11.2021'},
+  {num:37, status:'damaged',  name:'Adult Track',kartId:'FR-46',transponder:'104968',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:123289,laps:311902,hours:4995,cost:8830.70,startDate:'08.11.2021'},
+  {num:38, status:'ok',       name:'Adult Track',kartId:'FR-47',transponder:'104969',brand:'RiMO',model:'SiNUS iON',engine:'Electric',mileage:120555,laps:305081,hours:4937,cost:8001.85,startDate:'08.11.2021'}
+];
+// Sample repair history per kart (will be replaced by Racefacer API data)
+var SAMPLE_REPAIRS={
+  22:[
+    {date:'14.05.2026 13:36',title:"Stuck offline and on speed 1/2. Doesn't change when reset. System error on next race.",mileage:125572,cost:9.99,user:'Harvey Betts',status:'open'},
+    {date:'13.05.2026 22:16',title:"Stuck offline majority of shift. Shows speed 1. Tried resetting, no change.",mileage:125531,cost:4.90,user:'Will Webster',status:'open'},
+    {date:'11.05.2026 14:22',title:'Offline',mileage:125572,dateRepaired:'11.05.2026',cost:9.99,user:'Harvey Betts',status:'fixed'},
+    {date:'10.05.2026 09:15',title:'Left side 25mm torn',mileage:125531,dateRepaired:'10.05.2026',cost:4.90,user:'Will Webster',status:'fixed'},
+    {date:'08.05.2026 11:40',title:'Flat front left tyre',mileage:125060,dateRepaired:'08.05.2026',cost:28.00,user:'Will Webster',status:'fixed'}
+  ]
+};
+// Static troubleshooting guide (manually curated, updates as we learn)
+var TROUBLESHOOTING=[
+  {symptom:'Kart stuck offline / not connecting to WiFi',fix:'1. Power-cycle the kart (key off → wait 10s → key on)\n2. Check the antenna connector inside the dash — must be screwed tight\n3. Verify the WFM dashboard shows the kart\'s MAC address\n4. If still offline, swap CPU board with a known-good kart to isolate fault'},
+  {symptom:'Stuck on Speed 1/2 — won\'t change with mode button',fix:'1. Check the speed-selector wiring loom for damage\n2. Look for a flashing fault code on the kart\'s display\n3. Reset via WFM dashboard (Restart command)\n4. If persistent, replace the speed-mode control board'},
+  {symptom:'Kart slows down or stops on a specific section of track',fix:'1. Check beacon position at that section — barrier may be blocking signal\n2. Verify Dehaardt loop is energized (test with multimeter)\n3. Look for damage to beacon antenna underneath kart\n4. Check ground clearance — antenna can\'t be touching the loop'},
+  {symptom:'Accelerator not engaging — no response from pedal',fix:'1. Check accelerator wiring loom plug at the back of the pedal\n2. Inspect the throttle position sensor (TPS) for wear or contamination\n3. Test continuity from TPS to control board\n4. If TPS is faulty, replace with RSC3202 (SKU 1382446)'},
+  {symptom:'Motor running but no drive / wheels not turning',fix:'1. Check motor coupling and drive belt for slippage or breakage\n2. Inspect rear axle and bearings for play or seizure\n3. Verify motor is receiving correct voltage (check via WFM)\n4. If motor confirmed dead, replace as unit'},
+  {symptom:'Battery draining unusually fast / kart dies mid-session',fix:'1. Check cell balance via WFM battery report\n2. Inspect for any short circuits in the wiring loom (smell test for burnt insulation)\n3. Test battery health — capacity should be > 80% of new\n4. If a single cell is bad, the whole pack typically needs replacement'},
+  {symptom:'Brake feels spongy / weak braking force',fix:'1. Inspect brake pads for wear (replace if < 2mm)\n2. Check brake disc for warping or score marks\n3. Bleed the brake line — air in line causes spongy feel\n4. Test the brake master cylinder for leaks'},
+  {symptom:'Karts time/laps not registering on Racefacer',fix:'1. Check transponder is fitted and powered (LED should be lit)\n2. Verify kart number in WFM matches Racefacer config\n3. Check the timing line antenna under track for damage\n4. Restart the Racefacer timing software'}
+];
+// State
+var SELECTED_KART=null;
+var ACTIVE_KART_TAB='overview';
+
+function loadKartInfo(){
+  // Stub for refresh button — when API is wired, fetch fresh kart data here.
+  var btn=document.getElementById('rb-kart'),lbl=document.getElementById('rt-kart');
+  if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
+  renderKartChips();
+  setTimeout(function(){
+    if(btn){btn.classList.remove('spinning');if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}}
+  },300);
+}
+
+function renderKartChips(filter){
+  var q=(filter||'').trim().toLowerCase();
+  var list=KART_LIST.filter(function(k){return !q||String(k.num).indexOf(q)>=0;});
+  var html=list.map(function(k){
+    return '<div class="kart-chip'+(SELECTED_KART&&SELECTED_KART.num===k.num?' selected':'')+'" data-status="'+k.status+'" onclick="selectKart('+k.num+')"><span class="kc-badge"></span><div class="kc-num">'+k.num+'</div></div>';
+  }).join('');
+  var grid=document.getElementById('kart-chips');
+  if(grid) grid.innerHTML=html||'<div class="emp" style="grid-column:1/-1;padding:14px 0;text-align:center;color:var(--t2);font-size:13px">No karts match that number</div>';
+}
+
+function filterKarts(v){renderKartChips(v);}
+
+function selectKart(num){
+  var k=KART_LIST.find(function(x){return x.num===num;});
+  if(!k) return;
+  SELECTED_KART=k;
+  // Highlight the selected chip
+  document.querySelectorAll('.kart-chip').forEach(function(el){
+    el.classList.toggle('selected',Number(el.querySelector('.kc-num').innerText)===num);
+  });
+  // Show detail panel
+  var det=document.getElementById('kart-detail');
+  if(det) det.style.display='block';
+  // Populate header
+  document.getElementById('kd-num').innerText=k.num;
+  document.getElementById('kd-name').innerText=k.name;
+  document.getElementById('kd-idline').innerText='ID: '+k.kartId+' · Transponder: '+k.transponder;
+  var statusLabels={ok:'OK',maint:'For Maintenance',damaged:'Damaged'};
+  var statusEl=document.getElementById('kd-status');
+  statusEl.className='kart-status-pill '+k.status;
+  statusEl.innerText=statusLabels[k.status];
+  // Reset to Overview when picking a new kart
+  selectKartTab('overview');
+  // Scroll detail into view smoothly
+  setTimeout(function(){if(det) det.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
+function selectKartTab(tab){
+  ACTIVE_KART_TAB=tab;
+  document.querySelectorAll('.subtab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
+  ['overview','repairs','wiring','logs','beaconlogs','help'].forEach(function(t){
+    var el=document.getElementById('kt-'+t);
+    if(el) el.style.display=(t===tab)?'block':'none';
+  });
+  renderKartTabContent(tab);
+}
+
+function renderKartTabContent(tab){
+  if(!SELECTED_KART) return;
+  var k=SELECTED_KART;
+  if(tab==='overview') renderKartOverview(k);
+  else if(tab==='repairs') renderKartRepairs(k);
+  else if(tab==='wiring') renderKartWiring(k);
+  else if(tab==='logs') renderKartLogs(k);
+  else if(tab==='beaconlogs') renderKartBeaconLogs(k);
+  else if(tab==='help') renderKartHelp(k);
+}
+
+function renderKartOverview(k){
+  var fmt=function(n){return Math.round(n).toLocaleString();};
+  var html='<div class="spec-grid">'
+    +specCard('Total Mileage',fmt(k.mileage)+' km')
+    +specCard('Total Laps',fmt(k.laps))
+    +specCard('Working Hours',fmt(k.hours)+' hrs')
+    +specCard('Total Cost','$'+k.cost.toFixed(2))
+    +specCard('Kart Brand',k.brand)
+    +specCard('Model',k.model)
+    +specCard('Engine',k.engine)
+    +specCard('In Service Since',k.startDate)
+    +'</div>'
+    +'<div class="mc"><div class="mct">Quick Actions</div>'
+    +'<div style="font-size:13px;color:var(--t2);line-height:1.7">Tap a sub-tab above to view repair history, wiring diagrams, connection logs, beacon diagnostics, or troubleshooting steps.<br><br>Most live data shown here is currently placeholder. Once the Racefacer API is connected, kart info will sync in real time.</div></div>';
+  document.getElementById('kt-overview').innerHTML=html;
+}
+
+function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
+
+function renderKartRepairs(k){
+  var reps=SAMPLE_REPAIRS[k.num]||[];
+  if(!reps.length){
+    document.getElementById('kt-repairs').innerHTML='<div class="emp" style="padding:20px 0;text-align:center;color:var(--t2);font-size:13px">No repair history available yet for Kart #'+k.num+'<br><span style="font-size:11px;color:var(--t2);margin-top:6px;display:block">Will populate from Racefacer once connected</span></div>';
+    return;
+  }
+  var html=reps.map(function(r){
+    var statusBadge=r.status==='open'?'<span style="font-size:10px;font-weight:700;color:#FF3B30;background:rgba(255,59,48,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Open</span>':'<span style="font-size:10px;font-weight:700;color:#22C55E;background:rgba(34,197,94,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Fixed</span>';
+    return '<div class="repair-entry">'
+      +'<div class="repair-entry-head"><div class="repair-date">'+r.date+statusBadge+'</div><div class="repair-cost">$'+r.cost.toFixed(2)+'</div></div>'
+      +'<div class="repair-desc">'+r.title+'</div>'
+      +'<div class="repair-meta"><span>📏 '+r.mileage.toLocaleString()+' km</span><span>👤 '+r.user+'</span>'+(r.dateRepaired?'<span>🔧 Repaired '+r.dateRepaired+'</span>':'')+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('kt-repairs').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+reps.length+' Repair'+(reps.length===1?'':'s')+'</div>'+html;
+}
+
+function renderKartWiring(k){
+  document.getElementById('kt-wiring').innerHTML=
+    '<div class="wiring-card">'
+    +  '<h4>Main Power Loop</h4>'
+    +  '<div style="font-size:13px;color:var(--t2);line-height:1.7">Battery (+) → Main fuse (60A) → Master switch → Motor controller (+)<br>Battery (−) → Chassis ground → Motor controller (−)<br>Charging port → Battery management (BMS) → Battery pack</div>'
+    +'</div>'
+    +'<div class="wiring-card">'
+    +  '<h4>Control Signals</h4>'
+    +  '<div style="font-size:13px;color:var(--t2);line-height:1.7">Throttle pedal → TPS (3-pin) → Motor controller signal input<br>Brake pedal → Brake switch → Motor controller brake cut<br>Speed mode button → CPU board → Motor controller mode select</div>'
+    +'</div>'
+    +'<div class="wiring-card">'
+    +  '<h4>CPU & Telemetry</h4>'
+    +  '<div style="font-size:13px;color:var(--t2);line-height:1.7">CPU board → WiFi antenna (top of kart)<br>CPU board → Transponder (in dash)<br>CPU board → Beacon antenna (underneath, front-center)<br>CPU board → 12V regulator (from main battery)</div>'
+    +'</div>'
+    +'<div class="mc"><div class="mct">Visual Diagram</div>'
+    +'<div style="font-size:13px;color:var(--t2);line-height:1.7;text-align:center;padding:14px 0">📋 Full wiring schematic PDF coming soon.<br><br><span style="font-size:11px">For now use the text descriptions above. Will be replaced with annotated diagram once we get the official RiMO documentation.</span></div></div>';
+}
+
+function renderKartLogs(k){
+  document.getElementById('kt-logs').innerHTML=
+    '<div class="mc"><div class="mct">📡 CPU / WiFi Connection Status</div>'
+    +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
+    +  '<div style="font-size:32px;margin-bottom:10px">🔌</div>'
+    +  'Awaiting WFM integration<br><br>'
+    +  '<span style="font-size:11px;line-height:1.7;display:inline-block;text-align:left">Once connected, this section will show:<br>'
+    +    '• Last online timestamp<br>'
+    +    '• WiFi signal strength history<br>'
+    +    '• CPU board uptime<br>'
+    +    '• Recent disconnect events<br>'
+    +    '• Auto-flagged "stuck offline" patterns</span>'
+    +'</div></div>';
+}
+
+function renderKartBeaconLogs(k){
+  document.getElementById('kt-beaconlogs').innerHTML=
+    '<div class="mc"><div class="mct">📍 Dehaardt Beacon Logs</div>'
+    +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
+    +  '<div style="font-size:32px;margin-bottom:10px">📡</div>'
+    +  'Awaiting Dehaardt integration<br><br>'
+    +  '<span style="font-size:11px;line-height:1.7;display:inline-block;text-align:left">Once connected, this section will show:<br>'
+    +    '• Beacon signal strength per track section<br>'
+    +    '• Sections where this kart lost signal<br>'
+    +    '• Comparison with healthy karts<br>'
+    +    '• Suggested beacon position fixes<br>'
+    +    '• Antenna fault detection</span>'
+    +'</div></div>';
+}
+
+function renderKartHelp(k){
+  var html=TROUBLESHOOTING.map(function(t){
+    return '<div class="ts-entry">'
+      +'<div class="ts-symptom">⚠ '+t.symptom+'</div>'
+      +'<div class="ts-fix">'+t.fix.replace(/\n/g,'<br>')+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('kt-help').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Common Issues &amp; Fixes</div>'+html
+    +'<div class="mc" style="text-align:center;margin-top:14px"><div style="font-size:12px;color:var(--t2);line-height:1.6">📝 This list grows as we learn.<br><span style="color:#F59E0B;font-weight:600">Add new entries via the Sheet — coming soon to in-app editing</span></div></div>';
+}
+
 // Working copy of STAFF used during edit mode — lets us add/delete locally
 // before committing all changes in one Save action.
 var STAFF_DRAFT=null;

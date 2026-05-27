@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="HK Inventory">
+  <meta name="apple-mobile-web-app-title" content="HK Workshop">
   <meta name="theme-color" content="#000000">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
   <link rel="shortcut icon" href="icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <title>HK Inventory</title>
+  <title>HK Workshop</title>
   
   <style>
     :root {
@@ -85,20 +85,16 @@
       }
       /* Column count varies per role to fill the screen symmetrically */
       /* Mac column counts per role:
-         Mech   = 2 cols (4 tiles 2x2 + Beacons strip)
-         Office = 2 cols (4 tiles 2x2 + Finance strip + Beacons strip)
-         Mgr    = 4 cols (8 tiles 4x2) */
-      .home-inner.role-mech   { grid-template-columns: repeat(2, 1fr); }
-      .home-inner.role-office { grid-template-columns: repeat(2, 1fr); }
-      .home-inner.role-mgr    { grid-template-columns: repeat(4, 1fr); }
+         Mech = 2 cols (4 tiles 2x2 + Beacons strip)
+         Mgr  = 4 cols (8 tiles 4x2) */
+      .home-inner.role-mech { grid-template-columns: repeat(2, 1fr); }
+      .home-inner.role-mgr  { grid-template-columns: repeat(4, 1fr); }
       /* Bigger Mac tiles — use the vertical dead space */
       .home-inner .tile, .home-inner .wide {
         min-height: 300px !important;
       }
-      /* Strip styling on Mac for Beacons (mech + office) and Finance (office only) */
-      .home-inner.role-mech .wide.beacon,
-      .home-inner.role-office .wide.beacon,
-      .home-inner.role-office .wide.fin {
+      /* Strip styling on Mac for Beacons (mech only — last item full-width) */
+      .home-inner.role-mech .wide.beacon {
         grid-column: span 2 !important;
         min-height: 110px !important;
         flex-direction: row !important;
@@ -108,28 +104,20 @@
         align-items: center !important;
         justify-content: flex-start !important;
       }
-      .home-inner.role-mech .wide.beacon .wi,
-      .home-inner.role-office .wide.beacon .wi,
-      .home-inner.role-office .wide.fin .wi {
+      .home-inner.role-mech .wide.beacon .wi {
         font-size: 44px !important;
         margin-bottom: 0 !important;
       }
-      .home-inner.role-mech .wide.beacon > div:not(.wi),
-      .home-inner.role-office .wide.beacon > div:not(.wi),
-      .home-inner.role-office .wide.fin > div:not(.wi) {
+      .home-inner.role-mech .wide.beacon > div:not(.wi) {
         flex-direction: row !important;
         align-items: center !important;
         gap: 16px !important;
         flex-wrap: wrap;
       }
-      .home-inner.role-mech .wide.beacon .wl,
-      .home-inner.role-office .wide.beacon .wl,
-      .home-inner.role-office .wide.fin .wl {
+      .home-inner.role-mech .wide.beacon .wl {
         font-size: 24px !important;
       }
-      .home-inner.role-mech .wide.beacon .ws,
-      .home-inner.role-office .wide.beacon .ws,
-      .home-inner.role-office .wide.fin .ws {
+      .home-inner.role-mech .wide.beacon .ws {
         font-size: 14px !important;
         margin-top: 0 !important;
       }
@@ -504,6 +492,18 @@
     .fyoy-arrow{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
     .fyoy-arrow.up{color:#FF5252}    /* spending UP = warning */
     .fyoy-arrow.down{color:#43A047}  /* spending DOWN = good */
+    /* Staff PIN edit — expanded with add/delete & role select */
+    .staff-edit-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b1)}
+    .staff-edit-row:last-child{border-bottom:none}
+    .staff-del-btn{background:rgba(255,82,82,0.12);color:#FF5252;border:1px solid rgba(255,82,82,0.3);width:24px;height:24px;border-radius:50%;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-family:inherit;transition:all .12s}
+    .staff-del-btn:active{transform:scale(0.9);background:rgba(255,82,82,0.25)}
+    .staff-edit-meta{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+    .staff-name-input{background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;color:#fff;font-size:13px;font-weight:600;font-family:inherit;width:100%;-webkit-appearance:none;appearance:none}
+    .staff-name-input:focus{outline:none;border-color:rgba(0,207,255,0.4);background:rgba(0,207,255,0.05)}
+    .staff-role-select{background:rgba(255,255,255,0.05);border:1px solid var(--b1);border-radius:8px;padding:4px 8px;color:var(--t2);font-size:11px;font-family:inherit;font-weight:500;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 4px center;background-size:14px;padding-right:22px}
+    .staff-role-select:focus{outline:none;border-color:rgba(0,207,255,0.4)}
+    .staff-add-btn{background:rgba(0,207,255,0.08);color:#00CFFF;border:1px dashed rgba(0,207,255,0.35);border-radius:10px;padding:10px;width:100%;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;font-family:inherit;cursor:pointer;margin-top:10px;transition:all .12s}
+    .staff-add-btn:active{transform:scale(0.98);background:rgba(0,207,255,0.15)}
     /* Manager Dashboard stat cards */
     .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
     .stat-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:14px 14px;position:relative;overflow:hidden;min-width:0}
@@ -576,7 +576,7 @@
   <div id="hdr">
     <div class="hlogo" onclick="goHome()" style="cursor:pointer">
       <img class="hk-icon" src="icon-192.png" alt="HK">
-      <div><div class="hname">Inventory</div><div class="hsub">Hyper Karting</div></div>
+      <div><div class="hname">Workshop</div><div class="hsub">Hyper Karting</div></div>
     </div>
     <div class="uchip" id="uchip" onclick="logout()">
       <span class="ue" id="ue">👋</span><span class="un" id="un">Name</span><span class="uo">logout</span>
@@ -831,7 +831,6 @@ var STAFF=[
   {name:'Jayden Aginsky', role:'Mechanic',         pin:'6789',emoji:'🔧'},
   {name:'Will Webster',   role:'Mechanic',         pin:'7890',emoji:'🔧'},
   {name:'Christian Oom',  role:'Mechanic',         pin:'8901',emoji:'🔧'},
-  {name:'Office',         role:'Office Access',        pin:'0000',emoji:'🏢'}
 ];
 
 // ── Sizing ──
@@ -846,19 +845,10 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('/hk-inventory
 
 // ── Fetch staff ──
 function fetchStaff(cb){
-  // Office Access is ALWAYS available — hardcoded as a permanent fallback
-  // even if not in the server's Staff sheet
-  var OFFICE_USER={name:'Office',role:'Office Access',pin:'0000',emoji:'🏢'};
-  function ensureOffice(list){
-    var hasOffice=list.some(function(s){return String(s.pin)==='0000'||s.role==='Office Access';});
-    if(!hasOffice) list.push(OFFICE_USER);
-    return list;
-  }
   var c=sessionStorage.getItem('hk_s'),ts=sessionStorage.getItem('hk_st');
-  if(c&&ts&&Date.now()-Number(ts)<300000){try{STAFF=ensureOffice(JSON.parse(c));if(cb)cb();return;}catch(e){}}
+  if(c&&ts&&Date.now()-Number(ts)<300000){try{STAFF=JSON.parse(c);if(cb)cb();return;}catch(e){}}
   jsonp(APP+'?action=getstaff',function(d){
-    if(d&&d.length){STAFF=ensureOffice(d);try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}}
-    else {STAFF=ensureOffice(STAFF);}
+    if(d&&d.length){STAFF=d;try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}}
     if(cb)cb();
   });
 }
@@ -1130,29 +1120,27 @@ function cancelSwipe(){
 function applyRoleVisibility(){
   if(!cu) return;
   var isM=cu.role==='Manager'||cu.role==='Assistant Manager';
-  var isRO=cu.role==='Office Access';
   var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
   // Better desktop detection: pointer:fine = mouse primary, no touch = desktop
   var isDesktop=window.innerWidth>=900 && (window.matchMedia('(pointer: fine)').matches || navigator.maxTouchPoints===0);
-  var hideScan=isRO||noCam||isDesktop;
+  var hideScan=noCam||isDesktop;
   var mt=document.getElementById('mgrt');
-  if(mt) mt.style.display=(isM||isRO)?'flex':'none';
+  if(mt) mt.style.display=isM?'flex':'none';
   // Finance: visible to Managers + Office
   var wfin=document.getElementById('wfin');
-  if(wfin) wfin.style.display=(isM||isRO)?'flex':'none';
+  if(wfin) wfin.style.display=isM?'flex':'none';
   // Generate Order: Managers only
   var wgord=document.getElementById('wgord');
   if(wgord) wgord.style.display=isM?'flex':'none';
   var ts=document.getElementById('tscan'),to=document.getElementById('tord');
   if(ts) ts.style.display=hideScan?'none':'flex';
-  if(to) to.style.display=isRO?'none':'flex';
+  if(to) to.style.display='flex';
   // Desktop home layout: tag with role for CSS targeting
   var hi=document.getElementById('home-inner');
   if(hi){
-    hi.classList.remove('role-mgr','role-mech','role-office');
+    hi.classList.remove('role-mgr','role-mech');
     // Apply role classes on ALL viewports — needed for phone manager min-height override
     if(isM) hi.classList.add('role-mgr');
-    else if(isRO) hi.classList.add('role-office');
     else hi.classList.add('role-mech');
     var ts2=document.getElementById('tiles');
     if(ts2) ts2.style.gridTemplateColumns='';
@@ -1503,7 +1491,6 @@ function showScanError(){
 
 function startScan(){
   if(qrs) return;
-  if(cu&&cu.role==='Office Access'){document.getElementById('sst').innerText='Not available for office access.';return;}
   document.getElementById('sbn').style.display='none';
   document.getElementById('ssp').style.display='block';
   document.getElementById('sst').innerText='Opening camera...';
@@ -1700,7 +1687,6 @@ function selp(sku){
 }
 function clrp(){sp=null;document.getElementById('osb').style.display='none';document.getElementById('os').value='';}
 function subord(){
-  if(cu&&cu.role==='Office Access'){document.getElementById('msg').className='er';document.getElementById('msg').innerText='Not available for office access.';return;}
   if(oSent)return;
   var btn=document.querySelector('.btnsub'),name=cu?cu.name:'',notes=document.getElementById('ono').value,msg=document.getElementById('msg');
   if(!name){msg.className='er';msg.innerText='Please select your name';return;}
@@ -1908,18 +1894,34 @@ function loadFin(){
 
 // ── Staff PIN editing (Manager Dashboard) ──
 var staffEditMode=false;
+// Working copy of STAFF used during edit mode — lets us add/delete locally
+// before committing all changes in one Save action.
+var STAFF_DRAFT=null;
+
 function renderStaffPins(){
   var mpi=document.getElementById('mpi');
   var hdr=document.getElementById('staff-pin-header');
   if(!mpi) return;
   if(staffEditMode){
-    mpi.innerHTML=STAFF.map(function(x){
-      return '<div class="prow">'
-        +'<span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name
-        +'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span>'
-        +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]*" data-staff="'+x.name.replace(/"/g,'&quot;')+'" value="'+x.pin+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')">'
+    var list=STAFF_DRAFT||STAFF;
+    mpi.innerHTML=list.map(function(x,i){
+      return '<div class="prow staff-edit-row" data-idx="'+i+'">'
+        +'<button class="staff-del-btn" onclick="deleteStaffRow('+i+')" title="Remove staff">×</button>'
+        +'<div class="staff-edit-meta">'
+        +  '<input class="staff-name-input" type="text" data-field="name" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="updateStaffField('+i+',\'name\',this.value)">'
+        +  '<div class="staff-role-line">'
+        +    '<select class="staff-role-select" data-field="role" onchange="updateStaffField('+i+',\'role\',this.value);updateStaffEmoji('+i+')">'
+        +      '<option value="Manager"'+(x.role==='Manager'?' selected':'')+'>Manager</option>'
+        +      '<option value="Assistant Manager"'+(x.role==='Assistant Manager'?' selected':'')+'>Assistant Manager</option>'
+        +      '<option value="Mechanic"'+(x.role==='Mechanic'?' selected':'')+'>Mechanic</option>'
+        +    '</select>'
+        +  '</div>'
+        +'</div>'
+        +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]*" data-field="pin" value="'+(x.pin||'')+'" placeholder="PIN" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');updateStaffField('+i+',\'pin\',this.value)">'
         +'</div>';
     }).join('');
+    // Add-new row at the bottom
+    mpi.innerHTML+='<button class="staff-add-btn" onclick="addStaffRow()">+ Add staff member</button>';
     if(hdr) hdr.innerHTML='<span>Staff PINs</span><span><button class="staff-edit-btn cancel" onclick="cancelStaffEdit()">Cancel</button><button class="staff-edit-btn save" id="staff-save-btn" onclick="saveStaffPins()">Save</button></span>';
   } else {
     mpi.innerHTML=STAFF.map(function(x){
@@ -1929,29 +1931,79 @@ function renderStaffPins(){
     if(hdr) hdr.innerHTML='<span>Staff PINs</span>'+(canEdit ? '<button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button>' : '');
   }
 }
-function toggleStaffEdit(){if(!cu||(cu.role!=='Manager'&&cu.role!=='Assistant Manager'))return;staffEditMode=true;renderStaffPins();}
-function cancelStaffEdit(){staffEditMode=false;renderStaffPins();}
+
+function toggleStaffEdit(){
+  if(!cu||(cu.role!=='Manager'&&cu.role!=='Assistant Manager'))return;
+  // Clone STAFF into a working draft so adds/deletes can be cancelled
+  STAFF_DRAFT=STAFF.map(function(s){return Object.assign({},s);});
+  staffEditMode=true;
+  renderStaffPins();
+}
+
+function cancelStaffEdit(){
+  STAFF_DRAFT=null;
+  staffEditMode=false;
+  renderStaffPins();
+}
+
+function updateStaffField(idx,field,value){
+  if(!STAFF_DRAFT||!STAFF_DRAFT[idx]) return;
+  STAFF_DRAFT[idx][field]=value.trim();
+}
+
+function updateStaffEmoji(idx){
+  if(!STAFF_DRAFT||!STAFF_DRAFT[idx]) return;
+  var r=STAFF_DRAFT[idx].role;
+  STAFF_DRAFT[idx].emoji=(r==='Manager'||r==='Assistant Manager')?'⭐':'🔧';
+}
+
+function addStaffRow(){
+  if(!STAFF_DRAFT) STAFF_DRAFT=STAFF.map(function(s){return Object.assign({},s);});
+  STAFF_DRAFT.push({name:'',role:'Mechanic',pin:'',emoji:'🔧'});
+  renderStaffPins();
+  // Focus the new row's name input
+  setTimeout(function(){
+    var rows=document.querySelectorAll('.staff-edit-row');
+    if(rows.length){
+      var last=rows[rows.length-1].querySelector('.staff-name-input');
+      if(last) last.focus();
+    }
+  },50);
+}
+
+function deleteStaffRow(idx){
+  if(!STAFF_DRAFT||!STAFF_DRAFT[idx]) return;
+  var s=STAFF_DRAFT[idx];
+  // Prevent deleting yourself
+  if(cu && s.name===cu.name){alert('You can\'t delete your own account.');return;}
+  if(!confirm('Remove '+(s.name||'this staff member')+'?')) return;
+  STAFF_DRAFT.splice(idx,1);
+  renderStaffPins();
+}
+
 function saveStaffPins(){
-  var inputs=document.querySelectorAll('.pin-input');
-  var updates=[],hasError=false,pinsSeen={};
-  inputs.forEach(function(inp){
-    var pin=inp.value.trim();
-    inp.classList.remove('invalid');
-    if(!/^\d{4}$/.test(pin)){inp.classList.add('invalid');hasError=true;return;}
-    if(pinsSeen[pin]){inp.classList.add('invalid');hasError=true;return;}
-    pinsSeen[pin]=true;
-    updates.push({name:inp.dataset.staff,pin:pin});
+  if(!STAFF_DRAFT) return;
+  // Validate all rows
+  var pinsSeen={},hasError=false,errors=[];
+  STAFF_DRAFT.forEach(function(s,i){
+    s.name=(s.name||'').trim();
+    s.role=(s.role||'').trim();
+    s.pin=(s.pin||'').trim();
+    if(!s.name){hasError=true;errors.push('Row '+(i+1)+': Name is required');}
+    if(!/^\d{4}$/.test(s.pin)){hasError=true;errors.push((s.name||'Row '+(i+1))+': PIN must be 4 digits');}
+    if(pinsSeen[s.pin]){hasError=true;errors.push('PIN '+s.pin+' is used by more than one person');}
+    if(s.pin) pinsSeen[s.pin]=true;
   });
-  if(hasError){alert('PINs must be 4 digits and unique. Fix the highlighted fields.');return;}
+  if(hasError){alert(errors.join('\n'));return;}
+  // Send the FULL replacement staff list to the backend
   var sb=document.getElementById('staff-save-btn');
   if(sb){sb.innerText='Saving...';sb.disabled=true;}
-  jsonp(APP+'?action=updatestaffpins&data='+encodeURIComponent(JSON.stringify(updates)),function(r){
+  var payload=STAFF_DRAFT.map(function(s){return {name:s.name,role:s.role,pin:s.pin,emoji:s.emoji};});
+  jsonp(APP+'?action=savestafflist&data='+encodeURIComponent(JSON.stringify(payload)),function(r){
     if(r&&r.success){
-      // Update local STAFF array immediately
-      updates.forEach(function(u){
-        var st=STAFF.find(function(s){return s.name===u.name;});
-        if(st) st.pin=u.pin;
-      });
+      STAFF=STAFF_DRAFT.map(function(s){return Object.assign({},s);});
+      try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}
+      STAFF_DRAFT=null;
       staffEditMode=false;
       renderStaffPins();
     } else {

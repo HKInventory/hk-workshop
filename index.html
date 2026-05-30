@@ -38,17 +38,7 @@
       .pin-wrap { max-width: 420px; }
       .pad { max-width: 320px; }
       .pin-p::after { content: ' · or use your keyboard'; color: var(--t3); font-size: 12px; }
-      /* Bigger tiles with more substance */
-      .home-inner { gap: 16px; padding-top: 22px; }
-      .tiles { gap: 16px; }
-      .tile { border-radius: 24px; padding: clamp(18px,2.5vw,28px); }
-      .ti { font-size: clamp(32px,4vw,44px); margin-bottom: 14px; }
-      .tl { font-size: clamp(18px,1.6vw,22px); }
-      .ts { font-size: clamp(13px,1.1vw,15px); }
-      .wide { border-radius: 22px; padding: clamp(16px,1.8vw,22px) clamp(20px,2vw,28px); gap: 18px; }
-      .wi { font-size: clamp(28px,3vw,36px); }
-      .wl { font-size: clamp(17px,1.5vw,20px); }
-      .ws { font-size: clamp(13px,1vw,14px); }
+      /* Home tile sizing is handled by the unified .home-grid rules (clamp-based) */
     }
     /* ── WIDE DESKTOP (≥900px) ── */
     @media (min-width: 900px) {
@@ -59,123 +49,8 @@
       .back { font-size: 16px; padding-top: 20px; }
       .sin { padding: 16px 18px 16px 50px; font-size: 16px; }
       .sico { left: 18px; font-size: 17px; }
-      /* ── Home page: ALL visible items merged into one role-aware grid using dead-space ── */
-      #s-home .sf {
-        display: block;
-        max-width: 100% !important;
-        padding: 32px 48px;
-        overflow-y: auto;
-        height: 100%;
-        box-sizing: border-box;
-      }
-      .home-inner {
-        display: grid !important;
-        gap: 24px;
-        max-width: 1800px;
-        width: 100%;
-        margin: 0 auto;
-        height: auto !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-      }
-      /* Flatten the tiles and wides-grid containers — children become direct grid items */
-      .home-inner .tiles,
-      .home-inner .wides-grid {
-        display: contents !important;
-      }
-      /* Column count varies per role to fill the screen symmetrically */
-      /* Mac column counts per role:
-         Mech = 2 cols (4 tiles 2x2 + Beacons strip)
-         Mgr  = 4 cols (8 tiles 4x2) */
-      .home-inner.role-mech { grid-template-columns: repeat(2, 1fr); }
-      .home-inner.role-mgr  { grid-template-columns: repeat(4, 1fr); }
-      /* Bigger Mac tiles — use the vertical dead space */
-      .home-inner .tile, .home-inner .wide {
-        min-height: 300px !important;
-      }
-      /* Strip styling on Mac for Beacons (mech only — last item full-width) */
-      .home-inner.role-mech .wide.beacon {
-        grid-column: span 2 !important;
-        min-height: 110px !important;
-        flex-direction: row !important;
-        padding: 24px 40px !important;
-        gap: 22px !important;
-        text-align: left !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-      }
-      .home-inner.role-mech .wide.beacon .wi {
-        font-size: 44px !important;
-        margin-bottom: 0 !important;
-      }
-      .home-inner.role-mech .wide.beacon > div:not(.wi) {
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 16px !important;
-        flex-wrap: wrap;
-      }
-      .home-inner.role-mech .wide.beacon .wl {
-        font-size: 24px !important;
-      }
-      .home-inner.role-mech .wide.beacon .ws {
-        font-size: 14px !important;
-        margin-top: 0 !important;
-      }
-      /* On desktop, Generate Order is a regular tile (NOT a strip) — override the mobile strip CSS */
-      @media (min-width: 900px) {
-        .wide.gord {
-          min-height: 240px !important;
-          flex-direction: column !important;
-          gap: 0 !important;
-          padding: 36px 28px !important;
-          text-align: center !important;
-          align-items: center !important;
-          justify-content: center !important;
-        }
-        .wide.gord > div:not(.wi) {
-          flex-direction: column !important;
-          align-items: center !important;
-        }
-      }
-      /* Override the mobile odd-last-child span rule on desktop */
-      .home-inner .wides-grid > .wide:last-child:nth-child(odd) { grid-column: auto; }
-      /* Every tile and wide becomes a uniform big square */
-      .home-inner .tile,
-      .home-inner .wide {
-        min-height: 240px;
-        height: auto;
-        padding: 36px 28px;
-        border-radius: 26px;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        gap: 0;
-      }
-      /* Hidden items don't take grid space */
-      .home-inner .tile[style*="display: none"],
-      .home-inner .wide[style*="display: none"],
-      .home-inner .tile[style*="display:none"],
-      .home-inner .wide[style*="display:none"] {
-        display: none !important;
-      }
-      .home-inner .tile .ti,
-      .home-inner .wide .wi {
-        font-size: 56px;
-        margin-bottom: 18px;
-        flex-shrink: 0;
-      }
-      .home-inner .tile .tl,
-      .home-inner .wide .wl {
-        font-size: 24px;
-        font-weight: 800;
-      }
-      .home-inner .tile .ts,
-      .home-inner .wide .ws {
-        font-size: 14px;
-        margin-top: 6px;
-        color: rgba(255,255,255,0.7);
-      }
+      /* Home fills the window on desktop too — no scroll. Width capped + centered. */
+      #s-home .sf { display: flex; flex-direction: column; max-width: 100% !important; padding: 32px 48px; overflow: hidden; }
     }
 
         /* During screen transitions, block all taps to prevent multi-tab opening */
@@ -245,143 +120,58 @@
     @keyframes lbf{0%{width:0%}40%{width:55%}75%{width:82%}100%{width:100%}}
     #lbar.run #lbp{animation:lbf 2.5s cubic-bezier(0.4,0,0.2,1) forwards}
 
-    /* ── HOME ── */
-    /* Animated ambient glow */100%{opacity:1;transform:scale(1.06)}}
-    #s-home .sf{position:relative;z-index:1}
+    /* ── HOME (unified grid — every tile equal size, fills screen, no scroll) ── */
+    #s-home .sf{position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
+    .home-inner{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;padding-top:14px}
 
-    .home-inner{display:flex;flex-direction:column;height:100%;gap:10px;padding-top:14px;box-sizing:border-box}
-    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    /* Single grid. Equal-height rows (1fr) stretch to fill the available height. */
+    .home-grid{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;min-height:0}
+    /* Tablet & up: 3 columns */
+    @media (min-width:600px){ .home-grid{gap:14px;grid-template-columns:1fr 1fr 1fr} }
+    /* Desktop: cap width + centre horizontally, still fills height */
+    @media (min-width:900px){ .home-grid{gap:18px;width:min(100%,1500px);align-self:center} }
 
-    /* Tile entrance */
-    @keyframes tileIn{from{opacity:0;transform:translateY(28px) scale(0.92)}to{opacity:1;transform:none}}
-    .ta .tile:nth-child(1){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 0ms both}
-    .ta .tile:nth-child(2){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 70ms both}
-    .ta .tile:nth-child(3){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 140ms both}
-    .ta .tile:nth-child(4){animation:tileIn .5s cubic-bezier(0.34,1.56,0.64,1) 210ms both}
-    @keyframes wideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-    /* iPhone Manager: shrink tiles so all 9 items (4 tiles + 4 wides + Gen Order strip) fit on screen */
-    @media (max-width: 899px) {
-      .home-inner.role-mgr .tile,
-      .home-inner.role-mgr .wide:not(.gord) {
-        min-height: 108px;
-      }
-      /* Also shrink the icon and text size proportionally so they don't overflow the smaller cells */
-      .home-inner.role-mgr .tile .ti,
-      .home-inner.role-mgr .wide:not(.gord) .wi {
-        font-size: clamp(24px,6vw,30px);
-        margin-bottom: 4px;
-      }
-      .home-inner.role-mgr .tile .tl,
-      .home-inner.role-mgr .wide:not(.gord) .wl {
-        font-size: clamp(13px,3.4vw,15px);
-      }
-      .home-inner.role-mgr .tile .ts,
-      .home-inner.role-mgr .wide:not(.gord) .ws {
-        font-size: clamp(10px,2.5vw,11px);
-      }
-    }
-
-    /* Phone-only: Generate Order is a thin full-width strip below the main 2x2 wides grid */
-    @media (max-width: 899px) {
-      .wide.gord {
-        min-height: 64px !important;
-        flex-direction: row !important;
-        gap: 14px !important;
-        padding: 14px 22px !important;
-        text-align: left;
-        align-items: center;
-        justify-content: flex-start;
-        grid-column: span 2 !important;  /* Always strip full-width on phone */
-      }
-      .wide.gord .wi { font-size: 28px !important; margin-bottom: 0 !important; }
-      .wide.gord > div:not(.wi) { align-items: flex-start !important; flex-direction: row !important; gap: 12px !important; flex-wrap: wrap; }
-      .wide.gord .wl { font-size: 16px !important; }
-      .wide.gord .ws { font-size: 12px !important; margin-top: 0 !important; }
-    }
-
-    /* ── iPhone home: tiles stretch to fill ALL available viewport height ──
-       Replaces fixed min-heights with flex+grid 1fr so layout scales from iPhone SE
-       to iPhone Pro Max. Without this, larger phones (iPhone 17, Pro Max etc.) end up
-       with the same compact tiles as smaller phones and dead space at the bottom. */
-    @media (max-width: 899px) {
-      /* The home screen body becomes a flex column filling all available height */
-      #s-home .sf {
-        display: flex;
-        flex-direction: column;
-        overflow-y: hidden;
-      }
-      .home-inner {
-        flex: 1 1 auto;
-        display: flex !important;
-        flex-direction: column;
-        gap: 10px;
-        min-height: 0;
-        height: auto;
-      }
-      /* Both grids flex-grow to share the remaining space equally */
-      .home-inner .tiles,
-      .home-inner .wides-grid {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        grid-auto-rows: 1fr;
-      }
-      /* Override the fixed min-heights so the grid auto-rows takes over —
-         tiles now stretch to fill the row they're in */
-      .home-inner .tile,
-      .home-inner .wide:not(.gord) {
-        min-height: 0 !important;
-      }
-      /* Manager has 5 wides where the last (Generate Order) is a strip.
-         Pin the strip to its compact size; let the two 2-col rows stretch. */
-      .home-inner.role-mgr .wides-grid {
-        grid-template-rows: 1fr 1fr auto;
-      }
-    }
-
-
-    /* Wides grid — same 2-column layout as tiles so every item is equal size.
-       A lone last item spans both columns to stay symmetric. */
-    .wides-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
-    .wides-grid > .wide:last-child:nth-child(odd){grid-column:span 2}
-    /* New entrance animation slots for fin + gord (slight stagger) */
-    .wa3{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 420ms both}
-    .wa4{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 490ms both}
-    .wa5{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 560ms both}
-    .wa6{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 630ms both}
-    .wa1{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 280ms both}
-    .wa2{animation:wideIn .5s cubic-bezier(0.34,1.56,0.64,1) 350ms both}
-
-    /* SOLID COLORED TILES */
-    .tile{border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(14px,3.5vw,20px);cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;user-select:none;text-align:center;min-height:160px}
-    .tile:active{transform:scale(0.92)}
-    .tc {background:linear-gradient(145deg,#0E7490,#0B4F66);border:1px solid rgba(34,211,238,0.3)}
-    .tse{background:linear-gradient(145deg,#5B21B6,#3B1370);border:1px solid rgba(139,92,246,0.35)}
-    .tlo{background:linear-gradient(145deg,#CA8A04,#854D0E);border:1px solid rgba(234,179,8,0.5)}
-    .tlo .tl{text-shadow:0 1px 3px rgba(0,0,0,0.5)}
-    .tlo .ts{text-shadow:0 1px 2px rgba(0,0,0,0.5);color:rgba(255,255,255,0.85)}
-    .tlo .ti{filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))}
-    .tor{background:linear-gradient(145deg,#047857,#064E3B);border:1px solid rgba(16,185,129,0.35)}
-
-    /* Subtle top sheen */
+    /* Every tile is identical — colour classes only change the background. */
+    .tile{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:clamp(10px,2.2vw,24px);cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;user-select:none;min-height:0;min-width:0}
+    .tile:active{transform:scale(0.95)}
     .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(rgba(255,255,255,0.08),transparent);pointer-events:none}
-    .ti{font-size:clamp(28px,7vw,36px);margin-bottom:10px;position:relative;z-index:1}
-    .tl{font-size:clamp(15px,4vw,18px);font-weight:800;color:#fff;letter-spacing:-0.3px;position:relative;z-index:1}
-    .ts{font-size:clamp(11px,3vw,13px);color:rgba(255,255,255,0.65);margin-top:4px;position:relative;z-index:1}
+    .ti{font-size:clamp(24px,6vw,46px);line-height:1;margin:0;position:relative;z-index:1;flex-shrink:0}
+    .tl{font-size:clamp(13px,3.2vw,24px);font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.1;position:relative;z-index:1}
+    .ts{font-size:clamp(10px,2.4vw,15px);color:rgba(255,255,255,0.65);line-height:1.2;position:relative;z-index:1}
 
-    .wide{min-height:160px;background:var(--card);border:1px solid var(--b1);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0;padding:18px 14px;cursor:pointer;transition:transform .12s;user-select:none;min-width:0;overflow:hidden}
-    .wide > div:not(.wi){display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-width:0}
-    .wide:active{transform:scale(0.97)}
-    .wide::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);border-radius:22px}
-    .wide{flex:0 0 auto;height:78px;position:relative}
-    .wide.race{background:linear-gradient(145deg,#991B1B,#5B0F0F);border-color:rgba(220,38,38,0.4)}
-    .wide.mgr{background:linear-gradient(145deg,#334155,#0F172A);border-color:rgba(148,163,184,0.4)}
-    .wide.fin{background:linear-gradient(145deg,#BE185D,#831843);border-color:rgba(244,114,182,0.4)}
-    .wide.gord{background:linear-gradient(145deg,#4338CA,#1E1B4B);border-color:rgba(129,140,248,0.45)}
-    .wide.beacon{background:linear-gradient(145deg,#65A30D,#3F6212);border-color:rgba(190,242,100,0.5)}
-    .wide.kartinfo{background:linear-gradient(145deg,#1E40AF,#172554);border-color:rgba(96,165,250,0.5)}
-    .wi{font-size:clamp(28px,8vw,52px);margin-bottom:6px;flex-shrink:0}
-    .wl{font-size:clamp(14px,4.5vw,22px);font-weight:800;color:#fff;line-height:1.15}
-    .ws{font-size:clamp(11px,3.2vw,16px);color:rgba(255,255,255,0.65);margin-top:3px;line-height:1.3}
+    /* Colour palette — one per tab */
+    .tile.tc      {background:linear-gradient(145deg,#0E7490,#0B4F66);border:1px solid rgba(34,211,238,0.30)}
+    .tile.tse     {background:linear-gradient(145deg,#5B21B6,#3B1370);border:1px solid rgba(139,92,246,0.35)}
+    .tile.tlo     {background:linear-gradient(145deg,#CA8A04,#854D0E);border:1px solid rgba(234,179,8,0.50)}
+    .tile.tor     {background:linear-gradient(145deg,#047857,#064E3B);border:1px solid rgba(16,185,129,0.35)}
+    .tile.mgr     {background:linear-gradient(145deg,#334155,#0F172A);border:1px solid rgba(148,163,184,0.40)}
+    .tile.fin     {background:linear-gradient(145deg,#BE185D,#831843);border:1px solid rgba(244,114,182,0.40)}
+    .tile.hkai    {background:linear-gradient(145deg,#7C3AED,#06B6D4);border:1px solid rgba(124,58,237,0.50)}
+    .tile.tasks   {background:linear-gradient(145deg,#EA580C,#7C2D12);border:1px solid rgba(251,146,60,0.50)}
+    .tile.race    {background:linear-gradient(145deg,#991B1B,#5B0F0F);border:1px solid rgba(220,38,38,0.40)}
+    .tile.kartinfo{background:linear-gradient(145deg,#1E40AF,#172554);border:1px solid rgba(96,165,250,0.50)}
+    .tile.beacon  {background:linear-gradient(145deg,#65A30D,#3F6212);border:1px solid rgba(190,242,100,0.50)}
+    .tile.gord    {background:linear-gradient(145deg,#4338CA,#1E1B4B);border:1px solid rgba(129,140,248,0.45)}
+    /* Gold tile needs darker text for contrast */
+    .tile.tlo .tl,.tile.tlo .ts{text-shadow:0 1px 3px rgba(0,0,0,0.5)}
+    .tile.tlo .ts{color:rgba(255,255,255,0.85)}
+    .tile.tlo .ti{filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))}
+
+    /* Entrance animation */
+    @keyframes tileIn{from{opacity:0;transform:translateY(18px) scale(0.96)}to{opacity:1;transform:none}}
+    .home-grid.ta .tile{animation:tileIn .45s cubic-bezier(0.34,1.56,0.64,1) both}
+    .home-grid.ta .tile:nth-child(1){animation-delay:0ms}
+    .home-grid.ta .tile:nth-child(2){animation-delay:40ms}
+    .home-grid.ta .tile:nth-child(3){animation-delay:80ms}
+    .home-grid.ta .tile:nth-child(4){animation-delay:120ms}
+    .home-grid.ta .tile:nth-child(5){animation-delay:160ms}
+    .home-grid.ta .tile:nth-child(6){animation-delay:200ms}
+    .home-grid.ta .tile:nth-child(7){animation-delay:240ms}
+    .home-grid.ta .tile:nth-child(8){animation-delay:280ms}
+    .home-grid.ta .tile:nth-child(9){animation-delay:320ms}
+    .home-grid.ta .tile:nth-child(10){animation-delay:360ms}
+    .home-grid.ta .tile:nth-child(11){animation-delay:400ms}
+    .home-grid.ta .tile:nth-child(12){animation-delay:440ms}
 
     /* ── Back btn ── */
     .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:8px 0;flex-shrink:0;font-family:'Inter',sans-serif}
@@ -676,19 +466,19 @@
     <div class="scr" id="s-home">
       <div class="sf">
         <div class="home-inner" id="home-inner">
-          <div class="tiles" id="tiles">
-            <div class="tile tc" id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
-            <div class="tile tse" onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
-            <div class="tile tlo" onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
-            <div class="tile tor" id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
-          </div>
-          <div class="wides-grid" id="wides-grid">
-            <div class="wide race wa1" id="wrace" onclick="go('race')"><div class="wi">🏎️</div><div><div class="wl">Racefacer</div><div class="ws">Track & session data</div></div></div>
-            <div class="wide mgr wa2" id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="wi">⭐</div><div><div class="wl">Manager Dashboard</div><div class="ws">Live data & staff</div></div></div>
-            <div class="wide fin wa3" id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="wi">💰</div><div><div class="wl">Finance</div><div class="ws">Stock value & spend</div></div></div>
-            <div class="wide beacon wa4" id="wbeacon" onclick="go('beacons')"><div class="wi">📡</div><div><div class="wl">Beacons</div><div class="ws">Track layouts & maps</div></div></div>
-            <div class="wide kartinfo wa5" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="wi">🏎️</div><div><div class="wl">Kart Info</div><div class="ws">Diagnostics & history</div></div></div>
-            <div class="wide gord wa6" id="wgord" style="display:none" onclick="go('genorder')"><div class="wi">📦</div><div><div class="wl">Generate Order</div><div class="ws">Auto-build RIMO order</div></div></div>
+          <div class="home-grid" id="home-grid">
+            <div class="tile tc"       id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
+            <div class="tile tse"      onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
+            <div class="tile tlo"      onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
+            <div class="tile tor"      id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
+            <div class="tile mgr"      id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="ti">⭐</div><div class="tl">Manager Dashboard</div><div class="ts">Live data &amp; staff</div></div>
+            <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
+            <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
+            <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
+            <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div></div>
+            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo')"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Coming soon</div></div>
+            <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
+            <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder')"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Coming soon</div></div>
           </div>
         </div>
       </div>
@@ -866,102 +656,15 @@
     <div class="scr" id="s-kartinfo">
       <div class="phdr">
         <button class="back" onclick="back()"> Back</button>
-        <button class="refresh-btn" id="rb-kart" onclick="loadKartInfo()"><span class="ricon">🔄</span><span id="rt-kart">Refresh</span></button>
       </div>
       <div class="sb">
         <div class="pgtitle">Kart Info</div>
-
-        <!-- Main tab navigation -->
-        <div class="subtabs" id="kart-main-tabs">
-          <button class="subtab active" data-mtab="info" onclick="selectKartMainTab('info')">Kart Info</button>
-          <button class="subtab" data-mtab="wiring" onclick="selectKartMainTab('wiring')">Wiring</button>
-          <button class="subtab" data-mtab="cpu" onclick="selectKartMainTab('cpu')">CPU / WiFi</button>
-          <button class="subtab" data-mtab="beacons" onclick="selectKartMainTab('beacons')">Beacons</button>
-          <button class="subtab" data-mtab="help" onclick="selectKartMainTab('help')">Troubleshoot</button>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">🏁</div>
+          <div style="font-size:18px;font-weight:800;color:#60A5FA;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">🏎️&nbsp; Per-kart specs, mileage &amp; hours<br>🛠️&nbsp; Full repair history per kart<br>⚡&nbsp; SiNUS iON wiring diagrams<br>📡&nbsp; CPU / WiFi connection logs<br>📍&nbsp; Dehaardt beacon diagnostics<br>🔧&nbsp; Troubleshooting knowledge base</div>
         </div>
-
-        <!-- ── TAB 1: Kart Info ── -->
-        <div id="kmt-info" class="kart-main-pane">
-          <!-- Kart type selector -->
-          <div class="ktype-grid" id="kart-type-grid">
-            <button class="ktype-btn active" data-ktype="Adult"        onclick="selectKartType('Adult')">Adult <span class="ktype-count" id="ktc-Adult">0</span></button>
-            <button class="ktype-btn"        data-ktype="Intermediate" onclick="selectKartType('Intermediate')">Intermediate <span class="ktype-count" id="ktc-Intermediate">0</span></button>
-            <button class="ktype-btn"        data-ktype="Junior"       onclick="selectKartType('Junior')">Junior <span class="ktype-count" id="ktc-Junior">0</span></button>
-            <button class="ktype-btn"        data-ktype="Mini"         onclick="selectKartType('Mini')">Mini <span class="ktype-count" id="ktc-Mini">0</span></button>
-          </div>
-          <div class="kart-legend">
-            <span><span class="kl-dot kl-ok"></span>OK</span>
-            <span><span class="kl-dot kl-maint"></span>Maintenance</span>
-            <span><span class="kl-dot kl-damaged"></span>Damaged</span>
-          </div>
-          <div class="sinw"><span class="sico">🔍</span><input class="sin" type="text" id="kart-search" placeholder="Search by kart #..." oninput="filterKarts(this.value)"></div>
-          <div class="kart-chip-grid" id="kart-chips"></div>
-          <div id="kart-detail" style="display:none">
-            <div class="kart-detail-header">
-              <div class="kart-num-big" id="kd-num">—</div>
-              <div class="kart-meta">
-                <div class="kart-name" id="kd-name">—</div>
-                <div class="kart-id-line" id="kd-idline">—</div>
-                <div class="kart-status-pill" id="kd-status">—</div>
-              </div>
-            </div>
-            <div class="mc"><div class="mct">Live Status</div><div class="placeholder-text">On track · Online · State of charge<br><span class="ph-sub">Awaiting Racefacer / WFM integration</span></div></div>
-            <div class="mc"><div class="mct">Specifications</div><div class="placeholder-text">Mileage · Total laps · Working hours · Total cost · Brand · Model · Engine · In-service date<br><span class="ph-sub">Awaiting Racefacer integration</span></div></div>
-            <div class="mc"><div class="mct">Repair History</div><div class="placeholder-text">Full history of repairs, dates, mileage at repair, parts used, mechanic, cost<br><span class="ph-sub">Awaiting Racefacer integration</span></div></div>
-          </div>
-        </div>
-
-        <!-- ── TAB 2: Wiring Diagram ── -->
-        <div id="kmt-wiring" class="kart-main-pane" style="display:none">
-          <div class="rcard">
-            <div style="font-size:56px;margin-bottom:14px">⚡</div>
-            <div style="font-size:18px;font-weight:800;color:#3B82F6;margin-bottom:8px">Wiring Diagram</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.7">Annotated wiring schematic for SiNUS iON.<br>Upload pending.</div>
-          </div>
-          <div class="mc">
-            <div class="mct">🤖 Ask Wiring Assistant</div>
-            <div class="placeholder-text" style="text-align:left">Once the diagram is uploaded, you'll be able to ask questions like:<br>&nbsp;&nbsp;&nbsp;• "Where does the throttle pedal connect?"<br>&nbsp;&nbsp;&nbsp;• "What colour is the brake-cut wire?"<br>&nbsp;&nbsp;&nbsp;• "Which fuse protects the CPU?"<br><span class="ph-sub">Feature awaiting wiring diagram upload + AI configuration</span></div>
-          </div>
-        </div>
-
-        <!-- ── TAB 3: CPU / WiFi Logs ── -->
-        <div id="kmt-cpu" class="kart-main-pane" style="display:none">
-          <div class="rcard">
-            <div style="font-size:56px;margin-bottom:14px">📡</div>
-            <div style="font-size:18px;font-weight:800;color:#3B82F6;margin-bottom:8px">CPU / WiFi Logs</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.7">Live status & connection history per kart.<br>Pulled from WFM dashboard.</div>
-          </div>
-          <div class="mc">
-            <div class="mct">What will appear here</div>
-            <div class="placeholder-text" style="text-align:left">&nbsp;&nbsp;&nbsp;• Last online timestamp per kart<br>&nbsp;&nbsp;&nbsp;• WiFi signal strength history<br>&nbsp;&nbsp;&nbsp;• Karts currently offline (auto-flagged)<br>&nbsp;&nbsp;&nbsp;• CPU board uptime / restart events<br>&nbsp;&nbsp;&nbsp;• Pattern detection on "stuck offline" karts<br><span class="ph-sub">Awaiting WFM API integration</span></div>
-          </div>
-        </div>
-
-        <!-- ── TAB 4: Dehaardt Beacon Logs ── -->
-        <div id="kmt-beacons" class="kart-main-pane" style="display:none">
-          <div class="rcard">
-            <div style="font-size:56px;margin-bottom:14px">📍</div>
-            <div style="font-size:18px;font-weight:800;color:#3B82F6;margin-bottom:8px">Dehaardt Beacon Logs</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.7">Beacon signal diagnostics per kart.<br>Pulled from Racefacer.</div>
-          </div>
-          <div class="mc">
-            <div class="mct">What will appear here</div>
-            <div class="placeholder-text" style="text-align:left">&nbsp;&nbsp;&nbsp;• Sections where signal was lost<br>&nbsp;&nbsp;&nbsp;• Beacon signal strength per zone<br>&nbsp;&nbsp;&nbsp;• Karts that consistently lose beacon contact<br>&nbsp;&nbsp;&nbsp;• Suggested beacon position fixes<br>&nbsp;&nbsp;&nbsp;• Antenna fault detection<br><span class="ph-sub">Awaiting Racefacer API integration</span></div>
-          </div>
-        </div>
-
-        <!-- ── TAB 5: Troubleshooting ── -->
-        <div id="kmt-help" class="kart-main-pane" style="display:none">
-          <div class="rcard">
-            <div style="font-size:56px;margin-bottom:14px">🛠️</div>
-            <div style="font-size:18px;font-weight:800;color:#3B82F6;margin-bottom:8px">Troubleshooting</div>
-            <div style="font-size:13px;color:var(--t2);line-height:1.7">Common issues and step-by-step fixes.<br>Knowledge base — grows as we learn.</div>
-          </div>
-          <div class="mc">
-            <div class="mct">What will appear here</div>
-            <div class="placeholder-text" style="text-align:left">&nbsp;&nbsp;&nbsp;• Symptom-based search (e.g. "stuck offline")<br>&nbsp;&nbsp;&nbsp;• Step-by-step fix instructions<br>&nbsp;&nbsp;&nbsp;• Photos / videos for tricky repairs<br>&nbsp;&nbsp;&nbsp;• Linked parts (jumps to scan or order)<br>&nbsp;&nbsp;&nbsp;• Add-your-own entries (Manager edit)<br><span class="ph-sub">Content to be added — managers will be able to add entries from the app</span></div>
-          </div>
-        </div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Live kart data · awaiting Racefacer integration<br><span style="color:#60A5FA;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -978,6 +681,38 @@
           <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📊&nbsp; Auto-build RIMO order from reorder data<br>🧮&nbsp; Smart 6-month order cycle<br>💰&nbsp; Total cost preview before sending<br>📄&nbsp; Export as PDF<br>📧&nbsp; Send directly to RIMO via email<br>📑&nbsp; Order history & status tracking<br>🔁&nbsp; One-tap reorder from history</div>
         </div>
         <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Manager-only tab · setup pending<br><span style="color:#818CF8;font-weight:600">Coming soon</span></div></div>
+      </div>
+    </div>
+
+    <!-- HK AI -->
+    <div class="scr" id="s-hkai">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">HK AI</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">🤖</div>
+          <div style="font-size:18px;font-weight:800;color:#A78BFA;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">💬&nbsp; Ask anything about the workshop<br>📊&nbsp; Answers pulled live from every tab<br>🔒&nbsp; Role-aware — managers see staff &amp; finance, mechanics see operations<br>🧠&nbsp; Teach it — anyone can add knowledge<br>✅&nbsp; New knowledge approved by Ross &amp; Harvey before it goes live</div>
+        </div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Your workshop's own assistant<br><span style="color:#A78BFA;font-weight:600">Coming soon</span></div></div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="scr" id="s-tasks">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Tasks</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">✅</div>
+          <div style="font-size:18px;font-weight:800;color:#FB923C;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📋&nbsp; Managers assign tasks to mechanics<br>📅&nbsp; Due dates &amp; priority<br>📝&nbsp; Mechanics add progress notes<br>🔔&nbsp; Status updates as work progresses<br>✔️&nbsp; Mark complete when done</div>
+        </div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Assign · track · complete<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -1286,30 +1021,17 @@ function applyRoleVisibility(){
   if(!cu) return;
   var isM=cu.role==='Manager'||cu.role==='Assistant Manager';
   var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
-  // Better desktop detection: pointer:fine = mouse primary, no touch = desktop
+  // pointer:fine = mouse primary, no touch = desktop
   var isDesktop=window.innerWidth>=900 && (window.matchMedia('(pointer: fine)').matches || navigator.maxTouchPoints===0);
   var hideScan=noCam||isDesktop;
-  var mt=document.getElementById('mgrt');
-  if(mt) mt.style.display=isM?'flex':'none';
-  // Finance: visible to Managers + Office
-  var wfin=document.getElementById('wfin');
-  if(wfin) wfin.style.display=isM?'flex':'none';
-  // Generate Order: Managers only
-  var wgord=document.getElementById('wgord');
-  if(wgord) wgord.style.display=isM?'flex':'none';
-  var ts=document.getElementById('tscan'),to=document.getElementById('tord');
-  if(ts) ts.style.display=hideScan?'none':'flex';
-  if(to) to.style.display='flex';
-  // Desktop home layout: tag with role for CSS targeting
-  var hi=document.getElementById('home-inner');
-  if(hi){
-    hi.classList.remove('role-mgr','role-mech');
-    // Apply role classes on ALL viewports — needed for phone manager min-height override
-    if(isM) hi.classList.add('role-mgr');
-    else hi.classList.add('role-mech');
-    var ts2=document.getElementById('tiles');
-    if(ts2) ts2.style.gridTemplateColumns='';
-  }
+  function vis(id,show){var el=document.getElementById(id);if(el)el.style.display=show?'flex':'none';}
+  // Manager-only tabs
+  vis('mgrt',isM); vis('wfin',isM); vis('wgord',isM);
+  // Scan hidden on desktop / no camera
+  vis('tscan',!hideScan);
+  vis('tord',true);
+  // Re-flow the grid (equal sizing + odd-count double-wide last tile)
+  layoutHome();
 }
 
 function updateUI(id){
@@ -1320,22 +1042,28 @@ function updateUI(id){
   if(id==='home'){sizeTiles();if(!homeAnimated){homeAnimated=true;animTiles();}}
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
 }
-function sizeTiles(){
-  // Pure CSS flexbox handles tile sizing now — flex:1 on .tiles fills available space.
-  // Only desktop+tablet need any JS intervention (handled by .home-inner CSS rules).
-  var g=document.getElementById('tiles');
-  if(window.innerWidth>=900){
-    g.style.height='';g.style.flex='';
-  } else if(window.innerWidth>=600){
-    g.style.height='';g.style.flex='';
-  } else {
-    g.style.height='';g.style.flex='';
+function sizeTiles(){ layoutHome(); }
+// Equal tiles + fill the screen. When the visible count doesn't fill the last
+// row, the final tile spans the remaining columns (a thinner, wider tile).
+function layoutHome(){
+  var grid=document.getElementById('home-grid');
+  if(!grid) return;
+  var cols=window.innerWidth>=600?3:2;
+  var tiles=[];
+  for(var i=0;i<grid.children.length;i++){
+    if(grid.children[i].style.display!=='none') tiles.push(grid.children[i]);
   }
+  tiles.forEach(function(t){t.style.gridColumn='';});
+  var n=tiles.length;
+  if(!n) return;
+  var rem=n%cols;
+  if(rem!==0){ tiles[n-1].style.gridColumn='span '+(cols-rem+1); }
 }
 function animTiles(){
-  var t=document.getElementById('tiles');
+  var t=document.getElementById('home-grid');
+  if(!t) return;
   t.classList.add('ta');
-  setTimeout(function(){t.classList.remove('ta');},900);
+  setTimeout(function(){t.classList.remove('ta');},1000);
 }
 
 // ── PIN ──

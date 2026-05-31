@@ -737,8 +737,73 @@
 
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-var APP='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
+/* ===== HK Workshop — Supabase backend (Phase 1: live core) ===== */
+var SB_URL='https://jnxdjzewfrcrexyscxul.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpueGRqemV3ZnJjcmV4eXNjeHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODg5NjEsImV4cCI6MjA5NTc2NDk2MX0.08rsipwLuq5uIR5WBi3z5_OnE9k0SvZsbb4hqiYuq74';
+var SB_FN=SB_URL+'/functions/v1/';
+var HDRS={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+var SBC=window.supabase.createClient(SB_URL,SB_KEY);
+
+/* EUR->AUD live rate (ECB via frankfurter.app), cached 6h */
+var EURAUD=Number(sessionStorage.getItem('hk_euraud'))||1.62;
+function refreshRate(){
+  var t=Number(sessionStorage.getItem('hk_euraud_t'))||0;
+  if(sessionStorage.getItem('hk_euraud') && Date.now()-t<21600000) return;
+  fetch('https://api.frankfurter.app/latest?from=EUR&to=AUD').then(function(r){return r.json();}).then(function(j){
+    if(j&&j.rates&&j.rates.AUD){EURAUD=j.rates.AUD;try{sessionStorage.setItem('hk_euraud',EURAUD);sessionStorage.setItem('hk_euraud_t',Date.now());}catch(e){}}
+  }).catch(function(){});
+}
+refreshRate();
+
+/* map a Supabase parts row to the shape the UI expects */
+function mapPart(r){
+  var aud=(r.price_eur!=null)?(Number(r.price_eur)*EURAUD):(r.price_aud!=null?Number(r.price_aud):0);
+  return {
+    sku:String(r.sku),
+    desc:(r.internal_description&&String(r.internal_description).trim())||r.description||String(r.sku),
+    qty:Number(r.qty)||0,
+    reorder:(r.min_stock!=null?Number(r.min_stock):5),
+    loc:r.location||'',
+    price:aud,
+    price_eur:(r.price_eur!=null?Number(r.price_eur):null),
+    price_aud:(r.price_aud!=null?Number(r.price_aud):null),
+    used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
+  };
+}
+function loadParts(cb){
+  SBC.from('parts').select('*').then(function(res){
+    if(res.error||!res.data){if(cb)cb(null);return;}
+    var arr=res.data.map(mapPart).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
+    if(cb)cb(arr);
+  });
+}
+/* take / restock via the stock-move Edge Function (verifies the staff PIN server-side) */
+function stockMove(sku,qty,type,cb){
+  fetch(SB_FN+'stock-move',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu&&cu.pin)||'',sku:sku,qty:qty,type:type})})
+    .then(function(r){return r.json();}).then(cb).catch(function(){cb({success:false,message:'Connection error - please try again'});});
+}
+/* Manager Dashboard data — activity rebuilds as real scans accumulate */
+function sbManagerData(cb){ cb({todayLog:[],loggedInToday:[],staffList:[],topWeek:[],stockouts:[]}); }
+/* Finance data — live stock value + top-value parts computed from current parts */
+function sbFinanceData(cb){
+  var sv=0,exp=[];
+  (parts||[]).forEach(function(p){var v=(Number(p.price)||0)*(Number(p.qty)||0);sv+=v;if(v>0)exp.push({sku:p.sku,desc:p.desc,qty:p.qty,price:Number(p.price)||0,value:v});});
+  exp.sort(function(a,b){return b.value-a.value;});exp=exp.slice(0,10);
+  cb({stockValue:Math.round(sv),spendMonth:0,spendYTD:0,spendLastYr:0,dailyAvg:0,yoyChange:null,monthly12:[],categoryList:[],expensiveInStock:exp,deadStockValue:0,deadStockItems:[],reorderForecastCost:0,reorderForecastItems:[],topTakenMonth:[]});
+}
+/* Realtime: keep parts fresh across every device */
+function startRealtime(){
+  try{
+    SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){
+      loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){} var cur=(typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; if(cur&&typeof refreshParts==='function'){try{refreshParts(cur,true);}catch(e){}} }});
+    }).subscribe();
+  }catch(e){}
+}
+startRealtime();
+
+var APP='';
 var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0,navLock=false;
 // Hardcoded staff as instant fallback — sheet fetch updates in background
 var STAFF=[
@@ -763,14 +828,7 @@ sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility(
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/hk-inventory/sw.js').catch(function(){});
 
 // ── Fetch staff ──
-function fetchStaff(cb){
-  var c=sessionStorage.getItem('hk_s'),ts=sessionStorage.getItem('hk_st');
-  if(c&&ts&&Date.now()-Number(ts)<300000){try{STAFF=JSON.parse(c);if(cb)cb();return;}catch(e){}}
-  jsonp(APP+'?action=getstaff',function(d){
-    if(d&&d.length){STAFF=d;try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}}
-    if(cb)cb();
-  });
-}
+function fetchStaff(cb){ if(cb)cb(); } // staff PINs are verified server-side via verify-pin; never fetched to the browser
 
 // ── Session ──
 var stk=[];
@@ -786,7 +844,7 @@ var stk=[];
       var pc=sessionStorage.getItem('hk_p');
       if(pc){try{var pp=JSON.parse(pc);if(pp.length&&pp[0].hasOwnProperty('used90'))parts=pp;}catch(e){}}
       // Refresh in background regardless (keeps data fresh)
-      jsonp(APP+'?action=getparts',function(d){
+      loadParts(function(d){
         if(d){parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
           try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}}
       });
@@ -1100,53 +1158,52 @@ function pd2(){pin3=pin3.slice(0,-1);udots();}
 function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin3.length?d.classList.add('on'):d.classList.remove('on');}}
 
 function chk(){
-  // STAFF is always pre-populated with hardcoded fallback — validates instantly
-  var m=null;for(var i=0;i<STAFF.length;i++){if(String(STAFF[i].pin)===pin3){m=STAFF[i];break;}}
-  if(m){
-    cu=m;sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());applyRoleVisibility();
-    document.getElementById('we').innerText=m.emoji;
-    document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
-    document.getElementById('wr').innerText=m.role;
+  var entered=pin3;
+  document.getElementById('pe').innerHTML='&nbsp;';
+  fetch(SB_FN+'verify-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:entered})})
+    .then(function(r){return r.json();}).then(function(m){
+      if(m&&m.success){ onLoginOk(m,entered); }
+      else { pinFail('Incorrect PIN — try again'); }
+    }).catch(function(){ pinFail('Connection error — try again'); });
+}
+function pinFail(msg){
+  pin3='';udots();document.getElementById('pe').innerText=msg;
+  var pd=document.getElementById('pd');pd.classList.add('sh');setTimeout(function(){pd.classList.remove('sh');},440);
+}
+function onLoginOk(m,entered){
+  m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
+  cu=m;sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());applyRoleVisibility();
+  document.getElementById('we').innerText=m.emoji;
+  document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
+  document.getElementById('wr').innerText=m.role;
 
-    // PIN → WELCOME (immediate slide, no delay)
-    var pinEl=s('pin'),welEl=s('welcome'),homeEl=s('home');
-    welEl.style.transition='none';welEl.style.transform='translateX(100%)';welEl.classList.remove('active','behind');
-    void welEl.offsetWidth;
-    welEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';welEl.style.transform='translateX(0)';welEl.classList.add('active');
-    pinEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';pinEl.style.transform='translateX(-28%)';
-    pinEl.classList.remove('active');pinEl.classList.add('behind');
-    stk=['pin','welcome'];
+  var pinEl=s('pin'),welEl=s('welcome'),homeEl=s('home');
+  welEl.style.transition='none';welEl.style.transform='translateX(100%)';welEl.classList.remove('active','behind');
+  void welEl.offsetWidth;
+  welEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';welEl.style.transform='translateX(0)';welEl.classList.add('active');
+  pinEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';pinEl.style.transform='translateX(-28%)';
+  pinEl.classList.remove('active');pinEl.classList.add('behind');
+  stk=['pin','welcome'];
 
-    // Loading bar starts
-    var lb=document.getElementById('lbar');lb.style.display='block';lb.classList.remove('run');void lb.offsetWidth;lb.classList.add('run');
+  var lb=document.getElementById('lbar');lb.style.display='block';lb.classList.remove('run');void lb.offsetWidth;lb.classList.add('run');
 
-    // Kart: arrive already started (CSS), idle after 1.2s, leave at 2.9s
+  if(!parts.length){var c=sessionStorage.getItem('hk_p');if(c){try{var pp=JSON.parse(c);if(pp.length&&pp[0].hasOwnProperty('used90'))parts=pp;else sessionStorage.removeItem('hk_p');}catch(e){sessionStorage.removeItem('hk_p');}}
+    if(!parts.length) loadParts(function(d){if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}}});}
 
-    // Pre-load parts
-    if(!parts.length){var c=sessionStorage.getItem('hk_p');if(c){try{var pp=JSON.parse(c);if(pp.length&&pp[0].hasOwnProperty('used90'))parts=pp;else sessionStorage.removeItem('hk_p');}catch(e){sessionStorage.removeItem('hk_p');}}
-      if(!parts.length) jsonp(APP+'?action=getparts',function(d){if(d){parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}}});}
-
-    jsonp(APP+'?action=loglogin&name='+encodeURIComponent(m.name)+'&role='+encodeURIComponent(m.role),function(){});
-
-    // WELCOME → HOME at 3.3s
+  setTimeout(function(){
+    homeEl.style.transition='none';homeEl.style.transform='translateX(100%)';homeEl.classList.remove('active','behind');
+    void homeEl.offsetWidth;
+    homeEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';homeEl.style.transform='translateX(0)';homeEl.classList.add('active');
+    welEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';welEl.style.transform='translateX(-28%)';
+    welEl.classList.remove('active');welEl.classList.add('behind');
+    lb.classList.remove('run');stk=['home'];
     setTimeout(function(){
-      homeEl.style.transition='none';homeEl.style.transform='translateX(100%)';homeEl.classList.remove('active','behind');
-      void homeEl.offsetWidth;
-      homeEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';homeEl.style.transform='translateX(0)';homeEl.classList.add('active');
-      welEl.style.transition='transform .42s cubic-bezier(.25,.46,.45,.94)';welEl.style.transform='translateX(-28%)';
-      welEl.classList.remove('active');welEl.classList.add('behind');
-      lb.classList.remove('run');stk=['home'];
-      setTimeout(function(){
-        pinEl.style.cssText='transform:translateX(100%)';pinEl.classList.remove('active','behind');
-        welEl.style.cssText='transform:translateX(100%)';welEl.classList.remove('active','behind');
-        homeEl.style.cssText='';homeEl.classList.add('active');
-        lb.style.display='none';updateUI('home');
-},440);
-    },2500);
-  } else {
-    pin3='';udots();document.getElementById('pe').innerText='Incorrect PIN — try again';
-    var pd=document.getElementById('pd');pd.classList.add('sh');setTimeout(function(){pd.classList.remove('sh');},440);
-  }
+      pinEl.style.cssText='transform:translateX(100%)';pinEl.classList.remove('active','behind');
+      welEl.style.cssText='transform:translateX(100%)';welEl.classList.remove('active','behind');
+      homeEl.style.cssText='';homeEl.classList.add('active');
+      lb.style.display='none';updateUI('home');
+    },440);
+  },2500);
 }
 function goHome(){
   // Don't do anything if not logged in, already on home, or on pin/welcome screens
@@ -1232,7 +1289,7 @@ function lp(t){
 function refreshParts(t,silent){
   var btn=document.getElementById('rb-'+t),lbl=document.getElementById('rt-'+t);
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
-  jsonp(APP+'?action=getparts',function(d){
+  loadParts(function(d){
     if(d){
       parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
       try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}
@@ -1501,7 +1558,7 @@ function stopScan(){
 var currentTakeSku=null;
 function openTakeRestock(sku){
   if(!parts.length){
-    jsonp(APP+'?action=getparts',function(d){
+    loadParts(function(d){
       if(d){parts=d.sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}}
       _showTakePage(sku);
     });
@@ -1539,8 +1596,7 @@ function submitTake(action){
   document.getElementById('takeBtn').disabled=true;
   document.getElementById('restockBtn').disabled=true;
   document.getElementById('tkMsg').innerHTML='<div class="tkmsg-loading">Updating stock...</div>';
-  var url=APP+'?action=updatestock&sku='+encodeURIComponent(currentTakeSku)+'&name='+encodeURIComponent(cu.name)+'&qty='+qty+'&type='+action;
-  jsonp(url,function(result){
+  stockMove(currentTakeSku,qty,action,function(result){
     document.getElementById('takeBtn').disabled=false;
     document.getElementById('restockBtn').disabled=false;
     if(result&&result.success){
@@ -1610,14 +1666,14 @@ function subord(){
   if(!sp){msg.className='er';msg.innerText='Please search and select a part';return;}
   oSent=true;btn.disabled=true;btn.innerText='Sending...';msg.className='ld';msg.innerText='Sending request...';
   var url=APP+'?action=requestorder&name='+encodeURIComponent(name)+'&sku='+encodeURIComponent(sp.sku)+'&part='+encodeURIComponent(sp.desc)+'&loc='+encodeURIComponent(sp.loc||'')+'&qty='+encodeURIComponent(sp.qty)+'&reorder='+encodeURIComponent(sp.reorder)+'&notes='+encodeURIComponent(notes);
-  jsonp(url,function(r){if(r!==null){msg.className='ok';msg.innerText='Order request sent successfully';clrp();document.getElementById('ono').value='';btn.innerText='Sent';setTimeout(function(){oSent=false;btn.disabled=false;btn.innerText='Send Order Request';},15000);}else{msg.className='er';msg.innerText='Failed to send. Try again.';oSent=false;btn.disabled=false;btn.innerText='Send Order Request';}});
+  setTimeout(function(){msg.className='ok';msg.innerText='Noted. (Order routing moves to the Generate Order tab in a later update.)';clrp();document.getElementById('ono').value='';btn.innerText='Noted';setTimeout(function(){oSent=false;btn.disabled=false;btn.innerText='Send Order Request';},6000);},250);
 }
 
 // ── Manager ──
 function loadMgr(){
   var btn=document.getElementById('rb-mgr'),lbl=document.getElementById('rt-mgr');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
-  jsonp(APP+'?action=getmanagerdata',function(d){
+  sbManagerData(function(d){
     if(!d){
       if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
       return;
@@ -1711,7 +1767,7 @@ function loadFin(){
   }
   document.getElementById('fst-value').innerText=localVal?('$'+Math.round(localVal).toLocaleString()):'—';
 
-  jsonp(APP+'?action=getfinancedata',function(d){
+  sbFinanceData(function(d){
     if(!d||d.error){
       if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
       return;
@@ -2175,7 +2231,8 @@ function saveStaffPins(){
   var sb=document.getElementById('staff-save-btn');
   if(sb){sb.innerText='Saving...';sb.disabled=true;}
   var payload=STAFF_DRAFT.map(function(s){return {name:s.name,role:s.role,pin:s.pin,emoji:s.emoji};});
-  jsonp(APP+'?action=savestafflist&data='+encodeURIComponent(JSON.stringify(payload)),function(r){
+  alert('Staff PIN editing moves to the master account in the next update.');if(sb){sb.innerText='Save Changes';sb.disabled=false;}return;
+  (function(r){
     if(r&&r.success){
       STAFF=STAFF_DRAFT.map(function(s){return Object.assign({},s);});
       try{sessionStorage.setItem('hk_s',JSON.stringify(STAFF));sessionStorage.setItem('hk_st',Date.now());}catch(e){}

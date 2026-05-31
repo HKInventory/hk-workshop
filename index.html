@@ -1039,7 +1039,7 @@ function sbManagerData(cb){
     var topWeek=Object.keys(weekTaken).sort(function(a,b){return weekTaken[b]-weekTaken[a];}).slice(0,5).map(function(sk){return {sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,qty:weekTaken[sk]};});
     var staffList=Object.keys(staffWeek).sort(function(a,b){return staffWeek[b].actions-staffWeek[a].actions;}).map(function(n){return {name:n,taken:staffWeek[n].taken,restocked:staffWeek[n].restocked,actions:staffWeek[n].actions};});
     var stockouts=[];
-    Object.keys(usage90).forEach(function(sk){ var dr=usage90[sk]/90, qty=(pMap[sk]&&pMap[sk].qty)||0, days=dr>0?Math.floor(qty/dr):999; if(days<=120){ var sd=new Date(now.getTime()+days*864e5); stockouts.push({sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,qty:qty,daysLeft:days,date:sd.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}); }});
+    Object.keys(usage90).forEach(function(sk){ var dr=usage90[sk]/90, qty=(pMap[sk]&&pMap[sk].qty)||0, days=dr>0?Math.floor(qty/dr):999; if(days<90){ var sd=new Date(now.getTime()+days*864e5); stockouts.push({sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,qty:qty,daysLeft:days,date:sd.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}); }});
     stockouts.sort(function(a,b){return a.daysLeft-b.daysLeft;});
     var seen={}, loggedInToday=[];
     logins.forEach(function(x){ var d=new Date(x.ts); if(isNaN(d)||!sameDay(d))return; var n=String(x.name||''); if(n&&!seen[n]){seen[n]=1;loggedInToday.push({name:n,role:String(x.role||'')});} });
@@ -1713,13 +1713,19 @@ function sdot(p){
   if(p.qty<=p.reorder) return '<span class="sdot y"></span><span class="stxt y">'+p.qty+' in stock · Low</span>';
   return '<span class="sdot g"></span><span class="stxt g">'+p.qty+' in stock</span>';
 }
-// Days-left pill — color-coded: <90=red, 90-120=yellow, 120+=green
+// Freight-based days-left colour. Sea freight ~90 days, air freight ~21 days.
+//   green  >=90d : a normal sea order placed now arrives before you run out
+//   yellow 21-89d: would run out before a sea order arrives — act / air-freight
+//   red    <21d  : below the air-freight window — danger
+var SEA_DAYS=90, AIR_DAYS=21;
+function dayColor(d){ if(d==null) return '#00C853'; return d<AIR_DAYS?'#FF3B30':d<SEA_DAYS?'#FFD600':'#00C853'; }
 function daysLeftPill(p){
   if(!p.used90||p.used90===0) return '';
   var rate=p.used90/90;
   var days=p.qty===0?0:Math.round(p.qty/rate);
-  var col=days<90?'#FF3B30':days<=120?'#FFD600':'#00C853';
-  return '<span style="font-size:11px;color:'+col+';font-weight:700;background:'+col+'14;padding:3px 9px;border-radius:6px;border:1px solid '+col+'33">~'+days+'d left</span>';
+  var col=dayColor(days);
+  var tip=days<AIR_DAYS?'Below air-freight lead (~3 weeks) — danger':days<SEA_DAYS?'Runs out before a sea order (~3 months) arrives':'Outlasts a sea order (~3 months)';
+  return '<span title="'+tip+'" style="font-size:11px;color:'+col+';font-weight:700;background:'+col+'14;padding:3px 9px;border-radius:6px;border:1px solid '+col+'33">~'+days+'d left</span>';
 }
 // Smart reorder pill — based on 90-day usage. Shows BOTH:
 //   • Min: recommended reorder point (when to order, covers 90-day lead time)
@@ -1764,7 +1770,7 @@ function rL(){
   function urgencyInfo(p){
     var u=urgency(p);
     if(u===null) return {label:'No recent usage',color:'#666'};
-    var col=u<90?'#FF3B30':u<=120?'#FFD600':'#00C853';
+    var col=dayColor(u);
     if(p.qty===0){
       return {label:'Out · needed every ~'+Math.round(u)+' days · '+(p.used90||0)+' used in 90d',color:col};
     }
@@ -2083,7 +2089,7 @@ function loadMgr(){
       if(r.action==='RESTOCK') totalRestock+=r.qty;
     });
     var li=d.loggedInToday||[];
-    var soon=(d.stockouts||[]).filter(function(p){return p.daysLeft<=90;}).length;
+    var soon=(d.stockouts||[]).filter(function(p){return p.daysLeft<90;}).length;
     // Populate stat cards
     document.getElementById('st-takes').innerText=totalTake;
     document.getElementById('st-restocks').innerText=totalRestock;
@@ -2098,7 +2104,7 @@ function loadMgr(){
     var med=['🥇','🥈','🥉'];
     document.getElementById('mlb').innerHTML=!(d.staffList||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No activity this week</div>':d.staffList.map(function(x,i){return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+x.name+'</div><div class="mrr"><span class="bdg bt">−'+x.taken+'</span> <span class="bdg br">+'+x.restocked+'</span></div></div>';}).join('');
     document.getElementById('mtp').innerHTML=!(d.topWeek||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No data this week</div>':d.topWeek.map(function(p,i){return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#f87171;font-weight:700">'+p.qty+'</div></div>';}).join('');
-    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.daysLeft<90?'#FF3B30':p.daysLeft<=120?'#FFD600':'#00C853';return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
+    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=dayColor(p.daysLeft);return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
     // Racefacer Discrepancies — repair-based cross-check between app QR scans and Racefacer repair logs.
     // Expected format from API once integrated:
     //   d.racefacerDiscrepancies = [

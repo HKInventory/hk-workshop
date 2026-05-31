@@ -24,7 +24,8 @@
       --grn:#00C853; --red:#FF3B30; --amb:#FF9500;
       --grad:linear-gradient(135deg,#00CFFF,#6E42FF);
     }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+    input,textarea,select,[contenteditable]{-webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;-webkit-touch-callout:default}
     html,body{height:100%;background:var(--bg);font-family:'Inter',-apple-system,sans-serif;color:var(--t1);overflow:hidden;-webkit-font-smoothing:antialiased}
 
     /* ── DESKTOP / TABLET ── */
@@ -499,6 +500,7 @@
     .m-stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b1);font-size:13px}
     .m-stat-row:last-child{border-bottom:none}
     .m-lock{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--t2);line-height:1.4;margin:2px 0 4px;cursor:pointer}
+    .m-lockhint{font-size:11.5px;color:var(--t2);line-height:1.4;margin:0 0 6px}
     .m-lock input{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--acc)}
     .m-empty{text-align:center;color:var(--t2);padding:40px 0;font-size:14px}
     /* Master form */
@@ -928,6 +930,7 @@
       <div class="m-fld"><label>Qty</label><input id="m-f-qty" inputmode="numeric"></div>
     </div>
     <label class="m-lock"><input type="checkbox" id="m-f-lock"><span>🔒 Lock this minimum — don't auto-adjust from usage</span></label>
+    <div class="m-lockhint" id="m-f-lockhint"></div>
     <div class="m-fld"><label>Location</label><input id="m-f-loc"></div>
     <div class="m-form-msg" id="m-form-msg"></div>
     <div class="m-form-row">
@@ -983,7 +986,7 @@ function mapPart(r){
     price:aud,
     price_eur:(r.price_eur!=null?Number(r.price_eur):null),
     price_aud:(r.price_aud!=null?Number(r.price_aud):null),
-    auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true),
+    auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), scans90:0,
     used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
   };
 }
@@ -996,14 +999,15 @@ function loadParts(cb){
          min to always carry (reorder point) = ceil(90d usage x 1.3)   (covers the 3-month lead + 30% buffer)
          order quantity                      = ceil(90d usage x 2)      (6-month supply between deliveries)
        daysLeft = current stock / daily usage rate. */
-    var ninety=Date.now()-90*864e5, usage90={};
+    var ninety=Date.now()-90*864e5, usage90={}, scans90={};
     ((lres&&lres.data)||[]).forEach(function(l){
       if(String(l.action||'')!=='TAKEN') return;
       var t=new Date(l.ts).getTime(); if(isNaN(t)||t<ninety) return;
-      var sk=String(l.sku||''); usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0);
+      var sk=String(l.sku||''); usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0); scans90[sk]=(scans90[sk]||0)+1;
     });
     var arr=pres.data.map(function(r){
       var pt=mapPart(r), u=usage90[pt.sku]||0;
+      pt.scans90=scans90[pt.sku]||0;
       if(u>0){ pt.used90=u; var rate=u/90; pt.daysLeft=rate>0?Math.floor(pt.qty/rate):null; pt.recommendedReorder=Math.ceil(u*1.3); pt.orderQuantity=Math.ceil(u*2); }
       return pt;
     }).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
@@ -1617,7 +1621,7 @@ function goBuild(offsetDays){
     } else if(p.min_stock!=null && p.qty<p.min_stock){
       rec=p.min_stock-p.qty;
     }
-    if(rec>0) items.push({sku:p.sku,desc:p.desc,qty:p.qty,used90:p.used90||0,priceEUR:(p.price_eur!=null?p.price_eur:null),priceAUD:(p.price_aud!=null?p.price_aud:null),rec:rec,usage:usage});
+    if(rec>0) items.push({sku:p.sku,desc:p.desc,qty:p.qty,reorder:(p.reorder!=null?p.reorder:null),used90:p.used90||0,priceEUR:(p.price_eur!=null?p.price_eur:null),priceAUD:(p.price_aud!=null?p.price_aud:null),rec:rec,usage:usage});
   });
   items.sort(function(a,b){ return ((b.priceEUR||0)*b.rec)-((a.priceEUR||0)*a.rec); });
   return items;
@@ -1645,10 +1649,11 @@ function goRender(){
   }
   listEl.innerHTML=goItems.map(function(it,i){
     var unitE=(it.priceEUR!=null)?('€'+it.priceEUR.toFixed(2)):'no €price';
+    var qc=it.qty===0?'#FF3B30':((it.reorder!=null&&it.qty<=it.reorder)?'#FFD600':'#00C853');
     var tag=it.usage?('<span class="go-tag usage">'+it.used90+' used/90d</span>'):'<span class="go-tag min">min level</span>';
     return '<div class="go-row"><div class="go-row-main">'
       +'<div class="go-row-desc">'+it.desc+'</div>'
-      +'<div class="go-row-sub">SKU '+it.sku+' · have '+it.qty+' · '+unitE+' '+tag+'</div>'
+      +'<div class="go-row-sub">SKU <span style="color:#00CFFF;font-weight:700">'+it.sku+'</span> &middot; have <span style="color:'+qc+';font-weight:700">'+it.qty+'</span> &middot; '+unitE+' '+tag+'</div>'
       +'</div><input class="go-qty" type="number" min="0" inputmode="numeric" value="'+it.rec+'" onchange="goSetQty('+i+',this.value)" oninput="goSetQty('+i+',this.value)"></div>';
   }).join('');
   if(actEl) actEl.style.display='flex';
@@ -2673,6 +2678,16 @@ function openMaster(){
 }
 function closeMaster(){ document.getElementById('master').classList.remove('show'); mCloseForm(); mCloseQR(); }
 
+function mMinStatus(p){
+  if(p.auto_min===false) return ' &middot; <span style="color:#FFD600;font-weight:700">🔒 locked</span>';
+  if((p.scans90||0)>=6)  return ' &middot; <span style="color:#00CFFF;font-weight:700">⚡ auto</span>';
+  return ' &middot; <span style="color:var(--t2)">📊 learning '+(p.scans90||0)+'/6</span>';
+}
+function mLockHintText(p){
+  if(p&&p.auto_min===false) return 'Locked — this minimum stays fixed.';
+  if(p&&(p.scans90||0)>=6)  return 'Auto-tuning from usage ('+p.scans90+' scans in 90 days).';
+  return 'Learning '+((p&&p.scans90)||0)+'/6 — keeps your set minimum until it has been scanned 6 times, then auto-tunes.';
+}
 function mRenderList(){
   var q=(document.getElementById('m-search').value||'').toLowerCase().trim();
   var list=(parts||[]).filter(function(p){return !q||(p.desc||'').toLowerCase().indexOf(q)>=0||(String(p.sku)||'').toLowerCase().indexOf(q)>=0;});
@@ -2683,7 +2698,7 @@ function mRenderList(){
     return '<div class="m-row">'
       +'<div class="m-row-main" onclick="mOpenEdit(\''+p.sku+'\')">'
         +'<div class="m-row-desc">'+(p.desc||p.sku)+'</div>'
-        +'<div class="m-row-sub">SKU '+p.sku+' &middot; qty '+p.qty+' &middot; '+price+(p.auto_min===false?' &middot; 🔒':'')+'</div>'
+        +'<div class="m-row-sub">SKU '+p.sku+' &middot; qty '+p.qty+' &middot; '+price+mMinStatus(p)+'</div>'
       +'</div>'
       +'<button class="m-row-btn" onclick="mQR(\''+p.sku+'\')" title="QR code">QR</button>'
       +'<button class="m-row-btn m-row-del" onclick="mRemove(\''+p.sku+'\')" title="Remove">&#128465;</button>'
@@ -2776,6 +2791,7 @@ function mFillForm(p){
   document.getElementById('m-f-qty').value=p?p.qty:'';
   document.getElementById('m-f-loc').value=p?(p.loc||''):'';
   document.getElementById('m-f-lock').checked = p ? (p.auto_min===false) : false;
+  var lh=document.getElementById('m-f-lockhint'); if(lh) lh.textContent=mLockHintText(p);
   mFormMsg(''); mEurHint();
 }
 function mOpenAdd(){

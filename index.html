@@ -134,6 +134,12 @@
     /* Every tile is identical — colour classes only change the background. */
     .tile{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:clamp(10px,2.2vw,24px);cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;user-select:none;min-height:0;min-width:0}
     .tile:active{transform:scale(0.95)}
+    /* premium phone polish: a light sheen sweeps the tiles on home entry, springy tap on touch */
+    .tile::after{content:'';position:absolute;top:0;bottom:0;left:-75%;width:50%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);transform:skewX(-18deg);pointer-events:none;opacity:0}
+    @keyframes sheen{0%{left:-75%;opacity:0}18%{opacity:1}60%{left:130%;opacity:0}100%{left:130%;opacity:0}}
+    .home-grid.ta .tile::after{animation:sheen 1.15s ease .12s both}
+    @media (hover:none){ .tile{transition:transform .2s cubic-bezier(.34,1.56,.64,1)} .tile:active{transform:scale(.92)} }
+    @media (max-width:420px){ .tile .ts{display:none} }
     .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(rgba(255,255,255,0.08),transparent);pointer-events:none}
     .ti{font-size:clamp(24px,6vw,46px);line-height:1;margin:0;position:relative;z-index:1;flex-shrink:0}
     .tl{font-size:clamp(13px,3.2vw,24px);font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.1;position:relative;z-index:1}
@@ -367,6 +373,26 @@
     .stat-restock{--clr:#43A047}
     .stat-staff{--clr:#FFD600}
     .stat-soon{--clr:#FF9800}
+    .go-ctrl{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+    .go-date-lbl{font-size:13px;color:var(--t2);font-weight:600;display:flex;align-items:center;gap:12px}
+    .go-date{background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);font-size:15px;padding:9px 12px;-webkit-appearance:none}
+    .go-note{font-size:12px;color:var(--t2);line-height:1.45}
+    .go-summary{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:10px 14px;margin-bottom:12px}
+    .go-summary:empty{display:none}
+    .go-sum-row{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
+    .go-sum-row b{font-weight:800}
+    .go-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+    .go-row-main{flex:1;min-width:0}
+    .go-row-desc{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+    .go-row-sub{font-size:11px;color:var(--t2);margin-top:2px}
+    .go-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px}
+    .go-tag.usage{background:rgba(0,207,255,.12);color:var(--acc)}
+    .go-tag.min{background:rgba(234,179,8,.15);color:#EAB308}
+    .go-qty{width:62px;flex-shrink:0;background:var(--card2);border:1px solid var(--b2);border-radius:9px;color:var(--t1);font-size:15px;font-weight:700;text-align:center;padding:9px 4px;-webkit-appearance:none}
+    .go-actions{display:flex;gap:10px;margin-top:4px;padding-bottom:12px}
+    .go-btn{flex:1;padding:13px;border:none;border-radius:11px;font-weight:700;font-size:14px;cursor:pointer}
+    .go-csv{background:var(--card2);color:var(--t1);border:1px solid var(--b2)}
+    .go-pdf{background:var(--grad);color:#fff}
     .stat-finA{--clr:#EC4899}
     .stat-finB{--clr:#A855F7}
     .stat-finC{--clr:#F472B6}
@@ -461,6 +487,17 @@
     .m-row-sub{font-size:11px;color:var(--t2);margin-top:2px}
     .m-row-btn{background:var(--card2);border:1px solid var(--b2);border-radius:9px;color:var(--t1);font-size:14px;width:38px;height:38px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
     .m-row-del{color:var(--red)}
+    .m-tabs{display:flex;gap:6px;padding:10px 18px 2px;flex-shrink:0}
+    .m-tab{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:13px;padding:10px 4px;cursor:pointer}
+    .m-tab.active{background:var(--grad);color:#fff;border-color:transparent}
+    .m-pane{display:none;flex:1;flex-direction:column;min-height:0}
+    .m-pane.active{display:flex}
+    .m-pane-title{flex:1;font-size:15px;font-weight:800;align-self:center}
+    .m-staff-foot{flex-shrink:0;padding:10px 18px calc(env(safe-area-inset-bottom) + 16px);border-top:1px solid var(--b1)}
+    .m-staff-foot .m-save{width:100%}
+    .m-tool-desc{font-size:13px;color:var(--t2);line-height:1.5;margin-top:6px}
+    .m-stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b1);font-size:13px}
+    .m-stat-row:last-child{border-bottom:none}
     .m-empty{text-align:center;color:var(--t2);padding:40px 0;font-size:14px}
     /* Master form */
     .m-form{position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
@@ -562,7 +599,7 @@
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo')"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Coming soon</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
-            <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder')"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Coming soon</div></div>
+            <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           </div>
         </div>
       </div>
@@ -689,7 +726,6 @@
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">🚨 Racefacer Discrepancies</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct">📦 Racefacer Warehouse Stock</div><div id="mrfw"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
-        <div class="mc"><div class="mct" id="staff-pin-header" style="display:flex;justify-content:space-between;align-items:center"><span>Staff PINs</span><button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button></div><div id="mpi"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">🔐 Master Access Code</div><div id="mpin-body"><button class="mpin-reveal" onclick="revealMasterPin()">Tap to reveal master code</button></div></div>
       </div>
     </div>
@@ -757,15 +793,20 @@
     <div class="scr" id="s-genorder">
       <div class="phdr">
         <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-gord" onclick="loadGenOrder()"><span class="ricon">🔄</span><span>Refresh</span></button>
       </div>
       <div class="sb">
-        <div class="pgtitle">Generate Order</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">📦</div>
-          <div style="font-size:18px;font-weight:800;color:#818CF8;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📊&nbsp; Auto-build RIMO order from reorder data<br>🧮&nbsp; Smart 6-month order cycle<br>💰&nbsp; Total cost preview before sending<br>📄&nbsp; Export as PDF<br>📧&nbsp; Send directly to RIMO via email<br>📑&nbsp; Order history & status tracking<br>🔁&nbsp; One-tap reorder from history</div>
+        <div class="pgtitle">Generate RIMO Order</div>
+        <div class="go-ctrl">
+          <label class="go-date-lbl">Order date<input type="date" id="go-date" class="go-date" onchange="goRecalc()"></label>
+          <div class="go-note" id="go-note"></div>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Manager-only tab · setup pending<br><span style="color:#818CF8;font-weight:600">Coming soon</span></div></div>
+        <div class="go-summary" id="go-summary"></div>
+        <div id="go-list"><div class="emp"><span class="empic">📦</span>Loading…</div></div>
+        <div class="go-actions" id="go-actions" style="display:none">
+          <button class="go-btn go-csv" onclick="goExportCSV()">⤓ CSV</button>
+          <button class="go-btn go-pdf" onclick="goExportPDF()">⤓ Order PDF</button>
+        </div>
       </div>
     </div>
 
@@ -837,12 +878,38 @@
     <div class="m-hdr-t">HK Workshop<span>Master · Configure</span></div>
     <button class="m-exit" onclick="closeMaster()">Exit</button>
   </div>
-  <div class="m-tools">
-    <input class="m-search-in" id="m-search" placeholder="Search parts..." oninput="mSearch()">
-    <button class="m-add" onclick="mOpenAdd()">+ Add</button>
-    <button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" onclick="mExportAllQR()">⤓ QR PDF</button>
+  <div class="m-tabs">
+    <button class="m-tab active" id="mtab-parts" onclick="mTab('parts')">🔧 Parts</button>
+    <button class="m-tab" id="mtab-staff" onclick="mTab('staff')">👥 Staff</button>
+    <button class="m-tab" id="mtab-tools" onclick="mTab('tools')">⚙️ Tools</button>
   </div>
-  <div class="m-list" id="m-list"></div>
+  <div class="m-pane active" id="m-pane-parts">
+    <div class="m-tools">
+      <input class="m-search-in" id="m-search" placeholder="Search parts..." oninput="mSearch()">
+      <button class="m-add" onclick="mOpenAdd()">+ Add</button>
+    </div>
+    <div class="m-list" id="m-list"></div>
+  </div>
+  <div class="m-pane" id="m-pane-staff">
+    <div class="m-tools">
+      <div class="m-pane-title">Staff &amp; PINs</div>
+      <button class="m-add" onclick="msAddRow()">+ Add</button>
+    </div>
+    <div class="m-list" id="m-staff-list"><div class="m-empty">Loading staff…</div></div>
+    <div class="m-staff-foot">
+      <div class="m-form-msg" id="m-staff-msg"></div>
+      <button class="m-form-btn m-save" id="m-staff-save" onclick="msSave()">Save staff changes</button>
+    </div>
+  </div>
+  <div class="m-pane" id="m-pane-tools">
+    <div class="m-list">
+      <div class="mc" style="margin-top:14px"><div class="mct">QR codes</div>
+        <div class="m-tool-desc">One PDF with a 30×30mm label for every part — print and stick on the shelves. Same scan code as your existing tags.</div>
+        <button class="m-add" id="m-qrall-btn" style="width:100%;margin-top:12px" onclick="mExportAllQR()">⤓ Save all QR codes (PDF)</button>
+      </div>
+      <div class="mc"><div class="mct">Inventory summary</div><div id="m-tool-stats"></div></div>
+    </div>
+  </div>
 </div>
 <div class="m-form" id="m-form">
   <div class="m-form-box">
@@ -877,6 +944,7 @@
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== HK Workshop — Supabase backend (Phase 1: live core) ===== */
@@ -916,11 +984,27 @@ function mapPart(r){
   };
 }
 function loadParts(cb){
-  SBC.from('parts').select('*').then(function(res){
-    if(res.error||!res.data){if(cb)cb(null);return;}
-    var arr=res.data.map(mapPart).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
+  Promise.all([SBC.from('parts').select('*'), SBC.from('logs').select('action,sku,qty,ts')]).then(function(rs){
+    var pres=rs[0], lres=rs[1];
+    if(pres.error||!pres.data){ if(cb)cb(null); return; }
+    /* 90-day TAKEN usage per SKU drives the reorder maths.
+       RIMO: orders placed every 6 months, ~3-month shipping ->
+         min to always carry (reorder point) = ceil(90d usage x 1.3)   (covers the 3-month lead + 30% buffer)
+         order quantity                      = ceil(90d usage x 2)      (6-month supply between deliveries)
+       daysLeft = current stock / daily usage rate. */
+    var ninety=Date.now()-90*864e5, usage90={};
+    ((lres&&lres.data)||[]).forEach(function(l){
+      if(String(l.action||'')!=='TAKEN') return;
+      var t=new Date(l.ts).getTime(); if(isNaN(t)||t<ninety) return;
+      var sk=String(l.sku||''); usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0);
+    });
+    var arr=pres.data.map(function(r){
+      var pt=mapPart(r), u=usage90[pt.sku]||0;
+      if(u>0){ pt.used90=u; var rate=u/90; pt.daysLeft=rate>0?Math.floor(pt.qty/rate):null; pt.recommendedReorder=Math.ceil(u*1.3); pt.orderQuantity=Math.ceil(u*2); }
+      return pt;
+    }).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
     if(cb)cb(arr);
-  });
+  }).catch(function(){ if(cb)cb(null); });
 }
 /* take / restock via the stock-move Edge Function (verifies the staff PIN server-side) */
 function stockMove(sku,qty,type,cb){
@@ -1003,8 +1087,8 @@ var STAFF=[
   {name:'Harvey Betts',   role:'Assistant Manager',pin:'2345',emoji:'⭐'},
   {name:'Rafael Hewitt',  role:'Mechanic',         pin:'3456',emoji:'🔧'},
   {name:'Alex Harper',    role:'Mechanic',         pin:'4567',emoji:'🔧'},
-  {name:'Sam Lally',      role:'Mechanic',         pin:'5678',emoji:'🔧'},
-  {name:'Jayden Aginsky', role:'Mechanic',         pin:'6789',emoji:'🔧'},
+  {name:'Sam Lally',      role:'Mechanic',         pin:'2075',emoji:'🔧'},
+  {name:'Jayden Aginsky', role:'Mechanic',         pin:'6969',emoji:'🔧'},
   {name:'Will Webster',   role:'Mechanic',         pin:'7890',emoji:'🔧'},
   {name:'Christian Oom',  role:'Mechanic',         pin:'8901',emoji:'🔧'},
 ];
@@ -1503,6 +1587,115 @@ function refreshParts(t,silent){
   });
 }
 function se(t,h){document.getElementById(t==='search'?'sr':'lr').innerHTML=h;}
+
+/* ===== Generate RIMO Order =====
+   Periodic-review (order-up-to) model. RIMO: order every 6 months (180d), ~3-month (90d) shipping.
+   Order-up-to level S must cover the review period + lead time + a safety buffer:
+     S = dailyRate x (180 + 90)  +  0.3 x dailyRate x 90   =  used90 x 3.3
+   Ordering on a future date depletes stock first, so the order grows the later you place it:
+     projected on-hand at order date = max(0, qty - dailyRate x daysUntilOrder)
+     order = max(0, ceil(S - projected))
+   Parts with no usage history fall back to topping up to their set minimum stock. */
+var goItems=[];
+function goDateOffset(){
+  var v=document.getElementById('go-date').value; if(!v) return 0;
+  var d=new Date(v+'T00:00:00'), now=new Date(); now.setHours(0,0,0,0);
+  var off=Math.round((d-now)/864e5); return off>0?off:0;
+}
+function goBuild(offsetDays){
+  var items=[];
+  (parts||[]).forEach(function(p){
+    var rec=0, usage=false;
+    if(p.used90>0){
+      usage=true;
+      var rate=p.used90/90, S=p.used90*3.3, proj=Math.max(0,p.qty-rate*offsetDays);
+      rec=Math.max(0,Math.ceil(S-proj));
+    } else if(p.min_stock!=null && p.qty<p.min_stock){
+      rec=p.min_stock-p.qty;
+    }
+    if(rec>0) items.push({sku:p.sku,desc:p.desc,qty:p.qty,used90:p.used90||0,priceEUR:(p.price_eur!=null?p.price_eur:null),priceAUD:(p.price_aud!=null?p.price_aud:null),rec:rec,usage:usage});
+  });
+  items.sort(function(a,b){ return ((b.priceEUR||0)*b.rec)-((a.priceEUR||0)*a.rec); });
+  return items;
+}
+function loadGenOrder(){
+  var di=document.getElementById('go-date'); if(di&&!di.value) di.value=new Date().toISOString().slice(0,10);
+  if(!parts||!parts.length){ loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} goRecalc(); }); }
+  else goRecalc();
+}
+function goRecalc(){
+  var off=goDateOffset();
+  goItems=goBuild(off);
+  var note=document.getElementById('go-note');
+  if(note) note.textContent = off>0
+    ? ('Projected '+off+' days out — assumes usage keeps to the current rate until then. Arrives ~3 months after ordering.')
+    : 'Based on stock as of today. Order covers the 6-month cycle + 3-month shipping.';
+  goRender();
+}
+function goRender(){
+  var listEl=document.getElementById('go-list'), actEl=document.getElementById('go-actions'), sumEl=document.getElementById('go-summary');
+  if(!goItems.length){
+    if(sumEl) sumEl.innerHTML='';
+    listEl.innerHTML='<div class="emp"><span class="empic">✅</span>Nothing needs ordering for this date.</div>';
+    if(actEl) actEl.style.display='none'; return;
+  }
+  listEl.innerHTML=goItems.map(function(it,i){
+    var unitE=(it.priceEUR!=null)?('€'+it.priceEUR.toFixed(2)):'no €price';
+    var tag=it.usage?('<span class="go-tag usage">'+it.used90+' used/90d</span>'):'<span class="go-tag min">min level</span>';
+    return '<div class="go-row"><div class="go-row-main">'
+      +'<div class="go-row-desc">'+it.desc+'</div>'
+      +'<div class="go-row-sub">SKU '+it.sku+' · have '+it.qty+' · '+unitE+' '+tag+'</div>'
+      +'</div><input class="go-qty" type="number" min="0" inputmode="numeric" value="'+it.rec+'" onchange="goSetQty('+i+',this.value)" oninput="goSetQty('+i+',this.value)"></div>';
+  }).join('');
+  if(actEl) actEl.style.display='flex';
+  goTotals();
+}
+function goSetQty(i,v){ if(goItems[i]){ goItems[i].rec=Math.max(0,parseInt(v,10)||0); goTotals(); } }
+function goTotals(){
+  var n=0,eur=0,aud=0;
+  goItems.forEach(function(it){ if(it.rec>0){ n++; var ue=(it.priceEUR!=null?it.priceEUR:0); eur+=ue*it.rec; var ua=(it.priceEUR!=null?it.priceEUR*EURAUD:(it.priceAUD||0)); aud+=ua*it.rec; } });
+  var sumEl=document.getElementById('go-summary'); if(!sumEl) return;
+  sumEl.innerHTML='<div class="go-sum-row"><span>Line items</span><b>'+n+'</b></div>'
+    +'<div class="go-sum-row"><span>Total (EUR)</span><b>€'+eur.toFixed(2)+'</b></div>'
+    +'<div class="go-sum-row"><span>Total (AUD, live)</span><b>$'+Math.round(aud).toLocaleString()+'</b></div>';
+}
+function goExportCSV(){
+  var date=document.getElementById('go-date').value||'today';
+  var rows=[['SKU','Description','Have','Used per 90d','Order Qty','Unit EUR','Line EUR']];
+  goItems.forEach(function(it){ if(it.rec>0) rows.push([it.sku,'"'+(it.desc||'').replace(/"/g,'""')+'"',it.qty,it.used90,it.rec,(it.priceEUR!=null?it.priceEUR.toFixed(2):''),(it.priceEUR!=null?(it.priceEUR*it.rec).toFixed(2):'')]); });
+  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url; a.download='RIMO-order-'+date+'.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function goExportPDF(){
+  try{
+    var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:'a4'});
+    var date=document.getElementById('go-date').value||new Date().toISOString().slice(0,10);
+    var W=210, M=14, y=18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text('Hyper Karting — RIMO Order',M,y); y+=7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90);
+    doc.text('Order date: '+date,M,y); doc.text('Generated: '+new Date().toLocaleDateString('en-AU'),W-M,y,{align:'right'}); y+=8; doc.setTextColor(0);
+    function hdr(){ doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text('SKU',M,y); doc.text('Description',M+22,y); doc.text('Qty',W-M-46,y,{align:'right'}); doc.text('Unit EUR',W-M-24,y,{align:'right'}); doc.text('Line EUR',W-M,y,{align:'right'});
+      y+=2; doc.setDrawColor(200); doc.line(M,y,W-M,y); y+=4; doc.setFont('helvetica','normal'); }
+    hdr(); var totE=0;
+    goItems.forEach(function(it){ if(it.rec<=0) return;
+      if(y>282){ doc.addPage(); y=18; hdr(); }
+      var d=(it.desc||''); if(d.length>44) d=d.substring(0,42)+'..';
+      var ue=(it.priceEUR!=null?it.priceEUR:0), le=ue*it.rec; totE+=le;
+      doc.setFontSize(8);
+      doc.text(String(it.sku),M,y); doc.text(d,M+22,y);
+      doc.text(String(it.rec),W-M-46,y,{align:'right'});
+      doc.text(it.priceEUR!=null?ue.toFixed(2):'-',W-M-24,y,{align:'right'});
+      doc.text(it.priceEUR!=null?le.toFixed(2):'-',W-M,y,{align:'right'}); y+=6;
+    });
+    y+=2; doc.setDrawColor(150); doc.line(M,y,W-M,y); y+=6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Total (EUR): €'+totE.toFixed(2),W-M,y,{align:'right'}); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
+    doc.text('Approx AUD at live rate '+EURAUD.toFixed(3)+': $'+Math.round(totE*EURAUD).toLocaleString(),W-M,y,{align:'right'});
+    doc.save('RIMO-order-'+date+'.pdf');
+  }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
+}
 function rnd(t){t==='search'?rS(''):rL();}
 function fpt(){rS(document.getElementById('si').value.toLowerCase());}
 
@@ -2470,8 +2663,9 @@ function openMasterFromMD(code){ masterPin=code; openMaster(); }
 function openMaster(){
   document.getElementById('master').classList.add('show');
   document.getElementById('m-search').value='';
+  mStaffLoaded=false; mTab('parts');
   mRenderList();
-  loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} mRenderList(); });
+  loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} mRenderList(); mToolsStats(); });
 }
 function closeMaster(){ document.getElementById('master').classList.remove('show'); mCloseForm(); mCloseQR(); }
 
@@ -2493,6 +2687,76 @@ function mRenderList(){
   }).join('');
 }
 function mSearch(){ mRenderList(); }
+
+/* ----- Master tabs ----- */
+var mStaffDraft=[], mStaffLoaded=false;
+function mTab(name){
+  ['parts','staff','tools'].forEach(function(t){
+    var tab=document.getElementById('mtab-'+t), pane=document.getElementById('m-pane-'+t);
+    if(tab) tab.classList.toggle('active',t===name);
+    if(pane) pane.classList.toggle('active',t===name);
+  });
+  if(name==='staff'&&!mStaffLoaded) msLoad();
+  if(name==='tools') mToolsStats();
+}
+/* ----- Staff editor (server-backed, gated by the master code) ----- */
+function msLoad(){
+  var el=document.getElementById('m-staff-list'); el.innerHTML='<div class="m-empty">Loading staff…</div>';
+  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'list'})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ mStaffDraft=(res.staff||[]).map(function(x){return {name:x.name||'',role:x.role||'Mechanic',pin:x.pin||'',emoji:x.emoji||'🔧'};}); mStaffLoaded=true; msRender(); }
+      else { el.innerHTML='<div class="m-empty">'+((res&&res.message)||'Could not load staff')+' — exit and re-enter with a fresh code.</div>'; }
+    }).catch(function(){ el.innerHTML='<div class="m-empty">Connection error</div>'; });
+}
+function msRender(){
+  var el=document.getElementById('m-staff-list');
+  if(!mStaffDraft.length){ el.innerHTML='<div class="m-empty">No staff yet — tap “+ Add”.</div>'; return; }
+  el.innerHTML=mStaffDraft.map(function(x,i){
+    return '<div class="prow staff-edit-row" data-idx="'+i+'">'
+      +'<button class="staff-del-btn" onclick="msDeleteRow('+i+')" title="Remove">×</button>'
+      +'<div class="staff-edit-meta">'
+      +  '<input class="staff-name-input" type="text" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="msField('+i+',\'name\',this.value)">'
+      +  '<div class="staff-role-line"><select class="staff-role-select" onchange="msField('+i+',\'role\',this.value)">'
+      +    '<option value="Manager"'+(x.role==='Manager'?' selected':'')+'>Manager</option>'
+      +    '<option value="Assistant Manager"'+(x.role==='Assistant Manager'?' selected':'')+'>Assistant Manager</option>'
+      +    '<option value="Mechanic"'+(x.role==='Mechanic'?' selected':'')+'>Mechanic</option>'
+      +  '</select></div>'
+      +'</div>'
+      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+      +'</div>';
+  }).join('');
+}
+function msField(i,f,v){ if(mStaffDraft[i]) mStaffDraft[i][f]=v.trim(); }
+function msAddRow(){ if(!mStaffLoaded){ msLoad(); return; } mStaffDraft.push({name:'',role:'Mechanic',pin:'',emoji:'🔧'}); msRender(); var rows=document.querySelectorAll('#m-staff-list .staff-edit-row'); if(rows.length){var nm=rows[rows.length-1].querySelector('.staff-name-input'); if(nm)nm.focus();} }
+function msDeleteRow(i){ var st=mStaffDraft[i]; if(!st) return; if(cu&&st.name===cu.name){ alert("You can't remove your own account."); return; } if(!confirm('Remove '+(st.name||'this staff member')+'?')) return; mStaffDraft.splice(i,1); msRender(); }
+function msSave(){
+  var msg=document.getElementById('m-staff-msg'), btn=document.getElementById('m-staff-save'), pins={}, mgr=0;
+  msg.style.color='';
+  for(var i=0;i<mStaffDraft.length;i++){ var st=mStaffDraft[i];
+    if(!st.name){ msg.style.color='var(--red)'; msg.textContent='Every staff member needs a name.'; return; }
+    if(!/^\d{4}$/.test(st.pin)){ msg.style.color='var(--red)'; msg.textContent=(st.name||'A staff member')+' needs a 4-digit PIN.'; return; }
+    if(pins[st.pin]){ msg.style.color='var(--red)'; msg.textContent='PIN '+st.pin+' is used more than once.'; return; }
+    pins[st.pin]=1; if(st.role==='Manager'||st.role==='Assistant Manager') mgr++;
+  }
+  if(!mgr){ msg.style.color='var(--red)'; msg.textContent='Keep at least one Manager.'; return; }
+  msg.textContent=''; btn.textContent='Saving…'; btn.disabled=true;
+  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'save',staff:mStaffDraft})})
+    .then(function(r){return r.json();}).then(function(res){
+      btn.textContent='Save staff changes'; btn.disabled=false;
+      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'};}); setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
+      else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
+    }).catch(function(){ btn.textContent='Save staff changes'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
+}
+function mToolsStats(){
+  var el=document.getElementById('m-tool-stats'); if(!el) return;
+  var ps=parts||[], tot=ps.length, val=0, noPrice=0, noInt=0, oos=0;
+  ps.forEach(function(p){ val+=(Number(p.price)||0)*(Number(p.qty)||0); if(!p.price)noPrice++; if(!p.internal_description)noInt++; if((p.qty||0)<=0)oos++; });
+  el.innerHTML='<div class="m-stat-row"><span>Total parts</span><b>'+tot+'</b></div>'
+    +'<div class="m-stat-row"><span>Stock value (live)</span><b>$'+Math.round(val).toLocaleString()+'</b></div>'
+    +'<div class="m-stat-row"><span>Out of stock</span><b>'+oos+'</b></div>'
+    +'<div class="m-stat-row"><span>Missing a price</span><b>'+noPrice+'</b></div>'
+    +'<div class="m-stat-row"><span>Missing internal name</span><b>'+noInt+'</b></div>';
+}
 
 function mEurHint(){
   var v=parseFloat(document.getElementById('m-f-eur').value);
@@ -2557,36 +2821,44 @@ function mQR(sku){
   var p=(parts||[]).find(function(x){return x.sku===sku;}); if(!p) return;
   var img=qrDataUrl(sku);
   document.getElementById('m-qr-label').innerHTML='<img src="'+img+'"><div class="qd">'+(p.desc||sku)+'</div><div class="qs">'+sku+'</div>';
-  document.getElementById('m-qr-printbtn').onclick=function(){ mPrintQR(sku,(p.desc||sku),img); };
+  var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,(p.desc||sku)); };
   document.getElementById('m-qr').classList.add('show');
 }
 function mCloseQR(){ document.getElementById('m-qr').classList.remove('show'); }
-function mPrintQR(sku,desc,img){
-  var w=window.open('','_blank');
-  if(!w){ alert('Allow pop-ups to print the label.'); return; }
-  var shortDesc=desc.length>22?desc.substring(0,20)+'...':desc;
-  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+desc+' QR</title><style>'
-    +'@page{size:30mm 30mm;margin:0}*{box-sizing:border-box}html,body{width:30mm;height:30mm;margin:0;padding:0;font-family:Arial,sans-serif;color:#000}'
-    +'.label{width:30mm;height:30mm;padding:1mm;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}'
-    +'.label img{width:19mm;height:19mm;display:block}.desc{margin-top:.8mm;font-size:8pt;font-weight:700;line-height:1.1;max-width:28mm}.sku{margin-top:.4mm;font-size:4.5pt;color:#555;letter-spacing:.3px}'
-    +'</style></head><body><div class="label"><img src="'+img+'"><div class="desc">'+shortDesc+'</div><div class="sku">'+sku+'</div></div>'
-    +'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};<\/scr'+'ipt></body></html>';
-  w.document.write(h); w.document.close();
+/* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
+function qrCanvas(sku){
+  var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();
+  var n=qr.getModuleCount(), m=4, total=n+m*2, scale=6;
+  var c=document.createElement('canvas'); c.width=c.height=total*scale;
+  var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.fillStyle='#000';
+  for(var r=0;r<n;r++) for(var col=0;col<n;col++){ if(qr.isDark(r,col)) x.fillRect((col+m)*scale,(r+m)*scale,scale,scale); }
+  return c.toDataURL('image/png');
+}
+function qrLabelToPdf(doc,sku,desc){
+  var sd=(desc||String(sku)); if(sd.length>22) sd=sd.substring(0,20)+'...';
+  doc.addImage(qrCanvas(sku),'PNG',5.5,2,19,19);
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(sd,15,24.5,{align:'center',maxWidth:28});
+  doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(90); doc.text(String(sku),15,27.5,{align:'center'}); doc.setTextColor(0);
+}
+function mSavePDFOne(sku,desc){
+  try{ var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[30,30]}); qrLabelToPdf(doc,sku,desc); doc.save(String(sku)+'.pdf'); }
+  catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
 }
 
 /* QR helpers — generated locally so payload is the same ?sku= and a bulk export never depends on a network round-trip */
 function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make(); return qr.createDataURL(6); }
 function mExportAllQR(){
   var list=parts||[]; if(!list.length){ alert('No parts to export'); return; }
-  var w=window.open('','_blank'); if(!w){ alert('Allow pop-ups to export the PDF.'); return; }
-  var pages=list.map(function(p){ var sd=(p.desc||p.sku); if(sd.length>22) sd=sd.substring(0,20)+'...'; return '<div class="label"><img src="'+qrDataUrl(p.sku)+'"><div class="desc">'+sd+'</div><div class="sku">'+p.sku+'</div></div>'; }).join('');
-  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HK QR Codes</title><style>'
-    +'@page{size:30mm 30mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#000}'
-    +'.label{width:30mm;height:30mm;padding:1mm;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;page-break-after:always;break-after:page}'
-    +'.label img{width:19mm;height:19mm;display:block}.desc{margin-top:.8mm;font-size:8pt;font-weight:700;line-height:1.1;max-width:28mm}.sku{margin-top:.4mm;font-size:4.5pt;color:#555;letter-spacing:.3px}'
-    +'</style></head><body>'+pages
-    +'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};<\/scr'+'ipt></body></html>';
-  w.document.write(h); w.document.close();
+  var btn=document.getElementById('m-qrall-btn'), old=btn?btn.innerHTML:'';
+  if(btn){ btn.innerHTML='Building...'; btn.disabled=true; }
+  setTimeout(function(){
+    try{
+      var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[30,30]});
+      list.forEach(function(pp,i){ if(i>0) doc.addPage([30,30]); qrLabelToPdf(doc,pp.sku,pp.desc); });
+      doc.save('HK-QR-Codes.pdf');
+    }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
+    if(btn){ btn.innerHTML=old; btn.disabled=false; }
+  },30);
 }
 
 /* Rotating master PIN reveal on the Manager Dashboard */

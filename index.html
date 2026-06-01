@@ -63,6 +63,25 @@
     #hdr{display:flex;align-items:center;justify-content:space-between;padding:max(env(safe-area-inset-top),18px) 20px 12px;flex-shrink:0;border-bottom:1px solid var(--b1);position:relative;z-index:100}
     .hlogo{display:flex;align-items:center;gap:11px}
     .hk-icon{width:38px;height:38px;border-radius:8px;flex-shrink:0;object-fit:contain}
+    /* HK splash — plays once on cold open, before the PIN/home screen */
+    #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 44%,#0a1519 0%,#000 72%);opacity:1;transition:opacity .5s ease}
+    #splash.gone{opacity:0;pointer-events:none}
+    #splash .sp-logo{width:104px;height:104px;border-radius:24px;object-fit:contain;transform:scale(.2);opacity:0}
+    #splash.play .sp-logo{animation:sppop 1.2s cubic-bezier(.18,.9,.28,1.2) forwards}
+    #splash .sp-ring{position:absolute;top:50%;left:50%;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;border:2px solid var(--acc);opacity:0}
+    #splash .sp-ring.sp-ring2{border-color:#E040FB}
+    #splash.play .sp-ring{animation:spring 1.15s ease-out forwards}
+    #splash.play .sp-ring.sp-ring2{animation:spring2 1.35s ease-out .12s forwards}
+    #splash .sp-word{position:absolute;left:0;right:0;bottom:31%;text-align:center;font-family:'Inter',sans-serif;font-weight:800;letter-spacing:3px;font-size:12px;text-transform:uppercase;opacity:0;background:linear-gradient(90deg,#E040FB,#00CFFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#00CFFF}
+    #splash.play .sp-word{animation:spword 1.2s ease forwards}
+    @keyframes sppop{0%{transform:scale(.2) rotate(-14deg);opacity:0}45%{transform:scale(1.12) rotate(3deg);opacity:1;box-shadow:0 0 38px 6px rgba(0,207,255,.42),0 0 64px 16px rgba(224,64,251,.30)}70%{transform:scale(.97) rotate(0)}100%{transform:scale(1);opacity:1;box-shadow:0 0 20px 2px rgba(0,207,255,.22),0 0 40px 8px rgba(224,64,251,.18)}}
+    @keyframes spring{0%{transform:scale(.35);opacity:.85}100%{transform:scale(2.7);opacity:0}}
+    @keyframes spring2{0%{transform:scale(.35);opacity:.7}100%{transform:scale(3.1);opacity:0}}
+    @keyframes spword{0%,38%{opacity:0;transform:translateY(8px)}72%{opacity:1;transform:translateY(0)}100%{opacity:1}}
+    /* PIN "checking" feedback while verify-pin is in flight */
+    .dots.checking .dot{animation:dotpulse .85s ease-in-out infinite}
+    @keyframes dotpulse{0%,100%{opacity:.45}50%{opacity:1}}
+    .pchk{color:var(--acc);font-weight:600}
     .hname{font-size:16px;font-weight:700;letter-spacing:-0.3px}
     .hsub{font-size:10px;color:var(--t2);margin-top:1px;text-transform:uppercase;letter-spacing:0.5px}
     .uchip{display:none;align-items:center;gap:7px;background:var(--card);border:1px solid var(--b2);border-radius:999px;padding:6px 13px 6px 8px;cursor:pointer;transition:background .12s}
@@ -487,6 +506,8 @@
     .m-row-desc{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .m-row-sub{font-size:11px;color:var(--t2);margin-top:2px}
     .m-row-btn{background:var(--card2);border:1px solid var(--b2);border-radius:9px;color:var(--t1);font-size:14px;width:38px;height:38px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .m-row-btn.m-qrtog{color:var(--acc);border-color:rgba(0,207,255,.4);font-size:17px;font-weight:700}
+    .m-row-btn.m-qrtog.off{color:#FF5A52;border-color:rgba(255,90,82,.35)}
     .m-row-del{color:var(--red)}
     .m-tabs{display:flex;gap:6px;padding:10px 18px 2px;flex-shrink:0}
     .m-tab{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:13px;padding:10px 4px;cursor:pointer}
@@ -545,6 +566,7 @@
   </style>
 </head>
 <body>
+<div id="splash"><div class="sp-ring"></div><div class="sp-ring sp-ring2"></div><img class="sp-logo" src="icon-192.png" alt="HK"><div class="sp-word">Hyper Karting</div></div>
 <div id="lbar"><div id="lbp"></div></div>
 <div id="app">
   <div id="hdr">
@@ -908,8 +930,13 @@
   <div class="m-pane" id="m-pane-tools">
     <div class="m-list">
       <div class="mc" style="margin-top:14px"><div class="mct">QR codes</div>
-        <div class="m-tool-desc">One PDF with a 30×30mm label for every part — print and stick on the shelves. Same scan code as your existing tags.</div>
-        <button class="m-add" id="m-qrall-btn" style="width:100%;margin-top:12px" onclick="mExportAllQR()">⤓ Save all QR codes (PDF)</button>
+        <div class="m-tool-desc">One PDF with a 30×30mm label for each <b>ticked</b> part — print and stick on the shelves. Same scan code as your existing tags. Use the ✓ / ✕ button beside any part in the Parts tab to include or exclude it.</div>
+        <button class="m-add" id="m-qrall-btn" style="width:100%;margin-top:12px" onclick="mExportAllQR()">⤓ Save ticked QR codes (PDF)</button>
+        <div id="m-qr-count" class="m-tool-desc" style="margin-top:8px;text-align:center"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="m-row-btn" style="flex:1;width:auto" onclick="mQRSetAll(true)">Tick all</button>
+          <button class="m-row-btn" style="flex:1;width:auto" onclick="mQRSetAll(false)">Untick all</button>
+        </div>
       </div>
       <div class="mc"><div class="mct">Inventory summary</div><div id="m-tool-stats"></div></div>
     </div>
@@ -986,7 +1013,7 @@ function mapPart(r){
     price:aud,
     price_eur:(r.price_eur!=null?Number(r.price_eur):null),
     price_aud:(r.price_aud!=null?Number(r.price_aud):null),
-    auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), scans90:0,
+    auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), qr_print:(r.qr_print===false?false:true), scans90:0,
     used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
   };
 }
@@ -1122,7 +1149,7 @@ var stk=[];
   fetchStaff(null);
   if(u&&ud===new Date().toDateString()){
     try{
-      cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');
+      cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');playSplash(false);
       // Preload parts from sessionStorage cache, then refresh in background.
       // Ensures scanning is INSTANT — no network wait on first scan after app open.
       var pc=sessionStorage.getItem('hk_p');
@@ -1135,7 +1162,7 @@ var stk=[];
       return;
     }catch(e){}
   }
-  stk=['pin'];showRoot('pin');
+  stk=['pin'];showRoot('pin');playSplash(true);
 })();
 
 // ── Nav ──
@@ -1143,6 +1170,13 @@ function s(id){return document.getElementById('s-'+id);}
 function showRoot(id){
   document.querySelectorAll('.scr').forEach(function(el){el.classList.remove('active','behind');el.style.cssText='transform:translateX('+(el.id==='s-'+id?'0':'100')+'%)';});
   s(id).classList.add('active');s(id).style.cssText='';updateUI(id);
+}
+/* Cold-open splash: expand the HK logo, then fade to the app. full=true holds longer (PIN path). */
+function playSplash(full){
+  var sp=document.getElementById('splash'); if(!sp) return;
+  sp.classList.add('play');
+  var hold=full?1100:320;
+  setTimeout(function(){ sp.classList.add('gone'); setTimeout(function(){ if(sp&&sp.parentNode) sp.parentNode.removeChild(sp); },520); },hold);
 }
 function go(id){
   if(navLock) return;  // block spam taps during in-flight transition
@@ -1446,7 +1480,8 @@ function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin
 
 function chk(){
   var entered=pin3;
-  document.getElementById('pe').innerHTML='&nbsp;';
+  var _pd=document.getElementById('pd'); if(_pd) _pd.classList.add('checking');
+  document.getElementById('pe').innerHTML='<span class="pchk">Checking\u2026</span>';
   fetch(SB_FN+'verify-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:entered})})
     .then(function(r){return r.json();}).then(function(m){
       if(m&&m.success){ onLoginOk(m,entered); }
@@ -1454,10 +1489,11 @@ function chk(){
     }).catch(function(){ pinFail('Connection error — try again'); });
 }
 function pinFail(msg){
-  pin3='';udots();document.getElementById('pe').innerText=msg;
+  pin3='';udots();var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');document.getElementById('pe').innerText=msg;
   var pd=document.getElementById('pd');pd.classList.add('sh');setTimeout(function(){pd.classList.remove('sh');},440);
 }
 function onLoginOk(m,entered){
+  var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
   cu=m;sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());applyRoleVisibility();
   try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}
@@ -1627,7 +1663,7 @@ function goBuild(offsetDays){
   return items;
 }
 function loadGenOrder(){
-  var di=document.getElementById('go-date'); if(di&&!di.value) di.value=new Date().toISOString().slice(0,10);
+  var di=document.getElementById('go-date'); var _td=new Date().toISOString().slice(0,10); if(di&&(!di.value||di.value<_td)) di.value=_td;
   if(!parts||!parts.length){ loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} goRecalc(); }); }
   else goRecalc();
 }
@@ -1779,9 +1815,11 @@ function rL(){
 
   // Active = low/out AND used in last 90 days
   var l=parts.filter(function(p){
-    if(p.qty>p.reorder) return false;
-    if(!p.used90||p.used90===0) return false;
-    return true;
+    if(!p.used90||p.used90===0) return false;        // need real usage to forecast
+    var u=urgency(p);
+    if(u!=null&&u<SEA_DAYS) return true;              // will run out before a sea order (~90d) lands -> order soon
+    if(p.qty<=p.reorder) return true;                 // or already at/below its reorder point
+    return false;
   }).sort(function(a,b){
     var au=urgency(a),bu=urgency(b);
     if(au===null) return 1;
@@ -2694,6 +2732,23 @@ function mLockHintText(p){
   if(p&&(p.scans90||0)>=6)  return 'Auto-tuning from usage ('+p.scans90+' scans in 90 days).';
   return 'Learning '+((p&&p.scans90)||0)+'/6 — keeps your set minimum until it has been scanned 6 times, then auto-tunes.';
 }
+function mStockCol(p){ return p.qty===0?'#FF3B30':(p.qty<=p.reorder?'#FFD600':'#00C853'); }
+function mPill(txt,col){ return '<span style="display:inline-block;font-size:10px;line-height:1.45;color:'+col+';font-weight:700;background:'+col+'14;padding:2px 8px;border-radius:6px;border:1px solid '+col+'33;white-space:nowrap">'+txt+'</span>'; }
+function mStatusPill(p){
+  if(p.auto_min===false) return mPill('\uD83D\uDD12 Locked','#FFD600');
+  if((p.scans90||0)>=6)  return mPill('\u26A1 Auto','#00CFFF');
+  return mPill('\uD83D\uDCCA '+(p.scans90||0)+'/6','#7C8597');
+}
+function mRowPills(p){
+  var price=p.price?('$'+Number(p.price).toFixed(2)):null;
+  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">';
+  h+=mPill(p.sku,'#00CFFF');
+  if(p.loc) h+=mPill('\uD83D\uDCCD '+p.loc,'#E040FB');
+  h+=mPill(p.qty+' qty',mStockCol(p));
+  h+=mStatusPill(p);
+  if(price) h+='<span style="font-size:11px;color:var(--t2);font-weight:600">'+price+'</span>';
+  return h+'</div>';
+}
 function mRenderList(){
   var q=(document.getElementById('m-search').value||'').toLowerCase().trim();
   var list=(parts||[]).filter(function(p){return !q||(p.desc||'').toLowerCase().indexOf(q)>=0||(String(p.sku)||'').toLowerCase().indexOf(q)>=0;});
@@ -2704,8 +2759,9 @@ function mRenderList(){
     return '<div class="m-row">'
       +'<div class="m-row-main" onclick="mOpenEdit(\''+p.sku+'\')">'
         +'<div class="m-row-desc">'+(p.desc||p.sku)+'</div>'
-        +'<div class="m-row-sub">SKU '+p.sku+' &middot; qty '+p.qty+' &middot; '+price+mMinStatus(p)+'</div>'
+        +'<div class="m-row-sub">'+mRowPills(p)+'</div>'
       +'</div>'
+      +'<button class="m-row-btn m-qrtog'+(p.qr_print===false?' off':'')+'" onclick="mToggleQR(\''+p.sku+'\',event)" title="Include in bulk QR PDF">'+(p.qr_print===false?'\u2715':'\u2713')+'</button>'
       +'<button class="m-row-btn" onclick="mQR(\''+p.sku+'\')" title="QR code">QR</button>'
       +'<button class="m-row-btn m-row-del" onclick="mRemove(\''+p.sku+'\')" title="Remove">&#128465;</button>'
     +'</div>';
@@ -2722,7 +2778,7 @@ function mTab(name){
     if(pane) pane.classList.toggle('active',t===name);
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
-  if(name==='tools') mToolsStats();
+  if(name==='tools'){ mToolsStats(); mQRCount(); }
 }
 /* ----- Staff editor (server-backed, gated by the master code) ----- */
 function msLoad(){
@@ -2877,7 +2933,7 @@ function mSavePDFOne(sku,desc){
 /* QR helpers — generated locally so payload is the same ?sku= and a bulk export never depends on a network round-trip */
 function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make(); return qr.createDataURL(6); }
 function mExportAllQR(){
-  var list=parts||[]; if(!list.length){ alert('No parts to export'); return; }
+  var list=(parts||[]).filter(function(p){return p.qr_print!==false;}); if(!list.length){ alert('No parts are ticked for the bulk QR PDF. Tick the ones you want, or use \u201cTick all\u201d.'); return; }
   var btn=document.getElementById('m-qrall-btn'), old=btn?btn.innerHTML:'';
   if(btn){ btn.innerHTML='Building...'; btn.disabled=true; }
   setTimeout(function(){
@@ -2888,6 +2944,31 @@ function mExportAllQR(){
     }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
     if(btn){ btn.innerHTML=old; btn.disabled=false; }
   },30);
+}
+/* Per-part include/exclude for the bulk QR PDF. Persists via master-write (op:qrflag). */
+function mToggleQR(sku,ev){ if(ev){ev.stopPropagation();}
+  var p=(parts||[]).find(function(x){return String(x.sku)===String(sku);}); if(!p) return;
+  var nv=(p.qr_print===false); // was excluded -> now include
+  p.qr_print=nv; mRenderList(); mQRCount();
+  fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'qrflag',part:{sku:sku,qr_print:nv}})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(!res||!res.success){ p.qr_print=!nv; mRenderList(); mQRCount(); }
+      else { try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){} }
+    }).catch(function(){ p.qr_print=!nv; mRenderList(); mQRCount(); });
+}
+/* Tick / untick every part in one server call (op:qrflagall). */
+function mQRSetAll(val){
+  (parts||[]).forEach(function(p){p.qr_print=val;});
+  mRenderList(); mQRCount();
+  fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'qrflagall',part:{qr_print:val}})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){} }
+    }).catch(function(){});
+}
+function mQRCount(){
+  var el=document.getElementById('m-qr-count'); if(!el) return;
+  var inc=(parts||[]).filter(function(p){return p.qr_print!==false;}).length, tot=(parts||[]).length;
+  el.textContent=inc+' of '+tot+' parts ticked for the bulk PDF';
 }
 
 /* Rotating master PIN reveal on the Manager Dashboard */

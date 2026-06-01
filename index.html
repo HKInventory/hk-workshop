@@ -66,23 +66,29 @@
     /* HK splash — premium cold-open intro (draw-on ring, light sweep, staged title) */
     #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;background:radial-gradient(circle at 50% 42%,#0d191f 0%,#06090c 58%,#000 100%);opacity:1;transition:opacity .6s ease}
     #splash.gone{opacity:0;pointer-events:none}
-    #splash .sp-stage{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center}
-    #splash .sp-glow{position:absolute;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(0,207,255,.26),rgba(224,64,251,.15) 46%,transparent 70%);filter:blur(18px);opacity:0}
-    #splash.play .sp-glow{opacity:.8;animation:spGlow 2.6s ease-out}
-    #splash .sp-circle{position:absolute;width:200px;height:200px;transform:rotate(-90deg)}
+    #splash .sp-stage{position:relative;width:230px;height:230px;display:flex;align-items:center;justify-content:center}
+    #splash .sp-stage::after{content:'';position:absolute;width:100%;height:100%;border-radius:50%;border:1px solid rgba(0,207,255,.22);opacity:0}
+    #splash.play .sp-stage::after{animation:spPulse 2.6s ease-out 1s infinite}
+    #splash .sp-arc{position:absolute;width:230px;height:230px}
+    #splash.play .sp-arc{animation:spSpinR 8s linear 1.2s infinite}
+    #splash .sp-glow{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,207,255,.30),rgba(224,64,251,.18) 46%,transparent 72%);filter:blur(22px);opacity:0}
+    #splash.play .sp-glow{opacity:.85;animation:spGlow 2.6s ease-out, spGlowB 3.6s ease-in-out 2.6s infinite}
+    #splash .sp-circle{position:absolute;width:230px;height:230px;transform:rotate(-90deg)}
+    #splash.play .sp-circle{animation:spSpin 16s linear 1.7s infinite}
     #splash .sp-circle circle{stroke-dasharray:578;stroke-dashoffset:578;filter:drop-shadow(0 0 4px rgba(0,207,255,.45))}
     #splash.play .sp-circle circle{stroke-dashoffset:0;animation:spDraw 1.15s cubic-bezier(.45,0,.15,1) .5s backwards}
     #splash .sp-logo-wrap{position:relative;width:150px;height:150px;border-radius:34px;overflow:hidden;transform:scale(.7);opacity:0;box-shadow:0 20px 55px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
     #splash.play .sp-logo-wrap{opacity:1;transform:scale(1);animation:spLogo 1.05s cubic-bezier(.2,.75,.2,1.05) .12s backwards}
     #splash .sp-logo{width:100%;height:100%;object-fit:contain;display:block}
+    #splash.play .sp-logo{animation:spFloat 4.5s ease-in-out 1.6s infinite}
     #splash .sp-shine{position:absolute;top:-20%;left:-70%;width:55%;height:140%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-16deg);opacity:0;pointer-events:none}
     #splash.play .sp-shine{animation:spShine 1.2s ease-in-out .85s}
     #splash .sp-text{display:flex;flex-direction:column;align-items:center;gap:7px}
     #splash .sp-rule{width:0;height:2px;border-radius:2px;background:linear-gradient(90deg,#E040FB,#00CFFF);opacity:0}
     #splash.play .sp-rule{width:48px;opacity:1;animation:spRule .7s cubic-bezier(.3,.7,.2,1) .95s backwards}
-    #splash .sp-name{font-family:'Inter',sans-serif;font-weight:800;font-size:23px;letter-spacing:.5px;color:#fff;opacity:0}
+    #splash .sp-name{font-family:'Inter',sans-serif;font-weight:800;font-size:27px;letter-spacing:.5px;color:#fff;opacity:0}
     #splash.play .sp-name{opacity:1;animation:spRise .8s cubic-bezier(.2,.7,.2,1) 1.1s backwards}
-    #splash .sp-sub{font-family:'Inter',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:5px;text-transform:uppercase;opacity:0;background:linear-gradient(90deg,#E040FB,#00CFFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#00CFFF}
+    #splash .sp-sub{font-family:'Inter',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:6px;text-transform:uppercase;opacity:0;background:linear-gradient(90deg,#E040FB,#00CFFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#00CFFF}
     #splash.play .sp-sub{opacity:1;animation:spRise .8s cubic-bezier(.2,.7,.2,1) 1.28s backwards}
     @keyframes spGlow{0%{opacity:0;transform:scale(.6)}35%{opacity:1;transform:scale(1)}70%{opacity:.78;transform:scale(1.05)}100%{opacity:.8;transform:scale(1)}}
     @keyframes spLogo{0%{opacity:0;transform:scale(.7);filter:blur(6px)}40%{opacity:1;filter:blur(0)}68%{transform:scale(1.04)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
@@ -90,6 +96,20 @@
     @keyframes spShine{0%{opacity:0;left:-70%}18%{opacity:.85}55%{left:130%;opacity:.85}70%{opacity:0}100%{opacity:0;left:130%}}
     @keyframes spRule{0%{width:0;opacity:0}100%{width:48px;opacity:1}}
     @keyframes spRise{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+    @keyframes spSpin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+    @keyframes spSpinR{from{transform:rotate(0)}to{transform:rotate(-360deg)}}
+    @keyframes spPulse{0%{transform:scale(.85);opacity:.55}100%{transform:scale(1.5);opacity:0}}
+    @keyframes spGlowB{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:.92;transform:scale(1.06)}}
+    @keyframes spFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    @media (min-width:760px){
+      #splash{gap:42px}
+      #splash .sp-stage{width:320px;height:320px}
+      #splash .sp-glow{width:430px;height:430px}
+      #splash .sp-circle,#splash .sp-arc{width:320px;height:320px}
+      #splash .sp-logo-wrap{width:215px;height:215px;border-radius:48px}
+      #splash .sp-name{font-size:42px}
+      #splash .sp-sub{font-size:14px;letter-spacing:8px}
+    }
     /* PIN "checking" feedback while verify-pin is in flight */
     .dots.checking .dot{animation:dotpulse .85s ease-in-out infinite}
     @keyframes dotpulse{0%,100%{opacity:.45}50%{opacity:1}}
@@ -648,10 +668,37 @@
 .site-id{font-size:10.5px;color:var(--t2);letter-spacing:.03em;}
 .site-accent{width:38px;height:38px;border:none;background:none;padding:0;border-radius:10px;cursor:pointer;flex-shrink:0;}
 .site-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+/* ===== Phase 3: training + tutorial ===== */
+.train-link{margin-top:10px;background:none;border:none;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:6px;opacity:.85}
+.train-link:active{opacity:1}
+.train-note{margin-top:14px;text-align:center;background:rgba(0,207,255,.06);border:1px solid rgba(0,207,255,.25);border-radius:16px;padding:16px}
+.train-note .tn-h{font-weight:800;font-size:15px;color:#00CFFF}
+.train-note .tn-p{font-size:12.5px;color:var(--t2);margin-top:4px}
+.train-note .tn-pin{margin-top:10px;font-size:13px;color:#fff}
+.train-note .tn-pin b{font-size:20px;letter-spacing:4px;color:#00CFFF}
+.train-exit{margin-top:12px;background:none;border:1px solid var(--b2);border-radius:999px;color:var(--t2);font-weight:700;font-size:12px;padding:7px 16px;cursor:pointer;font-family:inherit}
+.train-banner{display:none;align-items:center;justify-content:center;gap:12px;padding:7px 16px;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#08121a;background:repeating-linear-gradient(45deg,#FFD600,#FFD600 12px,#F5C400 12px,#F5C400 24px);cursor:default}
+.train-banner .tb-exit{background:rgba(0,0,0,.22);color:#000;border-radius:999px;padding:3px 11px;font-size:11px;cursor:pointer;letter-spacing:.05em}
+.train-tag{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;color:#caa400;background:rgba(255,214,0,.14);border:1px solid rgba(255,214,0,.4);border-radius:7px;padding:3px 9px;letter-spacing:.02em}
+#tut-wrap{position:absolute;inset:0;z-index:140;pointer-events:auto}
+#tut-dim{position:fixed;border-radius:20px;box-shadow:0 0 0 9999px rgba(2,5,9,.82);border:2px solid var(--site,#00CFFF);transition:all .3s cubic-bezier(.3,.8,.3,1);pointer-events:none}
+#tut-card{position:fixed;width:300px;max-width:calc(100vw - 24px);background:#0c1218;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6);z-index:141}
+.tut-emoji{font-size:30px;line-height:1}
+.tut-title{font-size:19px;font-weight:800;color:#fff;margin-top:8px}
+.tut-body{font-size:13.5px;color:#aebcc8;line-height:1.5;margin-top:6px}
+.tut-dots{display:flex;gap:6px;justify-content:center;margin:16px 0 14px}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .2s}
+.tut-dot.on{background:var(--site,#00CFFF);width:18px;border-radius:3px}
+.tut-row{display:flex;gap:10px}
+.tut-btn{flex:1;padding:11px;border-radius:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;border:1px solid var(--b2)}
+.tut-btn.ghost{background:transparent;color:var(--t2)}
+.tut-btn.go{background:var(--site,#00CFFF);color:#04070b;border-color:transparent}
+.tut-btn:active{transform:scale(.97)}
+
 </style>
 </head>
 <body>
-<div id="splash"><div class="sp-stage"><div class="sp-glow"></div><svg class="sp-circle" viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="spgrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E040FB"/><stop offset="100%" stop-color="#00CFFF"/></linearGradient></defs><circle cx="100" cy="100" r="92" fill="none" stroke="url(#spgrad)" stroke-width="2.5" stroke-linecap="round"/></svg><div class="sp-logo-wrap"><img class="sp-logo" src="icon-192.png" alt="HK"><span class="sp-shine"></span></div></div><div class="sp-text"><div class="sp-rule"></div><div class="sp-name">Workshop</div><div class="sp-sub">Hyper Karting</div></div></div>
+<div id="splash"><div class="sp-stage"><div class="sp-glow"></div><svg class="sp-circle" viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="spgrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E040FB"/><stop offset="100%" stop-color="#00CFFF"/></linearGradient></defs><circle cx="100" cy="100" r="92" fill="none" stroke="url(#spgrad)" stroke-width="3.5" stroke-linecap="round"/></svg><svg class="sp-arc" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="80" fill="none" stroke="#00CFFF" stroke-width="2" stroke-dasharray="6 30" stroke-linecap="round" opacity="0.55"/></svg><div class="sp-logo-wrap"><img class="sp-logo" src="icon-192.png" alt="HK"><span class="sp-shine"></span></div></div><div class="sp-text"><div class="sp-rule"></div><div class="sp-name">Workshop</div><div class="sp-sub">Hyper Karting</div></div></div>
 <div id="lbar"><div id="lbp"></div></div>
 <div id="app">
   <div id="hdr">
@@ -667,6 +714,7 @@
     <div class="sitebar" id="siteBar" onclick="onSitePill()" style="display:none">
       <span class="sb-dot"></span><span class="sb-name" id="sitePillName">Sydney</span><span class="sb-hint">tap to switch</span>
     </div>
+    <div class="train-banner" id="trainBanner" style="display:none">🎓 Training mode — practice only<span class="tb-exit" onclick="logout()">Exit</span></div>
   </div>
 
   <div id="nav">
@@ -674,7 +722,7 @@
     <!-- PIN -->
     <div class="scr active" id="s-pin">
       <div class="pin-wrap">
-        <div><div class="pin-h2">Welcome back</div><div class="pin-p">Enter your PIN to continue</div></div>
+        <div><div class="pin-h2" id="pinTitle">Welcome back</div><div class="pin-p" id="pinSub">Enter your PIN to continue</div></div>
         <div class="dots" id="pd"><div class="dot" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>
         <div class="perr" id="pe">&nbsp;</div>
         <div class="pad">
@@ -683,7 +731,9 @@
           <div class="k" onclick="pp('7')">7</div><div class="k" onclick="pp('8')">8</div><div class="k" onclick="pp('9')">9</div>
           <div class="k emp"></div><div class="k" onclick="pp('0')">0</div><div class="k del" onclick="pd2()">⌫</div>
         </div>
-        <button class="master-link" onclick="openMasterGate()">⚙ Master access</button>
+        <button class="master-link" id="masterLink" onclick="openMasterGate()">⚙ Master access</button>
+        <button class="train-link" id="trainLink" onclick="armTraining()">🎓 Training mode</button>
+        <div class="train-note" id="trainNote" style="display:none"><div class="tn-h">🎓 Training mode</div><div class="tn-p">Practice freely — nothing here touches real stock.</div><div class="tn-pin">Training PIN <b>0000</b></div><button class="train-exit" onclick="disarmTraining()">Exit training</button></div>
       </div>
     </div>
 
@@ -1094,6 +1144,7 @@ var SBC=window.supabase.createClient(SB_URL,SB_KEY);
 var currentSite=sessionStorage.getItem('hk_site')||'sydney';
 var allSites=[], mySites=[];
 var mSitesLoaded=false, mSitesDraft=[], mMasterSites=[];
+var TRAINING=false, TRAIN_PARTS=null, TUT_ENABLED=false, TUT_VERSION=1, TUT_ACTIVE=null, TUT_I=0, TUT_ONDONE=null;
 function _isMgr(r){return r==='Manager'||r==='Assistant Manager';}
 function _rgba(hex,a){hex=String(hex||'#00CFFF').replace('#','');if(hex.length===3)hex=hex.replace(/(.)/g,'$1$1');var n=parseInt(hex,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 function siteById(id){for(var i=0;i<allSites.length;i++)if(allSites[i].id===id)return allSites[i];return null;}
@@ -1111,6 +1162,16 @@ function loadSites(cb){
   }).catch(function(){allSites=[{id:'sydney',label:'Sydney',accent:'#00CFFF',position:1}];mySites=['sydney'];if(cb)cb();});
 }
 function applySiteAccent(id){
+  var _show=!!cu&&id!=='pin'&&id!=='welcome';
+  var tb=document.getElementById('trainBanner');
+  if(TRAINING){
+    var bar0=document.getElementById('siteBar'); if(bar0) bar0.style.display='none';
+    if(tb){ var was=(tb.style.display==='flex'); tb.style.display=_show?'flex':'none'; if((_show)!==was && typeof sz==='function') setTimeout(sz,0); }
+    try{document.documentElement.style.setProperty('--site','#00CFFF');}catch(e){}
+    var hd0=document.getElementById('hdr'); if(hd0) hd0.style.borderBottom='2px solid '+_rgba('#00CFFF',.42);
+    return;
+  }
+  if(tb) tb.style.display='none';
   var ac=siteAccent(currentSite);
   try{document.documentElement.style.setProperty('--site',ac);}catch(e){}
   var hd=document.getElementById('hdr'); if(hd) hd.style.borderBottom='2px solid '+_rgba(ac,.42);
@@ -1192,6 +1253,134 @@ function refreshAllViews(){
   }catch(e){}
 }
 
+/* ===== Phase 3: Training mode + Tutorial engine ===== */
+function buildTrainData(){
+  var raw=[
+    {sku:'1001',d:'Drive chain 219',qty:14,min:6,loc:'A1',eur:18.5,u:22},
+    {sku:'1002',d:'Rear sprocket 78T',qty:2,min:4,loc:'B3',eur:24.0,u:9},
+    {sku:'1003',d:'Brake pad set',qty:0,min:3,loc:'B1',eur:31.2,u:6},
+    {sku:'1004',d:'Air filter',qty:9,min:5,loc:'C2',eur:12.0,u:5},
+    {sku:'1005',d:'Spark plug',qty:25,min:10,loc:'C1',eur:6.5,u:18},
+    {sku:'1006',d:'Throttle cable',qty:3,min:3,loc:'D4',eur:9.9,u:3},
+    {sku:'1007',d:'Engine oil 1L',qty:30,min:12,loc:'A4',eur:7.2,u:40},
+    {sku:'1008',d:'Wheel bearing',qty:1,min:6,loc:'D1',eur:4.8,u:11},
+    {sku:'1009',d:'Slick tyre',qty:16,min:8,loc:'E2',eur:28.0,u:14},
+    {sku:'1010',d:'Steering tie rod',qty:5,min:2,loc:'D2',eur:15.5,u:2}
+  ];
+  return raw.map(function(r){
+    var u=r.u||0, rate=u/90, dl=(u>0)?(rate>0?Math.floor(r.qty/rate):null):null;
+    return {sku:r.sku,description:r.d,internal_description:r.d,desc:r.d,qty:r.qty,min_stock:r.min,reorder:r.min,loc:r.loc,price:(r.eur*EURAUD),price_eur:r.eur,price_aud:null,auto_min:true,qr_print:true,scans90:(u>0?Math.max(3,Math.round(u/3)):0),used90:u,daysLeft:dl,recommendedReorder:(u>0?Math.ceil(u*1.3):null),orderQuantity:(u>0?Math.ceil(u*2):null)};
+  }).sort(function(a,b){return a.desc.localeCompare(b.desc);});
+}
+function showTrainingBanner(b){ var el=document.getElementById('trainBanner'); if(el){ el.style.display=b?'flex':'none'; if(typeof sz==='function') setTimeout(sz,0); } }
+function resetPinUI(){
+  var t=document.getElementById('pinTitle'); if(t)t.innerText='Welcome back';
+  var p=document.getElementById('pinSub'); if(p)p.innerText='Enter your PIN to continue';
+  var ml=document.getElementById('masterLink'); if(ml)ml.style.display='';
+  var tl=document.getElementById('trainLink'); if(tl)tl.style.display='';
+  var tn=document.getElementById('trainNote'); if(tn)tn.style.display='none';
+}
+function armTraining(){
+  TRAINING=true; pin3=''; if(typeof udots==='function')udots();
+  var pe=document.getElementById('pe'); if(pe)pe.innerHTML='&nbsp;';
+  var t=document.getElementById('pinTitle'); if(t)t.innerText='Training mode';
+  var p=document.getElementById('pinSub'); if(p)p.innerText='Enter 0000 to start practising';
+  var ml=document.getElementById('masterLink'); if(ml)ml.style.display='none';
+  var tl=document.getElementById('trainLink'); if(tl)tl.style.display='none';
+  var tn=document.getElementById('trainNote'); if(tn)tn.style.display='block';
+}
+function disarmTraining(){ TRAINING=false; resetPinUI(); }
+function trainLogin(){ onLoginOk({name:'Training Mode',role:'Mechanic',emoji:'\ud83c\udf93'},'0000'); }
+/* ---- tutorial config (gated OFF until Harvey enables it in config) ---- */
+function loadTutorialCfg(cb){
+  try{
+    SBC.from('config').select('key,value').in('key',['tutorial_enabled','tutorial_version']).then(function(r){
+      ((r&&r.data)||[]).forEach(function(row){
+        var v=row.value;
+        if(row.key==='tutorial_enabled') TUT_ENABLED=(v===true||v==='true'||(v&&v.enabled===true));
+        if(row.key==='tutorial_version') TUT_VERSION=Number(typeof v==='object'?(v&&v.v):v)||1;
+      });
+      if(cb)cb();
+    },function(){ if(cb)cb(); });
+  }catch(e){ if(cb)cb(); }
+}
+function tutSteps(){
+  return [
+    {sel:'#tscan',emoji:'\ud83d\udcf7',title:'Scan QR',body:'Tap here to scan a part\u2019s QR label, then take or restock it. This is how stock moves day to day.'},
+    {sel:'.tile.tse',emoji:'\ud83d\udd0d',title:'Search',body:'Find any part by name or SKU \u2014 check how many are in stock and where it lives.'},
+    {sel:'.tile.tlo',emoji:'\u26a0\ufe0f',title:'Low Stock',body:'Everything running low or out, sorted by urgency. Check this before ordering.'},
+    {sel:'#tord',emoji:'\ud83d\udccb',title:'Request Order',body:'Flag a part you think needs ordering \u2014 it goes to the managers to action.'},
+    {sel:'#mgrt',emoji:'\u2b50',title:'Manager Dashboard',body:'Live activity, who\u2019s logged in, and stock predictions. Managers only.'},
+    {sel:'#wfin',emoji:'\ud83d\udcb0',title:'Finance',body:'Stock value, spend and dead stock for this site. Managers only.'},
+    {sel:'#wgord',emoji:'\ud83d\udce6',title:'Generate Order',body:'Build a RIMO order \u2014 Sydney, Melbourne or combined \u2014 from real usage. Managers only.'},
+    {sel:null,emoji:'\ud83c\udf89',title:'That\u2019s the tour!',body:'The other tiles are coming soon. Jump in whenever you\u2019re ready.'}
+  ];
+}
+function ensureTutDom(){
+  if(document.getElementById('tut-wrap')) return;
+  var w=document.createElement('div'); w.id='tut-wrap'; w.style.display='none';
+  w.innerHTML='<div id="tut-dim"></div><div id="tut-card"></div>';
+  document.getElementById('app').appendChild(w);
+}
+function startTutorial(steps,onDone){
+  ensureTutDom();
+  TUT_ACTIVE=(steps||[]).filter(function(s){ if(!s.sel) return true; var e=document.querySelector(s.sel); return e&&e.offsetParent!==null; });
+  if(!TUT_ACTIVE.length){ if(onDone)onDone(false); return; }
+  TUT_ONDONE=onDone||null; document.getElementById('tut-wrap').style.display='block'; tutShow(0);
+}
+function tutShow(i){
+  if(!TUT_ACTIVE){ return; }
+  if(i<0) i=0; if(i>=TUT_ACTIVE.length){ tutEnd(true); return; }
+  TUT_I=i; var step=TUT_ACTIVE[i];
+  var dim=document.getElementById('tut-dim'), card=document.getElementById('tut-card');
+  var el=step.sel?document.querySelector(step.sel):null;
+  if(el){ var r=el.getBoundingClientRect(), pad=8;
+    dim.style.opacity='1'; dim.style.left=(r.left-pad)+'px'; dim.style.top=(r.top-pad)+'px'; dim.style.width=(r.width+pad*2)+'px'; dim.style.height=(r.height+pad*2)+'px';
+  } else { dim.style.opacity='0'; dim.style.left='50%'; dim.style.top='50%'; dim.style.width='0px'; dim.style.height='0px'; }
+  var dots=TUT_ACTIVE.map(function(_x,k){return '<span class="tut-dot'+(k===i?' on':'')+'"></span>';}).join('');
+  var last=(i===TUT_ACTIVE.length-1);
+  card.innerHTML='<div class="tut-emoji">'+(step.emoji||'\ud83d\udc4b')+'</div>'+
+    '<div class="tut-title">'+step.title+'</div>'+
+    '<div class="tut-body">'+step.body+'</div>'+
+    '<div class="tut-dots">'+dots+'</div>'+
+    '<div class="tut-row">'+(i>0?'<button class="tut-btn ghost" onclick="tutBack()">Back</button>':'<button class="tut-btn ghost" onclick="tutEnd(false)">Skip</button>')+
+    '<button class="tut-btn go" onclick="tutNext()">'+(last?'Done':'Next')+'</button></div>';
+  card.style.display='block';
+  var cr=card.getBoundingClientRect(), vw=window.innerWidth, vh=window.innerHeight, top, left;
+  if(el){ var r2=el.getBoundingClientRect();
+    top=(r2.top>vh*0.5)?(r2.top-cr.height-16):(r2.bottom+16);
+    left=Math.min(Math.max(12,r2.left+r2.width/2-cr.width/2),vw-cr.width-12);
+    top=Math.min(Math.max(12,top),vh-cr.height-12);
+  } else { top=vh/2-cr.height/2; left=vw/2-cr.width/2; }
+  card.style.top=top+'px'; card.style.left=left+'px';
+}
+function tutNext(){ if(!TUT_ACTIVE)return; if(TUT_I>=TUT_ACTIVE.length-1) tutEnd(true); else tutShow(TUT_I+1); }
+function tutBack(){ if(!TUT_ACTIVE)return; tutShow(Math.max(0,TUT_I-1)); }
+function tutEnd(done){ var w=document.getElementById('tut-wrap'); if(w)w.style.display='none'; var cb=TUT_ONDONE; TUT_ACTIVE=null; TUT_ONDONE=null; if(cb)cb(!!done); }
+function tutPrompt(opts){
+  ensureTutDom();
+  var w=document.getElementById('tut-wrap'); w.style.display='block';
+  document.getElementById('tut-dim').style.opacity='0';
+  var card=document.getElementById('tut-card'); card.style.display='block';
+  card.innerHTML='<div class="tut-emoji">'+(opts.emoji||'\ud83d\udc4b')+'</div><div class="tut-title">'+opts.title+'</div><div class="tut-body">'+opts.body+'</div><div class="tut-row"><button class="tut-btn ghost" id="tutNo">'+(opts.no||'No thanks')+'</button><button class="tut-btn go" id="tutYes">'+(opts.yes||'Start tour')+'</button></div>';
+  var cr=card.getBoundingClientRect(); card.style.top=(window.innerHeight/2-cr.height/2)+'px'; card.style.left=(window.innerWidth/2-cr.width/2)+'px';
+  document.getElementById('tutYes').onclick=function(){ w.style.display='none'; if(opts.onYes)opts.onYes(); };
+  document.getElementById('tutNo').onclick=function(){ w.style.display='none'; if(opts.onNo)opts.onNo(); };
+}
+function maybeOfferTrainingTour(){
+  tutPrompt({emoji:'\ud83c\udf93',title:'Quick tour?',body:'Want a quick walkthrough of every tab? You\u2019re in training \u2014 nothing here is real.',yes:'Show me',no:'I\u2019ll explore',onYes:function(){ startTutorial(tutSteps(),null); }});
+}
+function maybeOfferTutorial(){
+  if(!TUT_ENABLED||TRAINING||!cu) return;
+  var key='hk_tut_'+(cu.name||'');
+  try{ if(localStorage.getItem(key)===String(TUT_VERSION)) return; }catch(e){}
+  tutPrompt({emoji:'\ud83d\udc4b',title:'Welcome! Quick tour?',body:'Take a quick walkthrough of the app. You can always skip.',yes:'Start tour',no:'Maybe later',
+    onYes:function(){ startTutorial(tutSteps(),function(){ try{localStorage.setItem(key,String(TUT_VERSION));}catch(e){} }); },
+    onNo:function(){ try{localStorage.setItem(key,String(TUT_VERSION));}catch(e){} }});
+}
+loadTutorialCfg();
+
+
 /* EUR->AUD live rate (ECB via frankfurter.app), cached 6h */
 var EURAUD=Number(sessionStorage.getItem('hk_euraud'))||1.62;
 function refreshRate(){
@@ -1223,6 +1412,7 @@ function mapPart(r){
   };
 }
 function loadParts(cb){
+  if(TRAINING){ if(cb)cb((TRAIN_PARTS||[]).slice()); return; }
   var site=currentSite||'sydney';
   var qs=[SBC.from('parts').select('*'), SBC.from('logs').select('action,sku,qty,ts,site').eq('site',site)];
   if(site!=='sydney') qs.push(SBC.from('stock').select('sku,qty,min_stock,location').eq('site',site));
@@ -1253,6 +1443,15 @@ function loadParts(cb){
 }
 /* take / restock via the stock-move Edge Function (verifies the staff PIN server-side) */
 function stockMove(sku,qty,type,cb){
+  if(TRAINING){
+    var p=(TRAIN_PARTS||[]).find(function(x){return x.sku===sku;});
+    if(!p){ cb({success:false,message:'SKU not found'}); return; }
+    var q=parseInt(qty,10)||0;
+    if(type==='take'){ if(p.qty<q){ cb({success:false,message:'Only '+p.qty+' in stock'}); return; } p.qty=Math.max(0,p.qty-q); }
+    else { p.qty=p.qty+q; }
+    cb({success:true,remaining:p.qty,message:'Done! '+q+' x '+sku+' '+(type==='take'?'taken':'restocked')+'. '+p.qty+' remaining.<br><span class="train-tag">\ud83c\udf93 Training mode \u2014 this did not change real stock</span>'});
+    return;
+  }
   fetch(SB_FN+'stock-move',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu&&cu.pin)||'',sku:sku,qty:qty,type:type,site:(currentSite||'sydney')})})
     .then(function(r){return r.json();}).then(cb).catch(function(){cb({success:false,message:'Connection error - please try again'});});
 }
@@ -1702,6 +1901,7 @@ function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin
 
 function chk(){
   var entered=pin3;
+  if(TRAINING){ if(entered==='0000'){ trainLogin(); } else { pinFail('Training PIN is 0000'); } return; }
   var _pd=document.getElementById('pd'); if(_pd) _pd.classList.add('checking');
   document.getElementById('pe').innerHTML='<span class="pchk">Checking\u2026</span>';
   fetch(SB_FN+'verify-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:entered})})
@@ -1717,8 +1917,8 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());applyRoleVisibility();
-  try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();
+  if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=m.emoji;
   document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
   document.getElementById('wr').innerText=m.role;
@@ -1752,8 +1952,16 @@ function onLoginOk(m,entered){
       },440);
     },260);
   }
-  /* 2) After a beat on the welcome screen, ask which site */
-  loadSites(function(){ setTimeout(function(){ openSiteChooser(false,_welcomeToHome); }, 1150); });
+  /* 2) Training skips the site chooser; real logins choose a site, then maybe a tour */
+  if(TRAINING){
+    allSites=[{id:'training',label:'Training',accent:'#00CFFF',position:1}];
+    mySites=['training']; currentSite='training';
+    parts=buildTrainData(); TRAIN_PARTS=parts;
+    showTrainingBanner(true);
+    setTimeout(function(){ _welcomeToHome(); setTimeout(maybeOfferTrainingTour,1300); }, 1000);
+  } else {
+    loadSites(function(){ setTimeout(function(){ openSiteChooser(false,function(){ _welcomeToHome(); setTimeout(maybeOfferTutorial,1300); }); }, 1150); });
+  }
 }
 function goHome(){
   // Don't do anything if not logged in, already on home, or on pin/welcome screens
@@ -1800,7 +2008,7 @@ function goHome(){
   },500);
 }
 
-function logout(){cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');}
+function logout(){TRAINING=false;showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');}
 
 // ── JSONP ──
 function jsonp(url,cb){

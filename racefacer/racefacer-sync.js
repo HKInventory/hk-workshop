@@ -28,6 +28,9 @@ const SITE = process.env.SITE || 'sydney';
 // Accept the host's self-signed certificate (single known internal box).
 const insecure = new Agent({ connect: { rejectUnauthorized: false } });
 
+// RaceFacer's ajax endpoints only return JSON when the request looks like an AJAX call.
+const AJAX = { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01' } };
+
 // ---- tiny cookie jar ----
 const jar = {};
 function storeCookies(res) {
@@ -38,13 +41,25 @@ function storeCookies(res) {
 }
 const cookieHeader = () => Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
 
-async function rf(path, { method = 'GET', body, headers = {} } = {}) {
+async function rf(path, { method = 'GET', body, headers = {}, ajax = false } = {}) {
+  // RaceFacer's ajax/* endpoints only return JSON when the request looks like an XHR (what jQuery sends).
+  const ajaxHeaders = ajax
+    ? { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01' }
+    : {};
   const res = await fetch(path.startsWith('http') ? path : RF_BASE + path, {
     method, body, redirect: 'manual', dispatcher: insecure,
-    headers: { 'Cookie': cookieHeader(), 'User-Agent': 'HKWorkshopSync/1.0', ...headers },
+    headers: { 'Cookie': cookieHeader(), 'User-Agent': 'Mozilla/5.0 HKWorkshopSync/1.0', ...ajaxHeaders, ...headers },
   });
   storeCookies(res);
   return res;
+}
+
+// fetch an ajax endpoint and parse JSON; clear error (with HTTP status) if it isn't JSON
+async function rfJson(path) {
+  const res = await rf(path, { ajax: true });
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(`HTTP ${res.status} (not JSON): ${text.slice(0, 80).replace(/\s+/g, ' ') || '<empty>'}`); }
 }
 
 // ---- login: read the form, grab the fresh CSRF token, post credentials ----
@@ -105,7 +120,9 @@ async function sb(path, { method = 'GET', body, prefer } = {}) {
 const dmy = (d) => { const [a, b, c] = (d || '').split('.'); return c ? `${c}-${b}-${a}` : null; }; // 25.05.2026 -> 2026-05-25
 
 async function syncKart(id) {
-  const details = parseKartDetails(await (await rf(`/ajax/garage/kart-details?id=${id}`)).json());
+  const dj = await (await rf(`/ajax/garage/kart-details?id=${id}`, AJAX)).json();
+  if (!dj || dj.success === false || !dj.kart) return null; // skip ids that aren't real karts
+  const details = parseKartDetails(dj);
   await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{
     rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: details.type,
     status: details.status, status_code: details.statusCode, total_km: details.totalKm,
@@ -114,7 +131,7 @@ async function syncKart(id) {
   }] });
 
   // repairs: clean replace per kart (cascade clears parts)
-  const { repairs } = parseRepairs(await (await rf(`/ajax/garage/kart-repairs?id=${id}`)).json());
+  const { repairs } = parseRepairs(await (await rf(`/ajax/garage/kart-repairs?id=${id}`, AJAX)).json());
   await sb(`rf_repairs?rf_kart_id=eq.${id}`, { method: 'DELETE' });
   if (repairs.length) {
     const inserted = await sb('rf_repairs', { method: 'POST', prefer: 'return=representation', body: repairs.map((r) => ({
@@ -128,7 +145,7 @@ async function syncKart(id) {
   }
 
   // parts wear history: clean replace per kart
-  const parts = parseParts(await (await rf(`/ajax/garage/kart-parts?id=${id}`)).json());
+  const parts = parseParts(await (await rf(`/ajax/garage/kart-parts?id=${id}`, AJAX)).json());
   await sb(`rf_parts_history?rf_kart_id=eq.${id}`, { method: 'DELETE' });
   if (parts.length) await sb('rf_parts_history', { method: 'POST', body: parts.map((p) => ({
     rf_kart_id: id, date: dmy(p.date), part_name: p.part, hours_since: p.hoursSinceRepair, km_since: p.kmSinceRepair,
@@ -140,8 +157,8 @@ async function syncKart(id) {
 // auto-map RaceFacer part names -> app SKUs by exact (normalised) name match
 async function refreshAliases(allPartNames) {
   const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-  const appParts = await sb('parts?select=sku,name');
-  const byName = new Map(appParts.map((p) => [norm(p.name), p.sku]));
+  const appParts = await sb('parts?select=sku,desc');
+  const byName = new Map(appParts.map((p) => [norm(p.desc), p.sku]));
   const rows = [...new Set(allPartNames.filter(Boolean))].map((n) => ({ rf_part_name: n, sku: byName.get(norm(n)) || null, updated_at: new Date().toISOString() }));
   if (rows.length) await sb('part_aliases?on_conflict=rf_part_name', { method: 'POST', prefer: 'resolution=merge-duplicates', body: rows });
   const aliases = {}; for (const r of rows) aliases[r.rf_part_name] = r.sku;
@@ -172,7 +189,7 @@ async function main() {
   const ids = await enumerateKarts();
   console.log(`Syncing ${ids.length} karts...`);
   const perKart = [];
-  for (const id of ids) { try { perKart.push(await syncKart(id)); } catch (e) { console.error(`kart ${id}: ${e.message}`); } }
+  for (const id of ids) { try { const k = await syncKart(id); if (k) perKart.push(k); } catch (e) { console.error(`kart ${id}: ${e.message}`); } }
   const aliases = await refreshAliases(perKart.flatMap((k) => k.repairs.flatMap((r) => (r.parts || []).map((p) => p.name))));
   const n = await reconcileToday(perKart, aliases);
   await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_sync', v: new Date().toISOString(), at: new Date().toISOString() }] });

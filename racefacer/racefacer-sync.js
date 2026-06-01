@@ -167,7 +167,9 @@ async function refreshAliases(allPartNames) {
 
 async function reconcileToday(perKart, aliases) {
   const today = new Date().toISOString().slice(0, 10);
-  const takes = await sb(`logs?select=staff_name,sku,desc,qty,ts,action&site=eq.${SITE}&action=eq.TAKEN&ts=gte.${today}T00:00:00&ts=lte.${today}T23:59:59`);
+  const takes = await sb(`logs?select=staff_name,sku,qty,ts,action&site=eq.${SITE}&action=eq.TAKEN&ts=gte.${today}T00:00:00&ts=lte.${today}T23:59:59`);
+  const nameBySku = new Map((await sb('parts?select=sku,description')).map((p) => [p.sku, p.description]));
+  for (const t of (takes || [])) t.desc = nameBySku.get(t.sku) || t.sku; // part name for the message; logs has no desc column
   const rfRepairs = [];
   for (const k of perKart) for (const r of k.repairs) if (dmy(r.dateRepaired) === today)
     rfRepairs.push({ kartName: k.name, mechanic: r.user, date: r.dateRepaired, repairedAt: null, parts: r.parts });

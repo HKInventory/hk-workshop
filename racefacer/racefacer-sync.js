@@ -21,10 +21,14 @@ const insecure = new Agent({ connect: { rejectUnauthorized: false } }); // accep
 
 // ---- tiny cookie jar ----
 const jar = {};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function storeCookies(res) {
   for (const c of res.headers.getSetCookie?.() || []) {
     const [pair] = c.split(';'); const i = pair.indexOf('=');
-    if (i > 0) jar[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
+    if (i > 0) {
+      const k = pair.slice(0, i).trim(), v = pair.slice(i + 1).trim();
+      if (v && v.toLowerCase() !== 'deleted') jar[k] = v; // don't let a stray response clear our session
+    }
   }
 }
 const cookieHeader = () => Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
@@ -41,11 +45,15 @@ async function rf(path, { method = 'GET', body, headers = {}, ajax = false } = {
 }
 
 // fetch an ajax endpoint and parse JSON; clear error (with HTTP status) if it isn't JSON
-async function rfJson(path) {
-  const res = await rf(path, { ajax: true });
-  const text = await res.text();
-  try { return JSON.parse(text); }
-  catch { throw new Error(`HTTP ${res.status}${res.headers.get('location') ? ' -> ' + res.headers.get('location') : ''} (not JSON): ${text.slice(0, 80).replace(/\s+/g, ' ') || '<empty>'}`); }
+async function rfJson(path, tries = 3) {
+  let res, text;
+  for (let i = 0; i < tries; i++) {
+    res = await rf(path, { ajax: true });
+    text = await res.text();
+    if (text) { try { return JSON.parse(text); } catch { /* empty/garbled -> retry */ } }
+    if (i < tries - 1) await sleep(400 * (i + 1)); // brief back-off, then try again
+  }
+  throw new Error(`HTTP ${res.status}${res.headers.get('location') ? ' -> ' + res.headers.get('location') : ''} (not JSON): ${(text || '').slice(0, 80).replace(/\s+/g, ' ') || '<empty>'}`);
 }
 
 // ---- login ----
@@ -179,7 +187,7 @@ async function main() {
   const ids = await enumerateKarts();
   console.log(`Syncing ${ids.length} karts...`);
   const perKart = [];
-  for (const id of ids) { try { const k = await syncKart(id); if (k) perKart.push(k); } catch (e) { console.error(`kart ${id}: ${e.message}`); } }
+  for (const id of ids) { try { const k = await syncKart(id); if (k) perKart.push(k); } catch (e) { console.error(`kart ${id}: ${e.message}`); } await sleep(150); }
   const aliases = await refreshAliases(perKart.flatMap((k) => k.repairs.flatMap((r) => (r.parts || []).map((p) => p.name))));
   const n = await reconcileToday(perKart, aliases);
   await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_sync', v: new Date().toISOString(), at: new Date().toISOString() }] });

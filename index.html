@@ -63,21 +63,25 @@
     #hdr{display:flex;align-items:center;justify-content:space-between;padding:max(env(safe-area-inset-top),18px) 20px 12px;flex-shrink:0;border-bottom:1px solid var(--b1);position:relative;z-index:100}
     .hlogo{display:flex;align-items:center;gap:11px}
     .hk-icon{width:38px;height:38px;border-radius:8px;flex-shrink:0;object-fit:contain}
-    /* HK splash — plays once on cold open, before the PIN/home screen */
-    #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 44%,#0a1519 0%,#000 72%);opacity:1;transition:opacity .5s ease}
+    /* HK splash — premium cold-open intro (bigger, slower, two-tone) */
+    #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 43%,#0c181e 0%,#05080a 60%,#000 100%);opacity:1;transition:opacity .65s ease}
     #splash.gone{opacity:0;pointer-events:none}
-    #splash .sp-logo{width:104px;height:104px;border-radius:24px;object-fit:contain;transform:scale(.2);opacity:0}
-    #splash.play .sp-logo{animation:sppop 1.2s cubic-bezier(.18,.9,.28,1.2) forwards}
-    #splash .sp-ring{position:absolute;top:50%;left:50%;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;border:2px solid var(--acc);opacity:0}
+    /* soft two-tone halo that fades in and gently breathes behind the logo */
+    #splash .sp-glow{position:absolute;top:50%;left:50%;width:360px;height:360px;margin:-180px 0 0 -180px;border-radius:50%;background:radial-gradient(circle,rgba(0,207,255,.32) 0%,rgba(224,64,251,.20) 42%,transparent 70%);filter:blur(14px);opacity:0}
+    #splash.play .sp-glow{opacity:.88;animation:spglow 2.9s ease-out}
+    #splash .sp-logo{width:158px;height:158px;border-radius:36px;object-fit:contain;transform:scale(.55);opacity:0}
+    #splash.play .sp-logo{opacity:1;transform:scale(1);animation:sppop 2.6s cubic-bezier(.22,.65,.18,1)}
+    #splash .sp-ring{position:absolute;top:50%;left:50%;width:158px;height:158px;margin:-79px 0 0 -79px;border-radius:50%;border:1.5px solid var(--acc);opacity:0}
     #splash .sp-ring.sp-ring2{border-color:#E040FB}
-    #splash.play .sp-ring{animation:spring 1.15s ease-out forwards}
-    #splash.play .sp-ring.sp-ring2{animation:spring2 1.35s ease-out .12s forwards}
-    #splash .sp-word{position:absolute;left:0;right:0;bottom:31%;text-align:center;font-family:'Inter',sans-serif;font-weight:800;letter-spacing:3px;font-size:12px;text-transform:uppercase;opacity:0;background:linear-gradient(90deg,#E040FB,#00CFFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#00CFFF}
-    #splash.play .sp-word{animation:spword 1.2s ease forwards}
-    @keyframes sppop{0%{transform:scale(.2) rotate(-14deg);opacity:0}45%{transform:scale(1.12) rotate(3deg);opacity:1;box-shadow:0 0 38px 6px rgba(0,207,255,.42),0 0 64px 16px rgba(224,64,251,.30)}70%{transform:scale(.97) rotate(0)}100%{transform:scale(1);opacity:1;box-shadow:0 0 20px 2px rgba(0,207,255,.22),0 0 40px 8px rgba(224,64,251,.18)}}
-    @keyframes spring{0%{transform:scale(.35);opacity:.85}100%{transform:scale(2.7);opacity:0}}
-    @keyframes spring2{0%{transform:scale(.35);opacity:.7}100%{transform:scale(3.1);opacity:0}}
-    @keyframes spword{0%,38%{opacity:0;transform:translateY(8px)}72%{opacity:1;transform:translateY(0)}100%{opacity:1}}
+    #splash.play .sp-ring{animation:spring 2.4s cubic-bezier(.2,.6,.2,1) .25s forwards}
+    #splash.play .sp-ring.sp-ring2{animation:spring2 2.7s cubic-bezier(.2,.6,.2,1) .55s forwards}
+    #splash .sp-word{position:absolute;left:0;right:0;bottom:27%;text-align:center;font-family:'Inter',sans-serif;font-weight:800;font-size:14px;text-transform:uppercase;opacity:0;background:linear-gradient(90deg,#E040FB,#00CFFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#00CFFF}
+    #splash.play .sp-word{opacity:1;letter-spacing:4px;animation:spword 2.6s ease}
+    @keyframes sppop{0%{transform:scale(.55);opacity:0;filter:blur(7px)}26%{opacity:1;filter:blur(0)}55%{transform:scale(1.05)}74%{transform:scale(.99)}100%{transform:scale(1);opacity:1}}
+    @keyframes spglow{0%{opacity:0;transform:scale(.55)}30%{opacity:1;transform:scale(1)}65%{opacity:.8;transform:scale(1.06)}100%{opacity:.88;transform:scale(1)}}
+    @keyframes spring{0%{transform:scale(.45);opacity:0}18%{opacity:.9}100%{transform:scale(2.9);opacity:0}}
+    @keyframes spring2{0%{transform:scale(.45);opacity:0}18%{opacity:.75}100%{transform:scale(3.4);opacity:0}}
+    @keyframes spword{0%,40%{opacity:0;transform:translateY(12px);letter-spacing:9px}82%{opacity:1;transform:translateY(0);letter-spacing:4px}100%{opacity:1;letter-spacing:4px}}
     /* PIN "checking" feedback while verify-pin is in flight */
     .dots.checking .dot{animation:dotpulse .85s ease-in-out infinite}
     @keyframes dotpulse{0%,100%{opacity:.45}50%{opacity:1}}
@@ -566,7 +570,7 @@
   </style>
 </head>
 <body>
-<div id="splash"><div class="sp-ring"></div><div class="sp-ring sp-ring2"></div><img class="sp-logo" src="icon-192.png" alt="HK"><div class="sp-word">Hyper Karting</div></div>
+<div id="splash"><div class="sp-glow"></div><div class="sp-ring"></div><div class="sp-ring sp-ring2"></div><img class="sp-logo" src="icon-192.png" alt="HK"><div class="sp-word">Hyper Karting</div></div>
 <div id="lbar"><div id="lbp"></div></div>
 <div id="app">
   <div id="hdr">
@@ -1175,7 +1179,7 @@ function showRoot(id){
 function playSplash(full){
   var sp=document.getElementById('splash'); if(!sp) return;
   sp.classList.add('play');
-  var hold=full?1100:320;
+  var hold=full?2750:600;
   setTimeout(function(){ sp.classList.add('gone'); setTimeout(function(){ if(sp&&sp.parentNode) sp.parentNode.removeChild(sp); },520); },hold);
 }
 function go(id){

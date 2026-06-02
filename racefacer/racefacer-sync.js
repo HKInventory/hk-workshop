@@ -33,6 +33,14 @@ function storeCookies(res) {
 }
 const cookieHeader = () => Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
 
+// Turn RaceFacer type + number into the team's label, e.g. "Adult Track" + "19" -> "Adult 19".
+function kartLabel(type, name) {
+  const t = (type || '').replace(/\s*track\s*$/i, '').trim()
+    .replace(/^intermediate$/i, 'Inter');
+  const n = (name || '').trim();
+  return t ? `${t} ${n}`.trim() : (n || null);
+}
+
 async function rf(path, { method = 'GET', body, headers = {}, ajax = false } = {}) {
   // RaceFacer's ajax/* endpoints only return JSON when the request looks like an XHR (what jQuery sends).
   const ajaxHeaders = ajax ? { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01' } : {};
@@ -130,6 +138,7 @@ async function syncKart(id) {
   const details = parseKartDetails(dj);
   await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{
     rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: details.type,
+    label: kartLabel(details.type, details.name),
     status: details.status, status_code: details.statusCode, total_km: details.totalKm,
     total_laps: details.totalLaps, total_hours: details.totalHours, total_cost: details.totalCost,
     brand: details.brand, model: details.model, fetched_at: new Date().toISOString(),
@@ -138,10 +147,10 @@ async function syncKart(id) {
   const { repairs } = parseRepairs(await rfJson(`/ajax/garage/kart-repairs?id=${id}`));
   await sb(`rf_repairs?rf_kart_id=eq.${id}`, { method: 'DELETE' });
   if (repairs.length) {
-    const inserted = await sb('rf_repairs', { method: 'POST', prefer: 'return=representation', body: repairs.map((r) => ({
+    const inserted = await sb('rf_repairs', { method: 'POST', prefer: 'return=representation', body: repairs.map((r, i) => ({
       rf_kart_id: id, description: r.description, date_discovered: dmy(r.dateDiscovered),
       date_repaired: dmy(r.dateRepaired), mileage: r.mileage, cost: r.cost, mechanic: r.user,
-      notes: r.notes.join('\n'), fingerprint: `${id}|${r.dateRepaired}|${r.description}`.slice(0, 250),
+      notes: r.notes.join('\n'), fingerprint: `${id}|${i}|${r.dateRepaired}|${r.description}`.slice(0, 250),
     })) });
     const partRows = [];
     (inserted || []).forEach((row, i) => (repairs[i].parts || []).forEach((p) => partRows.push({ repair_id: row.id, part_name: p.name, qty: p.qty, price: p.price })));
@@ -154,7 +163,7 @@ async function syncKart(id) {
     rf_kart_id: id, date: dmy(p.date), part_name: p.part, hours_since: p.hoursSinceRepair, km_since: p.kmSinceRepair,
   })) });
 
-  return { id, name: details.name, repairs };
+  return { id, name: details.name, type: details.type, label: kartLabel(details.type, details.name), repairs };
 }
 
 async function refreshAliases(allPartNames) {
@@ -174,7 +183,7 @@ async function reconcileToday(perKart, aliases) {
   for (const t of (takes || [])) t.desc = nameBySku.get(t.sku) || t.sku; // part name for the message; logs has no desc column
   const rfRepairs = [];
   for (const k of perKart) for (const r of k.repairs) if (dmy(r.dateRepaired) === today)
-    rfRepairs.push({ kartName: k.name, mechanic: r.user, date: r.dateRepaired, repairedAt: null, parts: r.parts });
+    rfRepairs.push({ kartName: k.label || k.name, mechanic: r.user, date: r.dateRepaired, repairedAt: null, parts: r.parts });
   const lines = reconcileDay({ day: today, rfRepairs, appTakes: takes || [], aliases });
   await sb(`rf_discrepancies?day=eq.${today}&status=eq.new`, { method: 'DELETE' });
   if (lines.length) await sb('rf_discrepancies', { method: 'POST', body: lines.map((d) => ({

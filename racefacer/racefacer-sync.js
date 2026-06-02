@@ -197,6 +197,22 @@ async function reconcileToday(perKart, aliases) {
   return lines.length;
 }
 
+// Remove karts (and their children) that are no longer listed under any type —
+// e.g. stripped/archived ghosts. Guarded so a transient empty enumeration can't wipe the table.
+async function pruneStale(activeIds) {
+  if (process.env.RF_KART_IDS) return 0;           // never prune on a partial/test run
+  if (!activeIds || activeIds.length < 10) { console.log(`[prune] skipped — only ${activeIds ? activeIds.length : 0} active ids (looks like a bad enumeration)`); return 0; }
+  const existing = (await sb('rf_karts?select=rf_id')) || [];
+  const active = new Set(activeIds);
+  const stale = existing.map((r) => r.rf_id).filter((id) => !active.has(id));
+  if (!stale.length) return 0;
+  const list = stale.join(',');
+  await sb(`rf_parts_history?rf_kart_id=in.(${list})`, { method: 'DELETE' });
+  await sb(`rf_repairs?rf_kart_id=in.(${list})`, { method: 'DELETE' }); // rf_repair_parts cascades
+  await sb(`rf_karts?rf_id=in.(${list})`, { method: 'DELETE' });
+  return stale.length;
+}
+
 async function main() {
   if (!RF_USER || !RF_PASS || !SB_URL || !SB_KEY) throw new Error('missing required env vars');
   await login();
@@ -205,10 +221,12 @@ async function main() {
   console.log(`Syncing ${ids.length} karts...`);
   const perKart = [];
   for (const id of ids) { try { const k = await syncKart(id); if (k) perKart.push(k); } catch (e) { console.error(`kart ${id}: ${e.message}`); } await sleep(150); }
+  const pruned = await pruneStale(ids);
+  if (pruned) console.log(`[prune] removed ${pruned} stale/ghost karts no longer listed under any type.`);
   const aliases = await refreshAliases(perKart.flatMap((k) => k.repairs.flatMap((r) => (r.parts || []).map((p) => p.name))));
   const n = await reconcileToday(perKart, aliases);
   await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_sync', v: new Date().toISOString(), at: new Date().toISOString() }] });
-  console.log(`Done. ${perKart.length} karts synced, ${n} discrepancies flagged for today.`);
+  console.log(`Done. ${perKart.length} karts synced, ${pruned} ghosts removed, ${n} discrepancies flagged for today.`);
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });

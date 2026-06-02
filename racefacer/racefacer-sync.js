@@ -103,19 +103,34 @@ async function probe() {
 }
 
 // ---- enumerate kart ids ----
+// Each garage "type" page maps to a (site, track-type) pair. This is the source
+// of truth for which site a kart belongs to (kart-details doesn't tell us the site).
+// Add a row here to onboard a new site/type.
+const KART_TYPES = {
+  '6de9e147-ce23-4b60-ae56-6c3dd1e1d871': { site: 'sydney',    type: 'Adult Track' },
+  'e0abc9ae-153e-41bb-be90-9877e39391c3': { site: 'sydney',    type: 'Intermediate Track' },
+  '86ffcdf3-f02e-4eb6-9955-0873c846f9b0': { site: 'sydney',    type: 'Junior Track' },
+  '3005c630-1894-47f0-bc47-93979f118d17': { site: 'sydney',    type: 'Mini Track' },
+  '8d460fb0-ffc4-4838-bf6f-667f65095e65': { site: 'melbourne', type: 'Adult Track' },
+};
+
 async function enumerateKarts() {
-  if (process.env.RF_KART_IDS) return [...new Set(process.env.RF_KART_IDS.split(',').map((s) => +s.trim()).filter(Boolean))];
-  const uuids = (process.env.RF_KART_TYPE_UUIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const pages = uuids.length ? uuids.map((u) => `/en/administration/garage/garage?kart_type_uuid=${u}`) : ['/en/administration/garage/garage'];
-  const ids = new Set();
-  for (const p of pages) {
-    const html = await (await rf(p)).text();
+  // Returns a Map of rf_id -> { site, type } so each kart is tagged by the page it came from.
+  const map = new Map();
+  if (process.env.RF_KART_IDS) {
+    for (const s of process.env.RF_KART_IDS.split(',')) { const n = +s.trim(); if (n) map.set(n, { site: process.env.SITE || 'sydney', type: null }); }
+    return map;
+  }
+  for (const [uuid, meta] of Object.entries(KART_TYPES)) {
+    const html = await (await rf(`/en/administration/garage/garage?kart_type_uuid=${uuid}`)).text();
+    const ids = new Set();
     for (const re of [/kart-details\?id=(\d+)/g, /[?&]kart_id=(\d+)/g, /data-kart_id="(\d+)"/g, /select_kart\w*\((\d+)/g]) {
       let m; while ((m = re.exec(html))) ids.add(+m[1]);
     }
+    for (const id of ids) map.set(id, { site: meta.site, type: meta.type }); // last page wins if a kart appears twice
   }
-  if (!ids.size) throw new Error('could not enumerate karts — set RF_KART_IDS env');
-  return [...ids];
+  if (!map.size) throw new Error('could not enumerate karts — check login / type UUIDs');
+  return map;
 }
 
 // ---- Supabase REST helpers (service role) ----
@@ -136,14 +151,17 @@ const dmy = (d) => { const [a, b, c] = (d || '').split('.'); return c ? `${c}-${
 // Anything else ("George", "Late 2", "Archived 3", test entries) is not real fleet.
 const KEEP_NAME = /^\d{1,3}$/;
 
-async function syncKart(id) {
+async function syncKart(id, meta) {
+  meta = meta || {};
   const dj = await rfJson(`/ajax/garage/kart-details?id=${id}`);
   if (!dj || dj.success === false || !dj.kart) return null;
   const details = parseKartDetails(dj);
   if (!KEEP_NAME.test((details.name || '').trim())) return { id, skipped: true };   // non-numeric name (George/Late/etc.) — not real fleet
+  const type = meta.type || details.type;   // page-derived type is authoritative (reflects Adult<->Inter moves)
+  const site = meta.site || 'sydney';
   await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{
-    rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: details.type,
-    label: kartLabel(details.type, details.name),
+    rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: type, site: site,
+    label: kartLabel(type, details.name),
     status: details.status, status_code: details.statusCode, total_km: details.totalKm,
     total_laps: details.totalLaps, total_hours: details.totalHours, total_cost: details.totalCost,
     brand: details.brand, model: details.model, fetched_at: new Date().toISOString(),
@@ -172,7 +190,7 @@ async function syncKart(id) {
   });
   if (phRows.length) await sb('rf_parts_history', { method: 'POST', body: phRows });
 
-  return { id, name: details.name, type: details.type, label: kartLabel(details.type, details.name), repairs };
+  return { id, name: details.name, type: type, site: site, label: kartLabel(type, details.name), repairs };
 }
 
 async function refreshAliases(allPartNames) {
@@ -222,16 +240,16 @@ async function main() {
   if (!RF_USER || !RF_PASS || !SB_URL || !SB_KEY) throw new Error('missing required env vars');
   await login();
   await probe();                       // <-- prints exactly what RaceFacer replies; remove once working
-  const ids = await enumerateKarts();
-  console.log(`Syncing ${ids.length} karts...`);
+  const idMap = await enumerateKarts();           // Map: rf_id -> { site, type }
+  console.log(`Syncing ${idMap.size} karts...`);
   const perKart = [], skipIds = new Set();
-  for (const id of ids) {
-    try { const k = await syncKart(id); if (k && k.skipped) skipIds.add(id); else if (k) perKart.push(k); }
+  for (const [id, meta] of idMap) {
+    try { const k = await syncKart(id, meta); if (k && k.skipped) skipIds.add(id); else if (k) perKart.push(k); }
     catch (e) { console.error(`kart ${id}: ${e.message}`); }
     await sleep(150);
   }
   if (skipIds.size) console.log(`[skip] ${skipIds.size} non-numeric-named karts (George/Late/test) excluded.`);
-  const keepIds = ids.filter((id) => !skipIds.has(id));   // real karts only (incl. ones that transiently failed)
+  const keepIds = [...idMap.keys()].filter((id) => !skipIds.has(id));   // real karts only (incl. ones that transiently failed)
   const pruned = await pruneStale(keepIds);
   if (pruned) console.log(`[prune] removed ${pruned} stale/ghost karts no longer listed under any type.`);
   const aliases = await refreshAliases(perKart.flatMap((k) => k.repairs.flatMap((r) => (r.parts || []).map((p) => p.name))));

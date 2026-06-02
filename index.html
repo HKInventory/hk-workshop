@@ -3006,8 +3006,9 @@ function mapRfKart(r){
     cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-' };
 }
 function loadRfKarts(cb){
+  var site=currentSite||'sydney';
   Promise.all([
-    SBC.from('rf_karts').select('*'),
+    SBC.from('rf_karts').select('*').eq('site',site),
     SBC.from('rf_repairs').select('id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes')
   ]).then(function(rs){
     var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[];

@@ -27,6 +27,7 @@ jobs:
           RF_PASS: ${{ secrets.RF_PASS }}
           SB_URL: ${{ secrets.SB_URL }}
           SB_SERVICE_KEY: ${{ secrets.SB_SERVICE_KEY }}
-          RF_KART_IDS: ${{ secrets.RF_KART_IDS }}   # optional but recommended (see setup notes)
+          RF_KART_IDS: ${{ secrets.RF_KART_IDS }}            # leave UNSET except for quick tests
+          RF_KART_TYPE_UUIDS: ${{ secrets.RF_KART_TYPE_UUIDS }}  # the 4 type UUIDs -> only real karts, ghosts skipped
           SITE: sydney
         run: node racefacer-sync.js

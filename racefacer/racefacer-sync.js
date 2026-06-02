@@ -117,8 +117,10 @@ async function sb(path, { method = 'GET', body, prefer } = {}) {
     headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`SB ${method} ${path} -> ${res.status} ${await res.text()}`);
-  return res.status === 204 ? null : res.json();
+  const text = await res.text();
+  if (!res.ok) throw new Error(`SB ${method} ${path} -> ${res.status} ${text}`);
+  if (!text) return null;                 // empty body: write with no representation, or 204 delete
+  try { return JSON.parse(text); } catch { return null; }
 }
 const dmy = (d) => { const [a, b, c] = (d || '').split('.'); return c ? `${c}-${b}-${a}` : null; };
 
@@ -142,7 +144,7 @@ async function syncKart(id) {
       notes: r.notes.join('\n'), fingerprint: `${id}|${r.dateRepaired}|${r.description}`.slice(0, 250),
     })) });
     const partRows = [];
-    inserted.forEach((row, i) => (repairs[i].parts || []).forEach((p) => partRows.push({ repair_id: row.id, part_name: p.name, qty: p.qty, price: p.price })));
+    (inserted || []).forEach((row, i) => (repairs[i].parts || []).forEach((p) => partRows.push({ repair_id: row.id, part_name: p.name, qty: p.qty, price: p.price })));
     if (partRows.length) await sb('rf_repair_parts', { method: 'POST', body: partRows });
   }
 

@@ -764,7 +764,7 @@
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
             <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
-            <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div></div>
+            <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo')"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Coming soon</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
@@ -1589,9 +1589,26 @@ function startRealtime(){
   try{
     SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _reload(); }).subscribe();
     SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _reload(); }).subscribe();
+    // RaceFacer tables -> refresh whatever RF view is open, live.
+    function _curScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
+    SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ if(_curScr()==='kartinfo'&&typeof loadKartInfo==='function'){try{loadKartInfo();}catch(e){}} }).subscribe();
+    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ if(_curScr()==='kartinfo'&&typeof loadKartInfo==='function'){try{loadKartInfo();}catch(e){}} }).subscribe();
+    SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ if(_curScr()==='manager'&&typeof loadMgr==='function'){try{loadMgr();}catch(e){}} if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }).subscribe();
   }catch(e){}
 }
 startRealtime();
+
+/* Managers-only unread badge on the Racefacer tile: count of today's unresolved discrepancies. */
+function refreshRfBadge(){
+  var el=document.getElementById('rf-badge'); if(!el) return;
+  var isMgr=cu&&(cu.role==='Manager'||cu.role==='Assistant Manager');
+  if(!isMgr){ el.style.display='none'; return; }
+  var today=new Date().toISOString().slice(0,10);
+  SBC.from('rf_discrepancies').select('id',{count:'exact',head:true}).eq('day',today).neq('status','resolved').then(function(res){
+    var n=(res&&res.count)||0;
+    if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='block'; } else { el.style.display='none'; }
+  },function(){});
+}
 
 var APP='';
 var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0,navLock=false;
@@ -1917,6 +1934,7 @@ function applyRoleVisibility(){
   vis('tord',true);
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
+  if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
 }
 
 function updateUI(id){
@@ -2711,8 +2729,33 @@ function loadMgr(){
     //       notLogged:  [{ sku:'1384023', desc:'Silent Block', qty:1 }] // Scanned via app but no matching RF repair
     //     }, ...
     //   ];
+    // 🚨 Racefacer discrepancies — live from rf_discrepancies (today's, not resolved).
+    (function(){
+      var box=document.getElementById('mrf'); if(!box) return;
+      var today=new Date().toISOString().slice(0,10);
+      SBC.from('rf_discrepancies').select('*').eq('day',today).neq('status','resolved').order('at',{ascending:true}).then(function(res){
+        var rows=(res&&res.data)||[];
+        if(res&&res.error){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Could not load discrepancies</div>'; return; }
+        if(!rows.length){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">No discrepancies today · all repairs match ✓</div>'; return; }
+        var kindColor={USED_NOT_SCANNED:'#FF3B30',QTY_MISMATCH:'#FF9500',SCANNED_NOT_USED:'#FFD600',UNMAPPED:'#60A5FA'};
+        var byKart={};
+        rows.forEach(function(r){ var k=r.rf_kart_name||'?'; (byKart[k]=byKart[k]||[]).push(r); });
+        box.innerHTML=Object.keys(byKart).map(function(k){
+          var lines=byKart[k].map(function(r){
+            var c=kindColor[r.kind]||'#FF3B30';
+            var t=r.at?new Date(r.at).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}):'';
+            return '<div style="border-left:3px solid '+c+';padding:6px 10px;margin:6px 0;background:'+c+'14;border-radius:6px">'
+              +'<div style="font-size:13px;color:#fff;line-height:1.45">'+(r.message||((r.part_name||'Part')+' discrepancy'))+'</div>'
+              +'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+(r.mechanic?r.mechanic+' · ':'')+t+' · <span style="color:'+c+';font-weight:700">'+String(r.kind||'').replace(/_/g,' ')+'</span></div>'
+              +'</div>';
+          }).join('');
+          return '<div style="background:var(--card2);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
+            +'<div style="font-weight:700;margin-bottom:2px">'+k+'</div>'+lines+'</div>';
+        }).join('');
+      },function(){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Could not load discrepancies</div>'; });
+    })();
     var rfd=d.racefacerDiscrepancies;
-    if(rfd===undefined){
+    if(false){
       document.getElementById('mrf').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div>';
     } else if(!rfd.length){
       document.getElementById('mrf').innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">No discrepancies · all repairs match ✓</div>';
@@ -2921,18 +2964,59 @@ var SELECTED_KART=null;
 var SELECTED_KART_TYPE='Adult';
 var ACTIVE_KART_TAB='overview';
 
+// ── Live RaceFacer data ────────────────────────────────────────────────────
+// rf_karts/rf_repairs are written by the sync. We map them into the SAME shapes
+// the existing render functions already expect, so nothing downstream changes.
+var RF_LOADED=false, RF_REPAIRS_BY_ID={};
+function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Adult'; }
+function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
+function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
+function mapRfKart(r){
+  return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:rfStatusClass(r.status_code,r.status),
+    kartId:r.kart_id_label||'-', transponder:'-', brand:r.brand||'RiMO', model:r.model||'-', engine:'Electric',
+    mileage:Number(r.total_km)||0, laps:Number(r.total_laps)||0, hours:Number(r.total_hours)||0,
+    cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-' };
+}
+function loadRfKarts(cb){
+  Promise.all([
+    SBC.from('rf_karts').select('*'),
+    SBC.from('rf_repairs').select('id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes')
+  ]).then(function(rs){
+    var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[];
+    if(krows.length){
+      KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
+    }
+    RF_REPAIRS_BY_ID={};
+    rrows.forEach(function(r){
+      (RF_REPAIRS_BY_ID[r.rf_kart_id]=RF_REPAIRS_BY_ID[r.rf_kart_id]||[]).push({
+        date:(r.date_discovered||r.date_repaired||'').split('-').reverse().join('.'),
+        status:r.date_repaired?'fixed':'open',
+        cost:(parseFloat(String(r.cost||'').replace(/[^0-9.]/g,''))||0),
+        title:r.description||'Repair',
+        mileage:Number(r.mileage)||0,
+        user:r.mechanic||'—',
+        dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):'',
+        notes:r.notes||''
+      });
+    });
+    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}); });
+    RF_LOADED=true;
+    if(cb)cb();
+  }).catch(function(){ if(cb)cb(); });
+}
+
 function loadKartInfo(){
-  // Stub for refresh button — when API is wired, fetch fresh kart data here.
   var btn=document.getElementById('rb-kart'),lbl=document.getElementById('rt-kart');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
-  updateKartTypeCounts();
-  renderKartChips();
-  // Default to "Kart Info" tab on first load
   if(!ACTIVE_KART_MAIN_TAB) ACTIVE_KART_MAIN_TAB='info';
-  selectKartMainTab(ACTIVE_KART_MAIN_TAB);
-  setTimeout(function(){
+  loadRfKarts(function(){
+    updateKartTypeCounts();
+    renderKartChips();
+    selectKartMainTab(ACTIVE_KART_MAIN_TAB);
+    // If a kart was selected, refresh its open repair list with live data
+    if(SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; if(ACTIVE_KART_TAB) renderKartTabContent(ACTIVE_KART_TAB);} }
     if(btn){btn.classList.remove('spinning');if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}}
-  },300);
+  });
 }
 
 // Switch between the 5 main tabs in the Kart Info screen
@@ -3006,6 +3090,9 @@ function selectKart(num,type){
   var statusEl=document.getElementById('kd-status');
   statusEl.className='kart-status-pill '+k.status;
   statusEl.innerText=statusLabels[k.status];
+  // Render the live overview + repairs for this kart
+  ACTIVE_KART_TAB=ACTIVE_KART_TAB||'overview';
+  renderKartTabContent(ACTIVE_KART_TAB);
   // Scroll detail into view smoothly
   setTimeout(function(){if(det) det.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
@@ -3046,9 +3133,9 @@ function renderKartOverview(k){
 function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
 
 function renderKartRepairs(k){
-  var reps=SAMPLE_REPAIRS[k.num]||[];
+  var reps=(k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||SAMPLE_REPAIRS[k.num]||[];
   if(!reps.length){
-    document.getElementById('kt-repairs').innerHTML='<div class="emp" style="padding:20px 0;text-align:center;color:var(--t2);font-size:13px">No repair history available yet for Kart #'+k.num+'<br><span style="font-size:11px;color:var(--t2);margin-top:6px;display:block">Will populate from Racefacer once connected</span></div>';
+    document.getElementById('kt-repairs').innerHTML='<div class="emp" style="padding:20px 0;text-align:center;color:var(--t2);font-size:13px">No repair history recorded for '+(k.type||'')+' Kart #'+k.num+'</div>';
     return;
   }
   var html=reps.map(function(r){

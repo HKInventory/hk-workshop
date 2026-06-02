@@ -765,7 +765,7 @@
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
             <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
-            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo')"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Coming soon</div></div>
+            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           </div>
@@ -945,15 +945,43 @@
     <div class="scr" id="s-kartinfo">
       <div class="phdr">
         <button class="back" onclick="back()"> Back</button>
+        <button class="refresh-btn" id="rb-kart" onclick="loadKartInfo()"><span class="ricon">🔄</span><span id="rt-kart">Refresh</span></button>
       </div>
       <div class="sb">
         <div class="pgtitle">Kart Info</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">🏁</div>
-          <div style="font-size:18px;font-weight:800;color:#60A5FA;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">🏎️&nbsp; Per-kart specs, mileage &amp; hours<br>🛠️&nbsp; Full repair history per kart<br>⚡&nbsp; SiNUS iON wiring diagrams<br>📡&nbsp; CPU / WiFi connection logs<br>📍&nbsp; Dehaardt beacon diagnostics<br>🔧&nbsp; Troubleshooting knowledge base</div>
+        <div class="subtabs" id="kart-type-tabs">
+          <button class="subtab ktype-btn active" data-ktype="Adult" onclick="selectKartType('Adult')">Adult <span id="ktc-Adult"></span></button>
+          <button class="subtab ktype-btn" data-ktype="Intermediate" onclick="selectKartType('Intermediate')">Inter <span id="ktc-Intermediate"></span></button>
+          <button class="subtab ktype-btn" data-ktype="Junior" onclick="selectKartType('Junior')">Junior <span id="ktc-Junior"></span></button>
+          <button class="subtab ktype-btn" data-ktype="Mini" onclick="selectKartType('Mini')">Mini <span id="ktc-Mini"></span></button>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Live kart data · awaiting Racefacer integration<br><span style="color:#60A5FA;font-weight:600">Coming soon</span></div></div>
+        <div class="kart-legend"><span class="kl-dot kl-ok"></span>OK<span class="kl-dot kl-maint"></span>Maintenance<span class="kl-dot kl-damaged"></span>Damaged</div>
+        <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number..." oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
+        <div class="kart-chip-grid" id="kart-chips"><div class="emp" style="grid-column:1/-1;padding:14px 0;text-align:center;color:var(--t2);font-size:13px">Loading karts…</div></div>
+        <div id="kart-detail" style="display:none">
+          <div class="kart-detail-header">
+            <div class="kart-num-big" id="kd-num"></div>
+            <div class="kart-meta">
+              <div class="kart-name" id="kd-name"></div>
+              <div class="kart-id-line" id="kd-idline"></div>
+              <span class="kart-status-pill" id="kd-status"></span>
+            </div>
+          </div>
+          <div class="subtabs" id="kart-sub-tabs">
+            <button class="subtab active" data-ktab="overview" onclick="switchKartTab('overview')">Overview</button>
+            <button class="subtab" data-ktab="repairs" onclick="switchKartTab('repairs')">Repairs</button>
+            <button class="subtab" data-ktab="wiring" onclick="switchKartTab('wiring')">Wiring</button>
+            <button class="subtab" data-ktab="logs" onclick="switchKartTab('logs')">CPU / WiFi</button>
+            <button class="subtab" data-ktab="beaconlogs" onclick="switchKartTab('beaconlogs')">Beacons</button>
+            <button class="subtab" data-ktab="help" onclick="switchKartTab('help')">Help</button>
+          </div>
+          <div class="kart-pane" id="kt-overview"></div>
+          <div class="kart-pane" id="kt-repairs" style="display:none"></div>
+          <div class="kart-pane" id="kt-wiring" style="display:none"></div>
+          <div class="kart-pane" id="kt-logs" style="display:none"></div>
+          <div class="kart-pane" id="kt-beaconlogs" style="display:none"></div>
+          <div class="kart-pane" id="kt-help" style="display:none"></div>
+        </div>
       </div>
     </div>
 
@@ -3012,7 +3040,6 @@ function loadKartInfo(){
   loadRfKarts(function(){
     updateKartTypeCounts();
     renderKartChips();
-    selectKartMainTab(ACTIVE_KART_MAIN_TAB);
     // If a kart was selected, refresh its open repair list with live data
     if(SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; if(ACTIVE_KART_TAB) renderKartTabContent(ACTIVE_KART_TAB);} }
     if(btn){btn.classList.remove('spinning');if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}}
@@ -3091,8 +3118,8 @@ function selectKart(num,type){
   statusEl.className='kart-status-pill '+k.status;
   statusEl.innerText=statusLabels[k.status];
   // Render the live overview + repairs for this kart
-  ACTIVE_KART_TAB=ACTIVE_KART_TAB||'overview';
-  renderKartTabContent(ACTIVE_KART_TAB);
+  ACTIVE_KART_TAB='overview';
+  switchKartTab('overview');
   // Scroll detail into view smoothly
   setTimeout(function(){if(det) det.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
@@ -3100,6 +3127,16 @@ function selectKart(num,type){
 function selectKartTab(tab){
   // Stub — kept for compatibility, no tabs defined yet
   ACTIVE_KART_TAB=tab;
+}
+
+// Switch the per-kart detail sub-tab (Overview / Repairs / Wiring / Logs / Beacons / Help)
+function switchKartTab(tab){
+  ACTIVE_KART_TAB=tab;
+  document.querySelectorAll('#kart-sub-tabs .subtab').forEach(function(b){ b.classList.toggle('active', b.dataset.ktab===tab); });
+  ['overview','repairs','wiring','logs','beaconlogs','help'].forEach(function(t){
+    var el=document.getElementById('kt-'+t); if(el) el.style.display=(t===tab)?'block':'none';
+  });
+  renderKartTabContent(tab);
 }
 
 function renderKartTabContent(tab){

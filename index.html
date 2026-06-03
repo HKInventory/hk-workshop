@@ -436,6 +436,14 @@
     .repair-cost{font-size:13px;font-weight:700;color:#F59E0B;flex-shrink:0}
     .repair-desc{font-size:clamp(12px,3.4vw,14px);color:#fff;line-height:1.5;margin-bottom:6px;word-wrap:break-word;overflow-wrap:anywhere}
     .repair-meta{font-size:11px;color:var(--t2);display:flex;gap:6px 14px;flex-wrap:wrap}
+    /* Issue note + blue "repair note" box (RaceFacer-style) */
+    .repair-issue{font-size:clamp(12px,3.4vw,14px);color:#fff;line-height:1.5;margin-bottom:8px;word-wrap:break-word;overflow-wrap:anywhere}
+    .repair-note-box{background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);border-left:3px solid #60A5FA;border-radius:8px;padding:8px 11px;margin:8px 0;min-width:0}
+    .repair-note-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#60A5FA;margin-bottom:4px}
+    .repair-note-line{font-size:clamp(12px,3.2vw,13px);color:#dbeafe;line-height:1.55;word-wrap:break-word;overflow-wrap:anywhere}
+    .repair-note-line + .repair-note-line{margin-top:5px;padding-top:5px;border-top:1px solid rgba(96,165,250,.18)}
+    .kt-sec-lbl{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:18px 0 10px}
+    .kt-sec-lbl:first-child{margin-top:4px}
     /* Wiring diagram pane */
     .wiring-card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:clamp(14px,3vw,18px);margin-bottom:14px}
     .wiring-card h4{font-size:13px;font-weight:700;color:#F59E0B;margin:0 0 10px;text-transform:uppercase;letter-spacing:1px}
@@ -795,7 +803,7 @@
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
             <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
-            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');showKartView('types');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
+            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');switchKartSection('karts');showKartView('types');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           </div>
@@ -978,53 +986,59 @@
         <button class="refresh-btn" id="rb-kart" onclick="loadKartInfo()"><span class="ricon">🔄</span><span id="rt-kart">Refresh</span></button>
       </div>
       <div class="sb">
-        <!-- LEVEL 1: type cards -->
-        <div id="kiv-types">
-          <div class="pgtitle">Kart Info</div>
-          <div class="ki-sub" id="ki-site-sub"></div>
-          <div class="ki-type-grid" id="ki-type-grid"><div class="emp" style="grid-column:1/-1">Loading fleet…</div></div>
+        <div class="pgtitle">Kart Info</div>
+        <div class="ki-sub" id="ki-site-sub"></div>
+        <!-- TOP-LEVEL SECTION TABS -->
+        <div class="subtabs" id="ki-section-tabs">
+          <button class="subtab active" data-ksec="karts" onclick="switchKartSection('karts')">Karts</button>
+          <button class="subtab" data-ksec="wiring" onclick="switchKartSection('wiring')">Wiring</button>
+          <button class="subtab" data-ksec="cpu" onclick="switchKartSection('cpu')">CPU / WiFi</button>
+          <button class="subtab" data-ksec="beacons" onclick="switchKartSection('beacons')">Beacons</button>
+          <button class="subtab" data-ksec="help" onclick="switchKartSection('help')">Help</button>
         </div>
-        <!-- LEVEL 2: kart grid for a type -->
-        <div id="kiv-grid" style="display:none">
-          <button class="ki-back" onclick="kartBackToTypes()">‹ All types</button>
-          <div class="ki-grid-head">
-            <div class="ki-grid-title" id="ki-grid-title">Adult</div>
-            <div class="ki-grid-legend"><span class="kl-dot kl-ok"></span>OK<span class="kl-dot kl-maint"></span>Maint<span class="kl-dot kl-damaged"></span>Damaged</div>
+
+        <!-- SECTION: KARTS (3-level drilldown) -->
+        <div id="ksec-karts">
+          <!-- LEVEL 1: type cards -->
+          <div id="kiv-types">
+            <div class="ki-type-grid" id="ki-type-grid"><div class="emp" style="grid-column:1/-1">Loading fleet…</div></div>
           </div>
-          <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number…" oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
-          <div class="kart-chip-grid" id="kart-chips"></div>
-        </div>
-        <!-- LEVEL 3: kart detail -->
-        <div id="kiv-detail" style="display:none">
-          <button class="ki-back" id="kd-back" onclick="kartBackToGrid()">‹ Back</button>
-          <div class="kd-card">
-            <div class="kd-top">
-              <div class="kd-num" id="kd-num"></div>
-              <div class="kd-meta">
-                <div class="kd-name" id="kd-name"></div>
-                <div class="kd-id" id="kd-idline"></div>
-                <span class="kart-status-pill" id="kd-status"></span>
-              </div>
-              <div class="kd-live" id="kd-live" title="RIMO online/charge — coming soon">
-                <span class="kd-live-dot"></span><span>RIMO link soon</span>
+          <!-- LEVEL 2: kart grid for a type -->
+          <div id="kiv-grid" style="display:none">
+            <button class="ki-back" onclick="kartBackToTypes()">‹ All types</button>
+            <div class="ki-grid-head">
+              <div class="ki-grid-title" id="ki-grid-title">Adult</div>
+              <div class="ki-grid-legend"><span class="kl-dot kl-ok"></span>OK<span class="kl-dot kl-maint"></span>Maint<span class="kl-dot kl-damaged"></span>Damaged</div>
+            </div>
+            <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number…" oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
+            <div class="kart-chip-grid" id="kart-chips"></div>
+          </div>
+          <!-- LEVEL 3: kart detail (single scroll page: header + stats + repairs/notes) -->
+          <div id="kiv-detail" style="display:none">
+            <button class="ki-back" id="kd-back" onclick="kartBackToGrid()">‹ Back</button>
+            <div class="kd-card">
+              <div class="kd-top">
+                <div class="kd-num" id="kd-num"></div>
+                <div class="kd-meta">
+                  <div class="kd-name" id="kd-name"></div>
+                  <div class="kd-id" id="kd-idline"></div>
+                  <span class="kart-status-pill" id="kd-status"></span>
+                </div>
+                <div class="kd-live" id="kd-live" title="RIMO online/charge — coming soon">
+                  <span class="kd-live-dot"></span><span>RIMO link soon</span>
+                </div>
               </div>
             </div>
+            <div class="kart-pane" id="kt-overview"></div>
+            <div class="kart-pane" id="kt-repairs"></div>
           </div>
-          <div class="subtabs" id="kart-sub-tabs">
-            <button class="subtab active" data-ktab="overview" onclick="switchKartTab('overview')">Overview</button>
-            <button class="subtab" data-ktab="repairs" onclick="switchKartTab('repairs')">Repairs</button>
-            <button class="subtab" data-ktab="wiring" onclick="switchKartTab('wiring')">Wiring</button>
-            <button class="subtab" data-ktab="logs" onclick="switchKartTab('logs')">CPU / WiFi</button>
-            <button class="subtab" data-ktab="beaconlogs" onclick="switchKartTab('beaconlogs')">Beacons</button>
-            <button class="subtab" data-ktab="help" onclick="switchKartTab('help')">Help</button>
-          </div>
-          <div class="kart-pane" id="kt-overview"></div>
-          <div class="kart-pane" id="kt-repairs" style="display:none"></div>
-          <div class="kart-pane" id="kt-wiring" style="display:none"></div>
-          <div class="kart-pane" id="kt-logs" style="display:none"></div>
-          <div class="kart-pane" id="kt-beaconlogs" style="display:none"></div>
-          <div class="kart-pane" id="kt-help" style="display:none"></div>
         </div>
+
+        <!-- SECTION: WIRING / CPU / BEACONS / HELP (fleet-wide reference) -->
+        <div id="ksec-wiring" style="display:none"></div>
+        <div id="ksec-cpu" style="display:none"></div>
+        <div id="ksec-beacons" style="display:none"></div>
+        <div id="ksec-help" style="display:none"></div>
       </div>
     </div>
 
@@ -1172,7 +1186,12 @@
 <div class="m-form" id="m-form">
   <div class="m-form-box">
     <div class="m-form-title" id="m-form-title">Edit Part</div>
-    <div class="m-fld"><label>SKU (RIMO part number)</label><input id="m-f-sku" inputmode="numeric"></div>
+    <div class="m-fld"><label>SKU (part number \u2014 optional)</label><input id="m-f-sku" inputmode="numeric"><div class="m-hint" id="m-sku-hint">Optional \u2014 leave blank if the part has no SKU (RIMO or not). It's still tracked and scannable.</div></div>
+    <label class="m-lock"><input type="checkbox" id="m-f-rimo" checked onchange="mRimoToggle()"><span>\uD83D\uDCE6 RIMO part \u2014 include in the generated RIMO order</span></label>
+    <div class="m-two">
+      <div class="m-fld"><label>Brand</label><input id="m-f-brand" placeholder="e.g. RIMO, Dunlop"></div>
+      <div class="m-fld" id="m-lead-fld" style="display:none"><label>Delivery lead (days)</label><input id="m-f-lead" inputmode="numeric" placeholder="e.g. 14"></div>
+    </div>
     <div class="m-fld"><label>Description (full name)</label><input id="m-f-desc"></div>
     <div class="m-fld"><label>Internal Description</label><input id="m-f-int"></div>
     <div class="m-two">
@@ -1537,6 +1556,7 @@ function refreshRate(){
 refreshRate();
 
 /* map a Supabase parts row to the shape the UI expects */
+function _rimoVal(v){ if(v===false||v===0) return false; if(v==null) return true; var s=String(v).trim().toLowerCase(); if(s===''||s==='n'||s==='no'||s==='false'||s==='0') return false; return true; }
 function mapPart(r){
   var aud=(r.price_eur!=null)?(Number(r.price_eur)*EURAUD):(r.price_aud!=null?Number(r.price_aud):0);
   return {
@@ -1552,6 +1572,7 @@ function mapPart(r){
     price_eur:(r.price_eur!=null?Number(r.price_eur):null),
     price_aud:(r.price_aud!=null?Number(r.price_aud):null),
     auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), qr_print:(r.qr_print===false?false:true), scans90:0,
+    is_rimo:_rimoVal(r.is_rimo), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
     used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
   };
 }
@@ -1604,7 +1625,7 @@ function sbManagerData(cb){
   var now=new Date();
   function sameDay(d){return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();}
   var weekAgo=new Date(now.getTime()-7*864e5), ninety=new Date(now.getTime()-90*864e5);
-  var pMap={}; (parts||[]).forEach(function(p){pMap[p.sku]={desc:p.desc,qty:p.qty,reorder:p.reorder};});
+  var pMap={}; (parts||[]).forEach(function(p){pMap[p.sku]={desc:p.desc,qty:p.qty,reorder:p.reorder,nonRimo:(p.is_rimo===false),lead:(p.lead_days!=null?Number(p.lead_days):null),brand:(p.brand||'')};});
   Promise.all([SBC.from('logs').select('*').eq('site',(currentSite||'sydney')),SBC.from('logins').select('*')]).then(function(rs){
     var logs=(rs[0]&&rs[0].data)||[], logins=(rs[1]&&rs[1].data)||[];
     var todayLog=[], weekTaken={}, staffWeek={}, usage90={};
@@ -1619,7 +1640,7 @@ function sbManagerData(cb){
     var topWeek=Object.keys(weekTaken).sort(function(a,b){return weekTaken[b]-weekTaken[a];}).slice(0,5).map(function(sk){return {sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,qty:weekTaken[sk]};});
     var staffList=Object.keys(staffWeek).sort(function(a,b){return staffWeek[b].actions-staffWeek[a].actions;}).map(function(n){return {name:n,taken:staffWeek[n].taken,restocked:staffWeek[n].restocked,actions:staffWeek[n].actions};});
     var stockouts=[];
-    Object.keys(usage90).forEach(function(sk){ var dr=usage90[sk]/90, qty=(pMap[sk]&&pMap[sk].qty)||0, days=dr>0?Math.floor(qty/dr):999; if(days<90){ var sd=new Date(now.getTime()+days*864e5); stockouts.push({sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,qty:qty,daysLeft:days,date:sd.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}); }});
+    Object.keys(usage90).forEach(function(sk){ var pm=pMap[sk]||{}; var dr=usage90[sk]/90, qty=pm.qty||0, days=dr>0?Math.floor(qty/dr):999; var lead=(pm.lead!=null&&pm.lead>0)?pm.lead:null; var orderIn=lead!=null?(days-lead):null; if(days<90||(pm.nonRimo&&orderIn!=null&&orderIn<90)){ var sd=new Date(now.getTime()+days*864e5); var od=lead!=null?new Date(now.getTime()+Math.max(0,orderIn)*864e5).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):null; stockouts.push({sku:sk,desc:pm.desc||sk,qty:qty,daysLeft:days,date:sd.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),nonRimo:!!pm.nonRimo,lead:lead,brand:pm.brand||'',orderIn:orderIn,orderDate:od}); }});
     stockouts.sort(function(a,b){return a.daysLeft-b.daysLeft;});
     var seen={}, loggedInToday=[];
     logins.forEach(function(x){ var d=new Date(x.ts); if(isNaN(d)||!sameDay(d))return; var n=String(x.name||''); if(n&&!seen[n]){seen[n]=1;loggedInToday.push({name:n,role:String(x.role||'')});} });
@@ -2269,6 +2290,7 @@ function goLoadData(cb){
     SBC.from('logs').select('action,sku,qty,ts,site')
   ]).then(function(rs){
     var prows=(rs[0]&&rs[0].data)||[], srows=(rs[1]&&rs[1].data)||[], lrows=(rs[2]&&rs[2].data)||[];
+    prows=prows.filter(function(r){ return _rimoVal(r.is_rimo); }); // only RIMO-flagged parts enter a RIMO order
     var ninety=Date.now()-90*864e5, usage={}, stockMap={};
     lrows.forEach(function(l){ if(String(l.action||'')!=='TAKEN') return; var tm=new Date(l.ts).getTime(); if(isNaN(tm)||tm<ninety) return; var st=l.site||'sydney',sk=String(l.sku||''); (usage[st]||(usage[st]={}))[sk]=(usage[st][sk]||0)+(Number(l.qty)||0); });
     srows.forEach(function(s){ var st=s.site; (stockMap[st]||(stockMap[st]={}))[String(s.sku)]={qty:Number(s.qty)||0,min:(s.min_stock!=null?Number(s.min_stock):null)}; });
@@ -2411,7 +2433,21 @@ function sdot(p){
 //   red    <21d  : below the air-freight window — danger
 var SEA_DAYS=90, AIR_DAYS=21;
 function dayColor(d){ if(d==null) return '#00C853'; return d<AIR_DAYS?'#FF3B30':d<SEA_DAYS?'#FFD600':'#00C853'; }
+/* Non-RIMO parts: colour by brand/supplier delivery lead. red=order now/overdue, yellow=order within 2wks, green=ok. */
+function leadColor(days,lead){ if(days==null) return '#00C853'; var L=(lead!=null&&lead>0)?lead:AIR_DAYS; var oi=days-L; return oi<=0?'#FF3B30':oi<=14?'#FFD600':'#00C853'; }
+function leadPill(p){
+  var sup=p.brand?String(p.brand):'';
+  if(!p.used90||p.used90===0){ return '<span title="No scan history yet \u2014 stockout prediction begins once this part is scanned out (or, later, from RaceFacer track usage)." style="font-size:11px;color:var(--t2);font-weight:600;background:rgba(245,158,11,0.10);padding:3px 9px;border-radius:6px;border:1px solid rgba(245,158,11,0.3)">'+(sup?sup+' \u00b7 ':'')+'no usage yet</span>'; }
+  var rate=p.used90/90, days=p.qty===0?0:Math.round(p.qty/rate);
+  var lead=(p.lead_days!=null&&p.lead_days>0)?p.lead_days:null;
+  var col=leadColor(days,lead), oi=lead!=null?(days-lead):null;
+  var od=lead!=null?new Date(Date.now()+Math.max(0,oi)*864e5).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):null;
+  var txt=lead==null?('~'+days+'d left'):(oi<=0?('order now \u00b7 ~'+days+'d left'):('order by '+od+' \u00b7 ~'+days+'d left'));
+  var tip=(sup?sup+' delivery ~'+lead+'d. ':'')+'Order-by = projected stockout minus delivery lead.';
+  return '<span title="'+tip+'" style="font-size:11px;color:'+col+';font-weight:700;background:'+col+'14;padding:3px 9px;border-radius:6px;border:1px solid '+col+'33">'+(sup?sup+' \u00b7 ':'')+txt+'</span>';
+}
 function daysLeftPill(p){
+  if(p&&p.is_rimo===false) return leadPill(p);
   if(!p.used90||p.used90===0) return '';
   var rate=p.used90/90;
   var days=p.qty===0?0:Math.round(p.qty/rate);
@@ -2798,7 +2834,7 @@ function loadMgr(){
     var med=['🥇','🥈','🥉'];
     document.getElementById('mlb').innerHTML=!(d.staffList||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No activity this week</div>':d.staffList.map(function(x,i){return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+x.name+'</div><div class="mrr"><span class="bdg bt">−'+x.taken+'</span> <span class="bdg br">+'+x.restocked+'</span></div></div>';}).join('');
     document.getElementById('mtp').innerHTML=!(d.topWeek||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px">No data this week</div>':d.topWeek.map(function(p,i){return '<div class="mr"><div class="mrl">'+(i+1)+'. '+p.desc+'</div><div class="mrr" style="color:#f87171;font-weight:700">'+p.qty+'</div></div>';}).join('');
-    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=dayColor(p.daysLeft);return '<div class="mr"><div class="mrl">'+p.desc+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+p.daysLeft+'d · '+p.date+'</div></div>';}).join('');
+    document.getElementById('mso').innerHTML=!(d.stockouts||[]).length?'<div class="emp" style="padding:4px 0;font-size:13px;color:var(--grn)">None predicted in 90 days</div>':d.stockouts.map(function(p){var cl=p.nonRimo?leadColor(p.daysLeft,p.lead):dayColor(p.daysLeft);var tag=p.nonRimo?(' <span style="font-size:10px;color:#F59E0B;font-weight:700">'+(p.brand||'non-RIMO')+'</span>'):'';var right=(p.nonRimo&&p.lead!=null)?((p.orderIn<=0?'order now':'order in '+p.orderIn+'d')+' \u00b7 by '+(p.orderDate||'')):(p.daysLeft+'d \u00b7 '+p.date);return '<div class="mr"><div class="mrl">'+p.desc+tag+'</div><div class="mrr" style="color:'+cl+';font-weight:600">'+right+'</div></div>';}).join('');
     // Racefacer Discrepancies — repair-based cross-check between app QR scans and Racefacer repair logs.
     // Expected format from API once integrated:
     //   d.racefacerDiscrepancies = [
@@ -3053,18 +3089,21 @@ function loadRfKarts(cb){
     }
     RF_REPAIRS_BY_ID={};
     rrows.forEach(function(r){
+      var iso=r.date_discovered||r.date_repaired||'';   // ISO yyyy-mm-dd, sortable
       (RF_REPAIRS_BY_ID[r.rf_kart_id]=RF_REPAIRS_BY_ID[r.rf_kart_id]||[]).push({
-        date:(r.date_discovered||r.date_repaired||'').split('-').reverse().join('.'),
+        iso:iso,
+        date:iso?iso.split('-').reverse().join('.'):'',   // display dd.mm.yyyy
         status:r.date_repaired?'fixed':'open',
         cost:(parseFloat(String(r.cost||'').replace(/[^0-9.]/g,''))||0),
-        title:r.description||'Repair',
+        issue:r.description||'Repair',                    // the original / issue note
+        repairNotes:r.notes||'',                          // follow-up repair note(s), newline-joined
         mileage:Number(r.mileage)||0,
         user:r.mechanic||'—',
-        dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):'',
-        notes:r.notes||''
+        dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):''
       });
     });
-    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}); });
+    // Newest first — sort by the real ISO date, not the dd.mm string.
+    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.iso||'').localeCompare(a.iso||'');}); });
     RF_LOADED=true;
     if(cb)cb();
   }).catch(function(){ if(cb)cb(); });
@@ -3072,6 +3111,22 @@ function loadRfKarts(cb){
 
 var KART_TYPE_ORDER=['Adult','Intermediate','Junior','Mini'];
 var KART_VIEW='types';   // 'types' | 'grid' | 'detail'
+var KART_SECTION='karts'; // 'karts' | 'wiring' | 'cpu' | 'beacons' | 'help'
+
+// Top-level Kart Info section switcher (Karts / Wiring / CPU / Beacons / Help)
+function switchKartSection(sec){
+  KART_SECTION=sec;
+  var tabs=document.getElementById('ki-section-tabs');
+  if(tabs) tabs.querySelectorAll('.subtab').forEach(function(b){ b.classList.toggle('active', b.dataset.ksec===sec); });
+  ['karts','wiring','cpu','beacons','help'].forEach(function(s){
+    var el=document.getElementById('ksec-'+s); if(el) el.style.display=(s===sec)?'block':'none';
+  });
+  if(sec==='wiring') renderWiringSection();
+  else if(sec==='cpu') renderCpuSection();
+  else if(sec==='beacons') renderBeaconsSection();
+  else if(sec==='help') renderHelpSection();
+  var sb=document.querySelector('#s-kartinfo .sb'); if(sb) sb.scrollTop=0;
+}
 
 function showKartView(v){
   KART_VIEW=v;
@@ -3080,10 +3135,12 @@ function showKartView(v){
   document.getElementById('kiv-detail').style.display=(v==='detail')?'block':'none';
   var sb=document.querySelector('#s-kartinfo .sb'); if(sb) sb.scrollTop=0;
 }
-// Level-aware back: detail -> grid -> types -> leave screen
+// Level-aware back: within Karts drill-down (detail -> grid -> types), else leave screen
 function kartScreenBack(){
-  if(KART_VIEW==='detail'){ kartBackToGrid(); return; }
-  if(KART_VIEW==='grid'){ kartBackToTypes(); return; }
+  if(KART_SECTION==='karts'){
+    if(KART_VIEW==='detail'){ kartBackToGrid(); return; }
+    if(KART_VIEW==='grid'){ kartBackToTypes(); return; }
+  }
   back();
 }
 function kartBackToTypes(){ SELECTED_KART=null; showKartView('types'); renderTypeCards(); }
@@ -3096,7 +3153,7 @@ function loadKartInfo(){
     var sub=document.getElementById('ki-site-sub');
     if(sub) sub.innerText=(typeof siteLabel==='function'?siteLabel(currentSite):'')+' fleet · '+KART_LIST.length+' karts';
     // Re-render whatever level is open so live data flows in without losing the user's place
-    if(KART_VIEW==='detail'&&SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; renderKartTabContent(ACTIVE_KART_TAB||'overview');} else { kartBackToGrid(); } }
+    if(KART_VIEW==='detail'&&SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; renderKartDetail(live);} else { kartBackToGrid(); } }
     else if(KART_VIEW==='grid'){ renderKartChips(); }
     else { renderTypeCards(); }
     if(btn){btn.classList.remove('spinning');if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}}
@@ -3157,11 +3214,20 @@ function updateKartTypeCounts(){ /* counts now shown on the type cards */ }
 function selectKartType(type){ openKartType(type); }
 function filterKarts(v){renderKartChips(v);}
 
+// Small HTML escaper for RaceFacer-sourced free text (repair notes etc.)
+function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
 function selectKart(rfId){
   var k=KART_LIST.find(function(x){return x.rfId===rfId;});
   if(!k) return;
   SELECTED_KART=k;
   showKartView('detail');
+  renderKartDetail(k);
+}
+
+// Single-page kart detail: header + stats + repairs/notes (mirrors the RaceFacer kart page)
+function renderKartDetail(k){
+  if(!k) return;
   document.getElementById('kd-num').innerText=k.num;
   document.getElementById('kd-name').innerText=(k.type==='Intermediate'?'Inter':k.type)+' Kart '+k.num;
   var idbits=['ID '+(k.kartId||'-')]; if(k.transponder&&k.transponder!=='-') idbits.push('Transponder '+k.transponder);
@@ -3170,39 +3236,14 @@ function selectKart(rfId){
   var statusEl=document.getElementById('kd-status');
   statusEl.className='kart-status-pill '+k.status;
   statusEl.innerText=statusLabels[k.status]||'—';
-  ACTIVE_KART_TAB='overview';
-  switchKartTab('overview');
-}
-
-function selectKartTab(tab){
-  // Stub — kept for compatibility, no tabs defined yet
-  ACTIVE_KART_TAB=tab;
-}
-
-// Switch the per-kart detail sub-tab (Overview / Repairs / Wiring / Logs / Beacons / Help)
-function switchKartTab(tab){
-  ACTIVE_KART_TAB=tab;
-  document.querySelectorAll('#kart-sub-tabs .subtab').forEach(function(b){ b.classList.toggle('active', b.dataset.ktab===tab); });
-  ['overview','repairs','wiring','logs','beaconlogs','help'].forEach(function(t){
-    var el=document.getElementById('kt-'+t); if(el) el.style.display=(t===tab)?'block':'none';
-  });
-  renderKartTabContent(tab);
-}
-
-function renderKartTabContent(tab){
-  if(!SELECTED_KART) return;
-  var k=SELECTED_KART;
-  if(tab==='overview') renderKartOverview(k);
-  else if(tab==='repairs') renderKartRepairs(k);
-  else if(tab==='wiring') renderKartWiring(k);
-  else if(tab==='logs') renderKartLogs(k);
-  else if(tab==='beaconlogs') renderKartBeaconLogs(k);
-  else if(tab==='help') renderKartHelp(k);
+  renderKartOverview(k);
+  renderKartRepairs(k);
 }
 
 function renderKartOverview(k){
   var fmt=function(n){return Math.round(n).toLocaleString();};
-  var html='<div class="spec-grid">'
+  var html='<div class="kt-sec-lbl">Kart Details</div>'
+    +'<div class="spec-grid">'
     +specCard('Total Mileage',fmt(k.mileage)+' km')
     +specCard('Total Laps',fmt(k.laps))
     +specCard('Working Hours',fmt(k.hours)+' hrs')
@@ -3211,33 +3252,47 @@ function renderKartOverview(k){
     +specCard('Model',k.model)
     +specCard('Engine',k.engine)
     +specCard('In Service Since',k.startDate)
-    +'</div>'
-    +'<div class="mc"><div class="mct">Quick Actions</div>'
-    +'<div style="font-size:13px;color:var(--t2);line-height:1.7">Tap a sub-tab above to view repair history, wiring diagrams, connection logs, beacon diagnostics, or troubleshooting steps.<br><br>Most live data shown here is currently placeholder. Once the Racefacer API is connected, kart info will sync in real time.</div></div>';
+    +'</div>';
   document.getElementById('kt-overview').innerHTML=html;
 }
 
 function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
 
+// Repairs + notes — newest first. Each entry shows the original issue note,
+// then the repair note(s) in a blue box beneath it (matches RaceFacer).
 function renderKartRepairs(k){
-  var reps=(k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||SAMPLE_REPAIRS[k.num]||[];
+  var reps=(k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||[];
+  var box=document.getElementById('kt-repairs');
+  if(!box) return;
   if(!reps.length){
-    document.getElementById('kt-repairs').innerHTML='<div class="emp" style="padding:20px 0;text-align:center;color:var(--t2);font-size:13px">No repair history recorded for '+(k.type||'')+' Kart #'+k.num+'</div>';
+    box.innerHTML='<div class="kt-sec-lbl">Repairs &amp; Notes</div>'
+      +'<div class="emp" style="padding:20px 0;text-align:center;color:var(--t2);font-size:13px">No repair history recorded for '+(k.type||'')+' Kart #'+k.num+'</div>';
     return;
   }
   var html=reps.map(function(r){
-    var statusBadge=r.status==='open'?'<span style="font-size:10px;font-weight:700;color:#FF3B30;background:rgba(255,59,48,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Open</span>':'<span style="font-size:10px;font-weight:700;color:#22C55E;background:rgba(34,197,94,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Fixed</span>';
+    var statusBadge=r.status==='open'
+      ?'<span style="font-size:10px;font-weight:700;color:#FF3B30;background:rgba(255,59,48,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Open</span>'
+      :'<span style="font-size:10px;font-weight:700;color:#22C55E;background:rgba(34,197,94,0.12);padding:2px 8px;border-radius:999px;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px">Fixed</span>';
+    // Repair note(s): newline-joined string -> one line per note inside the blue box
+    var noteLines=(r.repairNotes||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
+    var noteBox=noteLines.length
+      ? '<div class="repair-note-box"><div class="repair-note-lbl">Repair note'+(noteLines.length===1?'':'s')+'</div>'
+        + noteLines.map(function(n){return '<div class="repair-note-line">'+kEsc(n)+'</div>';}).join('')
+        + '</div>'
+      : '';
     return '<div class="repair-entry">'
-      +'<div class="repair-entry-head"><div class="repair-date">'+r.date+statusBadge+'</div><div class="repair-cost">$'+r.cost.toFixed(2)+'</div></div>'
-      +'<div class="repair-desc">'+r.title+'</div>'
-      +'<div class="repair-meta"><span>📏 '+r.mileage.toLocaleString()+' km</span><span>👤 '+r.user+'</span>'+(r.dateRepaired?'<span>🔧 Repaired '+r.dateRepaired+'</span>':'')+'</div>'
+      +'<div class="repair-entry-head"><div class="repair-date">'+(r.date||'—')+statusBadge+'</div>'+(r.cost?'<div class="repair-cost">$'+r.cost.toFixed(2)+'</div>':'')+'</div>'
+      +'<div class="repair-issue">'+kEsc(r.issue)+'</div>'
+      +noteBox
+      +'<div class="repair-meta">'+(r.mileage?'<span>📏 '+r.mileage.toLocaleString()+' km</span>':'')+'<span>👤 '+kEsc(r.user)+'</span>'+(r.dateRepaired?'<span>🔧 Repaired '+r.dateRepaired+'</span>':'')+'</div>'
       +'</div>';
   }).join('');
-  document.getElementById('kt-repairs').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+reps.length+' Repair'+(reps.length===1?'':'s')+'</div>'+html;
+  box.innerHTML='<div class="kt-sec-lbl">'+reps.length+' Repair'+(reps.length===1?'':'s')+' &amp; Notes</div>'+html;
 }
 
-function renderKartWiring(k){
-  document.getElementById('kt-wiring').innerHTML=
+// ── Fleet-wide reference sections (no longer per-kart) ──────────────────────
+function renderWiringSection(){
+  document.getElementById('ksec-wiring').innerHTML=
     '<div class="wiring-card">'
     +  '<h4>Main Power Loop</h4>'
     +  '<div style="font-size:13px;color:var(--t2);line-height:1.7">Battery (+) → Main fuse (60A) → Master switch → Motor controller (+)<br>Battery (−) → Chassis ground → Motor controller (−)<br>Charging port → Battery management (BMS) → Battery pack</div>'
@@ -3254,8 +3309,8 @@ function renderKartWiring(k){
     +'<div style="font-size:13px;color:var(--t2);line-height:1.7;text-align:center;padding:14px 0">📋 Full wiring schematic PDF coming soon.<br><br><span style="font-size:11px">For now use the text descriptions above. Will be replaced with annotated diagram once we get the official RiMO documentation.</span></div></div>';
 }
 
-function renderKartLogs(k){
-  document.getElementById('kt-logs').innerHTML=
+function renderCpuSection(){
+  document.getElementById('ksec-cpu').innerHTML=
     '<div class="mc"><div class="mct">📡 CPU / WiFi Connection Status</div>'
     +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
     +  '<div style="font-size:32px;margin-bottom:10px">🔌</div>'
@@ -3269,8 +3324,8 @@ function renderKartLogs(k){
     +'</div></div>';
 }
 
-function renderKartBeaconLogs(k){
-  document.getElementById('kt-beaconlogs').innerHTML=
+function renderBeaconsSection(){
+  document.getElementById('ksec-beacons').innerHTML=
     '<div class="mc"><div class="mct">📍 Dehaardt Beacon Logs</div>'
     +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
     +  '<div style="font-size:32px;margin-bottom:10px">📡</div>'
@@ -3284,16 +3339,26 @@ function renderKartBeaconLogs(k){
     +'</div></div>';
 }
 
-function renderKartHelp(k){
-  var html=TROUBLESHOOTING.map(function(t){
+function renderHelpSection(){
+  var list=(typeof TROUBLESHOOTING!=='undefined'&&Array.isArray(TROUBLESHOOTING))?TROUBLESHOOTING:[];
+  var html=list.map(function(t){
     return '<div class="ts-entry">'
-      +'<div class="ts-symptom">⚠ '+t.symptom+'</div>'
-      +'<div class="ts-fix">'+t.fix.replace(/\n/g,'<br>')+'</div>'
+      +'<div class="ts-symptom">⚠ '+kEsc(t.symptom)+'</div>'
+      +'<div class="ts-fix">'+kEsc(t.fix).replace(/\n/g,'<br>')+'</div>'
       +'</div>';
   }).join('');
-  document.getElementById('kt-help').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Common Issues &amp; Fixes</div>'+html
+  if(!list.length){
+    html='<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
+      +'<div style="font-size:32px;margin-bottom:10px">🛠️</div>Troubleshooting guide coming soon</div>';
+  }
+  document.getElementById('ksec-help').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Common Issues &amp; Fixes</div>'+html
     +'<div class="mc" style="text-align:center;margin-top:14px"><div style="font-size:12px;color:var(--t2);line-height:1.6">📝 This list grows as we learn.<br><span style="color:#F59E0B;font-weight:600">Add new entries via the Sheet — coming soon to in-app editing</span></div></div>';
 }
+
+// Legacy no-op stubs (old per-kart sub-tab callers, e.g. guided tour)
+function selectKartTab(){}
+function switchKartTab(){}
+function renderKartTabContent(){ if(SELECTED_KART) renderKartDetail(SELECTED_KART); }
 
 // Working copy of STAFF used during edit mode — lets us add/delete locally
 // before committing all changes in one Save action.
@@ -3469,10 +3534,12 @@ function mStatusPill(p){
 function mRowPills(p){
   var price=p.price?('$'+Number(p.price).toFixed(2)):null;
   var h='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">';
-  h+=mPill(p.sku,'#00CFFF');
+  if(p.sku && !/^NS-/i.test(String(p.sku))) h+=mPill(p.sku,'#00CFFF');
+  if(p.brand) h+=mPill(p.brand, p.is_rimo===false?'#F59E0B':'#7B5CFF');
   if(p.loc) h+=mPill('\uD83D\uDCCD '+p.loc,'#E040FB');
   h+=mPill(p.qty+' qty',mStockCol(p));
   h+=mStatusPill(p);
+  if(p.is_rimo===false){ var _lp=leadPill(p); if(_lp) h+=_lp; }
   if(price) h+='<span style="font-size:11px;color:var(--t2);font-weight:600">'+price+'</span>';
   return h+'</div>';
 }
@@ -3627,7 +3694,8 @@ function mEurHint(){
   document.getElementById('m-eur-hint').textContent=(!isNaN(v)&&v>0)?('\u2248 $'+(v*EURAUD).toFixed(2)+' AUD (live)'):'';
 }
 function mFillForm(p){
-  document.getElementById('m-f-sku').value=p?p.sku:'';
+  var skuEl=document.getElementById('m-f-sku'), noSku=!!(p&&p.sku&&/^NS-/i.test(String(p.sku)));
+  skuEl.value=(p&&!noSku)?(p.sku||''):''; skuEl.placeholder=noSku?'(no SKU)':'';
   document.getElementById('m-f-desc').value=p?(p.description||''):'';
   document.getElementById('m-f-int').value=p?(p.internal_description||''):'';
   document.getElementById('m-f-eur').value=(p&&p.price_eur!=null)?p.price_eur:'';
@@ -3635,9 +3703,17 @@ function mFillForm(p){
   document.getElementById('m-f-min').value=(p&&p.min_stock!=null)?p.min_stock:'';
   document.getElementById('m-f-qty').value=p?p.qty:'';
   document.getElementById('m-f-loc').value=p?(p.loc||''):'';
+  document.getElementById('m-f-rimo').checked = p ? (p.is_rimo!==false) : true;
+  document.getElementById('m-f-brand').value=p?(p.brand||''):'';
+  document.getElementById('m-f-lead').value=(p&&p.lead_days!=null)?p.lead_days:'';
   document.getElementById('m-f-lock').checked = p ? (p.auto_min===false) : false;
   var lh=document.getElementById('m-f-lockhint'); if(lh) lh.textContent=mLockHintText(p);
-  mFormMsg(''); mEurHint();
+  mFormMsg(''); mEurHint(); mRimoToggle();
+}
+function mRimoToggle(){
+  var rimo=document.getElementById('m-f-rimo').checked;
+  var lf=document.getElementById('m-lead-fld'); if(lf) lf.style.display=rimo?'none':'';
+  var bf=document.getElementById('m-f-brand'); if(bf&&rimo&&!bf.value.trim()) bf.placeholder='RIMO';
 }
 function mOpenAdd(){
   mEditSku=null; mFillForm(null);
@@ -3656,17 +3732,27 @@ function mCloseForm(){ document.getElementById('m-form').classList.remove('show'
 function mFormMsg(t){ document.getElementById('m-form-msg').textContent=t||''; }
 function mReloadParts(){ loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} mRenderList(); }); }
 function mSave(){
-  var sku=(document.getElementById('m-f-sku').value||'').trim();
-  if(!/^\d+$/.test(sku)){ mFormMsg('SKU must be the numeric RIMO part number'); return; }
+  var skuIn=(document.getElementById('m-f-sku').value||'').trim();
+  var desc=document.getElementById('m-f-desc').value.trim();
+  if(!desc){ mFormMsg('Description is required'); return; }
+  var sku;
+  if(mEditSku){ sku=mEditSku; }
+  else if(skuIn===''){ sku='NS-'+Date.now().toString(36).toUpperCase()+Math.floor(Math.random()*1296).toString(36).toUpperCase(); }
+  else { if(!/^\d+$/.test(skuIn)){ mFormMsg('SKU must be numbers only \u2014 or leave it blank if the part has no SKU'); return; } sku=skuIn; }
+  var isRimo=document.getElementById('m-f-rimo').checked;
+  var brand=document.getElementById('m-f-brand').value.trim(); if(isRimo&&!brand) brand='RIMO';
+  var leadRaw=document.getElementById('m-f-lead').value.trim();
+  if(!isRimo && leadRaw!=='' && !/^\d+$/.test(leadRaw)){ mFormMsg('Delivery lead must be a whole number of days'); return; }
   var part={ sku:sku,
-    description:document.getElementById('m-f-desc').value.trim(),
+    description:desc,
     internal_description:document.getElementById('m-f-int').value.trim(),
     price_eur:document.getElementById('m-f-eur').value.trim(),
     price_aud:document.getElementById('m-f-aud').value.trim(),
     min_stock:document.getElementById('m-f-min').value.trim(),
     qty:document.getElementById('m-f-qty').value.trim(),
     location:document.getElementById('m-f-loc').value.trim(),
-    lock:document.getElementById('m-f-lock').checked, site:(currentSite||'sydney') };
+    lock:document.getElementById('m-f-lock').checked, site:(currentSite||'sydney'),
+    is_rimo:isRimo, brand:brand, lead_days:(!isRimo&&leadRaw!=='')?Number(leadRaw):null };
   if(part.lock && part.min_stock===''){ mFormMsg('Enter a minimum to lock it, or untick to auto-adjust.'); return; }
   mFormMsg('Saving...');
   fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:(mEditSku?'edit':'add'),part:part})})

@@ -444,6 +444,21 @@
     .repair-note-line + .repair-note-line{margin-top:5px;padding-top:5px;border-top:1px solid rgba(96,165,250,.18)}
     .kt-sec-lbl{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:18px 0 10px}
     .kt-sec-lbl:first-child{margin-top:4px}
+    /* Kart Info landing — tile dashboard (mirrors the home grid) */
+    .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,2.4vw,14px);margin-top:14px}
+    .ki-tiles .tile{aspect-ratio:1.15/1;min-height:112px}
+    .ki-tiles .ki-hero{grid-column:1/-1;aspect-ratio:auto;min-height:96px}
+    @media (min-width:600px){ .ki-tiles{grid-template-columns:1fr 1fr 1fr} .ki-tiles .ki-hero{grid-column:1/-1} }
+    /* Colour-coded kart type tabs (Adult / Inter / Junior / Mini) */
+    .ktype-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
+    .ktype-tab{flex:1 1 auto;min-width:72px;background:transparent;border:1.5px solid var(--b1);color:var(--t2);padding:10px 12px;border-radius:14px;font-weight:800;font-size:clamp(12px,3.2vw,15px);cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
+    .ktype-tab:active{transform:scale(0.96)}
+    .ktype-tab .ktt-n{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.3px}
+    /* Parts used inside a repair */
+    .repair-parts{margin-top:8px;border-top:1px dashed var(--b2);padding-top:8px}
+    .repair-parts-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:5px}
+    .repair-part-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#e7ecf0;padding:2px 0}
+    .repair-part-row .rp-qty{color:#F59E0B;font-weight:700;flex-shrink:0}
     /* Wiring diagram pane */
     .wiring-card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:clamp(14px,3vw,18px);margin-bottom:14px}
     .wiring-card h4{font-size:13px;font-weight:700;color:#F59E0B;margin:0 0 10px;text-transform:uppercase;letter-spacing:1px}
@@ -803,7 +818,7 @@
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
             <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Coming soon</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
-            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');switchKartSection('karts');showKartView('types');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
+            <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');kiGo('home');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Coming soon</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           </div>
@@ -986,59 +1001,54 @@
         <button class="refresh-btn" id="rb-kart" onclick="loadKartInfo()"><span class="ricon">🔄</span><span id="rt-kart">Refresh</span></button>
       </div>
       <div class="sb">
-        <div class="pgtitle">Kart Info</div>
-        <div class="ki-sub" id="ki-site-sub"></div>
-        <!-- TOP-LEVEL SECTION TABS -->
-        <div class="subtabs" id="ki-section-tabs">
-          <button class="subtab active" data-ksec="karts" onclick="switchKartSection('karts')">Karts</button>
-          <button class="subtab" data-ksec="wiring" onclick="switchKartSection('wiring')">Wiring</button>
-          <button class="subtab" data-ksec="cpu" onclick="switchKartSection('cpu')">CPU / WiFi</button>
-          <button class="subtab" data-ksec="beacons" onclick="switchKartSection('beacons')">Beacons</button>
-          <button class="subtab" data-ksec="help" onclick="switchKartSection('help')">Help</button>
+        <!-- LANDING: tile dashboard (like the home page) -->
+        <div id="ki-home">
+          <div class="pgtitle">Kart Info</div>
+          <div class="ki-sub" id="ki-site-sub"></div>
+          <div class="ki-tiles">
+            <div class="tile kartinfo ki-hero" onclick="kiOpenKarts()"><div class="ti">🏁</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
+            <div class="tile tasks" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
+            <div class="tile tse" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
+            <div class="tile beacon" onclick="kiOpenRef('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Timing &amp; track</div></div>
+            <div class="tile hkai" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
+          </div>
         </div>
 
-        <!-- SECTION: KARTS (3-level drilldown) -->
-        <div id="ksec-karts">
-          <!-- LEVEL 1: type cards -->
-          <div id="kiv-types">
-            <div class="ki-type-grid" id="ki-type-grid"><div class="emp" style="grid-column:1/-1">Loading fleet…</div></div>
-          </div>
-          <!-- LEVEL 2: kart grid for a type -->
-          <div id="kiv-grid" style="display:none">
-            <button class="ki-back" onclick="kartBackToTypes()">‹ All types</button>
-            <div class="ki-grid-head">
-              <div class="ki-grid-title" id="ki-grid-title">Adult</div>
-              <div class="ki-grid-legend"><span class="kl-dot kl-ok"></span>OK<span class="kl-dot kl-maint"></span>Maint<span class="kl-dot kl-damaged"></span>Damaged</div>
-            </div>
-            <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number…" oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
-            <div class="kart-chip-grid" id="kart-chips"></div>
-          </div>
-          <!-- LEVEL 3: kart detail (single scroll page: header + stats + repairs/notes) -->
-          <div id="kiv-detail" style="display:none">
-            <button class="ki-back" id="kd-back" onclick="kartBackToGrid()">‹ Back</button>
-            <div class="kd-card">
-              <div class="kd-top">
-                <div class="kd-num" id="kd-num"></div>
-                <div class="kd-meta">
-                  <div class="kd-name" id="kd-name"></div>
-                  <div class="kd-id" id="kd-idline"></div>
-                  <span class="kart-status-pill" id="kd-status"></span>
-                </div>
-                <div class="kd-live" id="kd-live" title="RIMO online/charge — coming soon">
-                  <span class="kd-live-dot"></span><span>RIMO link soon</span>
-                </div>
+        <!-- KARTS: colour-coded type tabs + kart-number tiles -->
+        <div id="ki-karts" style="display:none">
+          <button class="ki-back" onclick="kiGo('home')">‹ Kart Info</button>
+          <div class="ki-sub" id="ki-karts-sub"></div>
+          <div class="ktype-tabs" id="ki-type-tabs"></div>
+          <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number…" oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
+          <div class="kart-chip-grid" id="kart-chips"></div>
+        </div>
+
+        <!-- DETAIL: RaceFacer-style kart page (stats + repairs + notes + parts) -->
+        <div id="kiv-detail" style="display:none">
+          <button class="ki-back" id="kd-back" onclick="kiGo('karts')">‹ Back</button>
+          <div class="kd-card">
+            <div class="kd-top">
+              <div class="kd-num" id="kd-num"></div>
+              <div class="kd-meta">
+                <div class="kd-name" id="kd-name"></div>
+                <div class="kd-id" id="kd-idline"></div>
+                <span class="kart-status-pill" id="kd-status"></span>
+              </div>
+              <div class="kd-live" id="kd-live" title="RIMO online/charge — coming soon">
+                <span class="kd-live-dot"></span><span>RIMO link soon</span>
               </div>
             </div>
-            <div class="kart-pane" id="kt-overview"></div>
-            <div class="kart-pane" id="kt-repairs"></div>
           </div>
+          <div class="kart-pane" id="kt-overview"></div>
+          <div class="kart-pane" id="kt-repairs"></div>
         </div>
 
-        <!-- SECTION: WIRING / CPU / BEACONS / HELP (fleet-wide reference) -->
-        <div id="ksec-wiring" style="display:none"></div>
-        <div id="ksec-cpu" style="display:none"></div>
-        <div id="ksec-beacons" style="display:none"></div>
-        <div id="ksec-help" style="display:none"></div>
+        <!-- REFERENCE: Wiring / CPU / Beacons / Help (fleet-wide) -->
+        <div id="ki-ref" style="display:none">
+          <button class="ki-back" onclick="kiGo('home')">‹ Kart Info</button>
+          <div class="pgtitle" id="ki-ref-title" style="margin-top:6px"></div>
+          <div id="ki-ref-body"></div>
+        </div>
       </div>
     </div>
 
@@ -3081,12 +3091,16 @@ function loadRfKarts(cb){
   var site=currentSite||'sydney';
   Promise.all([
     SBC.from('rf_karts').select('*').eq('site',site),
-    SBC.from('rf_repairs').select('id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes')
+    SBC.from('rf_repairs').select('id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes'),
+    SBC.from('rf_repair_parts').select('repair_id,part_name,qty,price')
   ]).then(function(rs){
-    var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[];
+    var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[], prows=(rs[2]&&rs[2].data)||[];
     if(krows.length){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
     }
+    // Parts grouped by their parent repair id
+    var partsByRepair={};
+    prows.forEach(function(p){ (partsByRepair[p.repair_id]=partsByRepair[p.repair_id]||[]).push({ name:p.part_name||'Part', qty:Number(p.qty)||0, price:p.price||'' }); });
     RF_REPAIRS_BY_ID={};
     rrows.forEach(function(r){
       var iso=r.date_discovered||r.date_repaired||'';   // ISO yyyy-mm-dd, sortable
@@ -3097,6 +3111,7 @@ function loadRfKarts(cb){
         cost:(parseFloat(String(r.cost||'').replace(/[^0-9.]/g,''))||0),
         issue:r.description||'Repair',                    // the original / issue note
         repairNotes:r.notes||'',                          // follow-up repair note(s), newline-joined
+        parts:partsByRepair[r.id]||[],                    // parts used in this repair
         mileage:Number(r.mileage)||0,
         user:r.mechanic||'—',
         dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):''
@@ -3110,89 +3125,87 @@ function loadRfKarts(cb){
 }
 
 var KART_TYPE_ORDER=['Adult','Intermediate','Junior','Mini'];
-var KART_VIEW='types';   // 'types' | 'grid' | 'detail'
-var KART_SECTION='karts'; // 'karts' | 'wiring' | 'cpu' | 'beacons' | 'help'
+var KART_TYPE_COLOR={Adult:'#22D3EE',Intermediate:'#F59E0B',Junior:'#34D399',Mini:'#A78BFA'};
+var STATUS_COLOR={ok:'#22C55E',maint:'#FFD600',damaged:'#FF3B30'};
+var KI_VIEW='home';   // 'home' | 'karts' | 'detail' | 'ref'
 
-// Top-level Kart Info section switcher (Karts / Wiring / CPU / Beacons / Help)
-function switchKartSection(sec){
-  KART_SECTION=sec;
-  var tabs=document.getElementById('ki-section-tabs');
-  if(tabs) tabs.querySelectorAll('.subtab').forEach(function(b){ b.classList.toggle('active', b.dataset.ksec===sec); });
-  ['karts','wiring','cpu','beacons','help'].forEach(function(s){
-    var el=document.getElementById('ksec-'+s); if(el) el.style.display=(s===sec)?'block':'none';
+// Router for the Kart Info screen (tile dashboard → karts → detail, plus reference)
+function kiGo(view){
+  KI_VIEW=view;
+  ['home','karts','detail','ref'].forEach(function(v){
+    var el=document.getElementById(v==='detail'?'kiv-detail':'ki-'+v);
+    if(el) el.style.display=(v===view)?'block':'none';
   });
-  if(sec==='wiring') renderWiringSection();
-  else if(sec==='cpu') renderCpuSection();
-  else if(sec==='beacons') renderBeaconsSection();
-  else if(sec==='help') renderHelpSection();
   var sb=document.querySelector('#s-kartinfo .sb'); if(sb) sb.scrollTop=0;
 }
 
-function showKartView(v){
-  KART_VIEW=v;
-  document.getElementById('kiv-types').style.display=(v==='types')?'block':'none';
-  document.getElementById('kiv-grid').style.display=(v==='grid')?'block':'none';
-  document.getElementById('kiv-detail').style.display=(v==='detail')?'block':'none';
-  var sb=document.querySelector('#s-kartinfo .sb'); if(sb) sb.scrollTop=0;
-}
-// Level-aware back: within Karts drill-down (detail -> grid -> types), else leave screen
+// Back: detail → karts → home → leave screen
 function kartScreenBack(){
-  if(KART_SECTION==='karts'){
-    if(KART_VIEW==='detail'){ kartBackToGrid(); return; }
-    if(KART_VIEW==='grid'){ kartBackToTypes(); return; }
-  }
+  if(KI_VIEW==='detail'){ kiGo('karts'); return; }
+  if(KI_VIEW==='karts'||KI_VIEW==='ref'){ kiGo('home'); return; }
   back();
 }
-function kartBackToTypes(){ SELECTED_KART=null; showKartView('types'); renderTypeCards(); }
-function kartBackToGrid(){ SELECTED_KART=null; showKartView('grid'); renderKartChips(); }
+
+function kiSubText(){ return (typeof siteLabel==='function'?siteLabel(currentSite):'')+' fleet · '+KART_LIST.length+' karts'; }
+
+// Open the Karts screen (colour-coded type tabs + number tiles)
+function kiOpenKarts(){
+  SELECTED_KART=null;
+  var present={}; KART_LIST.forEach(function(k){present[k.type]=true;});
+  if(!present[SELECTED_KART_TYPE]){ var first=KART_TYPE_ORDER.filter(function(t){return present[t];})[0]||Object.keys(present)[0]; if(first) SELECTED_KART_TYPE=first; }
+  var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
+  renderTypeTabs();
+  renderKartChips();
+  kiGo('karts');
+}
+
+// Open a fleet-wide reference section (wiring / cpu / beacons / help)
+function kiOpenRef(which){
+  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Beacons',help:'Help'};
+  var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
+  if(which==='wiring') renderWiringSection();
+  else if(which==='cpu') renderCpuSection();
+  else if(which==='beacons') renderBeaconsSection();
+  else renderHelpSection();
+  kiGo('ref');
+}
+
+// Colour-coded type tabs — one per type present in the fleet
+function renderTypeTabs(){
+  var box=document.getElementById('ki-type-tabs'); if(!box) return;
+  var byType={}; KART_LIST.forEach(function(k){ (byType[k.type]=byType[k.type]||[]).push(k); });
+  var types=KART_TYPE_ORDER.filter(function(t){return byType[t]&&byType[t].length;});
+  Object.keys(byType).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
+  if(!types.length){ box.innerHTML=''; return; }
+  if(types.indexOf(SELECTED_KART_TYPE)<0) SELECTED_KART_TYPE=types[0];
+  box.innerHTML=types.map(function(t){
+    var col=KART_TYPE_COLOR[t]||'#2DD4BF', n=byType[t].length, active=(t===SELECTED_KART_TYPE);
+    var label=(t==='Intermediate')?'Inter':t;
+    var style=active?('background:'+col+'22;border-color:'+col+';color:'+col):'';
+    return '<button class="ktype-tab" style="'+style+'" onclick="setKartType(\''+t+'\')">'
+      +'<span>'+label+'</span><span class="ktt-n"'+(active?(' style="color:'+col+'"'):'')+'>'+n+' kart'+(n===1?'':'s')+'</span>'
+      +'</button>';
+  }).join('');
+}
+
+function setKartType(type){
+  SELECTED_KART_TYPE=type;
+  var sb=document.getElementById('kart-search'); if(sb) sb.value='';
+  renderTypeTabs();
+  renderKartChips();
+}
 
 function loadKartInfo(){
   var btn=document.getElementById('rb-kart'),lbl=document.getElementById('rt-kart');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   loadRfKarts(function(){
-    var sub=document.getElementById('ki-site-sub');
-    if(sub) sub.innerText=(typeof siteLabel==='function'?siteLabel(currentSite):'')+' fleet · '+KART_LIST.length+' karts';
-    // Re-render whatever level is open so live data flows in without losing the user's place
-    if(KART_VIEW==='detail'&&SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; renderKartDetail(live);} else { kartBackToGrid(); } }
-    else if(KART_VIEW==='grid'){ renderKartChips(); }
-    else { renderTypeCards(); }
+    var sub=document.getElementById('ki-site-sub'); if(sub) sub.innerText=kiSubText();
+    var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
+    // Re-render whatever view is open so live data flows in without losing the user's place
+    if(KI_VIEW==='detail'&&SELECTED_KART){ var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}); if(live){SELECTED_KART=live; renderKartDetail(live);} else { kiGo('karts'); } }
+    else if(KI_VIEW==='karts'){ renderTypeTabs(); renderKartChips(); }
     if(btn){btn.classList.remove('spinning');if(lbl){lbl.innerText='Updated · just now';setTimeout(function(){if(lbl)lbl.innerText='Refresh';},3000);}}
   });
-}
-
-// Level 1 — one card per type that has karts, with a status health bar
-var STATUS_COLOR={ok:'#22C55E',maint:'#FFD600',damaged:'#FF3B30'};
-function renderTypeCards(){
-  var grid=document.getElementById('ki-type-grid'); if(!grid) return;
-  var byType={};
-  KART_LIST.forEach(function(k){ (byType[k.type]=byType[k.type]||[]).push(k); });
-  var types=KART_TYPE_ORDER.filter(function(t){return byType[t]&&byType[t].length;});
-  // include any unexpected type names too
-  Object.keys(byType).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
-  if(!types.length){ grid.innerHTML='<div class="emp" style="grid-column:1/-1;padding:24px 0;text-align:center;color:var(--t2)">No karts found for this site.</div>'; return; }
-  grid.innerHTML=types.map(function(t){
-    var ks=byType[t], n=ks.length;
-    var c={ok:0,maint:0,damaged:0}; ks.forEach(function(k){c[k.status]=(c[k.status]||0)+1;});
-    var seg=['ok','maint','damaged'].filter(function(s){return c[s];}).map(function(s){return '<span style="width:'+(c[s]/n*100)+'%;background:'+STATUS_COLOR[s]+'"></span>';}).join('');
-    var legend=[];
-    if(c.ok) legend.push('<b>'+c.ok+'</b> OK');
-    if(c.maint) legend.push('<b>'+c.maint+'</b> maint');
-    if(c.damaged) legend.push('<b>'+c.damaged+'</b> damaged');
-    var label=(t==='Intermediate')?'Inter':t;
-    return '<button class="ki-type-card" onclick="openKartType(\''+t+'\')">'
-      +'<div class="ki-tc-top"><span class="ki-tc-name">'+label+'</span><span class="ki-tc-count">'+n+' kart'+(n===1?'':'s')+'</span></div>'
-      +'<div class="ki-tc-bar">'+seg+'</div>'
-      +'<div class="ki-tc-legend">'+(legend.join(' · ')||'—')+'</div>'
-      +'<span class="ki-tc-go">›</span>'
-      +'</button>';
-  }).join('');
-}
-function openKartType(type){
-  SELECTED_KART_TYPE=type; SELECTED_KART=null;
-  var ttl=document.getElementById('ki-grid-title'); if(ttl) ttl.innerText=(type==='Intermediate'?'Inter':type)+' karts';
-  var sb=document.getElementById('kart-search'); if(sb) sb.value='';
-  showKartView('grid');
-  renderKartChips();
 }
 
 function renderKartChips(filter){
@@ -3207,11 +3220,6 @@ function renderKartChips(filter){
   var grid=document.getElementById('kart-chips');
   if(grid) grid.innerHTML=html||'<div class="emp" style="grid-column:1/-1;padding:14px 0;text-align:center;color:var(--t2);font-size:13px">No karts match that number</div>';
 }
-
-function updateKartTypeCounts(){ /* counts now shown on the type cards */ }
-
-// kept for any old callers
-function selectKartType(type){ openKartType(type); }
 function filterKarts(v){renderKartChips(v);}
 
 // Small HTML escaper for RaceFacer-sourced free text (repair notes etc.)
@@ -3221,7 +3229,7 @@ function selectKart(rfId){
   var k=KART_LIST.find(function(x){return x.rfId===rfId;});
   if(!k) return;
   SELECTED_KART=k;
-  showKartView('detail');
+  kiGo('detail');
   renderKartDetail(k);
 }
 
@@ -3280,11 +3288,19 @@ function renderKartRepairs(k){
         + noteLines.map(function(n){return '<div class="repair-note-line">'+kEsc(n)+'</div>';}).join('')
         + '</div>'
       : '';
+    // Parts used in this repair
+    var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
+    var partsBox=parts.length
+      ? '<div class="repair-parts"><div class="repair-parts-lbl">Parts used</div>'
+        + parts.map(function(p){return '<div class="repair-part-row"><span>'+kEsc(p.name)+(p.price?' · '+kEsc(p.price):'')+'</span><span class="rp-qty">×'+(p.qty||1)+'</span></div>';}).join('')
+        + '</div>'
+      : '';
     return '<div class="repair-entry">'
       +'<div class="repair-entry-head"><div class="repair-date">'+(r.date||'—')+statusBadge+'</div>'+(r.cost?'<div class="repair-cost">$'+r.cost.toFixed(2)+'</div>':'')+'</div>'
       +'<div class="repair-issue">'+kEsc(r.issue)+'</div>'
       +noteBox
       +'<div class="repair-meta">'+(r.mileage?'<span>📏 '+r.mileage.toLocaleString()+' km</span>':'')+'<span>👤 '+kEsc(r.user)+'</span>'+(r.dateRepaired?'<span>🔧 Repaired '+r.dateRepaired+'</span>':'')+'</div>'
+      +partsBox
       +'</div>';
   }).join('');
   box.innerHTML='<div class="kt-sec-lbl">'+reps.length+' Repair'+(reps.length===1?'':'s')+' &amp; Notes</div>'+html;
@@ -3292,7 +3308,7 @@ function renderKartRepairs(k){
 
 // ── Fleet-wide reference sections (no longer per-kart) ──────────────────────
 function renderWiringSection(){
-  document.getElementById('ksec-wiring').innerHTML=
+  document.getElementById('ki-ref-body').innerHTML=
     '<div class="wiring-card">'
     +  '<h4>Main Power Loop</h4>'
     +  '<div style="font-size:13px;color:var(--t2);line-height:1.7">Battery (+) → Main fuse (60A) → Master switch → Motor controller (+)<br>Battery (−) → Chassis ground → Motor controller (−)<br>Charging port → Battery management (BMS) → Battery pack</div>'
@@ -3310,7 +3326,7 @@ function renderWiringSection(){
 }
 
 function renderCpuSection(){
-  document.getElementById('ksec-cpu').innerHTML=
+  document.getElementById('ki-ref-body').innerHTML=
     '<div class="mc"><div class="mct">📡 CPU / WiFi Connection Status</div>'
     +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
     +  '<div style="font-size:32px;margin-bottom:10px">🔌</div>'
@@ -3325,7 +3341,7 @@ function renderCpuSection(){
 }
 
 function renderBeaconsSection(){
-  document.getElementById('ksec-beacons').innerHTML=
+  document.getElementById('ki-ref-body').innerHTML=
     '<div class="mc"><div class="mct">📍 Dehaardt Beacon Logs</div>'
     +'<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
     +  '<div style="font-size:32px;margin-bottom:10px">📡</div>'
@@ -3351,7 +3367,7 @@ function renderHelpSection(){
     html='<div class="emp" style="padding:18px 0;text-align:center;color:var(--t2);font-size:13px">'
       +'<div style="font-size:32px;margin-bottom:10px">🛠️</div>Troubleshooting guide coming soon</div>';
   }
-  document.getElementById('ksec-help').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Common Issues &amp; Fixes</div>'+html
+  document.getElementById('ki-ref-body').innerHTML='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Common Issues &amp; Fixes</div>'+html
     +'<div class="mc" style="text-align:center;margin-top:14px"><div style="font-size:12px;color:var(--t2);line-height:1.6">📝 This list grows as we learn.<br><span style="color:#F59E0B;font-weight:600">Add new entries via the Sheet — coming soon to in-app editing</span></div></div>';
 }
 

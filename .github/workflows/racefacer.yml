@@ -1,8 +1,11 @@
 name: RaceFacer sync
 
 # GitHub's scheduler cannot fire faster than every 5 minutes. So instead this
-# starts every 30 minutes and then LOOPS inside the job, running the sync about
-# every 30 seconds for the whole half hour. The "Run workflow" button starts it now.
+# starts every 30 minutes and then LOOPS inside the job for the whole half hour.
+# Each loop the script does a QUICK status-only refresh (OK / Damaged / Maintenance)
+# for the real fleet, and once every HEAVY_INTERVAL_SEC it does the FULL sync
+# (repairs, parts, notes, prune). With GAP_SECONDS=10 a status change on RaceFacer
+# shows on the app in roughly 15-20s. The "Run workflow" button starts it now.
 on:
   schedule:
     - cron: '*/30 * * * *'
@@ -36,7 +39,8 @@ jobs:
           SB_URL: ${{ secrets.SB_URL }}
           SB_SERVICE_KEY: ${{ secrets.SB_SERVICE_KEY }}
           SITE: sydney
-          GAP_SECONDS: '30'     # <-- gap between syncs. Raise to 60/90 if RaceFacer gets slow.
+          GAP_SECONDS: '10'          # <-- gap between cycles. Lower = faster status, more load. Raise to 20/30 if RaceFacer gets slow.
+          HEAVY_INTERVAL_SEC: '300'  # <-- full sync (repairs/parts/notes) runs at most this often. 300 = every 5 min.
         run: |
           end=$((SECONDS + 1740))   # loop for ~29 min, then the next scheduled run takes over
           while [ $SECONDS -lt $end ]; do

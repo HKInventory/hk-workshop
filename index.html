@@ -518,6 +518,16 @@
     .rep-pu th.rp-r,.rep-pu td.rp-r{text-align:right;white-space:nowrap}
     .rep-table th.rp-r,.rep-table td.rp-r{text-align:right;white-space:nowrap}
     .rep-empty{padding:24px 16px;text-align:center;color:var(--t2);font-size:13px;background:var(--card);border:1px solid var(--b1);border-radius:14px}
+    .kn-open{margin:14px 0 4px;border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--card)}
+    .kn-opentable{width:100%;border-collapse:collapse;font-size:13px}
+    .kn-opentable th{text-align:left;padding:10px 14px;color:var(--t2);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,.02)}
+    .kn-opentable td{padding:11px 14px;border-bottom:1px solid var(--b1);vertical-align:top}
+    .kn-opentable tr:last-child td{border-bottom:none}
+    .kn-date{white-space:nowrap;color:var(--t2);font-variant-numeric:tabular-nums;width:1%}
+    .kn-title{color:var(--t1);font-weight:600;line-height:1.45}
+    .kn-star{color:#FFD600;margin-right:8px}
+    .kn-note{color:var(--t1);font-weight:600;max-width:440px;line-height:1.45}
+    .kn-open-tag{display:inline-block;background:rgba(245,158,11,.16);color:#F59E0B;font-weight:700;font-size:11px;padding:2px 9px;border-radius:999px}
     /* Wiring diagram pane */
     .wiring-card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:clamp(14px,3vw,18px);margin-bottom:14px}
     .wiring-card h4{font-size:13px;font-weight:700;color:#F59E0B;margin:0 0 10px;text-transform:uppercase;letter-spacing:1px}
@@ -721,6 +731,11 @@
     .qre-row button{flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--b2)}
     .qre-save{background:var(--grad);color:#fff;border:none}
     .qre-reset{background:var(--card2);color:var(--t1)}
+    .qre-saved{font-size:12px;font-weight:800;color:var(--t2);margin-top:8px;min-height:16px;display:flex;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .15s}
+    .qre-saved.show{opacity:1}
+    .qre-saved.ok{color:#22C55E}
+    .qre-spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:qrespin .6s linear infinite}
+    @keyframes qrespin{to{transform:rotate(360deg)}}
     /* Master PIN reveal on MD */
     .mpin-reveal{width:100%;background:linear-gradient(145deg,#1c1c1c,#0e0e0e);border:1px dashed var(--b2);border-radius:12px;color:var(--t2);font-size:14px;font-weight:700;padding:18px;cursor:pointer;letter-spacing:.5px}
     .mpin-reveal:active{border-color:var(--acc);color:var(--acc)}
@@ -1119,6 +1134,7 @@
             </div>
             <div class="spec-grid" id="kd-stats" style="margin-top:16px"></div>
           </div>
+          <div id="kd-opennotes"></div>
           <div class="kd-tabs" id="kd-tabs"></div>
           <div id="kt-tabbody"></div>
         </div>
@@ -1300,6 +1316,7 @@
               <button class="qre-reset" onclick="qeReset()">Reset</button>
               <button class="qre-save" id="qe-save" onclick="qeSave()">Save design</button>
             </div>
+            <div class="qre-saved" id="qe-saved"></div>
           </div>
         </div>
       </div>
@@ -3204,7 +3221,7 @@ var ACTIVE_KART_TAB='overview';
 // ── Live RaceFacer data ────────────────────────────────────────────────────
 // rf_karts/rf_repairs are written by the sync. We map them into the SAME shapes
 // the existing render functions already expect, so nothing downstream changes.
-var RF_LOADED=false, RF_REPAIRS_BY_ID={};
+var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={};
 function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Adult'; }
 function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
 function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
@@ -3240,9 +3257,10 @@ function loadRfKarts(cb){
   Promise.all([
     sbFetchAll('rf_karts','*','site',site,'rf_id'),
     sbFetchAll('rf_repairs','id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes',null,null,'id'),
-    sbFetchAll('rf_repair_parts','repair_id,part_name,qty,price',null,null,'repair_id')
+    sbFetchAll('rf_repair_parts','repair_id,part_name,qty,price',null,null,'repair_id'),
+    sbFetchAll('rf_kart_notes','*',null,null,'rf_id').catch(function(){ return {data:[]}; })
   ]).then(function(rs){
-    var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[], prows=(rs[2]&&rs[2].data)||[];
+    var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[], prows=(rs[2]&&rs[2].data)||[], nrows=(rs[3]&&rs[3].data)||[];
     if(krows.length){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
     }
@@ -3267,6 +3285,15 @@ function loadRfKarts(cb){
     });
     // Newest first — sort by the real ISO date, not the dd.mm string.
     Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.iso||'').localeCompare(a.iso||'');}); });
+    // Kart notes (the open issues + the full archive) grouped per kart
+    RF_NOTES_BY_ID={};
+    nrows.forEach(function(n){
+      (RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[]).push({
+        note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
+        archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at
+      });
+    });
+    Object.keys(RF_NOTES_BY_ID).forEach(function(id){ RF_NOTES_BY_ID[id].sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));}); });
     RF_LOADED=true;
     if(cb)cb();
   }).catch(function(){ if(cb)cb(); });
@@ -3309,6 +3336,8 @@ function kartRefreshSilent(){
         var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(live.status);
         var det=document.getElementById('kiv-detail'); if(det) det.style.setProperty('--kacc',(KART_TYPE_COLOR[live.type]||'#22D3EE'));
         var st=document.getElementById('kd-stats'); if(st) st.innerHTML=kdStats(live);
+        var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(live.rfId);
+        if(KD_TAB==='Kart Notes'){ var tb=document.getElementById('kt-tabbody'); if(tb) tb.innerHTML=notesTabHTML(); }
       }
     } else if(KI_VIEW==='karts'){ renderTypeTabs(); renderKartChips(); }
   });
@@ -3444,6 +3473,7 @@ function renderKartDetail(k){
   document.getElementById('kd-trans').innerText=(k.transponder&&k.transponder!=='-')?k.transponder:'—';
   document.getElementById('kd-statusseg').innerHTML=kdStatusSeg(k.status);
   document.getElementById('kd-stats').innerHTML=kdStats(k);
+  var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
   renderKdTabs();
   ktTab('Repairs');
 }
@@ -3462,8 +3492,34 @@ function ktTab(name){
   if(name==='Repairs') body.innerHTML=repTableHTML();
   else if(name==='Parts') body.innerHTML=partsTabHTML();
   else if(name==='Cost') body.innerHTML=costTabHTML();
-  else if(name==='Maintenance') body.innerHTML='<div class="rep-empty">Maintenance schedule isn\u2019t synced from RaceFacer yet.</div>';
-  else body.innerHTML='<div class="rep-empty">No kart-level notes synced yet. Per-repair notes live under each repair in the Repairs tab.</div>';
+  else if(name==='Kart Notes') body.innerHTML=notesTabHTML();
+  else body.innerHTML='<div class="rep-empty">Maintenance schedule isn\u2019t synced from RaceFacer yet.</div>';
+}
+
+// dd.mm.yyyy hh:mm from an ISO timestamp (falls back to the raw string)
+function fmtNoteDate(iso){ if(!iso) return '\u2014'; var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function fmtNoteWhen(iso,who){ if(!iso) return '\u2014'; return fmtNoteDate(iso)+(who?(' - '+kEsc(who)):''); }
+
+// The open (unarchived) notes — shown above the tabs, mirroring RaceFacer. This is the "why is it damaged" list.
+function kartOpenNotesHTML(rfId){
+  var notes=(rfId!=null&&RF_NOTES_BY_ID[rfId])||[];
+  var open=notes.filter(function(n){return n.open;});
+  if(!open.length) return '';
+  var rows=open.map(function(n){
+    return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td></tr>';
+  }).join('');
+  return '<div class="kn-open"><table class="kn-opentable"><thead><tr><th>Date</th><th>Title</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// Kart Notes tab — full history: Note / Created / Archived (open notes show an "Open" tag)
+function notesTabHTML(){
+  var notes=(KD_KART&&KD_KART.rfId!=null&&RF_NOTES_BY_ID[KD_KART.rfId])||[];
+  if(!notes.length) return '<div class="rep-empty">No kart notes synced for this kart yet.</div>';
+  var rows=notes.map(function(n){
+    var arch=n.archivedIso?fmtNoteWhen(n.archivedIso,n.archivedBy):'<span class="kn-open-tag">Open</span>';
+    return '<tr><td class="kn-note">'+kEsc(n.note)+'</td><td class="rep-mono">'+fmtNoteWhen(n.createdIso,n.createdBy)+'</td><td class="rep-mono">'+arch+'</td></tr>';
+  }).join('');
+  return '<div class="rep-tablewrap"><table class="rep-table"><thead><tr><th>Note</th><th>Created</th><th>Archived</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 function _money(v){ if(v==null||v==='') return '\u2014'; var s=String(v); return s.charAt(0)==='$'?s:'$'+s; }
@@ -4107,27 +4163,32 @@ function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='f
 function qeToggle(el,on){ if(QR_LAY.el[el]){ QR_LAY.el[el].on=!!on; if(on) QE_SEL=el; } saveQrLay(); qeRender(); }
 function qeImg(v){ QR_LAY.img=v; QR_LAY.el.img.on=(v!=='none'); if(v!=='none') QE_SEL='img'; if(v==='product'){ _prodImg(_partImgUrl(qrSampleSku().sku), qeRender); } saveQrLay(); qeRender(); }
 function qeReset(){ QR_LAY=_clone(QR_LAY_DEFAULTS); QE_SEL=null; saveQrLay(); qrDesignerInit(); }
-function qeSave(){ saveQrLay(); var b=document.getElementById('qe-save'); if(b){ var o=b.textContent; b.textContent='Saved \u2713'; setTimeout(function(){ b.textContent=o; },1200); } if(typeof mQRCount==='function') mQRCount(); }
+function qeFlashSaved(text){ var t=document.getElementById('qe-saved'); if(!t) return; clearTimeout(t._t1); clearTimeout(t._t2); t.innerHTML='<span class="qre-spin"></span> Saving\u2026'; t.className='qre-saved show'; t._t1=setTimeout(function(){ t.innerHTML='\u2713 '+(text||'Design saved'); t.className='qre-saved show ok'; },420); t._t2=setTimeout(function(){ t.className='qre-saved'; },2200); }
+function qeSave(){ saveQrLay(); if(typeof mQRCount==='function') mQRCount(); qeFlashSaved('Design saved'); }
 function qeAuto(){
   var W=QR_LAY.wmm, H=QR_LAY.hmm, mg=Math.max(0.8, Math.min(W,H)*0.05), gap=Math.max(0.6, mg*0.7), ar=W/H, E=QR_LAY.el;
-  var descH=Math.max(1.6, Math.min(H*0.11, 4.2)), skuH=Math.max(1.2, Math.min(H*0.075, 3.0));
   var hasD=E.desc.on, hasS=E.sku.on;
-  function band(){ return (hasD?descH:0)+(hasS?skuH:0)+((hasD&&hasS)?gap:0); }
+  E.qr.w=E.qr.h=Math.max(4, Math.min(E.qr.w, W-2*mg, H-2*mg));
+  ['desc','sku'].forEach(function(k){ E[k].h=Math.min(E[k].h, H-2*mg); });
   if(ar>=1.45){
-    var qs=Math.max(6, Math.min(H-2*mg, W*0.5-gap)); E.qr.w=E.qr.h=qs; E.qr.x=mg; E.qr.y=(H-qs)/2;
-    var tx=mg+qs+gap, tw=Math.max(4, W-tx-mg), ty=(H-band())/2;
-    E.desc.x=tx; E.desc.w=tw; E.desc.h=descH; E.desc.y=ty; if(hasD) ty+=descH+gap;
-    E.sku.x=tx; E.sku.w=tw; E.sku.h=skuH; E.sku.y=ty;
+    E.qr.x=mg; E.qr.y=Math.max(0,(H-E.qr.h)/2);
+    var tx=mg+E.qr.w+gap, tw=Math.max(3, W-tx-mg);
+    var bandH=(hasD?E.desc.h:0)+(hasS?E.sku.h:0)+((hasD&&hasS)?gap:0);
+    if(hasD&&hasS && bandH>H-2*mg){ gap=Math.max(0, H-2*mg-E.desc.h-E.sku.h); bandH=E.desc.h+E.sku.h+gap; }
+    var ty=Math.max(mg,(H-bandH)/2);
+    E.desc.x=tx; E.desc.w=tw; E.desc.y=ty; if(hasD) ty+=E.desc.h+gap;
+    E.sku.x=tx; E.sku.w=tw; E.sku.y=ty;
   } else {
-    var bH=band(), avail=H-2*mg-(bH?bH+gap:0), qs2=Math.max(6, Math.min(W-2*mg, avail));
-    E.qr.w=E.qr.h=qs2; E.qr.x=(W-qs2)/2; E.qr.y=mg;
-    var tw2=Math.max(4, W-2*mg), ty2=E.qr.y+qs2+gap;
-    E.desc.x=mg; E.desc.w=tw2; E.desc.h=descH; E.desc.y=ty2; if(hasD) ty2+=descH+gap;
-    E.sku.x=mg; E.sku.w=tw2; E.sku.h=skuH; E.sku.y=ty2;
+    var tw2=Math.max(3, W-2*mg), content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0), lines=(hasD?1:0)+(hasS?1:0);
+    if(content>H-2*mg && lines){ gap=Math.max(0,(H-2*mg-E.qr.h-(hasD?E.desc.h:0)-(hasS?E.sku.h:0))/lines); content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0); }
+    var top=Math.max(mg,(H-content)/2);
+    E.qr.x=Math.max(0,(W-E.qr.w)/2); E.qr.y=top; var y=top+E.qr.h+gap;
+    E.desc.x=mg; E.desc.w=tw2; E.desc.y=y; if(hasD) y+=E.desc.h+gap;
+    E.sku.x=mg; E.sku.w=tw2; E.sku.y=y;
   }
-  if(QR_LAY.img!=='none'){ var ls=Math.max(2, E.qr.w*0.22); E.img.w=E.img.h=ls; E.img.x=E.qr.x+(E.qr.w-ls)/2; E.img.y=E.qr.y+(E.qr.h-ls)/2; }
-  ['qr','img','desc','sku'].forEach(function(k){ var e=E[k]; e.w=Math.min(e.w,W); e.h=Math.min(e.h,H); e.x=Math.max(0,Math.min(W-e.w,e.x)); e.y=Math.max(0,Math.min(H-e.h,e.y)); });
-  QE_GUIDES=null; saveQrLay(); qeRender();
+  if(QR_LAY.img!=='none'){ E.img.x=E.qr.x+(E.qr.w-E.img.w)/2; E.img.y=E.qr.y+(E.qr.h-E.img.h)/2; }
+  ['qr','img','desc','sku'].forEach(function(k){ var e=E[k]; e.x=Math.max(0,Math.min(W-e.w,e.x)); e.y=Math.max(0,Math.min(H-e.h,e.y)); });
+  QE_GUIDES=null; saveQrLay(); qeRender(); qeFlashSaved('Arranged & saved');
 }
 function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }

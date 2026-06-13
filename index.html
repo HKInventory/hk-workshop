@@ -699,6 +699,28 @@
     .m-qr-btn{flex:1;padding:12px;border:none;border-radius:11px;font-weight:700;font-size:14px;cursor:pointer}
     .m-qr-print{background:var(--grad);color:#fff}
     .m-qr-close{background:var(--card2);color:var(--t1);border:1px solid var(--b2)}
+    /* QR label editor */
+    .qre-wrap{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:16px;margin-top:12px}
+    @media(max-width:560px){.qre-wrap{grid-template-columns:1fr}}
+    .qre-stage{background:repeating-conic-gradient(#0000 0% 25%, rgba(255,255,255,.045) 0% 50%) 0 0/16px 16px,var(--card2);border:1px solid var(--b2);border-radius:14px;min-height:300px;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden;touch-action:none}
+    .qre-stage canvas{background:transparent;cursor:grab;max-width:100%;border-radius:2px}
+    .qre-stage canvas:active{cursor:grabbing}
+    .qre-side{display:flex;flex-direction:column;gap:9px}
+    .qre-sec{font-size:10.5px;color:var(--t2);font-weight:800;letter-spacing:.6px;text-transform:uppercase;margin-top:4px}
+    .qre-f{display:flex;flex-direction:column;gap:4px}
+    .qre-f>label{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.2px}
+    .qre-f input[type=number],.qre-f select{background:var(--card2);border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 9px;font-size:13px;font-weight:600;width:100%}
+    .qre-f input[type=color]{width:100%;height:34px;border:1px solid var(--b2);border-radius:9px;background:var(--card2);padding:3px;cursor:pointer}
+    .qre-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .qre-chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--t1);font-weight:600;cursor:pointer}
+    .qre-chk input{width:17px;height:17px}
+    .qre-cap{font-size:11px;color:var(--t2);font-weight:600;letter-spacing:.2px;margin-top:2px;line-height:1.4}
+    .qre-row{display:flex;gap:8px;margin-top:4px}
+    .qre-auto{width:100%;padding:11px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;background:rgba(0,207,255,.12);border:1px solid #00CFFF;color:#bff0ff;letter-spacing:.3px}
+    .qre-auto:active{transform:scale(.99)}
+    .qre-row button{flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--b2)}
+    .qre-save{background:var(--grad);color:#fff;border:none}
+    .qre-reset{background:var(--card2);color:var(--t1)}
     /* Master PIN reveal on MD */
     .mpin-reveal{width:100%;background:linear-gradient(145deg,#1c1c1c,#0e0e0e);border:1px dashed var(--b2);border-radius:12px;color:var(--t2);font-size:14px;font-weight:700;padding:18px;cursor:pointer;letter-spacing:.5px}
     .mpin-reveal:active{border-color:var(--acc);color:var(--acc)}
@@ -1247,6 +1269,41 @@
           <button class="m-row-btn" style="flex:1;width:auto" onclick="mQRSetAll(false)">Untick all</button>
         </div>
       </div>
+      <div class="mc"><div class="mct">QR label editor</div>
+        <div class="m-tool-desc">Drag a piece to move it, drag its corner handle to resize. Drag the <b style="color:#F59E0B">amber</b> corner to expand the label. Changes auto-save; <b>Save design</b> confirms. Applies to single labels and the bulk PDF above.</div>
+        <div class="qre-wrap">
+          <div class="qre-stage" id="qre-stage"><canvas id="qre-cv"></canvas></div>
+          <div class="qre-side">
+            <div class="qre-sec">Show</div>
+            <label class="qre-chk"><input id="qe-qr" type="checkbox" checked onchange="qeToggle('qr',this.checked)"> QR code</label>
+            <label class="qre-chk"><input id="qe-desc" type="checkbox" checked onchange="qeToggle('desc',this.checked)"> Description</label>
+            <label class="qre-chk"><input id="qe-sku" type="checkbox" checked onchange="qeToggle('sku',this.checked)"> SKU</label>
+            <div class="qre-f"><label>Image</label><select id="qe-img" onchange="qeImg(this.value)"><option value="none">None</option><option value="logo">HK logo</option><option value="product">Product image (by SKU)</option></select></div>
+            <div class="qre-sec">Style</div>
+            <div class="qre-two">
+              <div class="qre-f"><label>QR colour</label><input id="qe-fg" type="color" oninput="qeSet('fg',this.value)"></div>
+              <div class="qre-f"><label>Background</label><input id="qe-bg" type="color" oninput="qeSet('bg',this.value)"></div>
+            </div>
+            <div class="qre-two">
+              <div class="qre-f"><label>Error correction</label><select id="qe-ec" onchange="qeSet('ec',this.value)"><option value="L">L · 7%</option><option value="M">M · 15%</option><option value="Q">Q · 25%</option><option value="H">H · 30%</option></select></div>
+              <div class="qre-f"><label>Quiet zone</label><input id="qe-quiet" type="number" min="0" max="8" step="1" oninput="qeSet('quiet',this.value)"></div>
+            </div>
+            <div class="qre-sec">Label size (mm)</div>
+            <div class="qre-two">
+              <div class="qre-f"><label>Width</label><input id="qe-w" type="number" min="10" max="120" step="1" oninput="qeSet('wmm',this.value)"></div>
+              <div class="qre-f"><label>Height</label><input id="qe-h" type="number" min="10" max="120" step="1" oninput="qeSet('hmm',this.value)"></div>
+            </div>
+            <label class="qre-chk"><input id="qe-grid" type="checkbox" checked onchange="qeSet('grid',this.checked)"> Snap to grid</label>
+            <div class="qre-cap" id="qe-cap"></div>
+            <button class="qre-auto" onclick="qeAuto()">✨ Auto-arrange</button>
+            <div class="qre-row">
+              <button class="qre-reset" onclick="qeReset()">Reset</button>
+              <button class="qre-save" id="qe-save" onclick="qeSave()">Save design</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mc"><div class="mct">Inventory summary</div><div id="m-tool-stats"></div></div>
       <div class="mc"><div class="mct">Inventory summary</div><div id="m-tool-stats"></div></div>
     </div>
   </div>
@@ -1283,7 +1340,7 @@
 <div class="m-qr" id="m-qr">
   <div class="m-qr-box">
     <div class="m-qr-label" id="m-qr-label"></div>
-    <div class="m-qr-note">Print at 100% scale · exact 30&times;30mm label</div>
+    <div class="m-qr-note" id="m-qr-note">Print at 100% scale · exact 30&times;30mm label</div>
     <div class="m-qr-row">
       <button class="m-qr-btn m-qr-close" onclick="mCloseQR()">Close</button>
       <button class="m-qr-btn m-qr-print" id="m-qr-printbtn">Print</button>
@@ -2282,7 +2339,7 @@ function goHome(){
   },500);
 }
 
-function logout(){TRAINING=false;showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');}
+function logout(){TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');}
 
 // ── JSONP ──
 function jsonp(url,cb){
@@ -3228,6 +3285,7 @@ function kiGo(view){
     if(el) el.style.display=(v===view)?'block':'none';
   });
   var sb=document.querySelector('#s-kartinfo .sb'); if(sb) sb.scrollTop=0;
+  if(view==='karts'||view==='detail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); }
 }
 
 // Back: detail → karts → home → leave screen
@@ -3236,6 +3294,28 @@ function kartScreenBack(){
   if(KI_VIEW==='karts'||KI_VIEW==='ref'){ kiGo('home'); return; }
   back();
 }
+
+/* ---- live status auto-refresh: keeps OK / Damaged current without a manual reload ---- */
+var KART_AUTO=null;
+function _kartScreenVisible(){ var r=document.getElementById('s-kartinfo'); return !!(r && r.offsetParent!==null); }
+function kartRefreshSilent(){
+  if(!cu || typeof loadRfKarts!=='function' || !_kartScreenVisible()) return;
+  loadRfKarts(function(){
+    var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
+    var ssub=document.getElementById('ki-site-sub'); if(ssub) ssub.innerText=kiSubText();
+    if(KI_VIEW==='detail'&&SELECTED_KART){
+      var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;});
+      if(live){ SELECTED_KART=live; KD_KART=live;
+        var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(live.status);
+        var det=document.getElementById('kiv-detail'); if(det) det.style.setProperty('--kacc',(KART_TYPE_COLOR[live.type]||'#22D3EE'));
+        var st=document.getElementById('kd-stats'); if(st) st.innerHTML=kdStats(live);
+      }
+    } else if(KI_VIEW==='karts'){ renderTypeTabs(); renderKartChips(); }
+  });
+}
+function startKartAutoRefresh(){ if(KART_AUTO) return; KART_AUTO=setInterval(function(){ if(!document.hidden) kartRefreshSilent(); }, 45000); }
+function stopKartAutoRefresh(){ if(KART_AUTO){ clearInterval(KART_AUTO); KART_AUTO=null; } }
+document.addEventListener('visibilitychange',function(){ if(!document.hidden && cu && (KI_VIEW==='karts'||KI_VIEW==='detail')) kartRefreshSilent(); });
 
 function kiSubText(){ return (typeof siteLabel==='function'?siteLabel(currentSite):'')+' fleet · '+KART_LIST.length+' karts'; }
 
@@ -3736,7 +3816,7 @@ function mTab(name){
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
   if(name==='sites'&&!mSitesLoaded) siLoad();
-  if(name==='tools'){ mToolsStats(); mQRCount(); }
+  if(name==='tools'){ mToolsStats(); mQRCount(); qrDesignerInit(); }
 }
 /* ----- Staff editor (server-backed, gated by the master code) ----- */
 function msLoad(){
@@ -3933,11 +4013,141 @@ function mRemove(sku){
     }).catch(function(){ alert('Connection error'); });
 }
 
+/* ===== QR label editor (master) — drag & resize, prints exactly what you see ===== */
+var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true,
+  el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
+function _clone(o){ return JSON.parse(JSON.stringify(o)); }
+function loadQrLay(){ var d=_clone(QR_LAY_DEFAULTS); try{ var s=localStorage.getItem('hk_qr_layout'); if(s){ var o=JSON.parse(s); for(var k in d){ if(k==='el') continue; if(o[k]!==undefined&&o[k]!==null) d[k]=o[k]; } if(o.el){ for(var e in d.el){ if(o.el[e]){ for(var p in d.el[e]){ if(o.el[e][p]!==undefined) d.el[e][p]=o.el[e][p]; } } } } } }catch(e){} return d; }
+var QR_LAY=loadQrLay();
+function saveQrLay(){ try{ localStorage.setItem('hk_qr_layout',JSON.stringify(QR_LAY)); }catch(e){} }
+function _qrEc(l){ return ({L:'L',M:'M',Q:'Q',H:'H'}[(l||QR_LAY).ec]||'M'); }
+function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) return s; while(s.length>1&&ctx.measureText(s+'\u2026').width>maxW)s=s.slice(0,-1); return s+'\u2026'; }
+function qrSampleSku(){ var t=(typeof parts!=='undefined'&&parts)?(parts.find(function(p){return p.qr_print!==false;})||parts[0]):null; return t?{sku:String(t.sku),desc:(t.desc||String(t.sku))}:{sku:'SAMPLE-001',desc:'Sample part'}; }
+
+/* image cache: HK logo (same-origin) + per-SKU product images (crossOrigin so canvas export works when the host serves CORS) */
+var _hkLogoImg=null, _prodImgs={};
+function _ensureHkLogo(cb){ if(_hkLogoImg&&_hkLogoImg.complete&&_hkLogoImg.naturalWidth){ if(cb)cb(); return; } var dom=document.querySelector('.sp-logo'); var src=dom&&dom.src?dom.src:''; if(!src){ if(cb)cb(); return; } _hkLogoImg=new Image(); _hkLogoImg.onload=function(){ if(cb)cb(); }; _hkLogoImg.onerror=function(){ if(cb)cb(); }; _hkLogoImg.src=src; }
+function _partImgUrl(sku){ var p=(typeof parts!=='undefined'&&parts)?parts.find(function(x){return String(x.sku)===String(sku);}):null; return (p&&p.image_url)?p.image_url:''; }
+function _prodImg(url,cb){ if(!url){ if(cb)cb(null); return; } var im=_prodImgs[url]; if(im){ if(im.complete){ if(cb)cb(im.naturalWidth?im:null); } else { im.addEventListener('load',function(){ if(cb)cb(im.naturalWidth?im:null); }); im.addEventListener('error',function(){ if(cb)cb(null); }); } return; } im=new Image(); im.crossOrigin='anonymous'; _prodImgs[url]=im; im.onload=function(){ if(cb)cb(im.naturalWidth?im:null); }; im.onerror=function(){ if(cb)cb(null); }; im.src=url; }
+function _prodPreload(skus,cb){ if(QR_LAY.img!=='product'){ cb(); return; } var urls=[]; (skus||[]).forEach(function(s){ var u=_partImgUrl(s); if(u&&urls.indexOf(u)<0) urls.push(u); }); if(!urls.length){ cb(); return; } var left=urls.length; urls.forEach(function(u){ _prodImg(u,function(){ if(--left<=0) cb(); }); }); }
+
+/* draw the whole label into ctx at S px per mm. imgs={logo,product}; ph=true shows placeholders in the editor (never on print). */
+function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
+  lay=lay||QR_LAY; imgs=imgs||{}; var W=Math.round(lay.wmm*S), H=Math.round(lay.hmm*S), E=lay.el;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(0,0,W,H);
+  if(E.qr.on){ var b=E.qr, bw=Math.max(2,b.w*S), bh=Math.max(2,b.h*S), bx=b.x*S, by=b.y*S;
+    var qr=qrcode(0,_qrEc(lay)); qr.addData((typeof WEB_APP_URL!=='undefined'?WEB_APP_URL:'')+'?sku='+sku); qr.make();
+    var n=qr.getModuleCount(), m=Math.max(0,Math.round(+lay.quiet)), total=n+m*2;
+    var side=Math.min(bw,bh), cell=Math.max(1,Math.floor(side/total)), qs=cell*total;
+    var ox=bx+Math.round((bw-qs)/2), oy=by+Math.round((bh-qs)/2);
+    ctx.fillStyle=lay.fg||'#000';
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++){ if(qr.isDark(r,c)) ctx.fillRect(ox+(m+c)*cell, oy+(m+r)*cell, cell, cell); }
+  }
+  if(E.img.on && lay.img!=='none'){ var im=(lay.img==='product')?imgs.product:imgs.logo; var ib=E.img, iw=Math.max(2,ib.w*S), ih=Math.max(2,ib.h*S), ix=ib.x*S, iy=ib.y*S, kp=Math.round(Math.min(iw,ih)*0.10);
+    if(im&&im.naturalWidth){ ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(ix-kp,iy-kp,iw+kp*2,ih+kp*2); var ar=im.naturalWidth/im.naturalHeight, dw=iw, dh=iw/ar; if(dh>ih){ dh=ih; dw=ih*ar; } try{ ctx.drawImage(im, ix+(iw-dw)/2, iy+(ih-dh)/2, dw, dh); }catch(e){} }
+    else if(ph){ ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(ix-kp,iy-kp,iw+kp*2,ih+kp*2); ctx.fillStyle=lay.fg||'#000'; ctx.fillRect(ix,iy,iw,ih); ctx.fillStyle=lay.bg||'#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='700 '+Math.round(Math.min(iw,ih)*0.4)+'px Arial'; ctx.fillText(lay.img==='product'?'IMG':'HK', ix+iw/2, iy+ih/2+1); ctx.textBaseline='alphabetic'; }
+  }
+  ctx.textAlign='center';
+  if(E.desc.on){ var d=E.desc, fpx=Math.max(6,Math.round(d.h*S*0.92)); ctx.fillStyle=lay.fg||'#000'; ctx.font='700 '+fpx+'px Arial, sans-serif'; ctx.fillText(_fitText(ctx,(desc||sku),d.w*S), (d.x+d.w/2)*S, d.y*S+fpx); }
+  if(E.sku.on){ var s2=E.sku, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.fillStyle='#666'; ctx.font='400 '+spx+'px Arial, sans-serif'; ctx.fillText(_fitText(ctx,sku,s2.w*S), (s2.x+s2.w/2)*S, s2.y*S+spx); }
+}
+
+/* export render at print DPI -> dataURL. Falls back (and warns once) if a cross-origin product image taints the canvas. */
+var _qrTaintWarned=false;
+function qrLabelCanvas(sku,desc,lay,imgs){
+  lay=lay||QR_LAY; var DPI=300, S=DPI/25.4, W=Math.max(8,Math.round(lay.wmm*S)), H=Math.max(8,Math.round(lay.hmm*S));
+  var im=imgs||{ logo:_hkLogoImg, product:(lay.img==='product'?(_prodImgs[_partImgUrl(sku)]||null):null) };
+  var c=document.createElement('canvas'); c.width=W; c.height=H; _drawLabel(c.getContext('2d'),S,sku,desc,lay,im,false);
+  try{ return c.toDataURL('image/png'); }
+  catch(e){ var l2=_clone(lay); if(l2.img==='product') l2.img='none'; if(!_qrTaintWarned){ _qrTaintWarned=true; setTimeout(function(){ alert('That product image is not served with CORS, so it can\u2019t be embedded in a printable file. The label was exported without it. Host product images with CORS (or via the same domain) to include them.'); },0); } var c2=document.createElement('canvas'); c2.width=W; c2.height=H; _drawLabel(c2.getContext('2d'),S,sku,desc,l2,{logo:_hkLogoImg,product:null},false); return c2.toDataURL('image/png'); }
+}
+
+/* ---- the drag/resize editor ---- */
+var QE_SCALE=6, QE_SEL=null, QE_DRAG=null, QE_GUIDES=null;
+function qeFit(){ var st=document.getElementById('qre-stage'); var aw=Math.max(120,((st&&st.clientWidth)||320)-36), ah=320; return Math.max(3, Math.floor(Math.min(aw/QR_LAY.wmm, ah/QR_LAY.hmm))); }
+function _hdl(x,px,py,col){ var s=7; x.fillStyle=col; x.fillRect(px-s,py-s,s,s); x.strokeStyle='#0b0e13'; x.lineWidth=1; x.strokeRect(px-s,py-s,s,s); }
+function qeRender(){ var cv=document.getElementById('qre-cv'); if(!cv) return; QE_SCALE=qeFit(); var S=QE_SCALE;
+  var W=Math.round(QR_LAY.wmm*S), H=Math.round(QR_LAY.hmm*S); cv.width=W; cv.height=H; cv.style.width=W+'px'; cv.style.height=H+'px';
+  var x=cv.getContext('2d'), s=qrSampleSku();
+  _drawLabel(x,S,s.sku,s.desc,QR_LAY,{ logo:_hkLogoImg, product:(QR_LAY.img==='product'?(_prodImgs[_partImgUrl(s.sku)]||null):null) },true);
+  x.save();
+  x.strokeStyle='rgba(0,207,255,.16)'; x.lineWidth=1; x.setLineDash([3,4]);
+  x.beginPath(); x.moveTo(Math.round(W/2)+0.5,0); x.lineTo(Math.round(W/2)+0.5,H); x.moveTo(0,Math.round(H/2)+0.5); x.lineTo(W,Math.round(H/2)+0.5); x.stroke(); x.setLineDash([]);
+  if(QE_GUIDES){ x.strokeStyle='#E040FB'; x.lineWidth=1; if(QE_GUIDES.vx!=null){ var gx=Math.round(QE_GUIDES.vx*S)+0.5; x.beginPath(); x.moveTo(gx,0); x.lineTo(gx,H); x.stroke(); } if(QE_GUIDES.hy!=null){ var gy=Math.round(QE_GUIDES.hy*S)+0.5; x.beginPath(); x.moveTo(0,gy); x.lineTo(W,gy); x.stroke(); } }
+  x.restore();
+  if(QE_SEL && QR_LAY.el[QE_SEL] && QR_LAY.el[QE_SEL].on && !(QE_SEL==='img'&&QR_LAY.img==='none')){ var b=QR_LAY.el[QE_SEL]; x.strokeStyle='#00CFFF'; x.lineWidth=1.5; x.setLineDash([4,3]); x.strokeRect(b.x*S+0.5,b.y*S+0.5,Math.max(1,b.w*S-1),Math.max(1,b.h*S-1)); x.setLineDash([]); _hdl(x,(b.x+b.w)*S,(b.y+b.h)*S,'#00CFFF'); }
+  _hdl(x,W-1,H-1,'#F59E0B');
+  var cap=document.getElementById('qe-cap'); if(cap) cap.textContent=QR_LAY.wmm+' \u00d7 '+QR_LAY.hmm+' mm  ·  EC '+QR_LAY.ec+'  ·  quiet '+QR_LAY.quiet+(QE_SEL?('  ·  '+QE_SEL+' selected'):'');
+}
+function _qePt(ev){ var cv=document.getElementById('qre-cv'), r=cv.getBoundingClientRect(), t=(ev.touches&&ev.touches[0])?ev.touches[0]:ev; return { x:(t.clientX-r.left)/QE_SCALE, y:(t.clientY-r.top)/QE_SCALE }; }
+function _near(ax,ay,bx,by,tol){ return Math.abs(ax-bx)<=tol && Math.abs(ay-by)<=tol; }
+function qeDown(ev){ ev.preventDefault(); var p=_qePt(ev), tol=11/QE_SCALE;
+  if(_near(p.x,p.y,QR_LAY.wmm,QR_LAY.hmm,tol)){ QE_DRAG={mode:'label'}; return; }
+  if(QE_SEL){ var bb=QR_LAY.el[QE_SEL]; if(bb&&bb.on&&_near(p.x,p.y,bb.x+bb.w,bb.y+bb.h,tol)){ QE_DRAG={mode:'resize',el:QE_SEL}; return; } }
+  var order=['sku','desc','img','qr']; for(var i=0;i<order.length;i++){ var k=order[i], e=QR_LAY.el[k]; if(!e||!e.on) continue; if(k==='img'&&QR_LAY.img==='none') continue; if(p.x>=e.x&&p.x<=e.x+e.w&&p.y>=e.y&&p.y<=e.y+e.h){ QE_SEL=k; QE_DRAG={mode:'move',el:k,dx:p.x-e.x,dy:p.y-e.y}; qeRender(); return; } }
+  QE_SEL=null; QE_DRAG=null; qeRender();
+}
+function qeMove(ev){ if(!QE_DRAG) return; ev.preventDefault(); var p=_qePt(ev), g=QR_LAY.grid?1:0.1; function sn(v){ return Math.round(v/g)*g; }
+  if(QE_DRAG.mode==='label'){ QR_LAY.wmm=Math.max(10,Math.min(120,sn(p.x))); QR_LAY.hmm=Math.max(10,Math.min(120,sn(p.y))); qeSyncFields(); qeRender(); return; }
+  var e=QR_LAY.el[QE_DRAG.el]; if(!e) return;
+  if(QE_DRAG.mode==='move'){
+    var nx=Math.max(0,Math.min(QR_LAY.wmm-e.w, sn(p.x-QE_DRAG.dx))), ny=Math.max(0,Math.min(QR_LAY.hmm-e.h, sn(p.y-QE_DRAG.dy)));
+    var tol=1.4, gd={vx:null,hy:null}, cx=nx+e.w/2, cy=ny+e.h/2, vt=[QR_LAY.wmm/2], ht=[QR_LAY.hmm/2], k, o, i, best;
+    for(k in QR_LAY.el){ if(k===QE_DRAG.el) continue; o=QR_LAY.el[k]; if(!o.on||(k==='img'&&QR_LAY.img==='none')) continue; vt.push(o.x+o.w/2); ht.push(o.y+o.h/2); }
+    best=null; for(i=0;i<vt.length;i++){ if(Math.abs(cx-vt[i])<=tol && (best==null||Math.abs(cx-vt[i])<Math.abs(cx-best))) best=vt[i]; } if(best!=null){ nx=Math.max(0,Math.min(QR_LAY.wmm-e.w, best-e.w/2)); gd.vx=best; }
+    best=null; for(i=0;i<ht.length;i++){ if(Math.abs(cy-ht[i])<=tol && (best==null||Math.abs(cy-ht[i])<Math.abs(cy-best))) best=ht[i]; } if(best!=null){ ny=Math.max(0,Math.min(QR_LAY.hmm-e.h, best-e.h/2)); gd.hy=best; }
+    e.x=nx; e.y=ny; QE_GUIDES=(gd.vx!=null||gd.hy!=null)?gd:null;
+  }
+  else if(QE_DRAG.mode==='resize'){ var nw=Math.max(2,sn(p.x-e.x)), nh=Math.max(1,sn(p.y-e.y)); if(QE_DRAG.el==='qr'){ var sq=Math.min(Math.max(4,Math.min(nw,nh)), QR_LAY.wmm-e.x, QR_LAY.hmm-e.y); e.w=e.h=sq; } else { e.w=Math.min(nw,QR_LAY.wmm-e.x); e.h=Math.min(nh,QR_LAY.hmm-e.y); } }
+  qeRender();
+}
+function qeUp(){ if(QE_DRAG){ QE_DRAG=null; QE_GUIDES=null; saveQrLay(); qeRender(); } }
+function qeSyncFields(){ var w=document.getElementById('qe-w'),h=document.getElementById('qe-h'); if(w)w.value=QR_LAY.wmm; if(h)h.value=QR_LAY.hmm; }
+function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm') QR_LAY[k]=Math.max(10,Math.min(120,n)); } } saveQrLay(); qeRender(); }
+function qeToggle(el,on){ if(QR_LAY.el[el]){ QR_LAY.el[el].on=!!on; if(on) QE_SEL=el; } saveQrLay(); qeRender(); }
+function qeImg(v){ QR_LAY.img=v; QR_LAY.el.img.on=(v!=='none'); if(v!=='none') QE_SEL='img'; if(v==='product'){ _prodImg(_partImgUrl(qrSampleSku().sku), qeRender); } saveQrLay(); qeRender(); }
+function qeReset(){ QR_LAY=_clone(QR_LAY_DEFAULTS); QE_SEL=null; saveQrLay(); qrDesignerInit(); }
+function qeSave(){ saveQrLay(); var b=document.getElementById('qe-save'); if(b){ var o=b.textContent; b.textContent='Saved \u2713'; setTimeout(function(){ b.textContent=o; },1200); } if(typeof mQRCount==='function') mQRCount(); }
+function qeAuto(){
+  var W=QR_LAY.wmm, H=QR_LAY.hmm, mg=Math.max(0.8, Math.min(W,H)*0.05), gap=Math.max(0.6, mg*0.7), ar=W/H, E=QR_LAY.el;
+  var descH=Math.max(1.6, Math.min(H*0.11, 4.2)), skuH=Math.max(1.2, Math.min(H*0.075, 3.0));
+  var hasD=E.desc.on, hasS=E.sku.on;
+  function band(){ return (hasD?descH:0)+(hasS?skuH:0)+((hasD&&hasS)?gap:0); }
+  if(ar>=1.45){
+    var qs=Math.max(6, Math.min(H-2*mg, W*0.5-gap)); E.qr.w=E.qr.h=qs; E.qr.x=mg; E.qr.y=(H-qs)/2;
+    var tx=mg+qs+gap, tw=Math.max(4, W-tx-mg), ty=(H-band())/2;
+    E.desc.x=tx; E.desc.w=tw; E.desc.h=descH; E.desc.y=ty; if(hasD) ty+=descH+gap;
+    E.sku.x=tx; E.sku.w=tw; E.sku.h=skuH; E.sku.y=ty;
+  } else {
+    var bH=band(), avail=H-2*mg-(bH?bH+gap:0), qs2=Math.max(6, Math.min(W-2*mg, avail));
+    E.qr.w=E.qr.h=qs2; E.qr.x=(W-qs2)/2; E.qr.y=mg;
+    var tw2=Math.max(4, W-2*mg), ty2=E.qr.y+qs2+gap;
+    E.desc.x=mg; E.desc.w=tw2; E.desc.h=descH; E.desc.y=ty2; if(hasD) ty2+=descH+gap;
+    E.sku.x=mg; E.sku.w=tw2; E.sku.h=skuH; E.sku.y=ty2;
+  }
+  if(QR_LAY.img!=='none'){ var ls=Math.max(2, E.qr.w*0.22); E.img.w=E.img.h=ls; E.img.x=E.qr.x+(E.qr.w-ls)/2; E.img.y=E.qr.y+(E.qr.h-ls)/2; }
+  ['qr','img','desc','sku'].forEach(function(k){ var e=E[k]; e.w=Math.min(e.w,W); e.h=Math.min(e.h,H); e.x=Math.max(0,Math.min(W-e.w,e.x)); e.y=Math.max(0,Math.min(H-e.h,e.y)); });
+  QE_GUIDES=null; saveQrLay(); qeRender();
+}
+function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
+  function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
+  sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
+  var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;
+    cv.addEventListener('mousedown',qeDown); window.addEventListener('mousemove',qeMove); window.addEventListener('mouseup',qeUp);
+    cv.addEventListener('touchstart',qeDown,{passive:false}); cv.addEventListener('touchmove',qeMove,{passive:false}); cv.addEventListener('touchend',qeUp); }
+  _ensureHkLogo(qeRender); if(QR_LAY.img==='product'){ _prodImg(_partImgUrl(qrSampleSku().sku), qeRender); } qeRender();
+}
+
 /* QR — identical payload + 30x30mm print layout as the old sheet */
 function mQR(sku){
   var p=(parts||[]).find(function(x){return x.sku===sku;}); if(!p) return;
-  var img=qrDataUrl(sku);
-  document.getElementById('m-qr-label').innerHTML='<img src="'+img+'"><div class="qd">'+(p.desc||sku)+'</div><div class="qs">'+sku+'</div>';
+  _ensureHkLogo(function(){ _prodPreload([sku], function(){
+    var img=qrLabelCanvas(sku,(p.desc||sku),QR_LAY);
+    var maxBox=210, ar=(+QR_LAY.wmm||30)/(+QR_LAY.hmm||30);
+    var w=(ar>=1?maxBox:Math.round(maxBox*ar)), h=(ar>=1?Math.round(maxBox/ar):maxBox);
+    document.getElementById('m-qr-label').innerHTML='<img src="'+img+'" style="width:'+w+'px;height:'+h+'px">';
+    var nt=document.getElementById('m-qr-note'); if(nt) nt.innerHTML='Print at 100% scale · exact '+(+QR_LAY.wmm||30)+'&times;'+(+QR_LAY.hmm||30)+'mm label';
+  }); });
   var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,(p.desc||sku)); };
   document.getElementById('m-qr').classList.add('show');
 }
@@ -3951,31 +4161,32 @@ function qrCanvas(sku){
   for(var r=0;r<n;r++) for(var col=0;col<n;col++){ if(qr.isDark(r,col)) x.fillRect((col+m)*scale,(r+m)*scale,scale,scale); }
   return c.toDataURL('image/png');
 }
-function qrLabelToPdf(doc,sku,desc){
-  var sd=(desc||String(sku)); if(sd.length>22) sd=sd.substring(0,20)+'...';
-  doc.addImage(qrCanvas(sku),'PNG',5.5,2,19,19);
-  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(sd,15,24.5,{align:'center',maxWidth:28});
-  doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(90); doc.text(String(sku),15,27.5,{align:'center'}); doc.setTextColor(0);
-}
+function qrLabelToPdf(doc,sku,desc,lay){ lay=lay||QR_LAY; var w=(+lay.wmm||30),h=(+lay.hmm||30); doc.addImage(qrLabelCanvas(sku,desc,lay),'PNG',0,0,w,h); }
 function mSavePDFOne(sku,desc){
-  try{ var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[30,30]}); qrLabelToPdf(doc,sku,desc); doc.save(String(sku)+'.pdf'); }
-  catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
+  _ensureHkLogo(function(){ _prodPreload([sku], function(){
+    try{ var JP=window.jspdf.jsPDF, w=(+QR_LAY.wmm||30), h=(+QR_LAY.hmm||30); var doc=new JP({unit:'mm',format:[w,h]}); qrLabelToPdf(doc,sku,desc,QR_LAY); doc.save(String(sku)+'.pdf'); }
+    catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
+  }); });
 }
 
 /* QR helpers — generated locally so payload is the same ?sku= and a bulk export never depends on a network round-trip */
 function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make(); return qr.createDataURL(6); }
 function mExportAllQR(){
   var list=(parts||[]).filter(function(p){return p.qr_print!==false;}); if(!list.length){ alert('No parts are ticked for the bulk QR PDF. Tick the ones you want, or use \u201cTick all\u201d.'); return; }
+  _ensureHkLogo();
   var btn=document.getElementById('m-qrall-btn'), old=btn?btn.innerHTML:'';
   if(btn){ btn.innerHTML='Building...'; btn.disabled=true; }
-  setTimeout(function(){
-    try{
-      var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[30,30]});
-      list.forEach(function(pp,i){ if(i>0) doc.addPage([30,30]); qrLabelToPdf(doc,pp.sku,pp.desc); });
-      doc.save('HK-QR-Codes.pdf');
-    }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
-    if(btn){ btn.innerHTML=old; btn.disabled=false; }
-  },30);
+  var w=(+QR_LAY.wmm||30), h=(+QR_LAY.hmm||30);
+  _prodPreload(list.map(function(p){return p.sku;}), function(){
+    setTimeout(function(){
+      try{
+        var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[w,h]});
+        list.forEach(function(pp,i){ if(i>0) doc.addPage([w,h]); qrLabelToPdf(doc,pp.sku,pp.desc,QR_LAY); });
+        doc.save('HK-QR-Codes.pdf');
+      }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
+      if(btn){ btn.innerHTML=old; btn.disabled=false; }
+    },30);
+  });
 }
 /* Per-part include/exclude for the bulk QR PDF. Persists via master-write (op:qrflag). */
 function mToggleQR(sku,ev){ if(ev){ev.stopPropagation();}

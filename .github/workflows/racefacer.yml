@@ -1,15 +1,22 @@
 name: RaceFacer sync
 
-# Runs the sync automatically every 5 minutes (GitHub's fastest),
-# and also gives you a "Run workflow" button to test it by hand.
+# GitHub's scheduler cannot fire faster than every 5 minutes. So instead this
+# starts every 30 minutes and then LOOPS inside the job, running the sync about
+# every 30 seconds for the whole half hour. The "Run workflow" button starts it now.
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch: {}
+
+# Never let two of these run on top of each other.
+concurrency:
+  group: racefacer-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 32
     steps:
       - name: Get the files from the repo
         uses: actions/checkout@v4
@@ -22,14 +29,17 @@ jobs:
       - name: Install the one library it needs
         run: npm install undici
 
-      - name: Run the sync (Sydney)
+      - name: Sync on a loop (Sydney)
         env:
           RF_USER: ${{ secrets.RF_USER }}
           RF_PASS: ${{ secrets.RF_PASS }}
           SB_URL: ${{ secrets.SB_URL }}
           SB_SERVICE_KEY: ${{ secrets.SB_SERVICE_KEY }}
           SITE: sydney
-        run: node racefacer-sync.js
-
-# Want Melbourne too? Copy the "Run the sync (Sydney)" step, paste it
-# below, rename it "Run the sync (Melbourne)", and change SITE to melbourne.
+          GAP_SECONDS: '30'     # <-- gap between syncs. Raise to 60/90 if RaceFacer gets slow.
+        run: |
+          end=$((SECONDS + 1740))   # loop for ~29 min, then the next scheduled run takes over
+          while [ $SECONDS -lt $end ]; do
+            node racefacer-sync.js || echo "sync cycle failed — will retry next loop"
+            sleep "${GAP_SECONDS}"
+          done

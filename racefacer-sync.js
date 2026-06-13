@@ -9,7 +9,7 @@
 // Optional: RF_KART_IDS (comma list), RF_KART_TYPE_UUIDS (comma list), SITE (default sydney)
 
 const { fetch, Agent } = require('undici');
-const { parseKartDetails, parseRepairs, parseParts, parseKartNotes } = require('./racefacer-parse');
+const { parseKartDetails, parseRepairs, parseParts, parseKartNotes, parseGarageStatuses } = require('./racefacer-parse');
 const { reconcileDay } = require('./racefacer-reconcile');
 
 const RF_BASE = process.env.RF_BASE || 'https://103.166.146.163';
@@ -263,37 +263,33 @@ async function pruneStale(activeIds) {
   return stale.length;
 }
 
-// FAST PATH: refresh only OK / Damaged / For-maintenance status for the real fleet already
-// in rf_karts (the ~50-60 numeric-named karts). Skips enumerating the 209 and skips
-// repairs/parts/notes. Fetches kart-details in small parallel batches so a cycle is quick.
+// FAST PATH: read OK / Damaged / For-maintenance straight off the garage LIST pages
+// (one per kart type, fetched in parallel — ~5 requests for the whole fleet) instead of
+// hitting all ~190 karts individually. Only updates karts already in rf_karts (so it's
+// always an UPDATE — never a partial insert), and only the status fields.
 async function statusFast() {
-  let fleet = [];
-  try { fleet = (await sb('rf_karts?select=rf_id')) || []; }
+  let known = new Set();
+  try { const f = (await sb('rf_karts?select=rf_id')) || []; for (const r of f) if (r.rf_id != null) known.add(r.rf_id); }
   catch (e) { console.error(`[fast] couldn't read fleet: ${e.message}`); return 0; }
-  const ids = fleet.map((r) => r.rf_id).filter((x) => x != null);
-  if (!ids.length) return 0;                          // nothing known yet — the full sync will populate it
-  let updated = 0;
-  const BATCH = 8;
-  for (let i = 0; i < ids.length; i += BATCH) {
-    const chunk = ids.slice(i, i + BATCH);
-    const rows = (await Promise.all(chunk.map(async (id) => {
-      try {
-        const dj = await rfJson(`/ajax/garage/kart-details?id=${id}`);
-        if (!dj || dj.success === false || !dj.kart) return null;
-        const d = parseKartDetails(dj);
-        if (d.statusCode == null) return null;          // couldn't read status this time — leave the old value
-        return { rf_id: id, status: d.status, status_code: d.statusCode, fetched_at: new Date().toISOString() };
-      } catch (e) { return null; }
-    }))).filter(Boolean);
-    if (rows.length) {
-      try { await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: rows }); updated += rows.length; }
-      catch (e) { console.error(`[fast] status upsert failed: ${e.message}`); }
-    }
-    await sleep(120);                                   // be gentle on RaceFacer between batches
+  if (!known.size) return 0;                          // nothing known yet — the full sync will populate it
+
+  const lists = await Promise.all(Object.keys(KART_TYPES).map(async (uuid) => {
+    try { const html = await (await rf(`/en/administration/garage/garage?kart_type_uuid=${uuid}`)).text(); return parseGarageStatuses(html); }
+    catch (e) { return []; }                          // a page that fails this cycle just gets skipped; the next cycle/heavy covers it
+  }));
+
+  const rows = [], seen = new Set(), now = new Date().toISOString();
+  for (const list of lists) for (const k of list) {
+    if (!k.rfId || k.statusCode == null || !known.has(k.rfId) || seen.has(k.rfId)) continue;
+    seen.add(k.rfId);
+    rows.push({ rf_id: k.rfId, status: k.status, status_code: k.statusCode, fetched_at: now });
   }
-  const now = new Date().toISOString();
+  for (let i = 0; i < rows.length; i += 100) {
+    try { await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: rows.slice(i, i + 100) }); }
+    catch (e) { console.error(`[fast] status upsert failed: ${e.message}`); }
+  }
   try { await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_status', v: now, at: now }] }); } catch (e) {}
-  return updated;
+  return rows.length;
 }
 
 async function main() {

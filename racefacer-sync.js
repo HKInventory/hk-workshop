@@ -16,6 +16,9 @@ const RF_BASE = process.env.RF_BASE || 'https://103.166.146.163';
 const RF_USER = process.env.RF_USER, RF_PASS = process.env.RF_PASS;
 const SB_URL = process.env.SB_URL, SB_KEY = process.env.SB_SERVICE_KEY;
 const SITE = process.env.SITE || 'sydney';
+// How often to run the FULL sync (repairs/parts/notes/prune). Between those, only
+// kart status is refreshed, which is fast. Default 5 min; tune with HEAVY_INTERVAL_SEC.
+const HEAVY_INTERVAL_MS = Math.max(60000, (parseInt(process.env.HEAVY_INTERVAL_SEC, 10) || 300) * 1000);
 
 const insecure = new Agent({ connect: { rejectUnauthorized: false } }); // accept the self-signed cert
 
@@ -260,9 +263,57 @@ async function pruneStale(activeIds) {
   return stale.length;
 }
 
+// FAST PATH: refresh only OK / Damaged / For-maintenance status for the real fleet already
+// in rf_karts (the ~50-60 numeric-named karts). Skips enumerating the 209 and skips
+// repairs/parts/notes. Fetches kart-details in small parallel batches so a cycle is quick.
+async function statusFast() {
+  let fleet = [];
+  try { fleet = (await sb('rf_karts?select=rf_id')) || []; }
+  catch (e) { console.error(`[fast] couldn't read fleet: ${e.message}`); return 0; }
+  const ids = fleet.map((r) => r.rf_id).filter((x) => x != null);
+  if (!ids.length) return 0;                          // nothing known yet — the full sync will populate it
+  let updated = 0;
+  const BATCH = 8;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
+    const rows = (await Promise.all(chunk.map(async (id) => {
+      try {
+        const dj = await rfJson(`/ajax/garage/kart-details?id=${id}`);
+        if (!dj || dj.success === false || !dj.kart) return null;
+        const d = parseKartDetails(dj);
+        if (d.statusCode == null) return null;          // couldn't read status this time — leave the old value
+        return { rf_id: id, status: d.status, status_code: d.statusCode, fetched_at: new Date().toISOString() };
+      } catch (e) { return null; }
+    }))).filter(Boolean);
+    if (rows.length) {
+      try { await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: rows }); updated += rows.length; }
+      catch (e) { console.error(`[fast] status upsert failed: ${e.message}`); }
+    }
+    await sleep(120);                                   // be gentle on RaceFacer between batches
+  }
+  const now = new Date().toISOString();
+  try { await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_status', v: now, at: now }] }); } catch (e) {}
+  return updated;
+}
+
 async function main() {
   if (!RF_USER || !RF_PASS || !SB_URL || !SB_KEY) throw new Error('missing required env vars');
   await login();
+
+  // Run the heavy (full) sync only every HEAVY_INTERVAL_MS; every other cycle is a quick status refresh.
+  let lastHeavy = 0, haveFleet = false;
+  try { const st = await sb('rf_sync_state?k=eq.last_heavy&select=v'); if (st && st[0] && st[0].v) lastHeavy = Date.parse(st[0].v) || 0; } catch (e) {}
+  try { const f = await sb('rf_karts?select=rf_id&limit=1'); haveFleet = !!(f && f.length); } catch (e) {}
+  const doHeavy = !haveFleet || (Date.now() - lastHeavy >= HEAVY_INTERVAL_MS);
+
+  if (!doHeavy) {
+    const n = await statusFast();
+    const due = Math.max(0, Math.round((HEAVY_INTERVAL_MS - (Date.now() - lastHeavy)) / 1000));
+    console.log(`[fast] status refreshed for ${n} karts; full sync due in ~${due}s.`);
+    return;
+  }
+
+  // ----- full sync (unchanged): enumerate everything + repairs/parts/notes + prune + reconcile -----
   await probe();                       // <-- prints exactly what RaceFacer replies; remove once working
   const idMap = await enumerateKarts();           // Map: rf_id -> { site, type }
   console.log(`Syncing ${idMap.size} karts...`);
@@ -278,9 +329,10 @@ async function main() {
   if (pruned) console.log(`[prune] removed ${pruned} stale/ghost karts no longer listed under any type.`);
   const aliases = await refreshAliases(perKart.flatMap((k) => k.repairs.flatMap((r) => (r.parts || []).map((p) => p.name))));
   const n = await reconcileToday(perKart, aliases);
-  await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_sync', v: new Date().toISOString(), at: new Date().toISOString() }] });
+  const now = new Date().toISOString();
+  await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_sync', v: now, at: now }, { k: 'last_heavy', v: now, at: now }] });
   console.log(`Done. ${perKart.length} karts synced, ${pruned} ghosts removed, ${n} discrepancies flagged for today.`);
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { login, enumerateKarts, syncKart, reconcileToday };
+module.exports = { login, enumerateKarts, syncKart, statusFast, reconcileToday };

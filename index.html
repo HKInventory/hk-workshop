@@ -3345,7 +3345,7 @@ function kartRefreshSilent(){
     } else if(KI_VIEW==='karts'){ renderTypeTabs(); renderKartChips(); }
   });
 }
-function startKartAutoRefresh(){ if(KART_AUTO) return; KART_AUTO=setInterval(function(){ if(!document.hidden) kartRefreshSilent(); }, 45000); }
+function startKartAutoRefresh(){ if(KART_AUTO) return; KART_AUTO=setInterval(function(){ if(!document.hidden) kartRefreshSilent(); }, 15000); }
 function stopKartAutoRefresh(){ if(KART_AUTO){ clearInterval(KART_AUTO); KART_AUTO=null; } }
 document.addEventListener('visibilitychange',function(){ if(!document.hidden && cu && (KI_VIEW==='karts'||KI_VIEW==='detail')) kartRefreshSilent(); });
 

@@ -19,7 +19,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 32
+    timeout-minutes: 35
     steps:
       - name: Get the files from the repo
         uses: actions/checkout@v4
@@ -42,8 +42,17 @@ jobs:
           GAP_SECONDS: '10'          # <-- gap between cycles. Lower = faster status, more load. Raise to 20/30 if RaceFacer gets slow.
           HEAVY_INTERVAL_SEC: '300'  # <-- full sync (repairs/parts/notes) runs at most this often. 300 = every 5 min.
         run: |
-          end=$((SECONDS + 1740))   # loop for ~29 min, then the next scheduled run takes over
+          # Keep refreshing status for ~29 min, but only let the heavier FULL sync (which
+          # takes several minutes over the 209 karts) START in the first ~18 min. After that
+          # we force status-only cycles, so a full sync can never overrun the job timeout and
+          # get cancelled. The next scheduled run picks up the full sync again.
+          end=$(( SECONDS + 1740 ))
+          heavy_until=$(( SECONDS + 1080 ))
           while [ $SECONDS -lt $end ]; do
-            node racefacer-sync.js || echo "sync cycle failed — will retry next loop"
+            if [ $SECONDS -lt $heavy_until ]; then
+              node racefacer-sync.js || echo "sync cycle failed — will retry next loop"
+            else
+              HEAVY_INTERVAL_SEC=999999 node racefacer-sync.js || echo "status cycle failed — will retry next loop"
+            fi
             sleep "${GAP_SECONDS}"
           done

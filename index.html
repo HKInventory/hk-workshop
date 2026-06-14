@@ -920,6 +920,31 @@
     .bcnmini{font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid var(--b1);color:var(--t2)}
     .bcnlt{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--red);letter-spacing:.1em}
     .bcnlt .d{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 7px 2px rgba(255,59,48,.7);animation:bcnpulse 2.6s ease-in-out infinite}
+  
+    /* beacons: Dehaardt function reference */
+    .bcndfoot{padding:10px;border-top:1px solid var(--b1)}
+    .bcndfn{width:100%;background:var(--card2);border:1px solid var(--b2);color:var(--t1);border-radius:11px;padding:11px 12px;cursor:pointer;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;justify-content:center}
+    .bcndfn:hover{border-color:var(--acc);color:var(--acc)}
+    .bcndfn:active{transform:scale(.98)}
+    .bcnfn{position:absolute;inset:0;z-index:42;display:none;align-items:flex-end;justify-content:center}
+    .bcnfn.on{display:flex}
+    .bcnfn:before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.62)}
+    .bcnfncard{position:relative;width:100%;max-width:560px;max-height:82%;background:var(--card);border:1px solid var(--b2);border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -16px 50px rgba(0,0,0,.5);animation:bcnfnup .22s cubic-bezier(.2,.7,.2,1)}
+    @keyframes bcnfnup{from{transform:translateY(34px);opacity:.4}}
+    .bcnfntop{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px}
+    .bcnfnt{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .bcnfnx{background:transparent;border:none;color:var(--t2);font-size:17px;cursor:pointer;width:32px;height:32px;border-radius:8px;flex:0 0 auto}
+    .bcnfnx:hover{background:var(--card2);color:var(--t1)}
+    .bcnfndesc{color:var(--t2);font-size:12.5px;padding:0 16px 10px;line-height:1.5}
+    .bcnfnsearch{padding:0 16px 10px}
+    .bcnfnsearch input{width:100%;background:var(--bg);border:1px solid var(--b1);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:14px;outline:none}
+    .bcnfnsearch input:focus{border-color:var(--acc)}
+    .bcnfnlist{overflow:auto;padding:0 14px 18px}
+    .bcnfnrow{display:flex;align-items:center;gap:12px;padding:11px 8px;border-bottom:1px solid var(--b1)}
+    .bcnfnnum{flex:0 0 auto;font-weight:800;font-variant-numeric:tabular-nums;color:var(--acc);background:var(--acc2);border:1px solid rgba(0,207,255,.3);border-radius:8px;padding:5px 9px;font-size:13px;min-width:70px;text-align:center}
+    .bcnfnact{font-size:14px;color:var(--t1);line-height:1.4}
+    .bcnfnempty{text-align:center;color:var(--t2);padding:26px;font-size:13px}
+    .bcnfnnote{padding:12px 8px 0;color:var(--t2);font-size:11.5px;text-align:center;line-height:1.5}
   </style>
 </head>
 <body>
@@ -1179,7 +1204,19 @@
       <aside class="bcndrawer" id="bcnDrawer" aria-label="Tracks">
         <div class="bcndh"><div class="t">Tracks</div><div class="s">Pulled from RaceFacer · live track shown first</div></div>
         <div class="bcndlist" id="bcnDlist"></div>
+        <div class="bcndfoot"><button class="bcndfn" onclick="openFnRef()"><span>⚡</span> Dehaardt Functions</button></div>
       </aside>
+      <div class="bcnfn" id="bcnFn">
+        <div class="bcnfncard">
+          <div class="bcnfntop">
+            <div class="bcnfnt"><span>⚡</span> Dehaardt Functions</div>
+            <button class="bcnfnx" onclick="closeFnRef()" aria-label="Close">✕</button>
+          </div>
+          <div class="bcnfndesc">What each Function Number (F/N) tells a kart to do when it crosses a beacon.</div>
+          <div class="bcnfnsearch"><input id="bcnFnSearch" placeholder="Search function number or action…" oninput="renderFnRef(this.value)" autocomplete="off"></div>
+          <div class="bcnfnlist" id="bcnFnList"></div>
+        </div>
+      </div>
     </div>
 
     <!-- KART INFO (landing) -->
@@ -3621,6 +3658,27 @@ function buildBeaconList(curId){
   });
 }
 document.addEventListener('click',function(){ if(bcnPop) closeBeaconPop(); });
+
+// Dehaardt function reference (F/N -> what it does to a kart). Seeded with examples;
+// extend DEHAARDT_FN with the full list. Drives the in-app reference + future AI checks.
+var DEHAARDT_FN=[
+  {fn:'09', desc:'Records lap times'},
+  {fn:'15', desc:'Speed up to Dehaardt speed 4'},
+  {fn:'49', desc:'Assigns the kart to Track D'},
+];
+function renderFnRef(q){
+  var list=document.getElementById('bcnFnList'); if(!list) return;
+  q=(q||'').trim().toLowerCase();
+  var rows=DEHAARDT_FN.filter(function(f){ return !q || ('fn '+f.fn+' '+f.desc).toLowerCase().indexOf(q)>=0; })
+    .sort(function(a,b){ return String(a.fn).localeCompare(String(b.fn),undefined,{numeric:true}); });
+  var html = rows.length
+    ? rows.map(function(f){ return '<div class="bcnfnrow"><div class="bcnfnnum">F/N '+f.fn+'</div><div class="bcnfnact">'+f.desc+'</div></div>'; }).join('')
+    : '<div class="bcnfnempty">No matching function.</div>';
+  html += '<div class="bcnfnnote">Showing '+DEHAARDT_FN.length+' functions \u2014 the full Dehaardt list will live here.</div>';
+  list.innerHTML=html;
+}
+function openFnRef(){ var m=document.getElementById('bcnFn'); var s=document.getElementById('bcnFnSearch'); if(s)s.value=''; renderFnRef(''); if(m)m.classList.add('on'); }
+function closeFnRef(){ var m=document.getElementById('bcnFn'); if(m)m.classList.remove('on'); }
 /* =================== end BEACONS TAB =================== */
 
 function loadKartInfo(){

@@ -102,33 +102,70 @@ async function probe() {
   } catch (e) { console.log('[probe] error:', e.message); }
 }
 
-// One-off discovery: find the endpoint that lists track layouts ("sub-tracks") and the live one.
-// The Sessions page is a Vue/Livewire app, so the real URLs live in session-management/main.js.
-// Remove this once the track endpoint is wired.
+// One-off discovery (v2): the live track lives in the sessions-schedule feed, not a "list" endpoint.
+// 1) dump the FULL ajax endpoint list (untruncated) + the call shape around sessions-schedule,
+// 2) read the CSRF token + selected_sub_track_id + current_date off the sessions page,
+// 3) actually hit sessions-schedule (POST/GET, a few param shapes) and print the response — the
+//    live sub-track / track name should be in there. Remove this once the track endpoint is wired.
 async function discoverTracks() {
+  // ---- 1) main.js: full endpoint inventory + targeted greps + the sessions-schedule call shape ----
+  let js = '';
   try {
     const res = await rf('/assets/js/session-management/main.js?5.2.1');
-    const js = await res.text();
+    js = await res.text();
     console.log('[trackdisco] main.js status=%s len=%s', res.status, js.length);
-    const eps = new Set();
-    (js.match(/['"`][^'"`]*ajax\/[^'"`]+['"`]/g) || []).forEach((s) => eps.add(s.replace(/['"`]/g, '')));
-    const frags = new Set();
-    (js.match(/['"`][a-zA-Z0-9_.\-\/]*(sub[_-]?track|track|schedule|layout|session)[a-zA-Z0-9_.\-\/]*['"`]/gi) || [])
-      .forEach((s) => { const v = s.replace(/['"`]/g, ''); if (v.length > 2 && v.length < 70) frags.add(v); });
-    console.log('[trackdisco] ajax endpoints: %s', JSON.stringify([...eps].slice(0, 50)));
-    console.log('[trackdisco] track/session fragments: %s', JSON.stringify([...frags].slice(0, 60)));
   } catch (e) { console.log('[trackdisco] main.js fetch failed:', e.message); }
-  const cands = [
-    '/ajax/sessions/sub-tracks', '/ajax/sub-tracks', '/ajax/get-sub-tracks', '/ajax/sub_tracks',
-    '/ajax/sessions/get-sub-tracks', '/ajax/tracks', '/ajax/track/list', '/ajax/sessions/tracks',
-    '/ajax/sessions/session-management', '/ajax/garage/sub-tracks',
+
+  if (js) {
+    // every distinct /ajax/... path, printed in full and chunked so nothing gets truncated
+    const eps = [...new Set((js.match(/ajax\/[a-zA-Z0-9_\-\/]+/g) || []))].sort();
+    console.log('[trackdisco] %s distinct ajax endpoints:', eps.length);
+    for (let i = 0; i < eps.length; i += 12) console.log('  ' + eps.slice(i, i + 12).join('  '));
+    // anything mentioning a sub-track / track layout
+    const hits = [...new Set((js.match(/[a-zA-Z0-9_.\-\/]*(sub[_-]?track|track[_-]?layout)[a-zA-Z0-9_.\-\/]*/gi) || []))];
+    console.log('[trackdisco] sub-track-ish tokens: %s', JSON.stringify(hits.slice(0, 60)));
+    // the code that builds the sessions-schedule call: shows method + params + any token it sends
+    const idx = js.indexOf('sessions-schedule');
+    if (idx >= 0) console.log('[trackdisco] sessions-schedule context: %s', js.slice(Math.max(0, idx - 360), idx + 360).replace(/\s+/g, ' '));
+    else console.log('[trackdisco] "sessions-schedule" not found literally in main.js');
+    // and the Kart Notes endpoint, if present (fast repairs feed — handover §8)
+    const ni = js.search(/kart[_-]?notes/i);
+    if (ni >= 0) console.log('[trackdisco] kart-notes context: %s', js.slice(Math.max(0, ni - 220), ni + 220).replace(/\s+/g, ' '));
+  }
+
+  // ---- 2) CSRF token + current sub-track + date off the sessions page (Livewire POSTs need the token) ----
+  let token = null, subId = '1', curDate = null;
+  try {
+    const page = await (await rf('/en/administration/sessions/session-management')).text();
+    token = (page.match(/<meta[^>]+name="csrf-token"[^>]+content="([^"]+)"/i) || [])[1]
+         || (page.match(/name="_token"[^>]+value="([^"]+)"/i) || [])[1] || null;
+    subId = (page.match(/selected_sub_track_id["']?\s*[:=]\s*["']?(\d+)/i) || [])[1] || '1';
+    curDate = (page.match(/current_date["']?\s*[:=]\s*["']?([\d-]+)/i) || [])[1] || null;
+    console.log('[trackdisco] sessions page: token=%s selected_sub_track_id=%s current_date=%s', token ? 'yes' : 'no', subId, curDate);
+  } catch (e) { console.log('[trackdisco] sessions page fetch failed:', e.message); }
+
+  // ---- 3) hit the schedule feed (the live sub-track / track name should be in here) ----
+  const now = new Date();
+  const today = curDate || `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+  const attempts = [
+    ['POST', '/ajax/session-management/sessions-schedule', `date=${today}&sub_track_id=${subId}`],
+    ['POST', '/ajax/session-management/sessions-schedule', `date=${today}`],
+    ['GET',  `/ajax/session-management/sessions-schedule?date=${today}&sub_track_id=${subId}`, null],
+    ['POST', '/ajax/session-management/activity-sessions-schedule', `date=${today}&sub_track_id=${subId}`],
+    // now that the /ajax/session-management/ namespace is confirmed, a couple of plausible list spots:
+    ['GET',  '/ajax/session-management/sub-tracks', null],
+    ['GET',  '/ajax/session-management/get-sub-tracks', null],
   ];
-  for (const c of cands) {
+  for (const [method, path, body] of attempts) {
+    const h = {};
+    if (token) h['X-CSRF-TOKEN'] = token;
+    if (body) h['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
     try {
-      const r = await rf(c, { ajax: true });
+      const r = await rf(path, { method, ajax: true, body, headers: h });
       const t = await r.text();
-      console.log('[trackdisco] GET %s -> %s %s', c, r.status, (t || '').slice(0, 180).replace(/\s+/g, ' ') || '<empty>');
-    } catch (e) { console.log('[trackdisco] GET %s ERR %s', c, e.message); }
+      const loc = r.headers.get('location');
+      console.log('[trackdisco] %s %s -> %s%s %s', method, path, r.status, loc ? ' ->' + loc : '', (t || '').slice(0, 600).replace(/\s+/g, ' ') || '<empty>');
+    } catch (e) { console.log('[trackdisco] %s %s ERR %s', method, path, e.message); }
   }
 }
 

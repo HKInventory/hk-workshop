@@ -9,6 +9,7 @@
 // Optional: RF_KART_IDS (comma list), RF_KART_TYPE_UUIDS (comma list), SITE (default sydney)
 
 const { fetch, Agent } = require('undici');
+let _tcLog = 0;   // diagnostic: limits the [typecolor] structure log to the first few karts
 const { parseKartDetails, parseRepairs, parseParts, parseKartNotes, parseActiveNotes, parseGarageStatuses } = require('./racefacer-parse');
 const { reconcileDay } = require('./racefacer-reconcile');
 
@@ -161,13 +162,24 @@ async function syncKart(id, meta) {
   if (!KEEP_NAME.test((details.name || '').trim())) return { id, skipped: true };   // non-numeric name (George/Late/etc.) — not real fleet
   const type = meta.type || details.type;   // page-derived type is authoritative (reflects Adult<->Inter moves)
   const site = meta.site || 'sydney';
+  // Type colour: RaceFacer's exact field is being confirmed (see [typecolor] log). Try likely spots.
+  const _t = dj.kart.type || {};
+  let typeColor = _t.color || _t.colour || _t.color_hex || _t.hex || _t.bg_color || dj.kart.color || dj.kart.colour || null;
+  if (typeColor) typeColor = '#' + String(typeColor).replace(/^#/, '');
+  if (_tcLog < 4) { _tcLog++;
+    try {
+      console.log(`[typecolor] kart ${id} typeName=${JSON.stringify(type)} typeObj=${JSON.stringify(_t)} picked=${typeColor}`);
+      const _ks = JSON.stringify(dj.kart); const _ci = _ks.toLowerCase().indexOf('colo');
+      console.log(`[typecolor] kart ${id} kartKeys=[${Object.keys(dj.kart).join(',')}] coloAt=${_ci}${_ci >= 0 ? ' ctx=' + _ks.substr(Math.max(0, _ci - 3), 50) : ''}`);
+    } catch (e) { console.log('[typecolor] log err ' + e.message); }
+  }
   await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{
     rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: type, site: site,
     label: kartLabel(type, details.name),
     status: details.status, status_code: details.statusCode, total_km: details.totalKm,
     total_laps: details.totalLaps, total_hours: details.totalHours, total_cost: details.totalCost,
     brand: details.brand, model: details.model,
-    type_color: (dj.kart.type && dj.kart.type.color) ? ('#' + String(dj.kart.type.color).replace(/^#/, '')) : null,
+    type_color: typeColor,
     fetched_at: new Date().toISOString(),
   }] });
 

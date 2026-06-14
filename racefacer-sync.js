@@ -95,20 +95,20 @@ async function login() {
 
 // ---- one-time diagnostic probe so we can see exactly what RaceFacer replies ----
 async function probe() {
+  const dump = (label, s) => {
+    const SZ = 1800;
+    console.log('[probe] ===' + label + '_START=== len=' + s.length + ' chunks=' + Math.ceil(s.length / SZ));
+    for (let i = 0; i < s.length; i += SZ) console.log('[probe] ' + label + '#' + String(Math.floor(i / SZ)).padStart(3, '0') + '|' + s.slice(i, i + SZ));
+    console.log('[probe] ===' + label + '_END===');
+  };
   try {
     const a = await rf('/en/administration');
     console.log('[probe] /en/administration -> status=%s location=%s', a.status, a.headers.get('location') || '(none)');
-    // ---- ONE-TIME DUMP: kart 20 (rf id 46) full detail + notes, so we can see the "active notes" list shape. Remove after. ----
+    // ---- ONE-TIME chunked dump of kart 20 (rf id 46) detail + notes. Remove after. ----
     const d = await rf('/ajax/garage/kart-details?id=46', { ajax: true });
-    const dt = await d.text();
-    console.log('[probe] ===KART20_DETAILS_START=== (status ' + d.status + ')');
-    console.log(dt);
-    console.log('[probe] ===KART20_DETAILS_END===');
+    dump('KART20_DETAILS', await d.text());
     const n = await rf('/ajax/garage/kart-notes?id=46', { ajax: true });
-    const nt = await n.text();
-    console.log('[probe] ===KART20_NOTES_START=== (status ' + n.status + ')');
-    console.log(nt);
-    console.log('[probe] ===KART20_NOTES_END===');
+    dump('KART20_NOTES', await n.text());
   } catch (e) { console.log('[probe] error:', e.message); }
 }
 

@@ -3293,7 +3293,7 @@ function loadRfKarts(cb){
     nrows.forEach(function(n){
       (RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[]).push({
         note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
-        archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at
+        archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active
       });
     });
     Object.keys(RF_NOTES_BY_ID).forEach(function(id){ RF_NOTES_BY_ID[id].sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));}); });
@@ -3503,16 +3503,18 @@ function ktTab(name){
 function fmtNoteDate(iso){ if(!iso) return '\u2014'; var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function fmtNoteWhen(iso,who){ if(!iso) return '\u2014'; return fmtNoteDate(iso)+(who?(' - '+kEsc(who)):''); }
 
-// The open (unarchived) notes — shown above the tabs, mirroring RaceFacer. This is the "why is it damaged" list.
+// The active notes — shown above the tabs, mirroring exactly RaceFacer's top list (starred, not X'd).
+// "Active" comes from RaceFacer's own list, so notes cleared with the red X drop off here even though
+// they're not archived. This is the "why is it damaged" list.
 function kartOpenNotesHTML(rfId){
   var notes=(rfId!=null&&RF_NOTES_BY_ID[rfId])||[];
-  var open=notes.filter(function(n){return n.open;});
+  var open=notes.filter(function(n){return n.active;});
   if(!open.length) return '';
   var CAP=6, shown=open.slice(0,CAP), extra=open.length-shown.length;
   var rows=shown.map(function(n){
     return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td></tr>';
   }).join('');
-  if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td>+ '+extra+' more open '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
+  if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td>+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
   return '<div class="kn-open"><table class="kn-opentable"><thead><tr><th>Date</th><th>Title</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 

@@ -417,6 +417,21 @@
     .kart-chip[data-status="damaged"]{background:rgba(255,59,48,.15);border-color:rgba(255,59,48,.55)}
     .kart-chip:hover{filter:brightness(1.12)}
     .kart-chip.selected{outline:2px solid #fff;outline-offset:1px}
+    /* Fleet status bar (OK / maintenance / damaged) shown above the chips for the selected type */
+    .ksb-wrap{margin:2px 0 16px}
+    .ksb-bar{display:flex;height:30px;border-radius:9px;overflow:hidden;background:var(--card);border:1px solid var(--b1);box-shadow:inset 0 1px 2px rgba(0,0,0,.25);animation:ksbReveal .55s cubic-bezier(.22,.61,.36,1) both}
+    .ksb-seg{display:flex;align-items:center;justify-content:center;min-width:34px;font-weight:800;font-size:13px;color:#06120a;letter-spacing:.02em;white-space:nowrap;position:relative}
+    .ksb-seg.ok{background:linear-gradient(180deg,#34d977,#22C55E)}
+    .ksb-seg.maint{background:linear-gradient(180deg,#ffe34d,#FFD600)}
+    .ksb-seg.dmg{background:linear-gradient(180deg,#ff5c52,#FF3B30);color:#fff}
+    .ksb-seg+.ksb-seg{box-shadow:-1px 0 0 rgba(0,0,0,.22)}
+    .ksb-seg .ksb-n{animation:ksbPop .5s .2s both}
+    .ksb-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:12px;font-weight:600}
+    .ksb-legend{display:flex;gap:14px;margin-top:7px;flex-wrap:wrap}
+    .ksb-li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);font-weight:600}
+    .ksb-dot{width:9px;height:9px;border-radius:50%;flex:none}
+    @keyframes ksbReveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+    @keyframes ksbPop{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
     /* Corner dot = live online/offline (RIMO) — green online, red offline */
     .kart-chip .kc-badge{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#FF3B30;box-shadow:0 0 6px rgba(255,59,48,.6)}
     .kart-chip[data-online="1"] .kc-badge{background:#22C55E;box-shadow:0 0 6px rgba(34,197,94,.7)}
@@ -1042,6 +1057,7 @@
         </div>
         <div class="mc"><div class="mct">Active Today</div><div id="mli"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Today's Activity</div><div id="mta"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
+        <div class="mc"><div class="mct">🔧 Repairs Today · by Mechanic</div><div id="md-mech"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Leaderboard · This Week</div><div id="mlb"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Most Taken · This Week</div><div id="mtp"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -1119,6 +1135,7 @@
           <button class="ki-back" onclick="kiGo('home')">‹ Kart Info</button>
           <div class="ki-sub" id="ki-karts-sub"></div>
           <div class="ktype-tabs" id="ki-type-tabs"></div>
+          <div class="ksb-wrap" id="kart-statusbar"></div>
           <div class="sinw"><span class="sico">🔍</span><input class="sin" id="kart-search" placeholder="Find a kart number…" oninput="filterKarts(this.value)" inputmode="numeric" autocomplete="off"></div>
           <div class="kart-chip-grid" id="kart-chips"></div>
         </div>
@@ -2030,7 +2047,7 @@ function back(){
 }
 
 // ── Swipe back (lazy setup — only activates on real movement) ──
-var sx=0,sy=0,swiping=false,swipeStarted=false,swipeCur=null,swipePrev=null;
+var sx=0,sy=0,swiping=false,swipeStarted=false,swipeCur=null,swipePrev=null,kiSub=false;
 var nav=document.getElementById('nav');
 var navW=0;
 
@@ -2068,6 +2085,12 @@ nav.addEventListener('touchmove',function(e){
     var curId=stk[stk.length-1],prevId=stk[stk.length-2];
     if(!curId||!prevId) return;
     if(curId==='welcome'||curId==='pin'||prevId==='pin') return;
+    // On the Kart Info screen with a sub-view open (karts/detail/ref), a back-swipe should step
+    // back through those sub-views first (detail→karts→home), only leaving the screen once we're
+    // on the Kart Info landing. Handle it on release; no full-screen drag for this case.
+    if(curId==='kartinfo' && typeof KI_VIEW!=='undefined' && KI_VIEW!=='home'){
+      kiSub=true; swipeStarted=true; swiping=true; return;
+    }
     swipeCur=s(curId);
     swipePrev=s(prevId);
     if(!swipeCur||!swipePrev) return;
@@ -2102,6 +2125,14 @@ nav.addEventListener('touchend',function(e){
   // If swipe never started, this was just a tap — do nothing
   if(!swiping){swipeStarted=false;return;}
   swiping=false;swipeStarted=false;
+  // Kart Info sub-view back-swipe: step back one level (detail→karts→home) past the threshold.
+  if(kiSub){
+    kiSub=false;
+    var dxk=(e.changedTouches&&e.changedTouches[0])?(e.changedTouches[0].clientX-sx):0;
+    var Wk=nav.offsetWidth||window.innerWidth||320;
+    if(dxk>Wk*0.3||dxk>120){ if(navigator.vibrate){try{navigator.vibrate(8);}catch(_e){}} if(typeof kartScreenBack==='function') kartScreenBack(); }
+    return;
+  }
   if(!e.changedTouches||!e.changedTouches[0]){cancelSwipe();return;}
   var dx=e.changedTouches[0].clientX-sx;
   var W=nav.offsetWidth;
@@ -2961,7 +2992,33 @@ function subord(){
 }
 
 // ── Manager ──
+// Manager Dashboard: how many repairs each mechanic completed TODAY (this calendar day, local
+// midnight→midnight — NOT a rolling 24h). We match rf_repairs.date_repaired to today's date, which
+// is a plain date so there's no time-of-day / timezone window to worry about.
+function renderMechToday(){
+  var box=document.getElementById('md-mech'); if(!box) return;
+  if(typeof SBC==='undefined'||!SBC){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting RaceFacer integration</div>'; return; }
+  var now=new Date();
+  var todayIso=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  SBC.from('rf_repairs').select('mechanic,date_repaired').eq('date_repaired',todayIso).then(function(res){
+    var rows=(res&&res.data)||[];
+    var by={},total=0;
+    rows.forEach(function(r){ var m=(r.mechanic||'').trim(); if(!m||m==='—') m='Unattributed'; by[m]=(by[m]||0)+1; total++; });
+    var names=Object.keys(by).sort(function(a,b){return by[b]-by[a]||a.localeCompare(b);});
+    if(!names.length){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px">No repairs completed today yet</div>'; return; }
+    var med=['🥇','🥈','🥉'];
+    box.innerHTML='<div style="font-size:12px;color:var(--t2);margin:0 0 8px">'+total+' repair'+(total===1?'':'s')+' completed today</div>'
+      +names.map(function(n,i){
+        var sf=(typeof STAFF!=='undefined'&&STAFF.find)?STAFF.find(function(s){return s.name===n||s.name.split(' ')[0]===String(n).split(' ')[0];}):null;
+        var emoji=(sf&&sf.emoji)?sf.emoji:'🔧';
+        return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+emoji+' '+kEsc(n)+'</div><div class="mrr"><span class="bdg" style="background:rgba(34,197,94,.16);color:#22C55E;font-weight:700">'+by[n]+'</span></div></div>';
+      }).join('');
+  },function(){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Couldn\'t load repairs</div>'; });
+}
+
+
 function loadMgr(){
+  renderMechToday();
   var btn=document.getElementById('rb-mgr'),lbl=document.getElementById('rt-mgr');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   sbManagerData(function(d){
@@ -3232,7 +3289,7 @@ function mapRfKart(r){
   return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:rfStatusClass(r.status_code,r.status),
     kartId:r.kart_id_label||'-', transponder:'-', brand:r.brand||'RiMO', model:r.model||'-', engine:'Electric',
     mileage:Number(r.total_km)||0, laps:Number(r.total_laps)||0, hours:Number(r.total_hours)||0,
-    cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-' };
+    cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-', typeColor:(r.type_color||null) };
 }
 // Paginated read — Supabase/PostgREST caps a single response at ~1000 rows,
 // so we page through with .range() until a short page comes back (otherwise
@@ -3255,6 +3312,23 @@ function sbFetchAll(table, cols, eqCol, eqVal, orderCol){
     step(0);
   });
 }
+// Keep RaceFacer's hue but lift the colour into a readable band on our dark UI: floor the
+// saturation and pull lightness into ~62–80% so dark types (e.g. Adult's deep purple) become
+// legible as tab text/accents. Already-bright colours pass through unchanged.
+function readableColor(hex){
+  var s6=/^#?([0-9a-fA-F]{6})$/.exec(String(hex||''));
+  if(!s6){ var s3=/^#?([0-9a-fA-F]{3})$/.exec(String(hex||'')); if(s3){ s6=[null, s3[1].replace(/./g,function(c){return c+c;})]; } }
+  if(!s6) return hex;
+  var r=parseInt(s6[1].substr(0,2),16)/255, g=parseInt(s6[1].substr(2,2),16)/255, b=parseInt(s6[1].substr(4,2),16)/255;
+  var max=Math.max(r,g,b), min=Math.min(r,g,b), l=(max+min)/2, d=max-min, s=0, h=0;
+  if(d){ s=l>0.5? d/(2-max-min) : d/(max+min);
+    if(max===r) h=(g-b)/d+(g<b?6:0); else if(max===g) h=(b-r)/d+2; else h=(r-g)/d+4; h/=6; }
+  s=Math.max(s,0.55); l=Math.min(Math.max(l,0.62),0.80);
+  function h2r(p,q,t){ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
+  var q=l<0.5? l*(1+s) : l+s-l*s, p=2*l-q;
+  function hx(x){ return ('0'+Math.round(h2r(p,q,x)*255).toString(16)).slice(-2); }
+  return '#'+hx(h+1/3)+hx(h)+hx(h-1/3);
+}
 function loadRfKarts(cb){
   var site=currentSite||'sydney';
   Promise.all([
@@ -3266,6 +3340,8 @@ function loadRfKarts(cb){
     var krows=(rs[0]&&rs[0].data)||[], rrows=(rs[1]&&rs[1].data)||[], prows=(rs[2]&&rs[2].data)||[], nrows=(rs[3]&&rs[3].data)||[];
     if(krows.length){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
+      // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
+      KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
     }
     // Parts grouped by their parent repair id
     var partsByRepair={};
@@ -3411,7 +3487,31 @@ function loadKartInfo(){
   });
 }
 
+// Fleet status bar for the selected type: green/amber/red proportional segments with counts,
+// plus an exact legend. Re-renders (and replays its reveal) only when the counts actually change,
+// so a status flipping shows a little animation and silent refreshes don't flicker.
+var KSB_LAST='';
+function renderStatusBar(){
+  var box=document.getElementById('kart-statusbar'); if(!box) return;
+  var list=KART_LIST.filter(function(k){return k.type===SELECTED_KART_TYPE;});
+  var c={ok:0,maint:0,damaged:0};
+  list.forEach(function(k){ if(c[k.status]!=null) c[k.status]++; });
+  var sig=SELECTED_KART_TYPE+'|'+c.ok+'|'+c.maint+'|'+c.damaged;
+  if(sig===KSB_LAST) return;                 // unchanged — leave it (don't replay the animation)
+  KSB_LAST=sig;
+  if(!list.length){ box.innerHTML=''; return; }
+  var seg=function(cls,n){ return n>0?('<div class="ksb-seg '+cls+'" style="flex-grow:'+n+'"><span class="ksb-n">'+n+'</span></div>'):''; };
+  var bar='<div class="ksb-bar">'+seg('ok',c.ok)+seg('maint',c.maint)+seg('dmg',c.damaged)+'</div>';
+  var leg='<div class="ksb-legend">'
+    +'<span class="ksb-li"><span class="ksb-dot" style="background:#22C55E"></span>OK '+c.ok+'</span>'
+    +'<span class="ksb-li"><span class="ksb-dot" style="background:#FFD600"></span>Maintenance '+c.maint+'</span>'
+    +'<span class="ksb-li"><span class="ksb-dot" style="background:#FF3B30"></span>Damaged '+c.damaged+'</span>'
+    +'</div>';
+  box.innerHTML=bar+leg;
+}
+
 function renderKartChips(filter){
+  renderStatusBar();
   var q=(filter||(document.getElementById('kart-search')?document.getElementById('kart-search').value:'')||'').trim().toLowerCase();
   var list=KART_LIST
     .filter(function(k){return k.type===SELECTED_KART_TYPE;})

@@ -3695,11 +3695,31 @@ var BCN_MAP_SVG='<svg viewBox="0 0 1000 660" xmlns="http://www.w3.org/2000/svg" 
  +'<path d="M150 200 C150 150 250 130 380 140 C520 152 560 120 680 120 C820 120 884 200 872 300 C862 380 902 446 840 502 C780 560 650 540 540 520 C430 500 360 562 260 540 C170 524 120 460 140 380 C152 320 150 260 150 200 Z" fill="none" stroke="#0a0f18" stroke-width="20" stroke-linejoin="round"/>'
  +'<path class="bcn-flow" d="M150 200 C150 150 250 130 380 140 C520 152 560 120 680 120 C820 120 884 200 872 300 C862 380 902 446 840 502 C780 560 650 540 540 520 C430 500 360 562 260 540 C170 524 120 460 140 380 C152 320 150 260 150 200 Z" fill="none" stroke="#00CFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/></svg>';
 var bcnPop=null;
-function beaconTracksForSite(){ var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney'; return BEACON_TRACKS.filter(function(t){return t.site===site;}); }
+/* ---- Beacons data source: Supabase tracks (+ their beacons), falling back to the built-in samples ---- */
+var BEACON_TRACKS_DB=null;
+function allBeaconTracks(){ return BEACON_TRACKS_DB || BEACON_TRACKS; }
+function mapDbTrack(r){
+  var bcns=((r.beacons)||[]).slice().sort(function(a,b){return (a.position||0)-(b.position||0);}).map(function(b){
+    return { name:b.name||'Beacon', sn:b.sn||'', fn:b.fn||'', color:b.color||'#00CFFF', x:(b.x==null?50:+b.x), y:(b.y==null?50:+b.y) };
+  });
+  return { id:r.id, rfConfigId:r.rf_config_id, name:String(r.name||'Track').trim(), site:r.site,
+           live:!!r.live, map:(!!r.has_map||!!r.live), mapSvg:(r.has_map&&r.map_svg)?r.map_svg:null, beacons:bcns };
+}
+function loadBeaconTracks(cb){
+  if(typeof sbFetchAll!=='function'){ if(cb)cb(); return; }
+  sbFetchAll('tracks','*,beacons(*)',null,null,'position').then(function(rs){
+    var rows=(rs&&rs.data)||[];
+    if(rows.length) BEACON_TRACKS_DB=rows.map(mapDbTrack);   // once the DB has tracks it's authoritative; the built-in list is just a fallback
+    if(cb)cb();
+  }).catch(function(){ if(cb)cb(); });
+}
+function beaconTracksForSite(){ var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney'; return allBeaconTracks().filter(function(t){return t.site===site;}); }
 function loadBeacons(){
-  var list=beaconTracksForSite();
-  var t=list.find(function(x){return x.live;})||list[0]||null;
-  renderBeacons(t); buildBeaconList(t?t.id:null);
+  loadBeaconTracks(function(){
+    var list=beaconTracksForSite();
+    var t=list.find(function(x){return x.live;})||list[0]||null;
+    renderBeacons(t); buildBeaconList(t?t.id:null);
+  });
 }
 function renderBeacons(t){
   var nm=document.getElementById('bcnTrk'), site=document.getElementById('bcnSite'), live=document.getElementById('bcnLive');
@@ -3724,7 +3744,7 @@ function renderBeacons(t){
       +'This layout hasn\'t been drawn yet \u2014 add it in Master Access \u2192 Beacons.</div></div>';
     return;
   }
-  var html='<div class="bcnstage">'+BCN_MAP_SVG;
+  var html='<div class="bcnstage">'+(t.mapSvg||BCN_MAP_SVG);
   html+='<div class="bcnsf" style="left:26%;top:20%;">\u258e Start / Finish</div>';
   t.beacons.forEach(function(b,i){
     html+='<button class="bcnpt" style="left:'+b.x+'%;top:'+b.y+'%;--bc:'+b.color+'" data-i="'+i+'" aria-label="Beacon '+b.name+', sector '+b.sn+', function '+b.fn+'"></button>';
@@ -3806,7 +3826,7 @@ function buildBeaconList(curId){
       +'</span></span>'+(t.live?'<span class="bcnlt"><span class="d"></span>Live</span>':'')+'</button>';
   }).join('');
   dl.querySelectorAll('.bcnti').forEach(function(el){
-    el.addEventListener('click',function(){ var t=BEACON_TRACKS.find(function(x){return x.id===el.dataset.id;}); if(t){ renderBeacons(t); buildBeaconList(t.id); closeBeaconDrawer(); } });
+    el.addEventListener('click',function(){ var t=allBeaconTracks().find(function(x){return x.id===el.dataset.id;}); if(t){ renderBeacons(t); buildBeaconList(t.id); closeBeaconDrawer(); } });
   });
 }
 document.addEventListener('click',function(){ if(bcnPop) closeBeaconPop(); });

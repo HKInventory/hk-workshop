@@ -482,10 +482,10 @@
     .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,2.4vw,14px);margin-top:14px;max-width:760px;margin-left:auto;margin-right:auto}
     .ki-tiles .tile{aspect-ratio:1.15/1;min-height:112px}
     .ki-tiles .ki-hero{grid-column:1/-1;aspect-ratio:auto;min-height:96px}
-    @media (min-width:600px){
-      .ki-tiles{grid-template-columns:1fr 1fr 1fr}
-      .ki-tiles .tile{aspect-ratio:auto;min-height:124px;max-height:150px}
-      .ki-tiles .ki-hero{grid-column:1/-1;min-height:104px;max-height:124px}
+    @media (min-width:720px){
+      .ki-tiles{grid-template-columns:repeat(4,1fr);max-width:900px;gap:14px}
+      .ki-tiles .tile{aspect-ratio:auto;min-height:118px;max-height:142px}
+      .ki-tiles .ki-hero{grid-column:1/-1;min-height:100px;max-height:120px}
     }
     /* Colour-coded kart type tabs (Adult / Inter / Junior / Mini) */
     .ktype-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
@@ -606,22 +606,28 @@
     .nf-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
     .nf-h1{font-size:20px;font-weight:800;color:var(--t1)}
     .nf-sub{font-size:12px;color:var(--t2)}
-    .nf-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
-    .nf-chip{background:var(--card);border:1px solid var(--b1);color:var(--t2);font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 12px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
-    .nf-chip.on{background:var(--t1);color:var(--bg);border-color:var(--t1)}
-    .nf-chipn{min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:rgba(127,127,127,.25);font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
-    .nf-chip.on .nf-chipn{background:rgba(0,0,0,.18)}
-    .nf-list{display:flex;flex-direction:column;gap:8px}
-    .nf-row{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--b1);border-left:3px solid var(--b1);border-radius:13px;padding:13px 14px;transition:background .15s;animation:nfIn .3s ease both}
+    .nf-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;overflow:hidden;margin-bottom:9px;animation:nfIn .3s ease both}
     @keyframes nfIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-    .nf-row:hover{background:var(--card2)}
-    .nf-ico{flex:none;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1}
-    .nf-mid{flex:1;min-width:0}
-    .nf-title{font-size:14px;font-weight:700;color:var(--t1);line-height:1.35}
-    .nf-body{font-size:12.5px;color:var(--t2);margin-top:3px;line-height:1.4;word-break:break-word}
-    .nf-meta{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:7px;padding-top:2px}
-    .nf-time{font-size:11px;color:var(--t2);white-space:nowrap}
-    .nf-dot{width:8px;height:8px;border-radius:50%}
+    .nf-ico{flex:none;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1}
+    .nf-sec{width:100%;display:flex;align-items:center;gap:12px;background:transparent;border:none;padding:14px;cursor:pointer;font-family:inherit;text-align:left;color:var(--t1)}
+    .nf-sec:hover{background:var(--card2)}
+    .nf-secmid{flex:1;min-width:0}
+    .nf-sectitle{display:block;font-size:14.5px;font-weight:700;color:var(--t1)}
+    .nf-secsub{display:block;font-size:12px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nf-seccount{flex:none;min-width:24px;height:22px;padding:0 7px;border-radius:11px;color:#0a0f16;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+    .nf-chev{flex:none;color:var(--t2);font-size:22px;font-weight:700;transform:rotate(90deg);transition:transform .2s;line-height:1;width:14px;text-align:center}
+    .nf-chev.open{transform:rotate(-90deg)}
+    .nf-secbody{border-top:1px solid var(--b1);max-height:380px;overflow:auto}
+    .nf-item{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--b1)}
+    .nf-item:last-child{border-bottom:none}
+    .nf-itx{flex:1;min-width:0}
+    .nf-itt{font-size:13px;font-weight:600;color:var(--t1);line-height:1.35}
+    .nf-its{font-size:12px;color:var(--t2);margin-top:2px;line-height:1.4;word-break:break-word}
+    .nf-itr{flex:none;font-size:11px;color:var(--t2);text-align:right;white-space:nowrap;padding-top:1px}
+    .nf-alert{display:flex;align-items:flex-start;gap:12px;padding:14px;border-left:3px solid var(--b1)}
+    .nf-amid{flex:1;min-width:0}
+    .nf-atitle{font-size:14.5px;font-weight:700;color:var(--t1);line-height:1.35}
+    .nf-abody{font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.45;word-break:break-word}
     .nf-empty{text-align:center;padding:54px 18px}
     .nf-emoji{font-size:40px;margin-bottom:10px}
     .nf-et{font-size:17px;font-weight:800;color:var(--t1)}
@@ -2100,12 +2106,13 @@ function startRealtime(){
   var _rtBadge = _debounce(function(){ if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }, 800, 3000);
   var _rtParts = _debounce(_reload, 500, 2500);
   var _rtNotif = _debounce(function(){ if(_curScr()==='manager'){ if(typeof refreshNotifBadge==='function'){try{refreshNotifBadge();}catch(e){}} if(MD_TAB==='notif'&&typeof renderNotifications==='function'){try{renderNotifications();}catch(e){}} } }, 700, 3000);
+  var _rtCheck = _debounce(function(){ if(_curScr()==='manager'&&typeof loadCheckAlerts==='function'){try{loadCheckAlerts();}catch(e){}} }, 1200, 5000);
   try{
     SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _rtParts(); _rtNotif(); }).subscribe();
     SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
     // RaceFacer tables -> refresh whatever RF view is open, live (debounced so a sync burst = one refresh).
     SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); }).subscribe();
-    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ _rtKarts(); _rtMech(); }).subscribe();
+    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ _rtKarts(); _rtMech(); _rtCheck(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); }).subscribe();
   }catch(e){}
 }
@@ -3263,7 +3270,17 @@ function renderMechToday(){
    summary (sbFinanceData). Updates in real time via the parts/stock/discrepancy
    channels. (Part-order requests will appear here once they're stored — today they
    route straight to the sheet.) */
-var MD_TAB='overview', NOTIF_FILTER='all', NOTIF_DISC=[], NOTIF_FIN=null;
+var MD_TAB='overview', NOTIF_FILTER='all', NOTIF_DISC=[], NOTIF_FIN=null, NOTIF_CHECK=[];
+/* Morning kart-check anomaly detection. The 6am-ish check logs damage into RaceFacer (rf_repairs:
+   description = the note, date_discovered = the morning it was found). We count today's matches for
+   each pattern against the trailing per-day average and flag a spike. Add more patterns here over time. */
+var CHECK_FLOOR=3, CHECK_MULT=1.8, CHECK_WINDOW_DAYS=30;
+var CHECK_PATTERNS=[
+  { key:'tyre-pressure', label:'tyre punctures / flats', icon:'🛞', color:'#FF9F0A',
+    re:/\bpunctur\w*|\bflat\b(?!\s*(?:battery|spot|bar))|\blow\s*(?:t[yi]re\s*)?pressure|\bdeflat\w*|\bblow\s*out\b/i,
+    hint:'often means tyre pressures weren’t set on the previous shift' }
+  // FL / FR / front-left / front-right just describe location; the issue word above is what we match on
+];
 function nfEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
 function nfMoney(n){ return '$'+Math.round(n||0).toLocaleString(); }
 function notifAgo(ts){ if(!ts) return ''; var s=Math.floor((Date.now()-ts)/1000); if(s<45) return 'just now'; var m=Math.floor(s/60); if(m<60) return m+'m ago'; var h=Math.floor(m/60); if(h<24) return h+'h ago'; var d=Math.floor(h/24); if(d<7) return d+'d ago'; return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'}); }
@@ -3281,66 +3298,83 @@ function mdTab(name){
 }
 
 // unified, sorted notification list from the data currently loaded
-function buildNotifList(){
-  var L=[], ps=(typeof parts!=='undefined'&&parts)?parts:[];
-  ps.forEach(function(p){
-    if(p.qty===0){
-      L.push({cat:'stock',sev:3,icon:'📦',color:'#FF3B30',title:'Out of stock — '+(p.desc||p.sku||'Part'),body:(p.sku?('SKU '+p.sku+' · '):'')+'reorder needed',ts:null});
-    } else if(p.reorder!=null && p.qty<=p.reorder){
-      L.push({cat:'stock',sev:2,icon:'⚠️',color:'#FFD600',title:'Low stock — '+(p.desc||p.sku||'Part'),body:p.qty+' left · reorder point '+p.reorder,ts:null});
-    }
-  });
-  (NOTIF_DISC||[]).forEach(function(r){
-    L.push({cat:'rf',sev:3,icon:'🚨',color:'#FF453A',title:'RaceFacer discrepancy — Kart '+(r.rf_kart_name||'?'),body:(r.message||((r.part_name||'Part')+' mismatch'))+(r.mechanic?(' · '+r.mechanic):''),ts:(r.at?Date.parse(r.at):null)});
-  });
-  if(NOTIF_FIN){
-    L.push({cat:'fin',sev:1,icon:'💰',color:'#34C759',title:'Weekly financial update',body:nfMoney(NOTIF_FIN.spendMonth)+' spent this month · stock value '+nfMoney(NOTIF_FIN.stockValue)+' · reorder forecast '+nfMoney(NOTIF_FIN.reorderForecastCost),ts:Date.now()});
-  }
-  L.sort(function(a,b){ return (b.sev-a.sev) || ((b.ts||0)-(a.ts||0)); });
-  return L;
+var NOTIF_OPEN={};   // section key -> expanded?
+function fmtNotifDate(d){
+  if(!d) return '';
+  var dt=(typeof d==='string')?new Date(d.length<=10?d+'T00:00:00':d):new Date(d);
+  if(isNaN(dt)) return '';
+  return dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
 }
 
-function notifFilter(c){ NOTIF_FILTER=c; renderNotifications(); }
+// group into collapsible sections so the feed stays compact even with hundreds of items
+function buildNotifSections(){
+  var ps=(typeof parts!=='undefined'&&parts)?parts:[];
+  var out=ps.filter(function(p){return p.qty===0;});
+  var low=ps.filter(function(p){return p.qty>0 && p.reorder!=null && p.qty<=p.reorder;});
+  low.sort(function(a,b){return (a.qty-a.reorder)-(b.qty-b.reorder);});   // closest to out first
+  var secs=[];
+  (NOTIF_CHECK||[]).forEach(function(a){ secs.push({type:'alert',key:'chk-'+secs.length,icon:a.icon,color:a.color,title:a.title,body:a.body}); });
+  if(out.length) secs.push({type:'group',key:'oos',icon:'📦',color:'#FF3B30',title:'Out of stock',sub:out.length+' part'+(out.length===1?'':'s')+' — reorder needed',count:out.length,
+    items:out.map(function(p){return {t:(p.desc||p.sku||'Part'),s:(p.sku?('SKU '+p.sku):''),r:'0 left'};})});
+  if(low.length) secs.push({type:'group',key:'low',icon:'⚠️',color:'#FFD600',title:'Low / reorder soon',sub:low.length+' part'+(low.length===1?'':'s')+' at or below reorder',count:low.length,
+    items:low.map(function(p){return {t:(p.desc||p.sku||'Part'),s:(p.sku?('SKU '+p.sku):''),r:p.qty+' left · min '+p.reorder};})});
+  var disc=NOTIF_DISC||[];
+  if(disc.length) secs.push({type:'group',key:'rf',icon:'🚨',color:'#FF453A',title:'RaceFacer discrepancies',sub:disc.length+' need'+(disc.length===1?'s':'')+' mapping',count:disc.length,
+    items:disc.map(function(r){ var dd=r.day||(r.at?String(r.at).slice(0,10):''); return {t:'Kart '+(r.rf_kart_name||'?'),s:(r.message||((r.part_name||'Part')+' mismatch')),r:(fmtNotifDate(dd)+(r.mechanic?(' · '+r.mechanic):''))}; })});
+  if(NOTIF_FIN) secs.push({type:'alert',key:'fin',icon:'💰',color:'#34C759',title:'Weekly financial update',body:nfMoney(NOTIF_FIN.spendMonth)+' spent this month · stock value '+nfMoney(NOTIF_FIN.stockValue)+' · reorder forecast '+nfMoney(NOTIF_FIN.reorderForecastCost)});
+  return secs;
+}
+
+function notifAttentionCount(){
+  var ps=(typeof parts!=='undefined'&&parts)?parts:[], n=0;
+  ps.forEach(function(p){ if(p.qty===0||(p.reorder!=null&&p.qty<=p.reorder)) n++; });
+  return n+(NOTIF_DISC||[]).length+(NOTIF_CHECK||[]).length;
+}
+
+function toggleNotifSec(key){ NOTIF_OPEN[key]=!NOTIF_OPEN[key]; renderNotifications(); }
 
 function renderNotifications(){
   var pane=document.getElementById('md-pane-notif'); if(!pane) return;
-  var all=buildNotifList();
-  var counts={all:all.length,stock:0,rf:0,fin:0};
-  all.forEach(function(n){ if(counts[n.cat]!=null) counts[n.cat]++; });
-  if(!(NOTIF_FILTER in counts)) NOTIF_FILTER='all';
-  var list=all.filter(function(n){ return NOTIF_FILTER==='all'||n.cat===NOTIF_FILTER; });
-  var chips=[['all','All'],['stock','Stock'],['rf','RaceFacer'],['fin','Finance']].map(function(c){
-    var n=counts[c[0]]||0;
-    return '<button class="nf-chip'+(NOTIF_FILTER===c[0]?' on':'')+'" onclick="notifFilter(\''+c[0]+'\')">'+c[1]+(n?'<span class="nf-chipn">'+n+'</span>':'')+'</button>';
-  }).join('');
-  var alerts=all.filter(function(n){return n.sev>=2;}).length;
-  var head='<div class="nf-head"><div class="nf-h1">Notifications</div><div class="nf-sub">'+(alerts?(alerts+' need'+(alerts===1?'s':'')+' attention'):'All caught up')+'</div></div><div class="nf-chips">'+chips+'</div>';
+  var secs=buildNotifSections();
+  var n=notifAttentionCount();
+  var head='<div class="nf-head"><div class="nf-h1">Notifications</div><div class="nf-sub">'+(n?(n+' need'+(n===1?'s':'')+' attention'):'All caught up')+'</div></div>';
   var body;
-  if(!list.length){
-    var clear=(NOTIF_FILTER==='all');
-    body='<div class="nf-empty"><div class="nf-emoji">'+(clear?'✅':'🗂️')+'</div><div class="nf-et">'+(clear?'All caught up':'Nothing here')+'</div><div class="nf-es">'+(clear?'No stock, RaceFacer or finance alerts right now.':'No notifications in this filter.')+'</div></div>';
+  if(!secs.length){
+    body='<div class="nf-empty"><div class="nf-emoji">✅</div><div class="nf-et">All caught up</div><div class="nf-es">No stock, RaceFacer or finance alerts right now.</div></div>';
   } else {
-    body='<div class="nf-list">'+list.map(function(n){
-      return '<div class="nf-row" style="border-left-color:'+n.color+'">'
-        +'<div class="nf-ico" style="background:'+n.color+'22">'+n.icon+'</div>'
-        +'<div class="nf-mid"><div class="nf-title">'+nfEsc(n.title)+'</div><div class="nf-body">'+nfEsc(n.body)+'</div></div>'
-        +'<div class="nf-meta">'+(n.ts?'<span class="nf-time">'+notifAgo(n.ts)+'</span>':'')+'<span class="nf-dot" style="background:'+n.color+'"></span></div>'
-        +'</div>';
-    }).join('')+'</div>';
+    body=secs.map(function(s){
+      if(s.type==='alert'){
+        return '<div class="nf-card"><div class="nf-alert" style="border-left-color:'+s.color+'">'
+          +'<span class="nf-ico" style="background:'+s.color+'22">'+s.icon+'</span>'
+          +'<div class="nf-amid"><div class="nf-atitle">'+nfEsc(s.title)+'</div><div class="nf-abody">'+nfEsc(s.body)+'</div></div>'
+          +'</div></div>';
+      }
+      var open=!!NOTIF_OPEN[s.key];
+      var header='<button class="nf-sec" style="--nc:'+s.color+'" onclick="toggleNotifSec(\''+s.key+'\')">'
+        +'<span class="nf-ico" style="background:'+s.color+'22">'+s.icon+'</span>'
+        +'<span class="nf-secmid"><span class="nf-sectitle">'+nfEsc(s.title)+'</span><span class="nf-secsub">'+nfEsc(s.sub)+'</span></span>'
+        +'<span class="nf-seccount" style="background:'+s.color+'">'+s.count+'</span>'
+        +'<span class="nf-chev'+(open?' open':'')+'">\u203a</span></button>';
+      var det=open?('<div class="nf-secbody">'+s.items.map(function(it){
+        return '<div class="nf-item"><div class="nf-itx"><div class="nf-itt">'+nfEsc(it.t)+'</div>'+(it.s?'<div class="nf-its">'+nfEsc(it.s)+'</div>':'')+'</div>'+(it.r?'<div class="nf-itr">'+nfEsc(it.r)+'</div>':'')+'</div>';
+      }).join('')+'</div>'):'';
+      return '<div class="nf-card'+(open?' open':'')+'">'+header+det+'</div>';
+    }).join('');
   }
-  pane.innerHTML=head+body;
+  pane.innerHTML='<div class="nf-wrap">'+head+body+'</div>';
 }
 
 function refreshNotifBadge(){
   var ct=document.getElementById('mdNotifCt'); if(!ct) return;
-  var n=buildNotifList().filter(function(x){return x.sev>=2;}).length;   // count only actionable alerts (not the finance summary)
-  ct.textContent=n; ct.style.display=n?'':'none';
+  var n=notifAttentionCount();
+  ct.textContent=(n>99?'99+':n); ct.style.display=n?'':'none';
 }
 
 // fetch async sources (recent unresolved discrepancies + weekly finance), then render
 function loadNotifications(){
   renderNotifications();        // instant: stock from parts + whatever's cached
   loadNotifBadge();             // refresh discrepancies + badge (re-renders the feed if it's open)
+  loadCheckAlerts();            // morning kart-check anomalies (e.g. tyre-puncture spikes)
   if(!NOTIF_FIN && typeof sbFinanceData==='function'){ sbFinanceData(function(f){ NOTIF_FIN=f; if(MD_TAB==='notif') renderNotifications(); refreshNotifBadge(); }); }
 }
 function loadNotifBadge(){
@@ -3351,9 +3385,42 @@ function loadNotifBadge(){
   } else { refreshNotifBadge(); }
 }
 
+// scan recent rf_repairs for morning-check damage spikes (e.g. front tyre punctures)
+function loadCheckAlerts(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var today=new Date().toISOString().slice(0,10);
+  var since=new Date(Date.now()-CHECK_WINDOW_DAYS*864e5).toISOString().slice(0,10);
+  SBC.from('rf_repairs').select('description,date_discovered,date_repaired').gte('date_discovered',since).limit(3000)
+    .then(function(res){
+      var rows=(res&&res.data)||[];
+      var opDays={};
+      rows.forEach(function(r){ var d=r.date_discovered||r.date_repaired; if(d) opDays[d]=true; });
+      var priorOps=Object.keys(opDays).filter(function(d){return d<today;}).sort();   // operating days before today, chronological
+      var alerts=[];
+      CHECK_PATTERNS.forEach(function(P){
+        var byDay={};
+        rows.forEach(function(r){ var d=r.date_discovered||r.date_repaired; if(d && P.re.test(r.description||'')) byDay[d]=(byDay[d]||0)+1; });
+        var todayN=byDay[today]||0;
+        if(todayN<CHECK_FLOOR) return;                                                // ignore small counts
+        var sum=0; priorOps.forEach(function(d){ sum+=(byDay[d]||0); });
+        var avg=priorOps.length?(sum/priorOps.length):0;
+        if(todayN < Math.max(CHECK_FLOOR, Math.ceil(avg*CHECK_MULT))) return;         // not a spike vs its own baseline
+        var lastShift=priorOps.length?priorOps[priorOps.length-1]:null;
+        var shiftTxt=lastShift?new Date(lastShift+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'}):'the previous shift';
+        var avgTxt=avg>=1?Math.round(avg):avg.toFixed(1);
+        alerts.push({cat:'check',sev:3,icon:P.icon,color:P.color,
+          title:todayN+' '+P.label+' this morning',
+          body:'Well above the ~'+avgTxt+'/day average — '+P.hint+'. Likely culprit shift: '+shiftTxt+'.',
+          ts:Date.now()});
+      });
+      NOTIF_CHECK=alerts; refreshNotifBadge(); if(MD_TAB==='notif') renderNotifications();
+    }, function(){});
+}
+
 function loadMgr(){
   renderMechToday();
   loadNotifBadge();
+  loadCheckAlerts();
   var btn=document.getElementById('rb-mgr'),lbl=document.getElementById('rt-mgr');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   sbManagerData(function(d){

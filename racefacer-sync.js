@@ -107,9 +107,10 @@ async function syncTracks() {
   if (!cfgs.length) { console.log('[tracks] no track_configurations — skipping'); return; }
   const byName = new Map(cfgs.map((c) => [String(c.name || '').trim().toLowerCase(), c]));
 
-  // 2) which layouts are live now? All distinct configurations on the most recent operating day —
-  //    that's the current main track PLUS any set tracks (Mini/Junior/Inter) that were open. We scan
-  //    today first, then step back through recent days so a closed day still shows the last-used tracks.
+  // 2) which layout(s) are live RIGHT NOW? The main track gets reconfigured between sessions, so one
+  //    day holds many configs — we must pick only what's on track now, not everything that ran today.
+  //    Primary signal: the session(s) RaceFacer flags as running. Fallbacks pick a SINGLE session so
+  //    "live" can never balloon to every layout of the day.
   const dayOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   async function daySessions(ds) {
     try {
@@ -117,18 +118,36 @@ async function syncTracks() {
       return ((sch && sch.schedule && sch.schedule.data) || []).filter((x) => x && x.type === 'session' && x.configuration);
     } catch (e) { return []; }
   }
+  const TZ = SITE === 'melbourne' ? 'Australia/Melbourne' : 'Australia/Sydney';   // venue wall-clock (both AEST/AEDT)
+  let nowKey = '';
+  try { nowKey = new Date().toLocaleString('sv-SE', { timeZone: TZ }).replace('T', ' '); }   // "YYYY-MM-DD HH:MM:SS" — matches start_time_key
+  catch (e) { nowKey = new Date().toISOString().slice(0, 19).replace('T', ' '); }
+  const RUN_RE  = /progress|running|active|ongoing|on[-\s]?track|racing|started|\blive\b/i;
+  const DONE_RE = /finish|complete|done|closed|ended|past/i;
+  const isRunning = (s) => RUN_RE.test(String(s.status || s.state || s.session_status || ''));
+
   let liveSessions = [];
   const today = new Date();
-  for (let i = 0; i < 14 && !liveSessions.length; i++) {            // today, then back to the most recent day with sessions
+  for (let i = 0; i < 14; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
-    liveSessions = await daySessions(dayOf(d));
+    const ss = await daySessions(dayOf(d));
+    if (!ss.length) continue;
+    if (i === 0) console.log('[tracks] today session statuses:', JSON.stringify([...new Set(ss.map((s) => String(s.status || s.state || s.session_status || '')))]));
+    const running = ss.filter(isRunning);
+    if (running.length) { liveSessions = running; break; }                       // exactly what's on track now (main + any concurrent set track)
+    const done = ss.filter((s) => DONE_RE.test(String(s.status || s.state || ''))).sort((a, b) => String(b.start_time_key || '').localeCompare(String(a.start_time_key || '')));
+    if (done.length) { liveSessions = [done[0]]; break; }                         // between races: layout of the most recent finished race
+    const started = ss.filter((s) => String(s.start_time_key || '') <= nowKey).sort((a, b) => String(b.start_time_key || '').localeCompare(String(a.start_time_key || '')));
+    if (started.length) { liveSessions = [started[0]]; break; }                   // last resort (no status field): most recent started session
+    break;                                                                        // today had only future slots — leave live flags as-is
   }
   const liveIds = new Set(), liveNames = [];
   liveSessions.forEach((s) => {
     const c = byName.get(String(s.configuration).trim().toLowerCase());
     if (c && !liveIds.has(c.id)) { liveIds.add(c.id); liveNames.push(c.name); }
+    else if (!c) console.log('[tracks] live session config not found in layout list:', JSON.stringify(String(s.configuration)));
   });
-  if (!liveIds.size) console.log('[tracks] no live layouts resolved this pass — writing names, leaving live flags as-is');
+  if (!liveIds.size) console.log('[tracks] no live layout resolved this pass — writing names, leaving live flags as-is');
 
   // 3) upsert EVERY layout (names straight from RaceFacer), flagging the live set (and clearing the rest)
   //    in one bulk upsert. merge-duplicates preserves designer-owned columns (map_svg / blueprint_url /

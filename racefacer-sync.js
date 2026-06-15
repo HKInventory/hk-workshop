@@ -9,7 +9,6 @@
 // Optional: RF_KART_IDS (comma list), RF_KART_TYPE_UUIDS (comma list), SITE (default sydney)
 
 const { fetch, Agent } = require('undici');
-let _tcLog = 0;   // diagnostic: limits the [typecolor] structure log to the first few karts
 const { parseKartDetails, parseRepairs, parseParts, parseKartNotes, parseActiveNotes, parseGarageStatuses } = require('./racefacer-parse');
 const { reconcileDay } = require('./racefacer-reconcile');
 
@@ -94,55 +93,62 @@ async function login() {
   return true;
 }
 
-// ---- one-time diagnostic probe so we can see exactly what RaceFacer replies ----
-async function probe() {
+// ---- current track layout: pull RaceFacer's "track configurations", flag the live one ----
+// /settings -> track_configurations (id = the layout's identity, sub_track_id = physical track, name).
+// Today's sessions-schedule (or race-control) says which configuration is running now; we upsert that
+// one into `tracks` flagged live. merge-duplicates preserves designer-owned map/beacon columns.
+async function syncTracks() {
+  // 1) the layout list
+  let cfgs = [];
   try {
-    const a = await rf('/en/administration');
-    console.log('[probe] /en/administration -> status=%s location=%s', a.status, a.headers.get('location') || '(none)');
-  } catch (e) { console.log('[probe] error:', e.message); }
-}
+    const s = await rfJson('/ajax/session-management/settings');
+    cfgs = (s && s.track_configurations && s.track_configurations.data) || [];
+  } catch (e) { console.log('[tracks] settings failed:', e.message); }
+  if (!cfgs.length) { console.log('[tracks] no track_configurations — skipping'); return; }
+  const byId = new Map(cfgs.map((c) => [c.id, c]));
+  const byName = new Map(cfgs.map((c) => [String(c.name || '').trim().toLowerCase(), c]));
 
-// One-off discovery (v3): we confirmed sessions-schedule is GET-only and wants date in Y-m-d
-// (the page's current_date is d-m-Y), and that the sub-track list lives in settings.sub_tracks.
-// So: read the sessions page (date + current sub-track, and any inline sub_tracks blob), then GET
-// /settings (the layout list) + the schedule + current-sessions, printing the sub_track section of
-// each. Remove this once the track endpoint is wired.
-async function discoverTracks() {
-  let subId = '1', curDate = null;
+  // 2) which layout is live right now? primary: today's schedule (the running / latest session's configuration).
+  const now = new Date();
+  const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  let live = null;
   try {
-    const page = await (await rf('/en/administration/sessions/session-management')).text();
-    subId = (page.match(/selected_sub_track_id["']?\s*[:=]\s*["']?(\d+)/i) || [])[1] || '1';
-    curDate = (page.match(/current_date["']?\s*[:=]\s*["']?([\d-]+)/i) || [])[1] || null;
-    console.log('[trackdisco] sessions page: selected_sub_track_id=%s current_date=%s', subId, curDate);
-    // the list may be embedded inline as a Vue prop / settings blob — print context around each hit
-    let m, shown = 0; const re = /sub[_-]?tracks["']?\s*[:=]/gi;
-    while ((m = re.exec(page)) && shown < 3) { console.log('[trackdisco] page sub_tracks@%s: %s', m.index, page.slice(m.index, m.index + 500).replace(/\s+/g, ' ')); shown++; }
-    if (!shown) console.log('[trackdisco] no inline sub_tracks blob in the sessions page HTML');
-  } catch (e) { console.log('[trackdisco] sessions page fetch failed:', e.message); }
-
-  // RaceFacer wants Y-m-d. Convert the page's d-m-Y current_date if present; else use the server clock.
-  let ymd = null;
-  if (curDate && /^\d{2}-\d{2}-\d{4}$/.test(curDate)) { const [d, mo, y] = curDate.split('-'); ymd = `${y}-${mo}-${d}`; }
-  if (!ymd) { const n = new Date(); ymd = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; }
-  console.log('[trackdisco] using date=%s (Y-m-d) sub_track_id=%s', ymd, subId);
-
-  const gets = [
-    `/ajax/session-management/settings`,                                    // expected: the sub_tracks (layout) list
-    `/ajax/session-management/sessions-schedule?date=${ymd}`,               // the day's sessions
-    `/ajax/session-management/sessions-schedule?date=${ymd}&sub_track_id=${subId}`,
-    `/ajax/session-management/race-control-current-sessions`,               // what's live right now
-    `/ajax/session-management/session`,
-    `/ajax/activity-management/activity-schedule?date=${ymd}`,              // the left schedule rail's feed
-  ];
-  for (const path of gets) {
+    const sch = await rfJson(`/ajax/session-management/sessions-schedule?date=${ymd}`);
+    let ss = ((sch && sch.schedule && sch.schedule.data) || []).filter((x) => x && x.type === 'session' && x.configuration);
+    if (ss.length) {
+      // start_time_key ("YYYY-MM-DD HH:MM:SS") sorts chronologically as a string — no timezone math needed.
+      ss.sort((a, b) => String(b.start_time_key || '').localeCompare(String(a.start_time_key || '')));
+      const pick = ss.find((x) => /progress|running|active|live/i.test(x.status || '')) || ss[0]; // running, else latest scheduled
+      const c = byName.get(String(pick.configuration).trim().toLowerCase());
+      live = c ? { id: c.id, sub: c.sub_track_id, name: String(c.name).trim() }
+               : { id: null, sub: pick.sub_track_id || null, name: String(pick.configuration).trim() };
+    }
+  } catch (e) { console.log('[tracks] schedule failed:', e.message); }
+  // fallback: race-control's current session
+  if (!live) {
     try {
-      const r = await rf(path, { ajax: true });
-      const t = (await r.text()) || '';
-      console.log('[trackdisco] GET %s -> %s head: %s', path, r.status, t.slice(0, 1000).replace(/\s+/g, ' ') || '<empty>');
-      const si = t.toLowerCase().indexOf('sub_track');                     // jump to the sub_track data even if it's deep
-      if (si >= 0) console.log('[trackdisco]   ^sub_track@%s: %s', si, t.slice(Math.max(0, si - 60), si + 600).replace(/\s+/g, ' '));
-    } catch (e) { console.log('[trackdisco] GET %s ERR %s', path, e.message); }
+      const cur = await rfJson('/ajax/session-management/race-control-current-sessions');
+      const c0 = Array.isArray(cur) ? cur[0] : null;
+      if (c0 && (c0.track_configuration_id != null || c0.track_configuration)) {
+        const c = c0.track_configuration_id != null ? byId.get(c0.track_configuration_id)
+                                                     : byName.get(String(c0.track_configuration || '').trim().toLowerCase());
+        live = c ? { id: c.id, sub: c.sub_track_id, name: String(c.name).trim() }
+                 : { id: c0.track_configuration_id || null, sub: c0.sub_track_id || null, name: String(c0.track_configuration || '').trim() };
+      }
+    } catch (e) { console.log('[tracks] current-sessions failed:', e.message); }
   }
+  if (!live || live.id == null) { console.log('[tracks] could not resolve the live config — leaving live unchanged'); return; }
+
+  // 3) clear live for this site, then upsert the current layout as live (designer fields preserved)
+  const dir = /anti[-\s]?clockwise/i.test(live.name) ? 'Anti-Clockwise' : (/clockwise/i.test(live.name) ? 'Clockwise' : null);
+  try {
+    await sb(`tracks?site=eq.${SITE}&live=is.true`, { method: 'PATCH', prefer: 'return=minimal', body: { live: false } });
+    await sb('tracks?on_conflict=site,rf_config_id', {
+      method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+      body: [{ site: SITE, rf_config_id: live.id, rf_sub_track_id: live.sub, name: live.name, direction: dir, live: true, synced_at: new Date().toISOString() }],
+    });
+    console.log('[tracks] live = "%s" (config %s, sub_track %s)', live.name, live.id, live.sub);
+  } catch (e) { console.log('[tracks] upsert failed:', e.message); }
 }
 
 // ---- enumerate kart ids ----
@@ -210,17 +216,10 @@ async function syncKart(id, meta) {
   if (!KEEP_NAME.test((details.name || '').trim())) return { id, skipped: true };   // non-numeric name (George/Late/etc.) — not real fleet
   const type = meta.type || details.type;   // page-derived type is authoritative (reflects Adult<->Inter moves)
   const site = meta.site || 'sydney';
-  // Type colour: RaceFacer's exact field is being confirmed (see [typecolor] log). Try likely spots.
+  // Type colour comes straight from RaceFacer's kart type object (confirmed: kart.type.color, e.g. "5d28ae").
   const _t = dj.kart.type || {};
   let typeColor = _t.color || _t.colour || _t.color_hex || _t.hex || _t.bg_color || dj.kart.color || dj.kart.colour || null;
   if (typeColor) typeColor = '#' + String(typeColor).replace(/^#/, '');
-  if (_tcLog < 4) { _tcLog++;
-    try {
-      console.log(`[typecolor] kart ${id} typeName=${JSON.stringify(type)} typeObj=${JSON.stringify(_t)} picked=${typeColor}`);
-      const _ks = JSON.stringify(dj.kart); const _ci = _ks.toLowerCase().indexOf('colo');
-      console.log(`[typecolor] kart ${id} kartKeys=[${Object.keys(dj.kart).join(',')}] coloAt=${_ci}${_ci >= 0 ? ' ctx=' + _ks.substr(Math.max(0, _ci - 3), 50) : ''}`);
-    } catch (e) { console.log('[typecolor] log err ' + e.message); }
-  }
   await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{
     rf_id: id, name: details.name, kart_id_label: details.kartIdLabel, type: type, site: site,
     label: kartLabel(type, details.name),
@@ -380,9 +379,8 @@ async function main() {
     return;
   }
 
-  // ----- full sync (unchanged): enumerate everything + repairs/parts/notes + prune + reconcile -----
-  await probe();                       // <-- prints exactly what RaceFacer replies; remove once working
-  await discoverTracks();              // <-- one-off: find the track-layout endpoint; remove once wired
+  // ----- full sync: enumerate everything + repairs/parts/notes + prune + reconcile -----
+  try { await syncTracks(); } catch (e) { console.log('[tracks] sync error:', e.message); }   // current track layout -> tracks table
   const idMap = await enumerateKarts();           // Map: rf_id -> { site, type }
   console.log(`Syncing ${idMap.size} karts...`);
   try { await statusFast(); } catch (e) {}        // refresh OK/Damaged up-front so a status flip isn't stuck behind the whole pass

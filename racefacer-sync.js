@@ -132,23 +132,28 @@ async function syncTracks() {
     const d = new Date(today); d.setDate(d.getDate() - i);
     pick = pickSession(await daySessions(dayOf(d)));
   }
-  let live = null;
+  let cur = null;   // the current/live layout, when we can resolve it from a session
   if (pick) {
     const c = byName.get(String(pick.configuration).trim().toLowerCase());
-    live = c ? { id: c.id, sub: c.sub_track_id, name: String(c.name).trim() }
-             : { id: null, sub: pick.sub_track_id || null, name: String(pick.configuration).trim() };
+    if (c) cur = { id: c.id, name: String(c.name).trim() };
+    else console.log('[tracks] session config "%s" not found in the layout list', String(pick.configuration).trim());
   }
-  if (!live || live.id == null) { console.log('[tracks] no recent session/config found — leaving live unchanged'); return; }
+  if (!cur) console.log('[tracks] no current layout resolved this pass — writing names, leaving live flags as-is');
 
-  // 3) clear live for this site, then upsert the current layout as live (designer fields preserved)
-  const dir = /anti[-\s]?clockwise/i.test(live.name) ? 'Anti-Clockwise' : (/clockwise/i.test(live.name) ? 'Clockwise' : null);
+  // 3) upsert EVERY layout (names straight from RaceFacer). When we know the current one, flag it live
+  //    and clear the rest in the same bulk upsert. merge-duplicates preserves designer-owned columns
+  //    (map_svg / blueprint_url / barriers) and any beacons.
+  const dirOf = (n) => (/anti[-\s]?clockwise/i.test(n) ? 'Anti-Clockwise' : (/clockwise/i.test(n) ? 'Clockwise' : null));
+  const nowIso = new Date().toISOString();
+  const rows = cfgs.map((c) => {
+    const nm = String(c.name || '').trim();
+    const row = { site: SITE, rf_config_id: c.id, rf_sub_track_id: c.sub_track_id, name: nm, direction: dirOf(nm), synced_at: nowIso };
+    if (cur) row.live = (c.id === cur.id);   // only touch the live flag when we resolved the current layout
+    return row;
+  });
   try {
-    await sb(`tracks?site=eq.${SITE}&live=is.true`, { method: 'PATCH', prefer: 'return=minimal', body: { live: false } });
-    await sb('tracks?on_conflict=site,rf_config_id', {
-      method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
-      body: [{ site: SITE, rf_config_id: live.id, rf_sub_track_id: live.sub, name: live.name, direction: dir, live: true, synced_at: new Date().toISOString() }],
-    });
-    console.log('[tracks] live = "%s" (config %s, sub_track %s)', live.name, live.id, live.sub);
+    await sb('tracks?on_conflict=site,rf_config_id', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: rows });
+    console.log('[tracks] upserted %s layouts for %s%s', rows.length, SITE, cur ? ` · live = "${cur.name}" (config ${cur.id})` : '');
   } catch (e) { console.log('[tracks] upsert failed:', e.message); }
 }
 

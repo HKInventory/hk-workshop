@@ -4690,15 +4690,14 @@ function renderKartNotesFeed(){
     SBC.from('rf_karts').select('rf_id,name,type').limit(5000).then(function(res){ var m={}; ((res&&res.data)||[]).forEach(function(k){ m[k.rf_id]={name:k.name,type:k.type}; }); KI_NKMAP=m; cb(m); }, function(){ cb({}); });
   }
   withMap(function(km){
-    SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at,created_by,active').eq('site',site).order('created_at',{ascending:false}).limit(250).then(function(res){
+    SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at,created_by').eq('site',site).eq('active',true).order('created_at',{ascending:false}).limit(250).then(function(res){
       var rows=(res&&res.data)||[];
-      if(!rows.length){ body.innerHTML='<div style="font-size:14px;color:var(--t2)">No kart notes yet.</div>'; return; }
-      var h='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+rows.length+' notes · newest first</div><div style="display:flex;flex-direction:column;gap:8px">';
+      if(!rows.length){ body.innerHTML='<div style="font-size:14px;color:var(--t2)">No active kart notes.</div>'; return; }
+      var h='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+rows.length+' active note'+(rows.length===1?'':'s')+' · newest first</div><div style="display:flex;flex-direction:column;gap:8px">';
       rows.forEach(function(r){
         var k=km[r.rf_kart_id]||{}; var num=raceEsc(k.name||r.rf_kart_id||'?'); var typ=k.type?raceEsc(k.type):'';
         var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
-        var live=r.active?'<span style="font-size:10px;font-weight:800;color:#34C759;border:1px solid rgba(52,199,89,.4);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle">OPEN</span>':'';
-        h+='<div class="mc" style="margin-bottom:0;padding:12px 14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:800;color:var(--acc)">Kart '+num+'</span>'+(typ?('<span style="font-size:11.5px;color:var(--t2)">'+typ+'</span>'):'')+live+'<span style="font-size:11px;color:var(--t2);margin-left:auto">'+when+'</span></div><div style="font-size:13.5px;color:var(--t1);line-height:1.5">'+note+'</div>'+(by?('<div style="font-size:11.5px;color:var(--t2);margin-top:3px">'+by+'</div>'):'')+'</div>';
+        h+='<div class="mc" style="margin-bottom:0;padding:12px 14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:800;color:var(--acc)">Kart '+num+'</span>'+(typ?('<span style="font-size:11.5px;color:var(--t2)">'+typ+'</span>'):'')+'<span style="font-size:11px;color:var(--t2);margin-left:auto">'+when+'</span></div><div style="font-size:13.5px;color:var(--t1);line-height:1.5">'+note+'</div>'+(by?('<div style="font-size:11.5px;color:var(--t2);margin-top:3px">'+by+'</div>'):'')+'</div>';
       });
       h+='</div>'; body.innerHTML=h;
     }, function(){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });

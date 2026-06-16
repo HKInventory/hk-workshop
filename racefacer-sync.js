@@ -414,10 +414,14 @@ async function pruneStale(activeIds) {
 // hitting all ~190 karts individually. Only updates karts already in rf_karts (so it's
 // always an UPDATE — never a partial insert), and only the status fields.
 async function statusFast() {
-  let known = new Set();
-  try { const f = (await sb('rf_karts?select=rf_id')) || []; for (const r of f) if (r.rf_id != null) known.add(r.rf_id); }
+  // WRITE-ON-CHANGE: read each kart's CURRENT status_code, and only write back the karts whose
+  // status actually flipped this cycle. Re-writing all ~190 karts every cycle (even unchanged)
+  // would fire a Supabase realtime message + egress per kart per cycle — on a ~10s always-on loop
+  // that's millions of messages/day for no reason. Only changed rows broadcast; the rest are skipped.
+  const cur = new Map();
+  try { const f = (await sb('rf_karts?select=rf_id,status_code')) || []; for (const r of f) if (r.rf_id != null) cur.set(r.rf_id, r.status_code); }
   catch (e) { console.error(`[fast] couldn't read fleet: ${e.message}`); return 0; }
-  if (!known.size) return 0;                          // nothing known yet — the full sync will populate it
+  if (!cur.size) return 0;                             // nothing known yet — the full sync will populate it
 
   const lists = await Promise.all(Object.keys(KART_TYPES).map(async (uuid) => {
     try { const html = await (await rf(`/en/administration/garage/garage?kart_type_uuid=${uuid}`)).text(); return parseGarageStatuses(html); }
@@ -425,16 +429,20 @@ async function statusFast() {
   }));
 
   const rows = [], seen = new Set(), now = new Date().toISOString();
+  let scanned = 0;
   for (const list of lists) for (const k of list) {
-    if (!k.rfId || k.statusCode == null || !known.has(k.rfId) || seen.has(k.rfId)) continue;
-    seen.add(k.rfId);
+    if (!k.rfId || k.statusCode == null || !cur.has(k.rfId) || seen.has(k.rfId)) continue;
+    seen.add(k.rfId); scanned++;
+    if (cur.get(k.rfId) === k.statusCode) continue;   // unchanged — don't write, don't broadcast
     rows.push({ rf_id: k.rfId, status: k.status, status_code: k.statusCode, fetched_at: now });
   }
   for (let i = 0; i < rows.length; i += 100) {
     try { await sb('rf_karts?on_conflict=rf_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: rows.slice(i, i + 100) }); }
     catch (e) { console.error(`[fast] status upsert failed: ${e.message}`); }
   }
+  // one tiny row carries the "last polled" timestamp so freshness is tracked without stamping every kart
   try { await sb('rf_sync_state?on_conflict=k', { method: 'POST', prefer: 'resolution=merge-duplicates', body: [{ k: 'last_status', v: now, at: now }] }); } catch (e) {}
+  if (rows.length) console.log(`[fast] ${rows.length} status change(s) of ${scanned} scanned.`);
   return rows.length;
 }
 

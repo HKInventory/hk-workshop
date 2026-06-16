@@ -603,8 +603,8 @@
     .md-tab.active{background:#00CFFF;color:#04121a}
     .md-tabct{min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
     .md-tab.active .md-tabct{background:rgba(0,0,0,.22)}
-    .nf-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
-    .nf-h1{font-size:20px;font-weight:800;color:var(--t1)}
+    .nf-head{margin:2px 0 14px}
+    .nf-h1{font-size:21px;font-weight:800;letter-spacing:-.4px;color:var(--t1)}
     .nf-sub{font-size:12px;color:var(--t2)}
     .nf-card{background:var(--card);border:1px solid var(--b1);border-radius:14px;overflow:hidden;margin-bottom:9px}
     @keyframes nfIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -652,6 +652,43 @@
     .nf-when{font-size:11px;color:var(--t2);white-space:nowrap}
     .nf-x{position:absolute;top:9px;right:8px;width:26px;height:26px;border-radius:7px;background:transparent;border:none;color:var(--t2);font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.45}
     .nf-x:hover{opacity:1;background:var(--card2);color:var(--t1)}
+    /* grouped, collapsible notification sections */
+    .nf-sub2{font-size:12.5px;color:var(--t2);margin-top:4px}
+    .ng{background:var(--card);border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+    .ng+.ng{margin-top:10px}
+    .ng.urgent{border-color:rgba(255,69,58,.38)}
+    .ng-head{width:100%;display:flex;align-items:center;gap:12px;padding:14px;background:none;border:0;cursor:pointer;text-align:left;font-family:inherit;color:var(--t1)}
+    .ng-head:hover{background:var(--card2)}
+    .ng-ic{flex:none;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1}
+    .ng-mid{flex:1;min-width:0}
+    .ng-title{display:block;font-size:15px;font-weight:800;letter-spacing:-.2px;color:var(--t1)}
+    .ng-sum{display:block;font-size:12px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ng-ct{flex:none;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--card2);color:var(--t1);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+    .ng-ct[data-urgent]{background:#FF453A;color:#fff}
+    .ng-chev{flex:none;color:var(--t2);font-size:20px;font-weight:700;line-height:1;width:13px;text-align:center;transition:transform .18s}
+    .ng-chev.open{transform:rotate(90deg)}
+    .ng-body{display:none;padding:2px 14px 13px;border-top:1px solid var(--b1)}
+    .ng.open .ng-body{display:block}
+    .ng-none{font-size:12.5px;color:var(--t2);padding:13px 2px;text-align:center}
+    .ng-row{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--b1)}
+    .ng-row:last-child{border-bottom:0}
+    .ng-rx{flex:1;min-width:0}
+    .ng-rt{font-size:13.5px;color:var(--t1);font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+    .ng-rs{font-size:11px;color:var(--t2);margin-top:1px}
+    .ng-rr{flex:none;font-size:13px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .ng-rr.red{color:#FF453A}
+    .ng-disc{display:flex;align-items:flex-start;gap:10px;padding:11px 2px;border-bottom:1px solid var(--b1)}
+    .ng-disc:last-child{border-bottom:0}
+    .ng-dx{flex:1;min-width:0}
+    .ng-dt{font-size:13.5px;font-weight:700;color:var(--t1)}
+    .ng-ds{font-size:12.5px;color:var(--t1);opacity:.85;margin-top:1px;overflow-wrap:anywhere}
+    .ng-dm{font-size:11px;color:var(--t2);margin-top:3px}
+    .ng-done{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--b2);background:var(--card2);color:#30D158;font-size:15px;font-weight:800;cursor:pointer;line-height:1}
+    .ng-done:hover{background:rgba(48,209,88,.16);border-color:rgba(48,209,88,.5)}
+    .ng-full{padding:12px;border:1px solid var(--b1);border-left-width:3px;border-radius:10px;margin-top:9px}
+    .ng-full:first-child{margin-top:3px}
+    .ng-fulltt{font-size:13.5px;font-weight:800;color:var(--t1);line-height:1.35}
+    .ng-fullbd{font-size:12.5px;color:var(--t2);line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
     .mc{background:var(--card);border:1px solid var(--b1);border-radius:16px;padding:16px;margin-bottom:10px;overflow:hidden}
     .mc:first-of-type{margin-top:6px}
     .mct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--t2);margin-bottom:12px}
@@ -3375,7 +3412,7 @@ function renderMechToday(){
    summary (sbFinanceData). Updates in real time via the parts/stock/discrepancy
    channels. (Part-order requests will appear here once they're stored — today they
    route straight to the sheet.) */
-var MD_TAB='overview', NOTIF_FILTER='all', NOTIF_DISC=[], NOTIF_FIN=null, NOTIF_CHECK=[];
+var MD_TAB='overview', NOTIF_FILTER='all', NOTIF_DISC=[], NOTIF_FIN=null, NOTIF_CHECK=[], NOTIF_DAILY=null;
 /* Morning kart-check anomaly detection. The 6am-ish check logs damage into RaceFacer (rf_repairs:
    description = the note, date_discovered = the morning it was found). We count today's matches for
    each pattern against the trailing per-day average and flag a spike. Add more patterns here over time. */
@@ -3416,84 +3453,94 @@ function fmtNotifDate(d){
   return dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
 }
 
-// Flat list of notifications. Stock is rolled into summary cards (expandable); discrepancies are
-// individual so they can be cleared one-by-one as they're mapped. `ver` encodes current content so a
-// dismissed card re-appears (unread) if the underlying numbers change.
-function buildNotifs(){
-  var L=[];
-  (NOTIF_CHECK||[]).forEach(function(a,i){
-    L.push({id:'chk-'+(a.key||('a'+i)), ver:a.title, icon:a.icon, color:a.color,
-            title:a.title, sub:a.body, date:'', expandable:false, full:true});
-  });
-  (NOTIF_DISC||[]).forEach(function(r){
-    var dd=r.day||(r.at?String(r.at).slice(0,10):'');
-    L.push({id:'disc-'+(r.id!=null?r.id:(String(r.rf_kart_name)+(r.at||r.message))), ver:String(r.id!=null?r.id:(r.message||'')),
-            icon:'🚨', color:'#FF453A',
-            title:'Kart '+(r.rf_kart_name||'?'),
-            sub:(r.part_name?('\u201c'+r.part_name+'\u201d needs mapping'):(r.message||'Discrepancy')),
-            date:fmtNotifDate(dd)+(r.mechanic?(' \u00b7 '+r.mechanic):''),
-            expandable:true,
-            detail:[{t:(r.message||((r.part_name||'Part')+' isn\u2019t linked to an app stock item yet')), s:'', r:''}]});
-  });
+// Notifications are GROUPED BY TYPE into collapsible sections so the panel stays uncluttered: you see a
+// handful of section headers (each with a one-line summary + count), and expand only what you care about.
+// Urgent sections (spikes / out-of-stock) auto-open; everything else starts collapsed.
+function discUid(r){ return 'disc-'+(r.id!=null?r.id:(String(r.rf_kart_name)+(r.at||r.message))); }
+function buildNotifGroups(){
+  var G=[];
+  // 1) Damage & tyre spikes (morning-check anomalies)
+  var spikes=(NOTIF_CHECK||[]);
+  G.push({ key:'spikes', icon:'🛞', color:'#FF9F0A', title:'Damage & tyre spikes', count:spikes.length, urgent:spikes.length>0,
+    summary: spikes.length ? (spikes.length+' flagged this morning') : 'Nothing unusual today',
+    items: spikes.map(function(a){ return { kind:'full', title:a.title, body:a.body, color:a.color }; }) });
+  // 2) RaceFacer discrepancies + stock repairs (each is a to-do you tick off as it's mapped/resolved)
+  var disc=(NOTIF_DISC||[]).filter(function(r){ return !NOTIF_DISM[discUid(r)]; });
+  G.push({ key:'disc', icon:'🔗', color:'#00CFFF', title:'RaceFacer discrepancies', count:disc.length, urgent:false,
+    summary: disc.length ? (disc.length+' to map / review') : 'All mapped',
+    items: disc.map(function(r){
+      var dd=r.day||(r.at?String(r.at).slice(0,10):'');
+      return { kind:'disc', uid:discUid(r), title:'Kart '+(r.rf_kart_name||'?'),
+        sub:(r.part_name?('\u201c'+r.part_name+'\u201d needs mapping'):(r.message||'Discrepancy')),
+        meta:fmtNotifDate(dd)+(r.mechanic?(' \u00b7 '+r.mechanic):'') };
+    }) });
+  // 3) Parts to order (out of stock + at/below reorder point)
   var ps=(typeof parts!=='undefined'&&parts)?parts:[];
   var out=ps.filter(function(p){return p.qty===0;});
   var low=ps.filter(function(p){return p.qty>0 && p.reorder!=null && p.qty<=p.reorder;});
   low.sort(function(a,b){return (a.qty-a.reorder)-(b.qty-b.reorder);});
-  if(out.length) L.push({id:'oos', ver:'n'+out.length, icon:'📦', color:'#FF3B30',
-    title:'Out of stock', sub:out.length+' part'+(out.length===1?'':'s')+' need reordering', date:'', expandable:true,
-    detail:out.map(function(p){return {t:(p.desc||p.sku||'Part'), s:(p.sku?('SKU '+p.sku):''), r:'0 left'};})});
-  if(low.length) L.push({id:'low', ver:'n'+low.length, icon:'⚠️', color:'#FFD600',
-    title:'Low / reorder soon', sub:low.length+' part'+(low.length===1?'':'s')+' at or below reorder', date:'', expandable:true,
-    detail:low.map(function(p){return {t:(p.desc||p.sku||'Part'), s:(p.sku?('SKU '+p.sku):''), r:p.qty+' left \u00b7 min '+p.reorder};})});
+  var orderItems=out.map(function(p){return { kind:'row', t:(p.desc||p.sku||'Part'), s:(p.sku?('SKU '+p.sku):''), r:'Out of stock', red:true };})
+    .concat(low.map(function(p){return { kind:'row', t:(p.desc||p.sku||'Part'), s:(p.sku?('SKU '+p.sku):''), r:p.qty+' left \u00b7 min '+p.reorder };}));
+  G.push({ key:'order', icon:'📦', color:'#FF453A', title:'Parts to order', count:orderItems.length, urgent:out.length>0,
+    summary: orderItems.length ? (out.length+' out \u00b7 '+low.length+' low') : 'Stock levels OK',
+    items: orderItems });
+  // 4) Today's repairs (daily summary of work + cost)
+  if(NOTIF_DAILY){
+    var d=NOTIF_DAILY;
+    var rows=[ { kind:'row', t:'Repairs logged today', s:'', r:String(d.count) },
+               { kind:'row', t:'Cost today', s:'', r:nfMoney(d.cost) },
+               { kind:'row', t:'Karts worked on', s:'', r:String(d.karts) } ];
+    (d.list||[]).forEach(function(x){ rows.push({ kind:'row', t:(x.desc||'Repair'), s:(x.kart!=null?('Kart '+x.kart):''), r:(x.cost?nfMoney(x.cost):'') }); });
+    G.push({ key:'daily', icon:'🔧', color:'#30D158', title:'Today\u2019s repairs', count:0, urgent:false,
+      summary: d.count ? (d.count+' repair'+(d.count===1?'':'s')+' \u00b7 '+nfMoney(d.cost)) : 'No repairs logged yet',
+      items: rows });
+  }
+  // 5) Finance summary
   if(NOTIF_FIN){
     var rfi=Array.isArray(NOTIF_FIN.reorderForecastItems)?NOTIF_FIN.reorderForecastItems.length:(+NOTIF_FIN.reorderForecastItems||0);
-    L.push({id:'fin', ver:'f'+(NOTIF_FIN.spendMonth||0)+'_'+(NOTIF_FIN.stockValue||0)+'_'+(NOTIF_FIN.reorderForecastCost||0),
-      icon:'💰', color:'#34C759', title:'Weekly financial update', sub:nfMoney(NOTIF_FIN.spendMonth)+' spent this month', date:'', expandable:true,
-      detail:[
-        {t:'Spent this month', s:'', r:nfMoney(NOTIF_FIN.spendMonth)},
-        {t:'Stock value', s:'', r:nfMoney(NOTIF_FIN.stockValue)},
-        {t:'Reorder forecast', s:(rfi+' item'+(rfi===1?'':'s')), r:nfMoney(NOTIF_FIN.reorderForecastCost)},
-        {t:'Spent year to date', s:'', r:nfMoney(NOTIF_FIN.spendYTD)}
-      ]});
+    G.push({ key:'finance', icon:'💰', color:'#BF5AF2', title:'Finance', count:0, urgent:false,
+      summary: nfMoney(NOTIF_FIN.spendMonth)+' this month \u00b7 '+nfMoney(NOTIF_FIN.stockValue)+' stock',
+      items:[ { kind:'row', t:'Spent this month', s:'', r:nfMoney(NOTIF_FIN.spendMonth) },
+              { kind:'row', t:'Spent year to date', s:'', r:nfMoney(NOTIF_FIN.spendYTD) },
+              { kind:'row', t:'Stock value', s:'', r:nfMoney(NOTIF_FIN.stockValue) },
+              { kind:'row', t:'Reorder forecast', s:(rfi+' item'+(rfi===1?'':'s')), r:nfMoney(NOTIF_FIN.reorderForecastCost) } ] });
   }
-  return L;
+  return G;
 }
-function nfVisible(){ return buildNotifs().filter(function(n){ return !NOTIF_DISM[nfUid(n)]; }); }
-function notifUnreadCount(){ return nfVisible().filter(function(n){ return !NOTIF_READ[nfUid(n)]; }).length; }
+function notifActionCount(){ var n=0; buildNotifGroups().forEach(function(g){ if(g.key==='spikes'||g.key==='disc'||g.key==='order') n+=g.count; }); return n; }
+
+var NG_OPEN={};
+try{ NG_OPEN=JSON.parse(localStorage.getItem('hk_ngopen')||'{}')||{}; }catch(e){ NG_OPEN={}; }
+function ngSaveOpen(){ try{ localStorage.setItem('hk_ngopen',JSON.stringify(NG_OPEN)); }catch(e){} }
+function ngIsOpen(g){ return (g.key in NG_OPEN) ? !!NG_OPEN[g.key] : !!(g.urgent && g.count); }   // urgent groups default open
 
 var _nfSig='', _nfTimer=null;
 function _renderNotifNow(){
   var pane=document.getElementById('md-pane-notif'); if(!pane) return;
-  var vis=nfVisible();
-  var unread=vis.filter(function(n){return !NOTIF_READ[nfUid(n)];}).length;
-  var sig=unread+'~'+vis.map(function(n){var u=nfUid(n); return u+(NOTIF_READ[u]?'r':'')+(NOTIF_OPEN[n.id]?'o':'')+':'+n.sub;}).join('|');
+  var groups=buildNotifGroups();
+  var act=0; groups.forEach(function(g){ if(g.key==='spikes'||g.key==='disc'||g.key==='order') act+=g.count; });
+  var sig=act+'~'+groups.map(function(g){ return g.key+g.count+(ngIsOpen(g)?'o':'')+':'+g.summary; }).join('|');
   if(sig===_nfSig && pane.childNodes.length) return; _nfSig=sig;
-  var head='<div class="nf-head"><div class="nf-h1">Notifications</div><div class="nf-acts">'
-    + (unread?('<span class="nf-unread">'+unread+' unread</span>'):'<span class="nf-sub2">You\u2019re all caught up</span>')
-    + (vis.length?('<button class="nf-act" data-act="allread">Mark all read</button><button class="nf-act" data-act="clearall">Clear all</button>'):'')
-    + '</div></div>';
-  var body;
-  if(!vis.length){
-    body='<div class="nf-empty"><div class="nf-emoji">✅</div><div class="nf-et">You\u2019re all caught up</div><div class="nf-es">No notifications right now.</div></div>';
-  } else {
-    body=vis.map(function(n){
-      var uid=nfUid(n), read=!!NOTIF_READ[uid], open=!!NOTIF_OPEN[n.id];
-      var det='';
-      if(open && n.detail && n.detail.length){
-        det='<div class="nf-secbody">'+n.detail.map(function(it){
-          return '<div class="nf-item"><div class="nf-itx"><div class="nf-itt">'+nfEsc(it.t)+'</div>'+(it.s?'<div class="nf-its">'+nfEsc(it.s)+'</div>':'')+'</div>'+(it.r?'<div class="nf-itr">'+nfEsc(it.r)+'</div>':'')+'</div>';
-        }).join('')+'</div>';
-      }
-      return '<div class="nf-card'+(read?'':' unread')+(open?' open':'')+(n.full?' full':'')+'" data-uid="'+uid+'">'
-        +'<div class="nf-row2">'
-        +'<span class="nf-dotwrap">'+(read?'':'<span class="nf-unreaddot" style="background:'+n.color+'"></span>')+'</span>'
-        +'<span class="nf-ico" style="background:'+n.color+'22">'+n.icon+'</span>'
-        +'<span class="nf-mid"><span class="nf-title2">'+nfEsc(n.title)+'</span><span class="nf-sub">'+nfEsc(n.sub)+'</span></span>'
-        +'<span class="nf-rt">'+(n.date?'<span class="nf-when">'+nfEsc(n.date)+'</span>':'')+(n.expandable?'<span class="nf-chev'+(open?' open':'')+'">\u203a</span>':'')+'</span>'
-        +'<button class="nf-x" data-x="'+uid+'" title="Dismiss" aria-label="Dismiss">\u00d7</button>'
-        +'</div>'+det+'</div>';
-    }).join('');
-  }
+  var head='<div class="nf-head"><div class="nf-h1">Notifications</div>'
+    +'<div class="nf-sub2">'+(act ? (act+' need'+(act===1?'s':'')+' attention') : 'You\u2019re all caught up')+'</div></div>';
+  var body=groups.map(function(g){
+    var open=ngIsOpen(g), inner='';
+    if(open){
+      if(!g.items.length){ inner='<div class="ng-none">Nothing here right now.</div>'; }
+      else inner=g.items.map(function(it){
+        if(it.kind==='full') return '<div class="ng-full" style="border-left-color:'+it.color+'"><div class="ng-fulltt">'+nfEsc(it.title)+'</div><div class="ng-fullbd">'+nfEsc(it.body)+'</div></div>';
+        if(it.kind==='disc') return '<div class="ng-disc"><div class="ng-dx"><div class="ng-dt">'+nfEsc(it.title)+'</div><div class="ng-ds">'+nfEsc(it.sub)+'</div>'+(it.meta?'<div class="ng-dm">'+nfEsc(it.meta)+'</div>':'')+'</div><button class="ng-done" data-x="'+it.uid+'" title="Mark handled" aria-label="Mark handled">\u2713</button></div>';
+        return '<div class="ng-row"><div class="ng-rx"><div class="ng-rt">'+nfEsc(it.t)+'</div>'+(it.s?'<div class="ng-rs">'+nfEsc(it.s)+'</div>':'')+'</div>'+(it.r?'<div class="ng-rr'+(it.red?' red':'')+'">'+nfEsc(it.r)+'</div>':'')+'</div>';
+      }).join('');
+    }
+    return '<div class="ng'+(open?' open':'')+(g.urgent?' urgent':'')+'" data-ng="'+g.key+'">'
+      +'<button class="ng-head">'
+      +'<span class="ng-ic" style="background:'+g.color+'22;color:'+g.color+'">'+g.icon+'</span>'
+      +'<span class="ng-mid"><span class="ng-title">'+nfEsc(g.title)+'</span><span class="ng-sum">'+nfEsc(g.summary)+'</span></span>'
+      +(g.count?('<span class="ng-ct"'+(g.urgent?' data-urgent="1"':'')+'>'+g.count+'</span>'):'')
+      +'<span class="ng-chev'+(open?' open':'')+'">\u203a</span>'
+      +'</button><div class="ng-body">'+inner+'</div></div>';
+  }).join('');
   pane.innerHTML='<div class="nf-wrap">'+head+body+'</div>';
   nfWire(pane);
 }
@@ -3503,12 +3550,12 @@ function nfWire(pane){
   if(pane._nfWired) return; pane._nfWired=true;   // one delegated listener survives innerHTML swaps
   pane.addEventListener('click',function(e){
     var x=e.target.closest('[data-x]'); if(x){ e.stopPropagation(); nfDismiss(x.getAttribute('data-x')); return; }
-    var act=e.target.closest('[data-act]'); if(act){ var a=act.getAttribute('data-act'); if(a==='allread') nfAllRead(); else if(a==='clearall') nfClearAll(); return; }
-    var card=e.target.closest('[data-uid]'); if(card) nfTap(card.getAttribute('data-uid'), card);
+    var head=e.target.closest('.ng-head'); if(head){ var k=head.parentNode.getAttribute('data-ng'); NG_OPEN[k]=!ngIsOpenKey(k); ngSaveOpen(); renderNotifNow(); return; }
   });
 }
+function ngIsOpenKey(k){ var g=buildNotifGroups().filter(function(x){return x.key===k;})[0]; return g?ngIsOpen(g):false; }
 function nfUserKey(){ return (typeof cu!=='undefined'&&cu&&cu.name)?String(cu.name):''; }
-// server sync: read/dismissed is per user (cu.name) and shared across that user's devices
+// server sync: a handled discrepancy stays handled for this user across their devices
 function nfPush(uid){
   var uk=nfUserKey(); if(!uk||typeof SBC==='undefined'||!SBC) return;
   try{ SBC.from('notif_state').upsert({user_key:uk,uid:uid,read:!!NOTIF_READ[uid],dismissed:!!NOTIF_DISM[uid],updated_at:new Date().toISOString()},{onConflict:'user_key,uid'}).then(function(){},function(){}); }catch(e){}
@@ -3523,22 +3570,15 @@ function nfLoadState(){
   var uk=nfUserKey(); if(!uk||typeof SBC==='undefined'||!SBC) return;
   SBC.from('notif_state').select('uid,read,dismissed').eq('user_key',uk).then(function(res){
     var rows=(res&&res.data)||[];
-    rows.forEach(function(r){ if(r.read) NOTIF_READ[r.uid]=true; if(r.dismissed) NOTIF_DISM[r.uid]=true; });   // union (read/dismiss are monotonic)
+    rows.forEach(function(r){ if(r.read) NOTIF_READ[r.uid]=true; if(r.dismissed) NOTIF_DISM[r.uid]=true; });   // union (monotonic)
     nfSaveState(); refreshNotifBadge(); if(MD_TAB==='notif') renderNotifNow();
   },function(){});
 }
-function nfTap(uid, card){
-  NOTIF_READ[uid]=true;
-  if(card && card.querySelector('.nf-chev')){ var id=uid.split('|')[0]; NOTIF_OPEN[id]=!NOTIF_OPEN[id]; }
-  nfSaveState(); nfPush(uid); renderNotifNow(); refreshNotifBadge();
-}
 function nfDismiss(uid){ NOTIF_DISM[uid]=true; nfSaveState(); nfPush(uid); renderNotifNow(); refreshNotifBadge(); }
-function nfAllRead(){ var ids=nfVisible().map(nfUid); ids.forEach(function(u){ NOTIF_READ[u]=true; }); nfSaveState(); nfPushBulk(ids); renderNotifNow(); refreshNotifBadge(); }
-function nfClearAll(){ var v=nfVisible(); if(!v.length) return; if(!confirm('Dismiss all '+v.length+' notification'+(v.length===1?'':'s')+'?')) return; var ids=v.map(nfUid); ids.forEach(function(u){ NOTIF_DISM[u]=true; }); nfSaveState(); nfPushBulk(ids); renderNotifNow(); refreshNotifBadge(); }
 
 function refreshNotifBadge(){
   var ct=document.getElementById('mdNotifCt'); if(!ct) return;
-  var n=notifUnreadCount();
+  var n=notifActionCount();
   ct.textContent=(n>99?'99+':n); ct.style.display=n?'':'none';
 }
 
@@ -3547,7 +3587,21 @@ function loadNotifications(){
   _nfSig=''; renderNotifNow();   // force an instant paint on tab open
   loadNotifBadge();             // refresh discrepancies + badge (re-renders the feed if it's open)
   loadCheckAlerts();            // morning kart-check anomalies (e.g. tyre-puncture spikes)
+  loadDailySummary();           // today's repairs + cost
   if(!NOTIF_FIN && typeof sbFinanceData==='function'){ sbFinanceData(function(f){ NOTIF_FIN=f; if(MD_TAB==='notif') renderNotifications(); refreshNotifBadge(); }); }
+}
+function loadDailySummary(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var today=new Date().toISOString().slice(0,10);
+  SBC.from('rf_repairs').select('rf_kart_id,description,cost,date_discovered').eq('date_discovered',today).limit(500)
+    .then(function(res){
+      var rows=(res&&res.data)||[], cost=0, karts={};
+      rows.forEach(function(r){ cost+=(+r.cost||0); if(r.rf_kart_id!=null) karts[r.rf_kart_id]=true; });
+      var list=rows.slice().sort(function(a,b){return (+b.cost||0)-(+a.cost||0);}).slice(0,6)
+        .map(function(r){ return { kart:r.rf_kart_id, desc:(r.description||'Repair'), cost:(+r.cost||0) }; });
+      NOTIF_DAILY={ count:rows.length, cost:cost, karts:Object.keys(karts).length, list:list };
+      if(MD_TAB==='notif') renderNotifications();
+    }, function(){});
 }
 function loadNotifBadge(){
   if(typeof SBC!=='undefined' && SBC){

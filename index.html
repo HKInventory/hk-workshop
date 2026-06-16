@@ -1235,7 +1235,7 @@
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
             <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
-            <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🏎️</div><div class="tl">Racefacer</div><div class="ts">Track of the day</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
+            <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
@@ -1333,15 +1333,15 @@
     <div class="scr" id="s-race">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="pgtitle">Racefacer</div>
+        <div class="pgtitle">Intelligence</div>
         <div id="raceTrack" class="rcard" style="text-align:left;padding:20px"><div style="font-size:13px;color:var(--t2)">Loading track…</div></div>
         <div id="raceStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"></div>
         <div id="raceDisc"></div>
         <div id="raceWork"></div>
         <div class="mc" style="border-style:dashed;opacity:.9">
-          <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--t2);text-transform:uppercase;margin-bottom:8px">Coming next</div>
-          <div style="font-size:13px;color:var(--t2);line-height:2">👥&nbsp; Customer numbers &amp; sessions<br>📦&nbsp; Pre-event stock predictions<br>💰&nbsp; Cost per session<br>📈&nbsp; Usage vs booking correlation</div>
-          <div style="font-size:11.5px;color:var(--t2);opacity:.7;margin-top:8px">Unlocks once sessions sync and repairs are tagged by layout.</div>
+          <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--t2);text-transform:uppercase;margin-bottom:8px">Intelligence engine — coming</div>
+          <div style="font-size:13px;color:var(--t2);line-height:2">🧠&nbsp; Track danger score /100 from real damage history<br>🔧&nbsp; % damage rate per layout &amp; per part<br>📦&nbsp; Stock-out forecasting before events<br>📈&nbsp; Learns from itself as more data lands</div>
+          <div style="font-size:11.5px;color:var(--t2);opacity:.7;margin-top:8px">Unlocks once the sync logs which layout was live for each repair (track-layout timeline).</div>
         </div>
       </div>
     </div>
@@ -1478,6 +1478,7 @@
           <div class="ki-sub" id="ki-site-sub"></div>
           <div class="ki-tiles">
             <div class="tile kartinfo ki-hero" onclick="kiOpenKarts()"><div class="ti">🏎️</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
+            <div class="tile tse" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
             <div class="tile tasks" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
             <div class="tile tse" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile kidh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
@@ -1995,7 +1996,7 @@ function tutSteps(){
     {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Coming soon \u2014 ask questions about stock, usage and ordering in plain English.', spot:null, gate:{ev:'next'}},
     {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Coming soon \u2014 assign and track workshop jobs.', spot:null, gate:{ev:'next'}},
     {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:120, emoji:'\ud83d\udcac', title:'Chats', body:'Coming soon \u2014 message the team without leaving the app.', spot:null, gate:{ev:'next'}},
-    {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83c\udfce\ufe0f', title:'Racefacer', body:'Coming soon \u2014 live timing and session data.', spot:null, gate:{ev:'next'}},
+    {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 with damage prediction coming.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
     {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Beacons', body:'The live track layout with every Dehaardt beacon and its sector/function numbers.', spot:null, gate:{ev:'next'}},
     {tab:null, emoji:'\ud83c\udf89', title:'That\u2019s the tour!', body:'You\u2019ve seen every tab. Jump in whenever you\u2019re ready \u2014 and you can run this tour again from Training mode.', spot:null, gate:{ev:'next'}}
@@ -4149,11 +4150,12 @@ function kiOpenKarts(){
 
 // Open a fleet-wide reference section (wiring / cpu / beacons / help)
 function kiOpenRef(which){
-  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help'};
+  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes'};
   var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
   if(which==='wiring') renderWiringSection();
   else if(which==='cpu') renderCpuSection();
   else if(which==='beacons') renderBeaconsSection();
+  else if(which==='notes') renderKartNotesFeed();
   else renderHelpSection();
   go('kartref');
 }
@@ -4675,6 +4677,33 @@ function costTabHTML(){
 
 
 // ── Fleet-wide reference sections (no longer per-kart) ──────────────────────
+// Global kart-notes feed — every kart's notes for this site, newest first (mirrors RaceFacer's Notifications list)
+var KI_NKMAP=null;
+function kiFmtDate(iso){ try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
+function renderKartNotesFeed(){
+  var body=document.getElementById('ki-ref-body'); if(!body) return;
+  body.innerHTML='<div style="font-size:13px;color:var(--t2)">Loading notes…</div>';
+  if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Not connected.</div>'; return; }
+  var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney';
+  function withMap(cb){
+    if(KI_NKMAP){ cb(KI_NKMAP); return; }
+    SBC.from('rf_karts').select('rf_id,name,type').limit(5000).then(function(res){ var m={}; ((res&&res.data)||[]).forEach(function(k){ m[k.rf_id]={name:k.name,type:k.type}; }); KI_NKMAP=m; cb(m); }, function(){ cb({}); });
+  }
+  withMap(function(km){
+    SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at,created_by,active').eq('site',site).order('created_at',{ascending:false}).limit(250).then(function(res){
+      var rows=(res&&res.data)||[];
+      if(!rows.length){ body.innerHTML='<div style="font-size:14px;color:var(--t2)">No kart notes yet.</div>'; return; }
+      var h='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+rows.length+' notes · newest first</div><div style="display:flex;flex-direction:column;gap:8px">';
+      rows.forEach(function(r){
+        var k=km[r.rf_kart_id]||{}; var num=raceEsc(k.name||r.rf_kart_id||'?'); var typ=k.type?raceEsc(k.type):'';
+        var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
+        var live=r.active?'<span style="font-size:10px;font-weight:800;color:#34C759;border:1px solid rgba(52,199,89,.4);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle">OPEN</span>':'';
+        h+='<div class="mc" style="margin-bottom:0;padding:12px 14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:800;color:var(--acc)">Kart '+num+'</span>'+(typ?('<span style="font-size:11.5px;color:var(--t2)">'+typ+'</span>'):'')+live+'<span style="font-size:11px;color:var(--t2);margin-left:auto">'+when+'</span></div><div style="font-size:13.5px;color:var(--t1);line-height:1.5">'+note+'</div>'+(by?('<div style="font-size:11.5px;color:var(--t2);margin-top:3px">'+by+'</div>'):'')+'</div>';
+      });
+      h+='</div>'; body.innerHTML=h;
+    }, function(){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
+  });
+}
 function renderWiringSection(){
   document.getElementById('ki-ref-body').innerHTML=
     '<div class="wiring-card">'

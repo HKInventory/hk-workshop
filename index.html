@@ -67,10 +67,10 @@
     #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 44%,#0c161c 0%,#06090c 56%,#000 100%);opacity:1;transition:opacity .6s ease;overflow:hidden}
     #splash.gone{opacity:0;pointer-events:none;transition:opacity .6s ease .22s}
     /* animated background */
-    #splash .sp-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+    #splash .sp-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;contain:layout paint}
     #splash .sp-grid{position:absolute;left:-25%;right:-25%;bottom:-10%;height:70%;background-image:linear-gradient(rgba(0,207,255,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(224,64,251,.08) 1px,transparent 1px);background-size:44px 44px;transform:perspective(420px) rotateX(62deg);transform-origin:bottom center;opacity:0;mask-image:linear-gradient(to top,#000,transparent 78%);-webkit-mask-image:linear-gradient(to top,#000,transparent 78%)}
     #splash.play .sp-grid{opacity:.6;animation:spGridMove 1.6s linear .2s infinite,spFade1 .8s ease .1s backwards}
-    #splash .sp-streak{position:absolute;height:2px;width:42%;left:-45%;border-radius:2px;background:linear-gradient(90deg,transparent,#00CFFF,transparent);opacity:0;filter:blur(.3px)}
+    #splash .sp-streak{position:absolute;height:2px;width:42%;left:-45%;border-radius:2px;background:linear-gradient(90deg,transparent,#00CFFF,transparent);opacity:0;filter:blur(.3px);will-change:transform}
     #splash .sp-streak.s2{background:linear-gradient(90deg,transparent,#E040FB,transparent);width:30%}
     #splash .sp-streak.s3{background:linear-gradient(90deg,transparent,#7B5Cff,transparent);width:36%}
     #splash.play .sp-streak{animation:spStreak 1.15s linear infinite}
@@ -79,10 +79,10 @@
     #splash.play .sp-streak.s3{top:72%;animation-delay:.8s}
     #splash .sp-vig{position:absolute;inset:0;background:radial-gradient(circle at 50% 46%,transparent 40%,rgba(0,0,0,.55) 100%)}
     /* logo lockup — real HK letters + ring (lifted off the black square); the ring draws itself on */
-    #splash .sp-lockup{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;width:clamp(184px,47vw,250px);transform-origin:50% 50%}
+    #splash .sp-lockup{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;width:clamp(184px,47vw,250px);transform-origin:50% 50%;will-change:transform}
     #splash .sp-logo-stage{position:relative;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
     #splash .sp-logo-stage::before{content:"";position:absolute;inset:-16%;border-radius:50%;background:radial-gradient(circle,rgba(0,207,255,.30),rgba(123,92,255,.18) 44%,transparent 70%);opacity:0;filter:blur(9px);z-index:-1}
-    #splash .sp-mark{width:100%;height:auto;display:block;overflow:visible;transform:scale(.92);filter:drop-shadow(0 0 15px rgba(0,207,255,.32)) drop-shadow(0 0 28px rgba(224,64,251,.18))}
+    #splash .sp-mark{width:100%;height:auto;display:block;overflow:visible;transform:scale(.92);filter:drop-shadow(0 0 15px rgba(0,207,255,.32)) drop-shadow(0 0 28px rgba(224,64,251,.18));will-change:transform}
     #splash .sp-letters{opacity:0}
     #splash .sp-ring-stroke{stroke-dashoffset:1276}
     #splash.play.full .sp-logo-stage::before{animation:spGlow 2.2s ease .1s forwards}
@@ -107,7 +107,7 @@
     @keyframes pinPop{0%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
     #s-pin.pop .pin-wrap{animation:pinPop .55s cubic-bezier(.2,.8,.2,1.02) .18s both}
     #splash.play:not(.full) .sp-tag{opacity:.95}
-    @keyframes spStreak{0%{left:-45%;opacity:0}10%{opacity:.9}90%{opacity:.9}100%{left:115%;opacity:0}}
+    @keyframes spStreak{0%{transform:translateX(0);opacity:0}10%{opacity:.9}90%{opacity:.9}100%{transform:translateX(160vw);opacity:0}}
     @keyframes spGridMove{from{background-position:0 0}to{background-position:0 44px}}
     @keyframes spFade1{from{opacity:0}to{opacity:.6}}
     @keyframes spRise{0%{opacity:0;transform:translateY(12px)}100%{opacity:.95;transform:translateY(0)}}

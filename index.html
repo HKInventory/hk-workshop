@@ -550,6 +550,16 @@
     .rep-pu th.rp-r,.rep-pu td.rp-r{text-align:right;white-space:nowrap}
     .rep-table th.rp-r,.rep-table td.rp-r{text-align:right;white-space:nowrap}
     .rep-empty{padding:24px 16px;text-align:center;color:var(--t2);font-size:13px;background:var(--card);border:1px solid var(--b1);border-radius:14px}
+    /* Fleet-wide repairs table (Kart Info → Repairs) */
+    .rp-controls{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+    .rp-search{flex:1 1 220px;min-width:150px;background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:13px;outline:none}
+    .rp-search:focus{border-color:var(--b2)}
+    .rp-sel{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:13px;outline:none;cursor:pointer;max-width:48%}
+    .rp-count{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+    .rep-table.rp-table{min-width:840px}
+    .rp-typecell{color:var(--t1);font-weight:600;white-space:nowrap;font-size:12.5px}
+    .rp-badge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 7px;border-radius:7px;font-size:12.5px;font-weight:800;color:#0b0f17;line-height:1}
+    .rp-open{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#FFD600;border:1px solid rgba(255,214,0,.4);border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:6px}
     .kn-open{margin:14px 0 4px;border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--card)}
     .kn-opentable{width:100%;border-collapse:collapse;font-size:13px}
     .kn-opentable th{text-align:left;padding:10px 14px;color:var(--t2);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,.02)}
@@ -1498,8 +1508,9 @@
           <div class="ki-tiles">
             <div class="tile kartinfo ki-hero" onclick="kiOpenKarts()"><div class="ti">🏎️</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
             <div class="tile tse" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
+            <div class="tile tlo" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile tasks" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
-            <div class="tile tse" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
+            <div class="tile tc" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile kidh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
             <div class="tile hkai" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
           </div>
@@ -4183,12 +4194,13 @@ function kiOpenKarts(){
 
 // Open a fleet-wide reference section (wiring / cpu / beacons / help)
 function kiOpenRef(which){
-  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes'};
+  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes',repairs:'Repairs'};
   var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
   if(which==='wiring') renderWiringSection();
   else if(which==='cpu') renderCpuSection();
   else if(which==='beacons') renderBeaconsSection();
   else if(which==='notes') renderKartNotesFeed();
+  else if(which==='repairs') renderRepairsSection();
   else renderHelpSection();
   go('kartref');
 }
@@ -4774,6 +4786,122 @@ function renderKartNotesFeed(){
       h+='</div>'; body.innerHTML=h;
     }, function(){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
   });
+}
+// ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────
+// Flattens every kart's synced repairs into one filterable/searchable table.
+// Read-only: repairs are created in RaceFacer and pulled in by the sync.
+var RP_ALL=[], RP_VIEW=[], RP_CAP=500;
+function rpFlatten(){
+  var out=[];
+  (KART_LIST||[]).forEach(function(k){
+    var reps=(k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||[];
+    reps.forEach(function(r){
+      out.push({
+        type:k.type||'-', num:k.num, kartId:k.kartId||'-',
+        color:(KART_TYPE_COLOR[k.type]||'#2DD4BF'),
+        iso:r.iso||'', date:r.date||'', dateRepaired:r.dateRepaired||'',
+        status:r.status, cost:r.cost||0, mileage:r.mileage||0,
+        issue:r.issue||'', repairNotes:r.repairNotes||'', parts:r.parts||[], user:r.user||'\u2014'
+      });
+    });
+  });
+  out.sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||''); });   // newest first
+  return out;
+}
+function renderRepairsSection(){
+  var body=document.getElementById('ki-ref-body'); if(!body) return;
+  if(!RF_LOADED){
+    body.innerHTML='<div style="font-size:13px;color:var(--t2)">Loading repairs\u2026</div>';
+    loadRfKarts(function(){
+      if(RF_LOADED) rpBuild();
+      else { var b=document.getElementById('ki-ref-body'); if(b) b.innerHTML='<div class="rep-empty">Couldn\'t load repairs. Refresh and try again.</div>'; }
+    });
+    return;
+  }
+  rpBuild();
+}
+function rpBuild(){
+  var body=document.getElementById('ki-ref-body'); if(!body) return;
+  RP_ALL=rpFlatten();
+  var present={}; RP_ALL.forEach(function(r){ present[r.type]=true; });
+  var types=KART_TYPE_ORDER.filter(function(t){return present[t];});
+  Object.keys(present).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
+  var typeOpts='<option value="">All types</option>'+types.map(function(t){return '<option value="'+kEsc(t)+'">'+kEsc(t)+'</option>';}).join('');
+  body.innerHTML=
+    '<div class="rp-controls">'
+      +'<input id="rp-q" class="rp-search" type="text" placeholder="Search kart, note, mechanic\u2026" oninput="rpApply()">'
+      +'<select id="rp-type" class="rp-sel" onchange="rpApply()">'+typeOpts+'</select>'
+      +'<select id="rp-status" class="rp-sel" onchange="rpApply()"><option value="">All status</option><option value="open">Open</option><option value="fixed">Fixed</option></select>'
+      +'<select id="rp-period" class="rp-sel" onchange="rpApply()"><option value="">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>'
+    +'</div>'
+    +'<div class="rp-count" id="rp-count"></div>'
+    +'<div id="rp-tablehost"></div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-top:10px">Synced from RaceFacer \u00b7 tap any row for the repair note &amp; parts used.</div>';
+  rpApply();
+}
+function rpApply(){
+  var qEl=document.getElementById('rp-q'), tEl=document.getElementById('rp-type'), sEl=document.getElementById('rp-status'), pEl=document.getElementById('rp-period');
+  var q=((qEl&&qEl.value)||'').trim().toLowerCase();
+  var type=(tEl&&tEl.value)||'', status=(sEl&&sEl.value)||'', period=(pEl&&pEl.value)||'';
+  var minIso='';
+  if(period){ var d=new Date(); d.setDate(d.getDate()-parseInt(period,10)); minIso=d.toISOString().slice(0,10); }
+  RP_VIEW=RP_ALL.filter(function(r){
+    if(type && r.type!==type) return false;
+    if(status && r.status!==status) return false;
+    if(minIso && (r.iso||'')<minIso) return false;
+    if(q){ var hay=(r.num+' '+r.kartId+' '+r.type+' '+r.issue+' '+r.repairNotes+' '+r.user).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+  var host=document.getElementById('rp-tablehost'); if(host) host.innerHTML=rpTableHTML(RP_VIEW);
+  var cnt=document.getElementById('rp-count');
+  if(cnt){
+    var openN=RP_VIEW.filter(function(r){return r.status==='open';}).length;
+    cnt.innerHTML=RP_VIEW.length+' repair'+(RP_VIEW.length===1?'':'s')+(openN?(' \u00b7 '+openN+' open'):'')+(RP_VIEW.length>RP_CAP?(' \u00b7 showing first '+RP_CAP):'');
+  }
+}
+function rpTableHTML(view){
+  if(!view.length) return '<div class="rep-empty">No repairs match these filters.</div>';
+  var rows=view.slice(0,RP_CAP).map(function(r,i){
+    var costTxt=r.cost?'<span class="rep-cost">$'+r.cost.toFixed(2)+'</span>':'<span class="rep-mono">\u2014</span>';
+    var badge='<span class="rp-badge" style="background:'+r.color+'">'+kEsc(String(r.num))+'</span>';
+    var openTag=(r.status==='open')?'<span class="rp-open">Open</span>':'';
+    var head='<tr class="rep-row" id="rprow-'+i+'" onclick="rpToggle('+i+')">'
+      +'<td class="rp-typecell">'+kEsc(r.type)+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td class="rep-mono">'+kEsc(r.kartId)+'</td>'
+      +'<td class="rep-mono">'+(r.mileage?r.mileage.toLocaleString():'\u2014')+'</td>'
+      +'<td class="rep-mono">'+(r.date||'\u2014')+'</td>'
+      +'<td class="rep-mono">'+(r.dateRepaired||'\u2014')+'</td>'
+      +'<td>'+costTxt+'</td>'
+      +'<td class="rep-desc">'+kEsc(r.issue)+openTag+'</td>'
+      +'<td class="rep-mono">'+kEsc(r.user)+'</td>'
+      +'<td class="rep-expcell"><button class="rep-expbtn" id="rpbtn-'+i+'" aria-label="Show repair details">+</button></td>'
+      +'</tr>';
+    var noteLines=(r.repairNotes||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
+    var noteHTML='<div class="rep-note-h">Note</div><div class="rep-note-b">'+(noteLines.length?kEsc(noteLines.join('\n')):'No note recorded.')+'</div>';
+    var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
+    var partsHTML='<div class="rep-pu-h">Parts used</div>';
+    if(parts.length){
+      partsHTML+='<table class="rep-pu"><thead><tr><th>Part</th><th class="rp-r">Quantity</th><th class="rp-r">Price</th></tr></thead><tbody>'
+        +parts.map(function(p){return '<tr><td>'+kEsc(p.name)+'</td><td class="rp-r">'+(p.qty||1)+'</td><td class="rp-r">'+kEsc(_money(p.price))+'</td></tr>';}).join('')
+        +'</tbody></table>';
+    } else {
+      partsHTML+='<div class="rep-note-b" style="background:rgba(255,255,255,.03);border-color:var(--b1);border-left-color:var(--b2);color:var(--t2)">No parts logged for this repair.</div>';
+    }
+    var detail='<tr class="rep-detail" id="rpdet-'+i+'" style="display:none"><td colspan="10"><div class="rep-detbox">'+noteHTML+partsHTML+'</div></td></tr>';
+    return head+detail;
+  }).join('');
+  return '<div class="rep-tablewrap"><table class="rep-table rp-table"><thead><tr>'
+    +'<th>Type</th><th>Kart</th><th>Kart ID</th><th>Mileage</th><th>Discovered</th><th>Repaired</th><th>Cost</th><th>Note</th><th>Mechanic</th><th></th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function rpToggle(i){
+  var det=document.getElementById('rpdet-'+i), row=document.getElementById('rprow-'+i), btn=document.getElementById('rpbtn-'+i);
+  if(!det) return;
+  var open=det.style.display!=='none';
+  det.style.display=open?'none':'table-row';
+  if(row) row.classList.toggle('open',!open);
+  if(btn) btn.innerText=open?'+':'\u2013';
 }
 function renderWiringSection(){
   document.getElementById('ki-ref-body').innerHTML=

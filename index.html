@@ -1,4 +1,4 @@
-v<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -559,6 +559,8 @@ v<!DOCTYPE html>
     .rep-table.rp-table{min-width:840px}
     .rp-typecell{color:var(--t1);font-weight:600;white-space:nowrap;font-size:12.5px}
     .rp-badge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 7px;border-radius:7px;font-size:12.5px;font-weight:800;color:#0b0f17;line-height:1}
+    .rp-table tr.rp-retired td{opacity:.62}
+    .rp-table tr.rp-retired .rp-badge{color:#e8edf6}
     .rp-open{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#FFD600;border:1px solid rgba(255,214,0,.4);border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:6px}
     .kn-open{margin:14px 0 4px;border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--card)}
     .kn-opentable{width:100%;border-collapse:collapse;font-size:13px}
@@ -4541,7 +4543,8 @@ function bcnZone(color){
 // the colour, and what that F/N does (from DEHAARDT_FN). Close with the ✕ or by tapping outside.
 function showBeaconSheet(b){
   var sheet=document.getElementById('bcnSheet'), inner=document.getElementById('bcnSheetInner'); if(!sheet||!inner) return;
-  var fn=DEHAARDT_FN.find(function(f){ return String(f.fn)===String(b.fn); });
+  var fn=dhFn(b.fn);
+  var snMeaning=dhSn(b.sn);
   var zone=bcnZone(b.color);
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); };
   inner.style.setProperty('--bc', b.color);
@@ -4552,6 +4555,7 @@ function showBeaconSheet(b){
       +'<div class="bstag"><div class="bsk">Function F/N</div><div class="bsv">'+esc(b.fn)+'</div></div>'
     +'</div>'
     +'<div class="bsfn"><div class="lbl">What F/N '+esc(b.fn)+' does</div>'+(fn?esc(fn.desc):'Not in the Dehaardt list yet.')+'</div>'
+    +(snMeaning?'<div class="bsfn"><div class="lbl">Sector S/N '+esc(b.sn)+'</div>'+esc(snMeaning)+'</div>':'')
     +(zone?'<div class="bszone"><i></i>'+zone+'</div>':'');
   sheet.classList.add('on'); sheet.setAttribute('aria-hidden','false');
 }
@@ -4579,13 +4583,43 @@ function buildBeaconList(curId){
 }
 document.addEventListener('click',function(){ if(bcnPop) closeBeaconPop(); });
 
-// Dehaardt function reference (F/N -> what it does to a kart). Seeded with examples;
-// extend DEHAARDT_FN with the full list. Drives the in-app reference + future AI checks.
+// Dehaardt sector functions (F/N -> what the beacon does to a passing kart) and sector
+// numbers (S/N), transcribed from the Xtra.Sector / Timing manual. Drives the in-app
+// reference, the beacon detail sheet, and the F/N autocomplete in the editor.
 var DEHAARDT_FN=[
-  {fn:'09', desc:'Records lap times'},
-  {fn:'15', desc:'Speed up to Dehaardt speed 4'},
-  {fn:'49', desc:'Assigns the kart to Track D'},
+  {fn:'9',  desc:'Maintain start-up limit \u2014 keeps the current speed limit. Recommended for finish / timing loops.'},
+  {fn:'10', desc:'Sector speed limit: STOP (Speed 0)'},
+  {fn:'11', desc:'Sector speed limit: Speed 1 (slowest)'},
+  {fn:'12', desc:'Sector speed limit: Speed 2'},
+  {fn:'13', desc:'Sector speed limit: Speed 3'},
+  {fn:'14', desc:'Sector speed limit: Speed 4'},
+  {fn:'15', desc:'Sector speed limit: Speed 5'},
+  {fn:'16', desc:'Sector speed limit: Speed 6'},
+  {fn:'17', desc:'Sector speed limit: Speed 7'},
+  {fn:'18', desc:'Sector speed limit: Speed 8 (full speed \u2014 clears the sector limit)'},
+  {fn:'19', desc:'Reload boost time'},
+  {fn:'20', desc:'Switch karts to Group 1 (obey Group 1 commands only after this loop)'},
+  {fn:'21', desc:'Switch karts to Group 2'},
+  {fn:'22', desc:'Switch karts to Group 3'},
+  {fn:'23', desc:'Switch karts to Group 4'},
+  {fn:'24', desc:'Switch karts to Group 5'},
+  {fn:'25', desc:'Switch karts to Track A (obey Track A commands only after this loop)'},
+  {fn:'26', desc:'Switch karts to Track B'},
+  {fn:'27', desc:'Switch karts to Track C'},
+  {fn:'28', desc:'Switch karts to Track D'},
+  {fn:'48', desc:'Emulate remote control: STOP (Speed 0) \u2014 persists past the finish loop'},
+  {fn:'49', desc:'Emulate remote control: Speed 1 \u2014 persists past finish. Best for pit-in (overrules 8-speed).'},
+  {fn:'50', desc:'Emulate remote control: Speed 2'},
+  {fn:'51', desc:'Emulate remote control: Speed 3 \u2014 persists past finish. Used for pit-out.'},
+  {fn:'52', desc:'Emulate remote control: Speed 4'},
+  {fn:'53', desc:'Emulate remote control: Speed 5'},
+  {fn:'54', desc:'Emulate remote control: Speed 6'},
+  {fn:'55', desc:'Emulate remote control: Speed 7'},
+  {fn:'56', desc:'Emulate remote control: Speed 8'}
 ];
+function dhNum(v){ var m=String(v==null?'':v).match(/\d+/); return m?parseInt(m[0],10):null; }   // pull the number out of '9', '09', 'Fn9', 9
+function dhFn(v){ var n=dhNum(v); if(n==null) return null; return DEHAARDT_FN.find(function(f){ return dhNum(f.fn)===n; })||null; }
+function dhSn(v){ var n=dhNum(v); if(n==null) return ''; if(n===0) return 'Reserved'; if(n>=1&&n<=3) return 'Sector '+n+' \u00b7 lap-timing loop (factory default)'; if(n>=4&&n<=30) return 'Sector '+n; if(n===31) return 'Sector 31 \u00b7 also reloads boost time'; return ''; }
 function renderFnRef(q){
   var list=document.getElementById('bcnFnList'); if(!list) return;
   q=(q||'').trim().toLowerCase();
@@ -4594,7 +4628,7 @@ function renderFnRef(q){
   var html = rows.length
     ? rows.map(function(f){ return '<div class="bcnfnrow"><div class="bcnfnnum">F/N '+f.fn+'</div><div class="bcnfnact">'+f.desc+'</div></div>'; }).join('')
     : '<div class="bcnfnempty">No matching function.</div>';
-  html += '<div class="bcnfnnote">Showing '+DEHAARDT_FN.length+' functions \u2014 the full Dehaardt list will live here.</div>';
+  html += '<div class="bcnfnnote">'+DEHAARDT_FN.length+' Dehaardt sector functions \u00b7 from the Xtra.Sector manual. Sector S/N 1\u20133 are lap-timing loops by factory default.</div>';
   list.innerHTML=html;
 }
 function openFnRef(){ var m=document.getElementById('bcnFn'); var s=document.getElementById('bcnFnSearch'); if(s)s.value=''; renderFnRef(''); if(m)m.classList.add('on'); }
@@ -4891,17 +4925,29 @@ function renderKartNotesFeed(){
 // Read-only: repairs are created in RaceFacer and pulled in by the sync.
 var RP_ALL=[], RP_VIEW=[], RP_CAP=500;
 function rpFlatten(){
+  // Walk EVERY synced repair (RF_REPAIRS_BY_ID holds them all), not just the karts
+  // still in the fleet. Repairs whose kart is no longer in rf_karts (retired/scrapped)
+  // are tagged retired:true so the count reconciles with RaceFacer; they only carry an
+  // internal rf_kart_id (no number/FR-code), so we show that as the identifier.
   var out=[];
-  (KART_LIST||[]).forEach(function(k){
-    var reps=(k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||[];
-    reps.forEach(function(r){
-      out.push({
-        type:k.type||'-', num:k.num, kartId:k.kartId||'-',
-        color:(KART_TYPE_COLOR[k.type]||'#2DD4BF'),
+  var kByRf={};
+  (KART_LIST||[]).forEach(function(k){ if(k.rfId!=null) kByRf[k.rfId]=k; });
+  Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(rfId){
+    var k=kByRf[rfId];
+    (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(r){
+      var base={
         iso:r.iso||'', date:r.date||'', dateRepaired:r.dateRepaired||'',
         status:r.status, cost:r.cost||0, mileage:r.mileage||0,
         issue:r.issue||'', repairNotes:r.repairNotes||'', parts:r.parts||[], user:r.user||'\u2014'
-      });
+      };
+      if(k){
+        base.retired=false; base.type=k.type||'-'; base.num=k.num; base.kartId=k.kartId||'-';
+        base.color=(KART_TYPE_COLOR[k.type]||'#2DD4BF');
+      } else {
+        base.retired=true; base.type='Retired'; base.num='\u2014'; base.kartId='#'+rfId;
+        base.color='#6B7280';
+      }
+      out.push(base);
     });
   });
   out.sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||''); });   // newest first
@@ -4922,16 +4968,19 @@ function renderRepairsSection(){
 function rpBuild(){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
   RP_ALL=rpFlatten();
-  var present={}; RP_ALL.forEach(function(r){ present[r.type]=true; });
+  var present={}; RP_ALL.forEach(function(r){ if(!r.retired) present[r.type]=true; });   // real kart types only; retired handled by the scope control
   var types=KART_TYPE_ORDER.filter(function(t){return present[t];});
   Object.keys(present).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
   var typeOpts='<option value="">All types</option>'+types.map(function(t){return '<option value="'+kEsc(t)+'">'+kEsc(t)+'</option>';}).join('');
+  var hasRetired=RP_ALL.some(function(r){return r.retired;});
+  var scopeSel=hasRetired?('<select id="rp-scope" class="rp-sel" onchange="rpApply()"><option value="fleet">Current fleet</option><option value="all">Incl. retired karts</option></select>'):'';
   body.innerHTML=
     '<div class="rp-controls">'
       +'<input id="rp-q" class="rp-search" type="text" placeholder="Search kart, note, mechanic\u2026" oninput="rpApply()">'
       +'<select id="rp-type" class="rp-sel" onchange="rpApply()">'+typeOpts+'</select>'
       +'<select id="rp-status" class="rp-sel" onchange="rpApply()"><option value="">All status</option><option value="open">Open</option><option value="fixed">Fixed</option></select>'
       +'<select id="rp-period" class="rp-sel" onchange="rpApply()"><option value="">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>'
+      +scopeSel
     +'</div>'
     +'<div class="rp-count" id="rp-count"></div>'
     +'<div id="rp-tablehost"></div>'
@@ -4939,12 +4988,14 @@ function rpBuild(){
   rpApply();
 }
 function rpApply(){
-  var qEl=document.getElementById('rp-q'), tEl=document.getElementById('rp-type'), sEl=document.getElementById('rp-status'), pEl=document.getElementById('rp-period');
+  var qEl=document.getElementById('rp-q'), tEl=document.getElementById('rp-type'), sEl=document.getElementById('rp-status'), pEl=document.getElementById('rp-period'), scEl=document.getElementById('rp-scope');
   var q=((qEl&&qEl.value)||'').trim().toLowerCase();
   var type=(tEl&&tEl.value)||'', status=(sEl&&sEl.value)||'', period=(pEl&&pEl.value)||'';
+  var scope=(scEl&&scEl.value)||'fleet';   // default: current fleet only
   var minIso='';
   if(period){ var d=new Date(); d.setDate(d.getDate()-parseInt(period,10)); minIso=d.toISOString().slice(0,10); }
   RP_VIEW=RP_ALL.filter(function(r){
+    if(scope!=='all' && r.retired) return false;
     if(type && r.type!==type) return false;
     if(status && r.status!==status) return false;
     if(minIso && (r.iso||'')<minIso) return false;
@@ -4955,7 +5006,10 @@ function rpApply(){
   var cnt=document.getElementById('rp-count');
   if(cnt){
     var openN=RP_VIEW.filter(function(r){return r.status==='open';}).length;
-    cnt.innerHTML=RP_VIEW.length+' repair'+(RP_VIEW.length===1?'':'s')+(openN?(' \u00b7 '+openN+' open'):'')+(RP_VIEW.length>RP_CAP?(' \u00b7 showing first '+RP_CAP):'');
+    var retiredTotal=RP_ALL.filter(function(r){return r.retired;}).length;
+    var txt=RP_VIEW.length.toLocaleString()+' repair'+(RP_VIEW.length===1?'':'s')+(openN?(' \u00b7 '+openN+' open'):'')+(RP_VIEW.length>RP_CAP?(' \u00b7 showing first '+RP_CAP):'');
+    if(scope!=='all' && retiredTotal){ txt+=' \u00b7 +'+retiredTotal.toLocaleString()+' on retired karts'; }
+    cnt.innerHTML=txt;
   }
 }
 function rpTableHTML(view){
@@ -4964,7 +5018,7 @@ function rpTableHTML(view){
     var costTxt=r.cost?'<span class="rep-cost">$'+r.cost.toFixed(2)+'</span>':'<span class="rep-mono">\u2014</span>';
     var badge='<span class="rp-badge" style="background:'+r.color+'">'+kEsc(String(r.num))+'</span>';
     var openTag=(r.status==='open')?'<span class="rp-open">Open</span>':'';
-    var head='<tr class="rep-row" id="rprow-'+i+'" onclick="rpToggle('+i+')">'
+    var head='<tr class="rep-row'+(r.retired?' rp-retired':'')+'" id="rprow-'+i+'" onclick="rpToggle('+i+')">'
       +'<td class="rp-typecell">'+kEsc(r.type)+'</td>'
       +'<td>'+badge+'</td>'
       +'<td class="rep-mono">'+kEsc(r.kartId)+'</td>'

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+v<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -901,7 +901,29 @@
     .mk-tog.on{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.62);color:#FF6B61}
     .mk-group-h{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:16px 2px 8px}
     .mk-group-h:first-child{margin-top:4px}
-    /* Master form */
+    /* Access tab — roles + per-account tab access */
+    .ac-sec-h{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);margin:6px 18px 10px}
+    .ac-role-card{margin:0 18px 10px;border:1px solid var(--b1);border-radius:14px;background:var(--card);padding:12px 14px}
+    .ac-role-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .ac-role-name{font-size:14px;font-weight:800;color:var(--t1)}
+    .ac-lock{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--t2);border:1px solid var(--b1);border-radius:6px;padding:2px 7px}
+    .ac-role-input{flex:1;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:9px;padding:8px 10px;color:var(--t1);font-size:14px;font-weight:700;outline:none;font-family:inherit}
+    .ac-role-input:focus{border-color:var(--b2)}
+    .ac-del{margin-left:auto;width:30px;height:30px;flex-shrink:0;background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.4);color:#FF6B61;border-radius:8px;font-size:18px;line-height:1;cursor:pointer}
+    .ac-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .ac-chip{background:rgba(255,255,255,.04);border:1px solid var(--b1);color:var(--t2);border-radius:8px;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s,color .12s;font-family:inherit}
+    .ac-chip:active{transform:scale(.96)}
+    .ac-chip.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.6);color:#5EEAD4}
+    .ac-allnote{font-size:12px;color:var(--t2)}
+    .ac-ov-row{margin:0 18px 8px;border:1px solid var(--b1);border-radius:12px;background:var(--card);padding:11px 14px;display:flex;align-items:center;gap:10px}
+    .ac-ov-row.col{flex-direction:column;align-items:stretch}
+    .ac-ov-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .ac-ov-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .ac-ov-name{font-size:13.5px;font-weight:800;color:var(--t1)}
+    .ac-ov-role{font-size:11px;color:var(--t2)}
+    .ac-ov-note{margin-left:auto;font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+    .ac-ov-custom{margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--b2);color:var(--t1);border-radius:8px;font-size:12px;font-weight:700;padding:6px 11px;cursor:pointer;white-space:nowrap;font-family:inherit}
+    .ac-ov-reset{margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--b2);color:var(--t2);border-radius:8px;font-size:11.5px;font-weight:700;padding:5px 10px;cursor:pointer;white-space:nowrap;font-family:inherit}
     .m-form{position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
     .m-form.show{display:flex}
     .m-form-box{background:var(--card);border-top-left-radius:22px;border-top-right-radius:22px;border:1px solid var(--b2);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:22px 20px calc(env(safe-area-inset-bottom) + 22px)}
@@ -1256,8 +1278,8 @@
         <div class="home-inner" id="home-inner">
           <div class="home-grid" id="home-grid">
             <div class="tile tc"       id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
-            <div class="tile tse"      onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
-            <div class="tile tlo"      onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
+            <div class="tile tse"      id="tsearch" onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
+            <div class="tile tlo"      id="tlow" onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
             <div class="tile tor"      id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
             <div class="tile mgr"      id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="ti">⭐</div><div class="tl">Manager Dashboard</div><div class="ts">Live data &amp; staff</div></div>
             <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
@@ -1670,6 +1692,7 @@
     <button class="m-tab" id="mtab-tools" onclick="mTab('tools')">⚙️ Tools</button>
     <button class="m-tab" id="mtab-tracks" onclick="mTab('tracks')">🏁 Tracks</button>
     <button class="m-tab" id="mtab-karts" onclick="mTab('karts')">🏎️ Karts</button>
+    <button class="m-tab" id="mtab-access" onclick="mTab('access')">🔐 Access</button>
   </div>
   <div class="m-pane active" id="m-pane-parts">
     <div class="m-tools">
@@ -1771,6 +1794,15 @@
     <div class="m-tools"><input class="m-search-in" id="mk-search" placeholder="Find a kart number or type…" oninput="mkSearch()" autocomplete="off"></div>
     <div class="m-form-msg" id="mk-msg" style="margin:0 18px 8px"></div>
     <div class="m-list" id="m-karts-list"><div class="m-empty">Loading karts…</div></div>
+  </div>
+  <div class="m-pane" id="m-pane-access">
+    <div class="m-tools"><div class="m-pane-title">Roles &amp; tab access</div><button class="m-add" onclick="acAddRole()">+ Add role</button></div>
+    <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">Set which home tabs each <b>role</b> sees by default, then override any individual person below. Managers always see everything.</div>
+    <div class="m-list" id="m-access-list"><div class="m-empty">Loading…</div></div>
+    <div class="m-staff-foot">
+      <div class="m-form-msg" id="m-access-msg2"></div>
+      <button class="m-form-btn m-save" id="m-access-save" onclick="acSave()">Save access</button>
+    </div>
   </div>
 </div>
 <div class="m-form" id="m-form">
@@ -2363,6 +2395,7 @@ var stk=[];
   var u=sessionStorage.getItem('hk_u'),ud=sessionStorage.getItem('hk_ud');
   // Pre-fetch staff in background immediately
   fetchStaff(null);
+  loadAccessCfg();   // pull role/account tab access (anon-readable); re-applies visibility when it lands
   if(u&&ud===new Date().toDateString()){
     try{
       cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');playSplash(false);loadSites(function(){applySiteAccent('home');});
@@ -2650,19 +2683,69 @@ function cancelSwipe(){
 
 
 // ── UI ──
+// ── Tab access (role defaults + per-account overrides) ──────────────────────
+// One row in app_access (anon-readable) holds: roles:[{name,tabs}] and
+// overrides:{staffName:[tabs]}. A person's visible home tiles = their override
+// if set, else their role's default, else a safe fallback. Managers always see
+// everything (admins can't be locked out). Falls back to today's behaviour if
+// the config table isn't deployed yet, so nothing breaks mid-rollout.
+var TAB_DEFS=[
+  {key:'scan',     id:'tscan',   label:'Scan QR'},
+  {key:'search',   id:'tsearch', label:'Search'},
+  {key:'lowstock', id:'tlow',    label:'Low Stock'},
+  {key:'order',    id:'tord',    label:'Request Order'},
+  {key:'manager',  id:'mgrt',    label:'Manager Dashboard'},
+  {key:'finance',  id:'wfin',    label:'Finance'},
+  {key:'hkai',     id:'whkai',   label:'HK AI'},
+  {key:'tasks',    id:'wtasks',  label:'Tasks'},
+  {key:'chats',    id:'wchats',  label:'Chats'},
+  {key:'race',     id:'wrace',   label:'Intelligence'},
+  {key:'kartinfo', id:'wkart',   label:'Kart Info'},
+  {key:'beacons',  id:'wbeacon', label:'Beacons'},
+  {key:'genorder', id:'wgord',   label:'Generate Order'}
+];
+var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons'];   // mirrors pre-access behaviour for non-managers
+var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
+var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
+function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
+function effectiveTabs(user){
+  if(!user) return [];
+  if(_isMgrRole(user.role)) return ALL_TAB_KEYS.slice();      // managers/admins: everything, always
+  var cfg=ACCESS_CFG;
+  if(cfg){
+    var ov=cfg.overrides&&cfg.overrides[user.name];
+    if(Array.isArray(ov)) return ov;                          // per-account override wins
+    var role=(cfg.roles||[]).find(function(r){return r&&r.name===user.role;});
+    if(role&&Array.isArray(role.tabs)) return role.tabs;      // role default
+  }
+  return DEFAULT_NONMGR_TABS.slice();                         // fallback (config missing / unknown role)
+}
+function loadAccessCfg(cb){
+  if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
+  SBC.from('app_access').select('roles,overrides').eq('id',1).maybeSingle().then(function(res){
+    if(res&&res.data){
+      ACCESS_CFG={roles:Array.isArray(res.data.roles)?res.data.roles:[], overrides:(res.data.overrides&&typeof res.data.overrides==='object')?res.data.overrides:{}};
+      var rn=ACCESS_CFG.roles.map(function(r){return r&&r.name;}).filter(Boolean);
+      if(rn.length) MROLES=rn;
+    }
+    if(cu) applyRoleVisibility();   // re-apply once real access lands
+    if(cb) cb();
+  }, function(){ if(cb) cb(); });
+}
 function applyRoleVisibility(){
   if(!cu) return;
-  var isM=cu.role==='Manager'||cu.role==='Assistant Manager';
+  var eff=effectiveTabs(cu);
   var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
   // pointer:fine = mouse primary, no touch = desktop
   var isDesktop=window.innerWidth>=900 && (window.matchMedia('(pointer: fine)').matches || navigator.maxTouchPoints===0);
   var hideScan=noCam||isDesktop;
   function vis(id,show){var el=document.getElementById(id);if(el)el.style.display=show?'flex':'none';}
-  // Manager-only tabs
-  vis('mgrt',isM); vis('wfin',isM); vis('wgord',isM);
-  // Scan hidden on desktop / no camera
-  vis('tscan',!hideScan);
-  vis('tord',true);
+  TAB_DEFS.forEach(function(t){
+    var show=eff.indexOf(t.key)>=0;
+    if(t.key==='scan') show=show&&!hideScan;   // scan still hides on desktop / no camera
+    vis(t.id,show);
+  });
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -5194,7 +5277,7 @@ function mSearch(){ mRenderList(); }
 /* ----- Master tabs ----- */
 var mStaffDraft=[], mStaffLoaded=false;
 function mTab(name){
-  ['parts','staff','sites','tools','tracks','karts'].forEach(function(t){
+  ['parts','staff','sites','tools','tracks','karts','access'].forEach(function(t){
     var tab=document.getElementById('mtab-'+t), pane=document.getElementById('m-pane-'+t);
     if(tab) tab.classList.toggle('active',t===name);
     if(pane) pane.classList.toggle('active',t===name);
@@ -5204,6 +5287,7 @@ function mTab(name){
   if(name==='tools'){ mToolsStats(); mQRCount(); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
+  if(name==='access') acOpen();
 }
 
 /* ===== Karts (Master Access -> Karts): mark karts long-term damaged =================
@@ -5482,9 +5566,7 @@ function msRender(){
       +'<div class="staff-edit-meta">'
       +  '<input class="staff-name-input" type="text" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="msField('+i+',\'name\',this.value)">'
       +  '<div class="staff-role-line"><select class="staff-role-select" onchange="msField('+i+',\'role\',this.value)">'
-      +    '<option value="Manager"'+(x.role==='Manager'?' selected':'')+'>Manager</option>'
-      +    '<option value="Assistant Manager"'+(x.role==='Assistant Manager'?' selected':'')+'>Assistant Manager</option>'
-      +    '<option value="Mechanic"'+(x.role==='Mechanic'?' selected':'')+'>Mechanic</option>'
+      +    msRoleOpts(x.role)
       +  '</select></div>'
       +'</div>'
       +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
@@ -5566,6 +5648,99 @@ function msSave(){
       if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'};}); if(cu&&cu.name){ loadSites(function(){}); } setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save staff changes'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
+}
+/* ===== Access (Master Access -> Access): roles + per-account tab access ==============
+   Roles each carry a default set of home tabs; any individual can override theirs.
+   The blob lives in app_access (anon-readable for the home grid; written here via the
+   master-staff access-save op). Managers always see every tab. */
+var mAccessDraft={roles:[],overrides:{}}, mAccessStaff=[], mAccessLoaded=false;
+function acEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function msRoleOpts(cur){
+  var list=(MROLES&&MROLES.length)?MROLES.slice():['Manager','Assistant Manager','Mechanic'];
+  if(cur&&list.indexOf(cur)<0) list.push(cur);   // keep an unknown current role selectable
+  return list.map(function(r){ return '<option value="'+acEsc(r)+'"'+(cur===r?' selected':'')+'>'+acEsc(r)+'</option>'; }).join('');
+}
+function acOpen(){ if(!mAccessLoaded){ acLoad(); } else { acRender(); } }
+function acLoad(){
+  var el=document.getElementById('m-access-list'); if(el) el.innerHTML='<div class="m-empty">Loading\u2026</div>';
+  Promise.all([
+    fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'list'})}).then(function(r){return r.json();}).catch(function(){return null;}),
+    (typeof SBC!=='undefined'&&SBC)?SBC.from('app_access').select('roles,overrides').eq('id',1).maybeSingle().then(function(r){return r;},function(){return null;}):Promise.resolve(null)
+  ]).then(function(rs){
+    var sres=rs[0], ares=rs[1];
+    if(!sres||!sres.success){ if(el) el.innerHTML='<div class="m-empty">'+((sres&&sres.message)||'Could not load staff')+' \u2014 exit and re-enter with a fresh code.</div>'; return; }
+    mAccessStaff=(sres.staff||[]).map(function(x){return {name:x.name||'',role:x.role||'Mechanic'};});
+    var roles=(ares&&ares.data&&Array.isArray(ares.data.roles))?ares.data.roles:[];
+    var overrides=(ares&&ares.data&&ares.data.overrides&&typeof ares.data.overrides==='object')?ares.data.overrides:{};
+    if(!roles.length){   // config not seeded yet — derive from current roles with sensible defaults
+      var seen={}; roles=[];
+      ['Manager','Assistant Manager','Mechanic'].forEach(function(n){ seen[n]=1; roles.push({name:n, tabs:_isMgrRole(n)?ALL_TAB_KEYS.slice():DEFAULT_NONMGR_TABS.slice()}); });
+      mAccessStaff.forEach(function(s){ if(s.role&&!seen[s.role]){ seen[s.role]=1; roles.push({name:s.role, tabs:DEFAULT_NONMGR_TABS.slice()}); } });
+    }
+    mAccessDraft={roles:roles, overrides:overrides};
+    MROLES=roles.map(function(r){return r.name;}).filter(Boolean);
+    mAccessLoaded=true; acRender();
+  });
+}
+function acChips(sel, fnName, idx){
+  return '<div class="ac-chips">'+TAB_DEFS.map(function(t){
+    var on=(sel||[]).indexOf(t.key)>=0;
+    return '<button type="button" class="ac-chip'+(on?' on':'')+'" onclick="'+fnName+'('+idx+',\''+t.key+'\')">'+acEsc(t.label)+'</button>';
+  }).join('')+'</div>';
+}
+function acRender(){
+  var el=document.getElementById('m-access-list'); if(!el) return;
+  var h='<div class="ac-sec-h">Roles \u00b7 default tabs</div>';
+  if(!mAccessDraft.roles.length){ h+='<div class="m-empty" style="margin:0 18px">No roles \u2014 tap \u201c+ Add role\u201d.</div>'; }
+  h+=mAccessDraft.roles.map(function(r,i){
+    var sys=_isMgrRole(r.name);
+    var top = sys
+      ? '<span class="ac-role-name">'+acEsc(r.name)+'</span><span class="ac-lock">all tabs \u00b7 locked</span>'
+      : '<input class="ac-role-input" value="'+acEsc(r.name)+'" oninput="acRoleName('+i+',this.value)" placeholder="Role name"><button class="ac-del" onclick="acDelRole('+i+')" title="Delete role">\u00d7</button>';
+    var body = sys ? '<div class="ac-allnote">Managers always see every tab.</div>' : acChips(r.tabs||[], 'acRoleTab', i);
+    return '<div class="ac-role-card"><div class="ac-role-top">'+top+'</div>'+body+'</div>';
+  }).join('');
+  h+='<div class="ac-sec-h" style="margin-top:18px">Per-account access</div>';
+  if(!mAccessStaff.length){ h+='<div class="m-empty" style="margin:0 18px">No staff loaded.</div>'; }
+  h+=mAccessStaff.map(function(s,idx){
+    var meta='<div class="ac-ov-meta"><span class="ac-ov-name">'+acEsc(s.name)+'</span><span class="ac-ov-role">'+acEsc(s.role)+'</span></div>';
+    if(_isMgrRole(s.role)){ return '<div class="ac-ov-row">'+meta+'<span class="ac-ov-note">all tabs</span></div>'; }
+    var hasOv=mAccessDraft.overrides&&mAccessDraft.overrides.hasOwnProperty(s.name)&&Array.isArray(mAccessDraft.overrides[s.name]);
+    if(hasOv){
+      return '<div class="ac-ov-row col"><div class="ac-ov-head">'+meta+'<button class="ac-ov-reset" onclick="acResetOv('+idx+')">Use role default</button></div>'+acChips(mAccessDraft.overrides[s.name],'acOvTab',idx)+'</div>';
+    }
+    return '<div class="ac-ov-row">'+meta+'<button class="ac-ov-custom" onclick="acCustomise('+idx+')">Customise</button></div>';
+  }).join('');
+  el.innerHTML=h;
+}
+function acRoleName(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].name=v; }   // trimmed on save
+function acRoleTab(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; var k=r.tabs.indexOf(key); if(k>=0)r.tabs.splice(k,1); else r.tabs.push(key); acRender(); }
+function acAddRole(){ if(!mAccessLoaded){ acLoad(); return; } mAccessDraft.roles.push({name:'', tabs:DEFAULT_NONMGR_TABS.slice()}); acRender(); var ins=document.querySelectorAll('#m-access-list .ac-role-input'); if(ins.length){ ins[ins.length-1].focus(); } }
+function acDelRole(i){ var r=mAccessDraft.roles[i]; if(!r||_isMgrRole(r.name)) return; if(!confirm('Delete role "'+(r.name||'this role')+'"? Staff with this role fall back to default access until reassigned.')) return; mAccessDraft.roles.splice(i,1); acRender(); }
+function acCustomise(idx){ var s=mAccessStaff[idx]; if(!s) return; var role=(mAccessDraft.roles.find(function(r){return r.name===s.role;})||{}); mAccessDraft.overrides[s.name]=Array.isArray(role.tabs)?role.tabs.slice():DEFAULT_NONMGR_TABS.slice(); acRender(); }
+function acResetOv(idx){ var s=mAccessStaff[idx]; if(!s) return; delete mAccessDraft.overrides[s.name]; acRender(); }
+function acOvTab(idx,key){ var s=mAccessStaff[idx]; if(!s) return; var arr=mAccessDraft.overrides[s.name]; if(!Array.isArray(arr)){ arr=[]; mAccessDraft.overrides[s.name]=arr; } var k=arr.indexOf(key); if(k>=0)arr.splice(k,1); else arr.push(key); acRender(); }
+function acSave(){
+  var msg=document.getElementById('m-access-msg2'), btn=document.getElementById('m-access-save'); if(msg) msg.style.color='';
+  var names={};
+  for(var i=0;i<mAccessDraft.roles.length;i++){
+    var nm=(mAccessDraft.roles[i].name||'').trim();
+    if(!nm){ if(msg){msg.style.color='var(--red)';msg.textContent='Every role needs a name.';} return; }
+    if(names[nm.toLowerCase()]){ if(msg){msg.style.color='var(--red)';msg.textContent='Role "'+nm+'" is listed twice.';} return; }
+    names[nm.toLowerCase()]=1; mAccessDraft.roles[i].name=nm;
+  }
+  if(!names['manager']||!names['assistant manager']){ if(msg){msg.style.color='var(--red)';msg.textContent='Keep the Manager and Assistant Manager roles.';} return; }
+  var ov={}; Object.keys(mAccessDraft.overrides||{}).forEach(function(n){ if(Array.isArray(mAccessDraft.overrides[n])) ov[n]=mAccessDraft.overrides[n]; });
+  if(msg) msg.textContent=''; if(btn){ btn.textContent='Saving\u2026'; btn.disabled=true; }
+  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'access-save',access:{roles:mAccessDraft.roles,overrides:ov}})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(btn){ btn.textContent='Save access'; btn.disabled=false; }
+      if(res&&res.success){
+        if(msg){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; setTimeout(function(){ if(msg){msg.textContent='';msg.style.color='';} },2500); }
+        ACCESS_CFG={roles:mAccessDraft.roles, overrides:ov}; MROLES=mAccessDraft.roles.map(function(r){return r.name;}).filter(Boolean);
+        if(cu) applyRoleVisibility();   // reflect immediately for whoever's logged in
+      } else { if(msg){ msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; } }
+    }).catch(function(){ if(btn){ btn.textContent='Save access'; btn.disabled=false; } if(msg){ msg.style.color='var(--red)'; msg.textContent='Connection error \u2014 check master-staff is redeployed with the access op.'; } });
 }
 function mToolsStats(){
   var el=document.getElementById('m-tool-stats'); if(!el) return;

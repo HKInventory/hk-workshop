@@ -1,7 +1,7 @@
 {
   "name": "HK Workshop",
   "short_name": "HK Workshop",
-  "start_url": "/hk-inventory/",
+  "start_url": "/hk-workshop/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#00e5ff",

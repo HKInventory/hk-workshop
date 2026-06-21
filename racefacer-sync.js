@@ -386,14 +386,24 @@ const REPAIRS_PER_PAGE = parseInt(process.env.RF_REPAIRS_PER_PAGE, 10) || 500;
 async function syncAllRepairs() {
   const byKart = new Map();              // rf_kart_id -> [{ dateDiscovered, dateRepaired, user, parts }]
   const byId = new Map();                // repair id -> { row, parts } — de-dupes across page boundaries
-  let page = 1, lastPage = 1, total = null, guard = 0;
-  do {
-    if (++guard > 5000) break;           // hard stop, just in case the list never terminates
-    const j = await rfJson(`/ajax/garage/repairs_list/?page=${page}&results=${REPAIRS_PER_PAGE}&search=`);
-    if (j && typeof j.last_page === 'number') lastPage = j.last_page;
-    if (j && typeof j.total === 'number') total = j.total;
-    for (const it of ((j && j.items) || [])) {
-      if (it.id == null || byId.has(it.id)) continue;     // skip dupes (a repair can straddle two pages)
+  let page = 1, total = Infinity, guard = 0, fails = 0;
+  while (guard++ < 5000) {
+    let j;
+    try { j = await rfJson(`/ajax/garage/repairs_list/?page=${page}&results=${REPAIRS_PER_PAGE}&search=`); }
+    catch (e) {
+      fails++;
+      console.error(`[repairs] page ${page} fetch failed (${(e.message || '').slice(0, 110)})`);
+      if (fails >= 6) { console.error('[repairs] too many page failures — stopping fetch.'); break; }
+      page += 1; await sleep(600); continue;            // skip this page, keep going
+    }
+    if (j && j.total != null && Number(j.total)) total = Number(j.total);
+    const items = (j && j.items) || [];
+    if (page === 1) console.log(`[repairs] page 1: ${items.length} item(s); server reports total=${j && j.total}, last_page=${j && j.last_page}, per_page=${j && j.per_page}`);
+    if (!items.length) break;                            // past the end
+    let added = 0;
+    for (const it of items) {
+      if (it.id == null || byId.has(it.id)) continue;    // skip dupes (a repair can straddle two pages)
+      added++;
       const kid = it.kart_id;
       const tc = it.kart_type_color ? ('#' + String(it.kart_type_color).replace(/^#/, '')) : null;
       const parts = (((it.used_parts || {}).data) || []).map((p) => ({
@@ -416,9 +426,13 @@ async function syncAllRepairs() {
       if (!byKart.has(kid)) byKart.set(kid, []);
       byKart.get(kid).push({ dateDiscovered: dashToDot(it.damage_discovery_date), dateRepaired: dashToDot(it.repair_date), user: it.user_name, parts });
     }
+    if (page === 1 || page % 10 === 0) console.log(`[repairs] page ${page}: +${added} (${byId.size} unique${Number.isFinite(total) ? '/' + total : ''})`);
     page += 1;
-    await sleep(120);
-  } while (page <= lastPage);
+    if (!added) break;                                   // no new rows this page -> end of list (or server ignoring the page param)
+    if (byId.size >= total) break;                       // collected everything RaceFacer reports
+    await sleep(80);
+  }
+  console.log(`[repairs] fetch complete: ${byId.size} unique repairs over ${page - 1} page(s)${Number.isFinite(total) ? ` (RaceFacer reports ${total})` : ''}.`);
 
   const repairRows = [], partRows = [];
   for (const { row, parts } of byId.values()) {
@@ -426,22 +440,26 @@ async function syncAllRepairs() {
     for (const p of parts) partRows.push({ repair_id: row.id, part_name: p.name, qty: p.qty, price: p.price });
   }
 
-  // Write in chunks, but if a chunk is rejected (in PostgREST one bad row fails the whole batch),
-  // retry that chunk row-by-row so a single bad record can't drop the thousands of good rows after it.
+  // Write in chunks; if a chunk is rejected (in PostgREST one bad row fails the whole batch), split it
+  // in half and retry each half — isolating a bad row in ~log2(n) calls so it can't stall the run.
   async function writeChunked(path, rows, prefer, label) {
-    let bad = 0;
-    for (let i = 0; i < rows.length; i += 500) {
-      const chunk = rows.slice(i, i + 500);
-      try { await sb(path, { method: 'POST', prefer, body: chunk }); }
+    let dropped = 0;
+    async function put(slice) {
+      if (!slice.length) return;
+      try { await sb(path, { method: 'POST', prefer, body: slice }); }
       catch (e) {
-        console.error(`[${label}] chunk ${i}-${i + chunk.length} rejected (${(e.message || '').slice(0, 140)}); retrying row-by-row`);
-        for (const row of chunk) {
-          try { await sb(path, { method: 'POST', prefer, body: [row] }); }
-          catch (e2) { bad++; console.error(`[${label}] dropped id=${row.id != null ? row.id : row.repair_id}: ${(e2.message || '').slice(0, 120)}`); }
+        if (slice.length === 1) {
+          dropped++;
+          console.error(`[${label}] dropped id=${slice[0].id != null ? slice[0].id : slice[0].repair_id}: ${(e.message || '').slice(0, 130)}`);
+          return;
         }
+        const mid = slice.length >> 1;          // split and retry each half — isolates a bad row in ~log2(n) calls
+        await put(slice.slice(0, mid));
+        await put(slice.slice(mid));
       }
     }
-    return bad;
+    for (let i = 0; i < rows.length; i += 500) await put(rows.slice(i, i + 500));
+    return dropped;
   }
 
   // repairs first (parts FK references them); upsert on the RaceFacer id so edits update in place
@@ -449,7 +467,7 @@ async function syncAllRepairs() {
   // parts: wipe + rebuild (small table — guarantees no duplicates without per-line bookkeeping)
   try { await sb('rf_repair_parts?repair_id=gte.0', { method: 'DELETE' }); } catch (e) { console.error('[repairs] parts wipe failed:', (e.message || '').slice(0, 120)); }
   const badP = await writeChunked('rf_repair_parts', partRows, 'return=minimal', 'repair-parts');
-  console.log(`[repairs] full-fleet: ${repairRows.length - badR}/${repairRows.length} repairs written${total != null ? ' (' + total + ' reported by RaceFacer)' : ''}, ${partRows.length - badP}/${partRows.length} part lines, ${byKart.size} karts.`);
+  console.log(`[repairs] full-fleet: ${repairRows.length - badR}/${repairRows.length} repairs written${Number.isFinite(total) ? ' (' + total + ' reported by RaceFacer)' : ''}, ${partRows.length - badP}/${partRows.length} part lines, ${byKart.size} karts.`);
   return byKart;
 }
 

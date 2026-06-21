@@ -227,6 +227,8 @@
     .tile.kartinfo{background:linear-gradient(145deg,#0D9488,#115E59);border:1px solid rgba(45,212,191,0.50)}
     .tile.beacon  {background:linear-gradient(145deg,#84CC16,#3F6212);border:1px solid rgba(190,242,100,0.55)}
     .tile.gord    {background:linear-gradient(145deg,#4F46E5,#312E81);border:1px solid rgba(129,140,248,0.48)}
+    .tile.sessions{background:linear-gradient(145deg,#0EA5E9,#075985);border:1px solid rgba(56,189,248,0.50)}
+    .tile.maccess {background:linear-gradient(145deg,#D97706,#78350F);border:1px solid rgba(251,191,36,0.55)}
     /* Bright amber/lime tiles need darker text for contrast */
     .tile.tlo .tl,.tile.tlo .ts,.tile.beacon .tl,.tile.beacon .ts{text-shadow:0 1px 3px rgba(0,0,0,0.55)}
     .tile.tlo .ts,.tile.beacon .ts{color:rgba(255,255,255,0.85)}
@@ -804,8 +806,8 @@
     .mgate-go{background:var(--grad);color:#fff}
     .mgate-cancel{background:var(--card2);color:var(--t1);border:1px solid var(--b2)}
     /* Master overlay */
-    .master{position:fixed;inset:0;z-index:480;background:var(--bg);display:none;flex-direction:column}
-    .master.show{display:flex}
+    .master{position:fixed;inset:0;z-index:480;background:var(--bg);display:flex;flex-direction:column;transform:translate3d(100%,0,0);transition:transform .34s cubic-bezier(0.32,0.72,0,1);pointer-events:none;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+    .master.show{transform:translate3d(0,0,0);pointer-events:auto}
     .m-hdr{display:flex;align-items:center;justify-content:space-between;padding:max(env(safe-area-inset-top),16px) 18px 12px;border-bottom:1px solid var(--b1);flex-shrink:0}
     .m-hdr-t{font-size:16px;font-weight:800;line-height:1.2}
     .m-hdr-t span{display:block;font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-top:1px}
@@ -1265,7 +1267,6 @@
           <div class="k" onclick="pp('7')">7</div><div class="k" onclick="pp('8')">8</div><div class="k" onclick="pp('9')">9</div>
           <div class="k emp"></div><div class="k" onclick="pp('0')">0</div><div class="k del" onclick="pd2()">⌫</div>
         </div>
-        <button class="master-link" id="masterLink" onclick="openMasterGate()">⚙ Master access</button>
         <button class="train-link" id="trainLink" onclick="armTraining()">🎓 Training mode</button>
         <div class="train-note" id="trainNote" style="display:none"><div class="tn-h">🎓 Training mode</div><div class="tn-p">Practice freely — nothing here touches real stock.</div><div class="tn-pin">Training PIN <b>0000</b></div><button class="train-exit" onclick="disarmTraining()">Exit training</button></div>
       </div>
@@ -1707,9 +1708,31 @@
     </div>
   </div>
 </div>
+<!-- OWNER controls: manage who has Master Access. Gated by the OWNER_KEY secret + an emailed code. -->
+<div class="mgate" id="ogate">
+  <div class="mgate-box" style="max-width:430px">
+    <div class="mgate-h">Owner controls</div>
+    <div class="mgate-sub">Manage who has Master Access. Owner only.</div>
+    <input class="mgate-input" id="ogate-key" type="password" maxlength="80" placeholder="Owner key" style="letter-spacing:2px;font-size:18px" onkeydown="if(event.key==='Enter')ownerLoad()">
+    <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerLoad()">Load list</button></div>
+    <div id="ogate-stage" style="display:none;margin-top:14px;text-align:left">
+      <div style="font-size:11px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Accounts with Master Access</div>
+      <textarea id="ogate-list" rows="5" style="width:100%;box-sizing:border-box;background:var(--card2);border:1.5px solid var(--b2);border-radius:12px;padding:12px;color:var(--t1);font-size:14px;font-family:inherit;resize:vertical" placeholder="One account name per line"></textarea>
+      <div style="font-size:11px;color:var(--t2);margin:6px 0 10px">One name per line. Harvey Betts is always kept. A 6-digit code is emailed to confirm any change.</div>
+      <div class="mgate-row"><button class="mgate-btn mgate-go" onclick="ownerRequest()">Email me a code</button></div>
+      <div id="ogate-otp" style="display:none;margin-top:12px">
+        <input class="mgate-input" id="ogate-code" type="tel" inputmode="numeric" maxlength="6" placeholder="------" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')ownerConfirm()">
+        <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerConfirm()">Confirm change</button></div>
+      </div>
+    </div>
+    <div class="mgate-msg" id="ogate-msg" style="color:var(--t2)"></div>
+    <div class="mgate-row" style="margin-top:8px"><button class="mgate-btn mgate-cancel" onclick="closeOwnerPanel()">Close</button></div>
+  </div>
+</div>
 <div class="master" id="master">
   <div class="m-hdr">
     <div class="m-hdr-t">HK Workshop<span>Master · Configure</span></div>
+    <button class="m-exit" id="m-owner-btn" onclick="openOwnerPanel()" style="display:none;margin-right:8px;background:linear-gradient(145deg,#D97706,#78350F);border-color:rgba(251,191,36,0.5);color:#fff">🔐 Owner</button>
     <button class="m-exit" onclick="closeMaster()">Exit</button>
   </div>
   <div class="m-tabs">
@@ -2738,8 +2761,11 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
-var MASTER_OWNER='Harvey Betts';   // the one account that always has Master Access and can never be removed
-function _isOwner(user){ return !!(user && user.name===MASTER_OWNER); }
+var MASTER_OWNER='Harvey Betts';         // owner's app account name (also set as OWNER_NAME on the server)
+var MASTER_ADMINS=[MASTER_OWNER];        // accounts that may see the Master Access tab — owner-controlled.
+                                         // Read from app_access.master_admins; only the master-access Edge
+                                         // Function (gated by OWNER_KEY + an emailed code) can change it, so
+                                         // no role/override and no username edit can grant or remove it.
 function _cfgTabsFor(user){
   var cfg=ACCESS_CFG; if(!cfg||!user) return null;
   var ov=cfg.overrides&&cfg.overrides[user.name];
@@ -2751,20 +2777,19 @@ function _cfgTabsFor(user){
 function effectiveTabs(user){
   if(!user) return [];
   var keys=_isMgrRole(user.role) ? ALL_TAB_KEYS.slice() : (_cfgTabsFor(user)||DEFAULT_NONMGR_TABS.slice());
-  // Master Access is sensitive: never auto-granted (not even to managers). Strip it, then re-add only
-  // for the owner, or accounts explicitly given 'masteraccess' in the access config.
+  // Master Access is never granted by role/override — only by the owner-controlled master_admins list.
   keys=keys.filter(function(k){return k!=='masteraccess';});
-  var cfgTabs=_cfgTabsFor(user);
-  if(_isOwner(user) || (cfgTabs&&cfgTabs.indexOf('masteraccess')>=0)) keys.push('masteraccess');
+  if((MASTER_ADMINS||[]).indexOf(user.name)>=0) keys.push('masteraccess');
   return keys;
 }
 function loadAccessCfg(cb){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
-  SBC.from('app_access').select('roles,overrides').eq('id',1).maybeSingle().then(function(res){
+  SBC.from('app_access').select('roles,overrides,master_admins').eq('id',1).maybeSingle().then(function(res){
     if(res&&res.data){
       ACCESS_CFG={roles:Array.isArray(res.data.roles)?res.data.roles:[], overrides:(res.data.overrides&&typeof res.data.overrides==='object')?res.data.overrides:{}};
       var rn=ACCESS_CFG.roles.map(function(r){return r&&r.name;}).filter(Boolean);
       if(rn.length) MROLES=rn;
+      if(Array.isArray(res.data.master_admins)){ MASTER_ADMINS=res.data.master_admins.slice(); if(MASTER_ADMINS.indexOf(MASTER_OWNER)<0) MASTER_ADMINS.unshift(MASTER_OWNER); }
     }
     if(cu) applyRoleVisibility();   // re-apply once real access lands
     if(cb) cb();
@@ -5344,16 +5369,67 @@ var mEditSku=null;  // sku being edited (null = adding new)
 // the (still server-issued) master credential behind the scenes via the existing master-pin/master-write
 // path; if the account isn't cleared server-side, we fall back to the manual code gate.
 function masterAccessOpen(){
-  if(masterPin){ openMaster(); return; }                 // already unlocked this session
+  openMaster();                                          // slide in immediately, like any other tab
+  if(masterPin) return;                                  // already unlocked this session
+  // unlock writes in the background (manager path). The owner can also unlock with the owner key.
   fetch(SB_FN+'master-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu&&cu.pin)||''})})
     .then(function(r){return r.json();}).then(function(res){
       if(res&&res.success&&res.code){
         fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:res.code,op:'verify'})})
-          .then(function(r){return r.json();}).then(function(v){
-            if(v&&v.success){ masterPin=res.code; openMaster(); } else openMasterGate();
-          }).catch(function(){ openMasterGate(); });
-      } else openMasterGate();
-    }).catch(function(){ openMasterGate(); });
+          .then(function(r){return r.json();}).then(function(v){ if(v&&v.success){ masterPin=res.code; if(typeof mToolsStats==='function') mToolsStats(); } }).catch(function(){});
+      }
+    }).catch(function(){});
+}
+
+/* ---- Owner controls: who has Master Access. Server-gated by OWNER_KEY + an emailed one-time code. ---- */
+function openOwnerPanel(){
+  var o=document.getElementById('ogate'); if(!o) return; o.classList.add('show');
+  document.getElementById('ogate-stage').style.display='none';
+  document.getElementById('ogate-otp').style.display='none';
+  document.getElementById('ogate-key').value='';
+  _ownerMsg('');
+  setTimeout(function(){try{document.getElementById('ogate-key').focus();}catch(e){}},120);
+}
+function closeOwnerPanel(){ var o=document.getElementById('ogate'); if(o) o.classList.remove('show'); }
+function _ownerKey(){ return (document.getElementById('ogate-key').value||'').trim(); }
+function _ownerMsg(t,ok){ var m=document.getElementById('ogate-msg'); if(m){ m.textContent=t||''; m.style.color=(ok===true)?'var(--grn)':((ok===false)?'var(--red)':'var(--t2)'); } }
+function ownerLoad(){
+  var key=_ownerKey(); if(!key){ _ownerMsg('Enter your owner key',false); return; }
+  _ownerMsg('Checking\u2026');
+  fetch(SB_FN+'master-access',{method:'POST',headers:HDRS,body:JSON.stringify({ownerKey:key,op:'list'})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){
+        masterPin=key;   // owner override: the key authorises every master function server-side
+        document.getElementById('ogate-stage').style.display='';
+        document.getElementById('ogate-list').value=(res.admins||[]).join('\n');
+        _ownerMsg('Owner key accepted \u2014 you can now use every master tool. Edit the list to change who has access.',true);
+        if(typeof mToolsStats==='function') mToolsStats();
+      }
+      else { _ownerMsg((res&&res.message)||'Not authorised',false); }
+    }).catch(function(){ _ownerMsg('Connection error',false); });
+}
+function ownerRequest(){
+  var key=_ownerKey(); if(!key){ _ownerMsg('Enter your owner key',false); return; }
+  var admins=(document.getElementById('ogate-list').value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  _ownerMsg('Emailing a code\u2026');
+  fetch(SB_FN+'master-access',{method:'POST',headers:HDRS,body:JSON.stringify({ownerKey:key,op:'request',admins:admins})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ document.getElementById('ogate-otp').style.display=''; _ownerMsg((res.message||'Code emailed')+' \u2014 enter it below.',true); setTimeout(function(){try{document.getElementById('ogate-code').focus();}catch(e){}},100); }
+      else { _ownerMsg((res&&res.message)||'Could not send code',false); }
+    }).catch(function(){ _ownerMsg('Connection error',false); });
+}
+function ownerConfirm(){
+  var key=_ownerKey(); var otp=(document.getElementById('ogate-code').value||'').trim();
+  if(!/^\d{6}$/.test(otp)){ _ownerMsg('Enter the 6-digit code',false); return; }
+  _ownerMsg('Confirming\u2026');
+  fetch(SB_FN+'master-access',{method:'POST',headers:HDRS,body:JSON.stringify({ownerKey:key,op:'confirm',otp:otp})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){
+        if(Array.isArray(res.admins)){ MASTER_ADMINS=res.admins.slice(); if(MASTER_ADMINS.indexOf(MASTER_OWNER)<0) MASTER_ADMINS.unshift(MASTER_OWNER); if(cu&&typeof applyRoleVisibility==='function') applyRoleVisibility(); }
+        document.getElementById('ogate-otp').style.display='none'; document.getElementById('ogate-code').value='';
+        _ownerMsg('Master access updated \u2713',true);
+      } else { _ownerMsg((res&&res.message)||'Could not confirm',false); }
+    }).catch(function(){ _ownerMsg('Connection error',false); });
 }
 
 function openMasterGate(){
@@ -5378,6 +5454,7 @@ function openMasterFromMD(code){ masterPin=code; openMaster(); }
 
 function openMaster(){
   document.getElementById('master').classList.add('show');
+  var ob=document.getElementById('m-owner-btn'); if(ob) ob.style.display=(cu&&cu.name===MASTER_OWNER)?'':'none';
   document.getElementById('m-search').value='';
   mStaffLoaded=false; mTab('parts');
   mRenderList();

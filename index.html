@@ -1300,6 +1300,8 @@
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
+            <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
+            <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
           </div>
         </div>
       </div>
@@ -1437,7 +1439,6 @@
         <div class="mc"><div class="mct">Predicted Stockouts · 90 Days</div><div id="mso"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">🚨 Racefacer Discrepancies</div><div id="mrf"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
         <div class="mc"><div class="mct">📦 Racefacer Warehouse Stock</div><div id="mrfw"><div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Awaiting Racefacer integration</div></div></div>
-        <div class="mc"><div class="mct">🔐 Master Access Code</div><div id="mpin-body"><button class="mpin-reveal" onclick="revealMasterPin()">Tap to reveal master code</button></div></div>
         </div><!-- /md-pane-overview -->
       </div>
     </div>
@@ -1656,6 +1657,22 @@
           <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📋&nbsp; Managers assign tasks to mechanics<br>📅&nbsp; Due dates &amp; priority<br>📝&nbsp; Mechanics add progress notes<br>🔔&nbsp; Status updates as work progresses<br>✔️&nbsp; Mark complete when done</div>
         </div>
         <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Assign · track · complete<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
+      </div>
+    </div>
+
+    <!-- SESSIONS -->
+    <div class="scr" id="s-sessions">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Sessions</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">📅</div>
+          <div style="font-size:18px;font-weight:800;color:#FB923C;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">🏁&nbsp; Track session schedule at a glance<br>👥&nbsp; Bookings &amp; capacity<br>⏱️&nbsp; Race timings &amp; grid<br>🔔&nbsp; Live session status</div>
+        </div>
+        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Schedule · bookings · timings<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -2712,24 +2729,34 @@ var TAB_DEFS=[
   {key:'race',     id:'wrace',   label:'Intelligence'},
   {key:'kartinfo', id:'wkart',   label:'Kart Info'},
   {key:'beacons',  id:'wbeacon', label:'Beacons'},
-  {key:'genorder', id:'wgord',   label:'Generate Order'}
+  {key:'genorder', id:'wgord',   label:'Generate Order'},
+  {key:'sessions', id:'wsess',   label:'Sessions'},
+  {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
 var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons'];   // mirrors pre-access behaviour for non-managers
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
+var MASTER_OWNER='Harvey Betts';   // the one account that always has Master Access and can never be removed
+function _isOwner(user){ return !!(user && user.name===MASTER_OWNER); }
+function _cfgTabsFor(user){
+  var cfg=ACCESS_CFG; if(!cfg||!user) return null;
+  var ov=cfg.overrides&&cfg.overrides[user.name];
+  if(Array.isArray(ov)) return ov;                            // per-account override
+  var role=(cfg.roles||[]).find(function(r){return r&&r.name===user.role;});
+  if(role&&Array.isArray(role.tabs)) return role.tabs;        // role default
+  return null;
+}
 function effectiveTabs(user){
   if(!user) return [];
-  if(_isMgrRole(user.role)) return ALL_TAB_KEYS.slice();      // managers/admins: everything, always
-  var cfg=ACCESS_CFG;
-  if(cfg){
-    var ov=cfg.overrides&&cfg.overrides[user.name];
-    if(Array.isArray(ov)) return ov;                          // per-account override wins
-    var role=(cfg.roles||[]).find(function(r){return r&&r.name===user.role;});
-    if(role&&Array.isArray(role.tabs)) return role.tabs;      // role default
-  }
-  return DEFAULT_NONMGR_TABS.slice();                         // fallback (config missing / unknown role)
+  var keys=_isMgrRole(user.role) ? ALL_TAB_KEYS.slice() : (_cfgTabsFor(user)||DEFAULT_NONMGR_TABS.slice());
+  // Master Access is sensitive: never auto-granted (not even to managers). Strip it, then re-add only
+  // for the owner, or accounts explicitly given 'masteraccess' in the access config.
+  keys=keys.filter(function(k){return k!=='masteraccess';});
+  var cfgTabs=_cfgTabsFor(user);
+  if(_isOwner(user) || (cfgTabs&&cfgTabs.indexOf('masteraccess')>=0)) keys.push('masteraccess');
+  return keys;
 }
 function loadAccessCfg(cb){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
@@ -5312,6 +5339,22 @@ function saveStaffPins(){
 var WEB_APP_URL='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7YHJ8IvMTjD2KMqBkHF7WxfQhJvFqwFZpDydVZxQvSQYPD/exec';
 var masterPin='';   // validated 6-digit code for this master session
 var mEditSku=null;  // sku being edited (null = adding new)
+
+// Master Access tab entry: a granted account opens the admin tools without typing a code. We obtain
+// the (still server-issued) master credential behind the scenes via the existing master-pin/master-write
+// path; if the account isn't cleared server-side, we fall back to the manual code gate.
+function masterAccessOpen(){
+  if(masterPin){ openMaster(); return; }                 // already unlocked this session
+  fetch(SB_FN+'master-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu&&cu.pin)||''})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success&&res.code){
+        fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:res.code,op:'verify'})})
+          .then(function(r){return r.json();}).then(function(v){
+            if(v&&v.success){ masterPin=res.code; openMaster(); } else openMasterGate();
+          }).catch(function(){ openMasterGate(); });
+      } else openMasterGate();
+    }).catch(function(){ openMasterGate(); });
+}
 
 function openMasterGate(){
   document.getElementById('mgate').classList.add('show');

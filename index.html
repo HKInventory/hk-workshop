@@ -2392,7 +2392,7 @@ function sz(){
   if(typeof stk!=='undefined'&&stk.length&&stk[stk.length-1]==='home') sizeTiles();
 }
 sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility();});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/hk-inventory/sw.js').catch(function(){});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 
 // ── Fetch staff ──
 function fetchStaff(cb){ if(cb)cb(); } // staff PINs are verified server-side via verify-pin; never fetched to the browser

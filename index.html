@@ -4200,6 +4200,7 @@ function loadRfKarts(cb){
     rrows.forEach(function(r){
       var iso=r.date_discovered||r.date_repaired||'';   // ISO yyyy-mm-dd, sortable
       (RF_REPAIRS_BY_ID[r.rf_kart_id]=RF_REPAIRS_BY_ID[r.rf_kart_id]||[]).push({
+        id:(Number(r.id)||0),                             // RaceFacer record id = entry order, used to break same-day ties
         iso:iso,
         date:iso?iso.split('-').reverse().join('.'):'',   // display dd.mm.yyyy
         status:r.date_repaired?'fixed':'open',
@@ -4213,7 +4214,7 @@ function loadRfKarts(cb){
       });
     });
     // Newest first — sort by the real ISO date, not the dd.mm string.
-    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.iso||'').localeCompare(a.iso||'');}); });
+    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||'') || ((b.id||0)-(a.id||0)); }); });
     // Kart notes (the open issues + the full archive) grouped per kart
     RF_NOTES_BY_ID={};
     nrows.forEach(function(n){
@@ -4796,7 +4797,17 @@ function ktTab(name){
 }
 
 // dd.mm.yyyy hh:mm from an ISO timestamp (falls back to the raw string)
-function fmtNoteDate(iso){ if(!iso) return '\u2014'; var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function fmtNoteDate(iso){
+  if(!iso) return '\u2014';
+  // Show the wall-clock time exactly as RaceFacer recorded it. The synced timestamps are
+  // tagged UTC, so new Date()+local getters shift them +10h (17:13 -> next-day 03:13);
+  // instead read the y/m/d/h/m straight out of the string with no timezone conversion.
+  var m=String(iso).match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5];
+  var d=new Date(iso); if(isNaN(d.getTime())) return String(iso);
+  var p=function(n){return (n<10?'0':'')+n;};
+  return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function fmtNoteWhen(iso,who){ if(!iso) return '\u2014'; return fmtNoteDate(iso)+(who?(' - '+kEsc(who)):''); }
 
 // The active notes — shown above the tabs, mirroring exactly RaceFacer's top list (starred, not X'd).
@@ -4895,7 +4906,7 @@ function costTabHTML(){
 // ── Fleet-wide reference sections (no longer per-kart) ──────────────────────
 // Global kart-notes feed — every kart's notes for this site, newest first (mirrors RaceFacer's Notifications list)
 var KI_NKMAP=null;
-function kiFmtDate(iso){ try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
+function kiFmtDate(iso){ var m=String(iso||'').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/); if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5]; try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
 function renderKartNotesFeed(){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
   body.innerHTML='<div style="font-size:13px;color:var(--t2)">Loading notes…</div>';
@@ -4936,6 +4947,7 @@ function rpFlatten(){
     var k=kByRf[rfId];
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(r){
       var base={
+        id:r.id||0,
         iso:r.iso||'', date:r.date||'', dateRepaired:r.dateRepaired||'',
         status:r.status, cost:r.cost||0, mileage:r.mileage||0,
         issue:r.issue||'', repairNotes:r.repairNotes||'', parts:r.parts||[], user:r.user||'\u2014'
@@ -4950,7 +4962,7 @@ function rpFlatten(){
       out.push(base);
     });
   });
-  out.sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||''); });   // newest first
+  out.sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||'') || ((b.id||0)-(a.id||0)); });   // newest first; same-day ties by RaceFacer entry order
   return out;
 }
 function renderRepairsSection(){

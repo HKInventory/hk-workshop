@@ -4189,7 +4189,7 @@ function loadRfKarts(cb){
   }
   Promise.all([
     sbFetchAll('rf_karts','*','site',site,'rf_id'),
-    sbFetchAll('rf_repairs','id,rf_kart_id,description,date_discovered,date_repaired,mileage,cost,mechanic,notes',null,null,'id'),
+    sbFetchAll('rf_repairs','*',null,null,'id'),
     sbFetchAll('rf_repair_parts','repair_id,part_name,qty,price',null,null,'repair_id'),
     sbFetchAll('rf_kart_notes','*',null,null,'id').catch(function(){ return {data:[]}; })
   ]).then(function(rs){
@@ -4206,6 +4206,7 @@ function loadRfKarts(cb){
     rrows.forEach(function(r){
       var iso=r.date_discovered||r.date_repaired||'';   // ISO yyyy-mm-dd, sortable
       (RF_REPAIRS_BY_ID[r.rf_kart_id]=RF_REPAIRS_BY_ID[r.rf_kart_id]||[]).push({
+        id:Number(r.id)||0,                               // RaceFacer's own repair id — newest = highest
         iso:iso,
         date:iso?iso.split('-').reverse().join('.'):'',   // display dd.mm.yyyy
         status:r.date_repaired?'fixed':'open',
@@ -4215,11 +4216,12 @@ function loadRfKarts(cb){
         parts:partsByRepair[r.id]||[],                    // parts used in this repair
         mileage:Number(r.mileage)||0,
         user:r.mechanic||'—',
-        dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):''
+        dateRepaired:r.date_repaired?r.date_repaired.split('-').reverse().join('.'):'',
+        kartName:(r.kart_name!=null?String(r.kart_name):''), kartType:r.kart_type||'', kartGarageId:r.kart_garage_id||'', typeColor:r.type_color||''
       });
     });
     // Newest first — sort by the real ISO date, not the dd.mm string.
-    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return (b.iso||'').localeCompare(a.iso||'');}); });
+    Object.keys(RF_REPAIRS_BY_ID).forEach(function(id){ RF_REPAIRS_BY_ID[id].sort(function(a,b){return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||'');}); });
     // Kart notes (the open issues + the full archive) grouped per kart
     RF_NOTES_BY_ID={};
     nrows.forEach(function(n){
@@ -4953,6 +4955,7 @@ function rpFlatten(){
     var k=kByRf[rfId];
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(r){
       var base={
+        id:r.id||0,
         iso:r.iso||'', date:r.date||'', dateRepaired:r.dateRepaired||'',
         status:r.status, cost:r.cost||0, mileage:r.mileage||0,
         issue:r.issue||'', repairNotes:r.repairNotes||'', parts:r.parts||[], user:r.user||'\u2014'
@@ -4961,13 +4964,19 @@ function rpFlatten(){
         base.retired=false; base.type=k.type||'-'; base.num=k.num; base.kartId=k.kartId||'-';
         base.color=(KART_TYPE_COLOR[k.type]||'#2DD4BF');
       } else {
-        base.retired=true; base.type='Retired'; base.num='\u2014'; base.kartId='#'+rfId;
-        base.color='#6B7280';
+        // Kart no longer in the active fleet — use the identity stored on the repair itself
+        // (the full-fleet sync records each repair's kart number/type/FR-code) so it stays browsable.
+        base.retired=true;
+        base.num=(r.kartName!=null&&r.kartName!=='')?r.kartName:'\u2014';
+        base.type=r.kartType?rfTypeShort(r.kartType):'Retired';
+        base.kartId=r.kartGarageId||('#'+rfId);
+        var tc=r.typeColor||''; if(tc&&tc.charAt(0)!=='#')tc='#'+tc;
+        base.color=(/^#[0-9a-fA-F]{3,8}$/.test(tc))?readableColor(tc):'#6B7280';
       }
       out.push(base);
     });
   });
-  out.sort(function(a,b){ return (b.iso||'').localeCompare(a.iso||''); });   // newest first
+  out.sort(function(a,b){ return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||''); });   // newest first (by RaceFacer repair id)
   return out;
 }
 function renderRepairsSection(){

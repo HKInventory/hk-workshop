@@ -6290,9 +6290,22 @@ function tvSubscribe(){
   }catch(e){}
 }
 function tvHkPulse(){ try{ playSplash(true); }catch(e){} }
+/* Best-effort: ask the browser to keep the screen awake (re-acquired when the
+   tab becomes visible again, since wake locks auto-release while hidden).
+   TV-level sleep/screensaver still needs disabling in the TV's own settings. */
+var _tvWake=null;
+function tvKeepAwake(){
+  try{
+    if(!('wakeLock' in navigator)||!navigator.wakeLock||!navigator.wakeLock.request) return;
+    var req=function(){ try{ navigator.wakeLock.request('screen').then(function(l){ _tvWake=l; },function(){}); }catch(e){} };
+    req();
+    document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') req(); });
+  }catch(e){}
+}
 function bootTvDisplay(){
   try{ document.title='HK Workshop · TV'; }catch(e){}
   var root=document.getElementById('tvroot'); if(root) root.classList.add('on');
+  tvKeepAwake();
   tvClock(); tvClockTimer=setInterval(tvClock,1000);
   loadSites(function(){ var sl=document.getElementById('tv-site'); if(sl) sl.textContent=(siteLabel(currentSite)||'').toUpperCase(); var rt=document.getElementById('tvroot'); if(rt) rt.style.setProperty('--tvac',siteAccent(currentSite)); });
   if(typeof SBC!=='undefined'&&SBC){

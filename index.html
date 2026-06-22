@@ -199,7 +199,7 @@
     @media (min-width:900px){ .home-grid{gap:18px;width:min(100%,1500px);align-self:center} }
 
     /* Every tile is identical — colour classes only change the background. */
-    .tile{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:clamp(10px,2.2vw,24px);cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;user-select:none;min-height:0;min-width:0}
+    .tile{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:clamp(2px,0.8vw,4px);padding:clamp(7px,2.2vw,24px);cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;user-select:none;min-height:0;min-width:0}
     .tile:active{transform:scale(0.95)}
     /* premium phone polish: a light sheen sweeps the tiles on home entry, springy tap on touch */
     .tile::after{content:'';position:absolute;top:0;bottom:0;left:-75%;width:50%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);transform:skewX(-18deg);pointer-events:none;opacity:0}
@@ -208,8 +208,8 @@
     @media (hover:none){ .tile{transition:transform .2s cubic-bezier(.34,1.56,.64,1)} .tile:active{transform:scale(.92)} }
     @media (max-width:420px){ .tile .ts{display:none} }
     .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(rgba(255,255,255,0.08),transparent);pointer-events:none}
-    .ti{font-size:clamp(24px,6vw,46px);line-height:1;margin:0;position:relative;z-index:1;flex-shrink:0}
-    .tl{font-size:clamp(13px,3.2vw,24px);font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.1;position:relative;z-index:1}
+    .ti{font-size:clamp(20px,5.2vw,46px);line-height:1;margin:0;position:relative;z-index:1;flex-shrink:0}
+    .tl{font-size:clamp(12px,3.1vw,24px);font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.07;position:relative;z-index:1}
     .ts{font-size:clamp(10px,2.4vw,15px);color:rgba(255,255,255,0.65);line-height:1.2;position:relative;z-index:1}
 
     /* Colour palette — one per tab (blues / teals / indigos kept distinct) */
@@ -250,6 +250,9 @@
     .home-grid.ta .tile:nth-child(11){animation-delay:400ms}
     .home-grid.ta .tile:nth-child(12){animation-delay:440ms}
     .home-grid.ta .tile:nth-child(13){animation-delay:480ms}
+    .home-grid.ta .tile:nth-child(14){animation-delay:520ms}
+    .home-grid.ta .tile:nth-child(15){animation-delay:560ms}
+    .home-grid.ta .tile:nth-child(16){animation-delay:600ms}
 
     /* ── Back btn ── */
     .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer;padding:8px 0;flex-shrink:0;font-family:'Inter',sans-serif}
@@ -784,10 +787,13 @@
     .tkmsg-err{background:rgba(255,59,48,0.1);border:1.5px solid rgba(255,59,48,0.35);color:#FF5252;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
     .tkmsg-loading{background:rgba(0,207,255,0.08);border:1.5px solid rgba(0,207,255,0.25);color:#00CFFF;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
   
-    /* Phase 2 — hover lift on tiles (desktop / hover-capable only) */
+    /* Phase 2 — hover lift on tiles (desktop / hover-capable only). A pure lift + glow (no
+       horizontal scale) keeps the double-wide Master Access tile from bleeding over its neighbour. */
     @media (hover:hover){
-      .tile{transition:transform .15s cubic-bezier(.34,1.4,.5,1),box-shadow .15s ease}
-      .tile:hover{transform:translateY(-3px) scale(1.045);box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.14);z-index:3}
+      .tile{transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease,filter .2s ease}
+      .tile:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16);filter:brightness(1.06);z-index:3}
+      .site-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1.5px var(--ac);filter:brightness(1.06);}
+      .site-card.locked:hover{transform:none;box-shadow:none;filter:none;}
     }
     /* Master access link on PIN screen */
     .master-link{margin-top:16px;background:none;border:none;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;padding:8px;letter-spacing:.3px}
@@ -926,6 +932,8 @@
     .ac-chip{background:rgba(255,255,255,.04);border:1px solid var(--b1);color:var(--t2);border-radius:8px;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s,color .12s;font-family:inherit}
     .ac-chip:active{transform:scale(.96)}
     .ac-chip.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.6);color:#5EEAD4}
+    .ac-ki-h{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);margin:11px 0 6px;opacity:.85}
+    .ac-chip.ki.on{background:rgba(251,191,36,.16);border-color:rgba(251,191,36,.6);color:#FCD34D}
     .ac-allnote{font-size:12px;color:var(--t2)}
     .ac-ov-row{margin:0 18px 8px;border:1px solid var(--b1);border-radius:12px;background:var(--card);padding:11px 14px;display:flex;align-items:center;gap:10px}
     .ac-ov-row.col{flex-direction:column;align-items:stretch}
@@ -1021,7 +1029,7 @@
 .sc-h{font-size:30px;font-weight:900;color:#fff;letter-spacing:-.02em;}
 .sc-p{font-size:14px;color:#8aa3b0;margin-top:6px;margin-bottom:28px;}
 .sc-grid{display:flex;flex-direction:column;gap:14px;}
-.site-card{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px;border-radius:20px;cursor:pointer;border:1.5px solid var(--ac);background:linear-gradient(135deg,var(--acA),var(--acB));color:#fff;text-align:left;font-family:inherit;opacity:0;transform:translateY(18px) scale(.96);animation:sccard .55s cubic-bezier(.2,.8,.2,1) forwards;transition:transform .18s ease,box-shadow .25s ease;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+.site-card{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px;border-radius:20px;cursor:pointer;border:1.5px solid var(--ac);background:linear-gradient(135deg,var(--acA),var(--acB));color:#fff;text-align:left;font-family:inherit;opacity:0;transform:translateY(18px) scale(.96);animation:sccard .55s cubic-bezier(.2,.8,.2,1) forwards;transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease,filter .2s ease;overflow:hidden;-webkit-tap-highlight-color:transparent;}
 .site-card:nth-child(1){animation-delay:.05s}.site-card:nth-child(2){animation-delay:.14s}.site-card:nth-child(3){animation-delay:.23s}.site-card:nth-child(4){animation-delay:.32s}
 @keyframes sccard{to{opacity:1;transform:none;}}
 .site-card:active{transform:scale(.975);}
@@ -1540,12 +1548,12 @@
           <div class="ki-sub" id="ki-site-sub"></div>
           <div class="ki-tiles">
             <div class="tile kartinfo ki-hero" onclick="kiOpenKarts()"><div class="ti">🏎️</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
-            <div class="tile tse" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
-            <div class="tile tlo" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
-            <div class="tile tasks" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
-            <div class="tile tc" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
-            <div class="tile kidh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
-            <div class="tile hkai" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
+            <div class="tile tse" id="kit-notes" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
+            <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
+            <div class="tile tasks" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
+            <div class="tile tc" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
+            <div class="tile kidh" id="kit-dehaardt" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
+            <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
           </div>
         </div>
       </div>
@@ -2002,6 +2010,7 @@ function openSiteChooser(reopen,done){
           b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return;
         }
         var sid=b.getAttribute('data-site');
+        if(reopen && sid===currentSite){ ov.classList.add('out'); setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},380); if(done) done(); return; }   // already on this site — just close, no reload
         currentSite=sid; try{sessionStorage.setItem('hk_site',sid);}catch(e){}
         applySiteAccent(stk&&stk.length?stk[stk.length-1]:'home');
         if(reopen){
@@ -2402,14 +2411,8 @@ startRealtime();
 
 /* Managers-only unread badge on the Racefacer tile: count of today's unresolved discrepancies. */
 function refreshRfBadge(){
-  var el=document.getElementById('rf-badge'); if(!el) return;
-  var isMgr=cu&&(cu.role==='Manager'||cu.role==='Assistant Manager');
-  if(!isMgr){ el.style.display='none'; return; }
-  var today=new Date().toISOString().slice(0,10);
-  SBC.from('rf_discrepancies').select('id',{count:'exact',head:true}).eq('day',today).neq('status','resolved').then(function(res){
-    var n=(res&&res.count)||0;
-    if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='block'; } else { el.style.display='none'; }
-  },function(){});
+  // Intelligence tile no longer carries the open-discrepancy count badge (removed by request).
+  var el=document.getElementById('rf-badge'); if(el) el.style.display='none';
 }
 
 var APP='';
@@ -2784,6 +2787,34 @@ function effectiveTabs(user){
   if((MASTER_ADMINS||[]).indexOf(user.name)>=0) keys.push('masteraccess');
   return keys;
 }
+// ── Kart Info sub-section access ────────────────────────────────────────────
+// Per-account / per-role control over WHICH Kart Info reference sections show (e.g. some
+// accounts see Wiring/CPU, some don't). Keys are namespaced "ki:*" so they live in the SAME
+// app_access roles[].tabs / overrides arrays as the home tabs (no schema/Edge-Function change).
+// Default = ALL sections visible: an account/role with NO ki:* keys configured sees everything,
+// so nothing disappears until it's explicitly restricted in Master Access → Access. The "Karts"
+// (fleet) tile is always visible and is never gateable. UI-level gating, same trust model as the
+// home tabs (app_access is anon-readable); it organises what people see, it isn't a security wall.
+var KI_SECTION_DEFS=[
+  {key:'ki:notes',    label:'Notes',      tile:'kit-notes'},
+  {key:'ki:repairs',  label:'Repairs',    tile:'kit-repairs'},
+  {key:'ki:wiring',   label:'Wiring',     tile:'kit-wiring'},
+  {key:'ki:cpu',      label:'CPU / WiFi', tile:'kit-cpu'},
+  {key:'ki:dehaardt', label:'Dehaardt',   tile:'kit-dehaardt'},
+  {key:'ki:help',     label:'Help',       tile:'kit-help'}
+];
+var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
+function kiAllowedSections(user){
+  user=user||cu;
+  var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
+  if(!eff) return KI_SECTION_KEYS.slice();                                   // no config loaded -> show all
+  var present=KI_SECTION_KEYS.filter(function(k){return eff.indexOf(k)>=0;});
+  return present.length?present:KI_SECTION_KEYS.slice();                     // none set (= default) -> show all
+}
+function applyKiSectionVis(){
+  var allow=kiAllowedSections(cu);
+  KI_SECTION_DEFS.forEach(function(d){ var el=document.getElementById(d.tile); if(el) el.style.display=(allow.indexOf(d.key)>=0)?'':'none'; });
+}
 function loadAccessCfg(cb){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
   SBC.from('app_access').select('roles,overrides,master_admins').eq('id',1).maybeSingle().then(function(res){
@@ -2813,6 +2844,7 @@ function applyRoleVisibility(){
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
+  if(typeof applyKiSectionVis==='function'){try{applyKiSectionVis();}catch(e){}}
 }
 
 function updateUI(id){
@@ -4700,6 +4732,7 @@ function closeFnRef(){ var m=document.getElementById('bcnFn'); if(m)m.classList.
 /* =================== end BEACONS TAB =================== */
 
 function loadKartInfo(){
+  if(typeof applyKiSectionVis==='function') applyKiSectionVis();   // show/hide reference sub-tiles per this account's access
   // Spin whichever refresh button is on the current screen: the landing has rb-kart,
   // the kart LIST has rb-kartlist. (The screens refactor left the button only on the landing.)
   var btns=[['rb-kart','rt-kart'],['rb-kartlist','rt-kartlist']]
@@ -5803,7 +5836,10 @@ function msRender(){
     return '<div class="prow staff-edit-row" data-idx="'+i+'">'
       +'<button class="staff-del-btn" onclick="msDeleteRow('+i+')" title="Remove">×</button>'
       +'<div class="staff-edit-meta">'
-      +  '<input class="staff-name-input" type="text" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="msField('+i+',\'name\',this.value)">'
+      +  '<div style="display:flex;gap:6px;align-items:center">'
+      +    '<input class="staff-name-input" type="text" maxlength="4" value="'+acEsc(x.emoji||'🔧')+'" placeholder="🙂" title="Account emoji" oninput="msField('+i+',\'emoji\',this.value)" style="flex:0 0 44px;width:44px;text-align:center;font-size:17px;padding:6px 2px">'
+      +    '<input class="staff-name-input" type="text" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="msField('+i+',\'name\',this.value)" style="flex:1 1 0;min-width:0;width:auto">'
+      +  '</div>'
       +  '<div class="staff-role-line"><select class="staff-role-select" onchange="msField('+i+',\'role\',this.value)">'
       +    msRoleOpts(x.role)
       +  '</select></div>'
@@ -5884,7 +5920,7 @@ function msSave(){
   fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'save',staff:mStaffDraft})})
     .then(function(r){return r.json();}).then(function(res){
       btn.textContent='Save staff changes'; btn.disabled=false;
-      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'};}); if(cu&&cu.name){ loadSites(function(){}); } setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
+      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.emoji||((st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'))};}); if(cu){ var _me=STAFF.filter(function(s){return s.name===cu.name;})[0]; if(_me){ cu.emoji=_me.emoji; var ueEl=document.getElementById('ue'); if(ueEl) ueEl.innerText=cu.emoji; try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} } } if(cu&&cu.name){ loadSites(function(){}); } setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save staff changes'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
 }
@@ -5925,10 +5961,21 @@ function acLoad(){
 }
 function acChips(sel, fnName, idx){
   // Master Access is never a role/override toggle — it's granted only in Owner controls (email code).
-  return '<div class="ac-chips">'+TAB_DEFS.filter(function(t){return t.key!=='masteraccess';}).map(function(t){
-    var on=(sel||[]).indexOf(t.key)>=0;
+  sel=sel||[];
+  var home='<div class="ac-chips">'+TAB_DEFS.filter(function(t){return t.key!=='masteraccess';}).map(function(t){
+    var on=sel.indexOf(t.key)>=0;
     return '<button type="button" class="ac-chip'+(on?' on':'')+'" onclick="'+fnName+'('+idx+',\''+t.key+'\')">'+acEsc(t.label)+'</button>';
   }).join('')+'</div>';
+  // Kart Info sub-sections (separate amber group). Default = all visible (no ki:* keys stored); once any
+  // is configured it becomes an allow-list. Toggling routes to the ki-specific handler for that owner type.
+  var kiFn=(fnName==='acRoleTab')?'acRoleKi':'acOvKi';
+  var kiCur=KI_SECTION_KEYS.filter(function(k){return sel.indexOf(k)>=0;});
+  var allOn=(kiCur.length===0);
+  var ki='<div class="ac-ki-h">Kart Info sections'+(allOn?' \u00b7 all visible':'')+'</div><div class="ac-chips">'+KI_SECTION_DEFS.map(function(d){
+    var on=allOn||kiCur.indexOf(d.key)>=0;
+    return '<button type="button" class="ac-chip ki'+(on?' on':'')+'" onclick="'+kiFn+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
+  }).join('')+'</div>';
+  return home+ki;
 }
 function acRender(){
   var el=document.getElementById('m-access-list'); if(!el) return;
@@ -5961,6 +6008,21 @@ function acDelRole(i){ var r=mAccessDraft.roles[i]; if(!r||_isMgrRole(r.name)) r
 function acCustomise(idx){ var s=mAccessStaff[idx]; if(!s) return; var role=(mAccessDraft.roles.find(function(r){return r.name===s.role;})||{}); mAccessDraft.overrides[s.name]=Array.isArray(role.tabs)?role.tabs.slice():DEFAULT_NONMGR_TABS.slice(); acRender(); }
 function acResetOv(idx){ var s=mAccessStaff[idx]; if(!s) return; delete mAccessDraft.overrides[s.name]; acRender(); }
 function acOvTab(idx,key){ var s=mAccessStaff[idx]; if(!s) return; var arr=mAccessDraft.overrides[s.name]; if(!Array.isArray(arr)){ arr=[]; mAccessDraft.overrides[s.name]=arr; } var k=arr.indexOf(key); if(k>=0)arr.splice(k,1); else arr.push(key); acRender(); }
+// Kart Info section toggles. The array stores ki:* keys ONLY when sections are restricted; "all on"
+// is represented by storing none. Turning a section off from the all-on state writes every OTHER
+// ki key (flips to an explicit allow-list); turning the last-missing one back on collapses to none.
+function _acKiToggle(arr,key){
+  var cur=KI_SECTION_KEYS.filter(function(k){return arr.indexOf(k)>=0;});
+  if(cur.length===0){ KI_SECTION_KEYS.forEach(function(k){ if(k!==key) arr.push(k); }); }   // was all-on -> hide this one
+  else {
+    var i=arr.indexOf(key); if(i>=0) arr.splice(i,1); else arr.push(key);
+    var nowOn=KI_SECTION_KEYS.filter(function(k){return arr.indexOf(k)>=0;});
+    if(nowOn.length===KI_SECTION_KEYS.length){ KI_SECTION_KEYS.forEach(function(k){ var j=arr.indexOf(k); if(j>=0) arr.splice(j,1); }); }   // all back on -> store none
+  }
+  return arr;
+}
+function acRoleKi(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; _acKiToggle(r.tabs,key); acRender(); }
+function acOvKi(idx,key){ var s=mAccessStaff[idx]; if(!s) return; var arr=mAccessDraft.overrides[s.name]; if(!Array.isArray(arr)){ arr=[]; mAccessDraft.overrides[s.name]=arr; } _acKiToggle(arr,key); acRender(); }
 function acSave(){
   var msg=document.getElementById('m-access-msg2'), btn=document.getElementById('m-access-save'); if(msg) msg.style.color='';
   var names={};

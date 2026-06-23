@@ -1316,6 +1316,23 @@
     .tv-kn{min-width:4.4vmin;text-align:center;font-size:2vmin;font-weight:800;padding:.7vmin 1.2vmin;border-radius:.9vmin;font-variant-numeric:tabular-nums;
       background:rgba(255,84,112,.14);border:1px solid rgba(255,84,112,.42);color:#FF8FA3}
     .tv-kn.maint{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.42);color:#FCD34D}
+    /* per-type fleet extras */
+    .tv-ready .pct{display:flex;flex-direction:column;align-items:flex-end;line-height:.95}
+    .tv-ready .pct .pl{font-size:1.3vmin;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-top:.5vmin}
+    .tv-dmglist{margin-top:auto;display:flex;flex-direction:column;gap:.8vmin}
+    .tv-dmghdr{font-size:1.35vmin;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
+    .tv-dmg{display:flex;align-items:center;gap:1.4vmin;padding:1.1vmin 1.6vmin;border-radius:1.1vmin;background:var(--panel);border:1px solid var(--line)}
+    .tv-dmg .di{flex:1;min-width:0;font-size:1.95vmin;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tv-dmg .dd{font-size:1.6vmin;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;flex:0 0 auto}
+    .tv-allok{margin-top:auto;padding:1.8vmin;border-radius:1.3vmin;background:rgba(61,214,140,.08);border:1px solid rgba(61,214,140,.3);color:#7BE8B5;font-size:2.1vmin;font-weight:700;text-align:center}
+    /* repair leaderboard */
+    .tv-lb{display:flex;flex-direction:column;gap:1vmin;flex:1;min-height:0;justify-content:center}
+    .tv-lbrow{display:flex;align-items:center;gap:1.8vmin;padding:1.5vmin 2.2vmin;border-radius:1.4vmin;background:var(--panel);border:1px solid var(--line)}
+    .tv-lbrow .rk{font-size:3vmin;font-weight:800;font-variant-numeric:tabular-nums;min-width:3.6vmin;text-align:center}
+    .tv-lbrow .nm{flex:0 0 24%;min-width:0;font-size:2.2vmin;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tv-lbrow .bar{flex:1;height:1.5vmin;border-radius:.75vmin;background:rgba(255,255,255,.06);overflow:hidden}
+    .tv-lbrow .bar i{display:block;height:100%;border-radius:.75vmin}
+    .tv-lbrow .ct{font-size:2.6vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);min-width:4.4vmin;text-align:right}
     /* low stock */
     .tv-list{display:flex;flex-direction:column;gap:1.2vmin;flex:1;min-height:0}
     .tv-row{display:flex;align-items:center;gap:2vmin;padding:1.7vmin 2.4vmin;border-radius:1.3vmin;background:var(--panel);border:1px solid var(--line)}
@@ -1407,6 +1424,10 @@
     .tvc-fld{display:block;margin-bottom:10px}
     .tvc-fld>span{display:block;font-size:12px;font-weight:700;color:#fff;margin-bottom:6px}
     .tvc-time{max-width:170px}
+    .tvc-sublbl{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:2px 0 10px}
+    .tvc-sites{display:flex;flex-wrap:wrap;gap:8px}
+    .tvc-sitechip{padding:9px 16px;border-radius:999px;border:1px solid var(--b1);background:transparent;color:var(--t1);font-size:13px;font-weight:700;cursor:pointer}
+    .tvc-sitechip.on{background:var(--accent,#00CFFF);border-color:transparent;color:#04070A}
     .tvc-2col{display:flex;gap:10px}.tvc-2col>.tvc-fld{flex:1;margin-bottom:10px}
     .tvc-imgrow{display:flex;gap:8px;align-items:center}.tvc-imgrow>.staff-name-input{flex:1}
     .tvc-mini{flex:0 0 auto;border:1px solid var(--b1);background:var(--card2,rgba(255,255,255,.05));color:#fff;font-weight:700;font-size:12px;padding:9px 12px;border-radius:9px;cursor:pointer}
@@ -2700,8 +2721,11 @@ function fetchStaff(cb){ if(cb)cb(); } // staff PINs are verified server-side vi
 // ── Session ──
 var stk=[];
 (function(){
-  // TV kiosk mode: opening the app at …/#tv boots a read-only fullscreen board instead of the PIN screen.
-  if(location.hash.replace(/^#/,'').split(/[?&]/)[0]==='tv'){ bootTvDisplay(); return; }
+  // TV kiosk mode: …/#tv boots a read-only fullscreen board instead of the PIN screen.
+  // A site can be appended for per-TV displays: …/#tv-melbourne (or #tv/melbourne, #tv=melbourne).
+  var _hh=(location.hash||'').replace(/^#/,'').split(/[?&]/)[0].toLowerCase();
+  var _tvm=_hh.match(/^tv(?:[-\/=:](.+))?$/);
+  if(_tvm){ window.__tvSite=(_tvm[1]||'sydney'); bootTvDisplay(); return; }
   var u=sessionStorage.getItem('hk_u'),ud=sessionStorage.getItem('hk_ud');
   // Pre-fetch staff in background immediately
   fetchStaff(null);
@@ -6294,10 +6318,17 @@ function tvEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</
 function tvMergeState(row){
   row=row||{};
   var sc=(row.scenes&&typeof row.scenes==='object')?row.scenes:{};
+  // Preserve EVERY scene toggle the row carries — including per-type keys
+  // (type:Adult, type:Junior, …) and leaderboard — not just a fixed whitelist,
+  // so turning an individual slide off actually sticks.
+  var scenes={}; for(var _sk in sc){ if(Object.prototype.hasOwnProperty.call(sc,_sk)) scenes[_sk]=(sc[_sk]!==false); }
+  if(scenes.items===undefined) scenes.items=true;
+  if(scenes.tasks===undefined) scenes.tasks=true;
+  if(scenes.leaderboard===undefined) scenes.leaderboard=true;
   var al=(row.alert&&typeof row.alert==='object')?row.alert:{};
   var to=(row.takeover&&typeof row.takeover==='object')?row.takeover:{};
   return {
-    scenes:{ fleet:sc.fleet!==false, lowstock:sc.lowstock!==false, items:sc.items!==false, tasks:sc.tasks!==false },
+    scenes:scenes,
     morning:(row.morning!==false),
     morning_until:(row.morning_until!=null&&String(row.morning_until).trim())?String(row.morning_until):'10:30',
     greeting:(row.greeting!=null?String(row.greeting):''),
@@ -6333,37 +6364,62 @@ function tvFleetStats(){
   var dmg=act.filter(function(k){return k.status==='damaged';});
   return {ks:ks,lt:lt,act:act,ok:ok,maint:maint,dmg:dmg,attn:maint.concat(dmg),total:ks.length,ready:ok.length};
 }
-function tvSceneFleet(){
-  var s=tvFleetStats();
-  if(!s.ks.length) return tvEyebrow('Fleet Status','')+'<div class="tv-empty">Syncing the fleet from RaceFacer&hellip;</div>';
-  var pct=s.act.length?Math.round(s.ready/s.act.length*100):0;
-  var dn=s.total||1, wOk=s.ready/dn*100, wWarn=s.maint.length/dn*100, wBad=s.dmg.length/dn*100, wLt=s.lt.length/dn*100;
-  var byType={}; s.act.forEach(function(k){ byType[k.type]=(byType[k.type]||0)+1; });
-  var typeRow=(KART_TYPE_ORDER||[]).filter(function(t){return byType[t];}).map(function(t){ return '<span class="tv-chip"><b>'+byType[t]+'</b> '+tvEsc(t)+'</span>'; }).join('');
-  var attnChips=s.attn.slice(0,16).map(function(k){ return '<span class="tv-kn'+(k.status==='maint'?' maint':'')+'">'+tvEsc(k.num)+'</span>'; }).join('');
-  return tvEyebrow('Fleet Status', tvEsc(siteLabel(currentSite))+' \u00b7 '+s.total+' karts')+
+function tvTypesPresent(){
+  var have={}; (KART_LIST||[]).forEach(function(k){ if(!k.longTerm) have[k.type]=true; });
+  return (KART_TYPE_ORDER||[]).filter(function(t){ return have[t]; });
+}
+function tvTypeStats(type){
+  var ks=(KART_LIST||[]).filter(function(k){return k.type===type;});
+  var lt=ks.filter(function(k){return k.longTerm;}), act=ks.filter(function(k){return !k.longTerm;});
+  return {type:type,ks:ks,lt:lt,act:act,
+    ok:act.filter(function(k){return k.status==='ok';}),
+    maint:act.filter(function(k){return k.status==='maint';}),
+    dmg:act.filter(function(k){return k.status==='damaged';})};
+}
+function tvKartLatestRepair(k){ var rs=(k&&k.rfId!=null&&RF_REPAIRS_BY_ID[k.rfId])||[]; return rs.length?rs[0]:null; }
+function tvSceneType(type){
+  var s=tvTypeStats(type), n=s.act.length, ac=KART_TYPE_COLOR[type]||'var(--tvac)';
+  if(!s.ks.length) return tvEyebrow(type+' karts','')+'<div class="tv-empty">No '+tvEsc(type)+' karts in the fleet.</div>';
+  var pOk=n?Math.round(s.ok.length/n*100):0, pFm=n?Math.round(s.maint.length/n*100):0, pDmg=n?Math.round(s.dmg.length/n*100):0;
+  var dn=n||1, wOk=s.ok.length/dn*100, wWarn=s.maint.length/dn*100, wBad=s.dmg.length/dn*100;
+  var attn=s.dmg.concat(s.maint).map(function(k){ var r=tvKartLatestRepair(k); return {k:k,r:r,sort:(r?(r.id||0):0)}; });
+  attn.sort(function(a,b){ return b.sort-a.sort; });
+  var dmgRows=attn.slice(0,6).map(function(o){
+    var bad=o.k.status==='damaged', issue=(o.r&&o.r.issue)||(bad?'Damaged':'In maintenance'), date=(o.r&&o.r.date)||'';
+    return '<div class="tv-dmg"><span class="tv-kn'+(bad?'':' maint')+'">'+tvEsc(o.k.num)+'</span><span class="di">'+tvEsc(issue)+'</span>'+(date?'<span class="dd">'+tvEsc(date)+'</span>':'')+'</div>';
+  }).join('');
+  return tvEyebrow(type+' karts', tvEsc(siteLabel(currentSite))+' \u00b7 '+n+' in service')+
     '<div class="tv-fleet">'+
-      '<div class="tv-ready"><div class="big">'+s.ready+'</div><div><div class="of">race-ready</div><div class="of">of <b>'+s.act.length+'</b> in service</div></div><div class="pct">'+pct+'%</div></div>'+
-      '<div class="tv-gauge">'+(wOk?'<i class="g-ok" style="width:'+wOk+'%"></i>':'')+(wWarn?'<i class="g-warn" style="width:'+wWarn+'%"></i>':'')+(wBad?'<i class="g-bad" style="width:'+wBad+'%"></i>':'')+(wLt?'<i class="g-lt" style="width:'+wLt+'%"></i>':'')+'</div>'+
+      '<div class="tv-ready"><div class="big" style="color:'+ac+'">'+n+'</div><div><div class="of">in service</div>'+(s.lt.length?'<div class="of">'+s.lt.length+' long-term parked</div>':'')+'</div><div class="pct">'+pOk+'%<span class="pl">race-ready</span></div></div>'+
+      '<div class="tv-gauge">'+(wOk?'<i class="g-ok" style="width:'+wOk+'%"></i>':'')+(wWarn?'<i class="g-warn" style="width:'+wWarn+'%"></i>':'')+(wBad?'<i class="g-bad" style="width:'+wBad+'%"></i>':'')+'</div>'+
       '<div class="tv-stats3">'+
-        '<div class="tv-stat" style="--c:#FBBF24"><div class="n">'+s.attn.length+'</div><div class="l">In the shop</div></div>'+
-        '<div class="tv-stat" style="--c:#8A97A6"><div class="n">'+s.lt.length+'</div><div class="l">Long-term</div></div>'+
-        '<div class="tv-stat" style="--c:var(--tvac)"><div class="n">'+s.total+'</div><div class="l">Total fleet</div></div>'+
+        '<div class="tv-stat" style="--c:#3DD68C"><div class="n">'+s.ok.length+'</div><div class="l">OK \u00b7 '+pOk+'%</div></div>'+
+        '<div class="tv-stat" style="--c:#FBBF24"><div class="n">'+s.maint.length+'</div><div class="l">For maint \u00b7 '+pFm+'%</div></div>'+
+        '<div class="tv-stat" style="--c:#FF5470"><div class="n">'+s.dmg.length+'</div><div class="l">Damaged \u00b7 '+pDmg+'%</div></div>'+
       '</div>'+
-      (typeRow?'<div class="tv-byrow">'+typeRow+'</div>':'')+
-      (s.attn.length?'<div class="tv-attn"><span class="lab">Attention</span>'+attnChips+'</div>':'')+
+      (dmgRows?'<div class="tv-dmglist"><div class="tv-dmghdr">Recently flagged \u00b7 newest first</div>'+dmgRows+'</div>':'<div class="tv-allok">All '+tvEsc(type)+' karts are race-ready \ud83c\udfc1</div>')+
     '</div>';
 }
-function tvSceneLowStock(){
-  var ps=(parts||[]).filter(function(p){ return p&&p.qty!=null&&p.reorder!=null&&Number(p.qty)<=Number(p.reorder); });
-  ps.sort(function(a,b){ return (Number(a.qty)-Number(a.reorder))-(Number(b.qty)-Number(b.reorder)); });
-  var rows=ps.slice(0,7).map(function(p){
-    var q=Number(p.qty),r=Number(p.reorder)||1,c=(q<=0)?'#FF5470':(q<=r/2?'#FBBF24':'#3DD68C');
-    var fill=Math.max(4,Math.min(100,Math.round(q/r*100)));
-    return '<div class="tv-row"><div class="nm">'+tvEsc(p.desc||p.sku||'Item')+'</div><div class="mtr"><i style="width:'+fill+'%;background:'+c+'"></i></div><div class="q" style="--c:'+c+'">'+q+' / '+r+'</div></div>';
+function tvLeaderboard(){
+  var by={};
+  Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(id){
+    (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
+      if(!r||r.status!=='fixed') return;
+      var u=(r.user||'').trim(); if(!u||u==='\u2014'||u==='-') return;
+      by[u]=(by[u]||0)+1;
+    });
+  });
+  return Object.keys(by).map(function(u){return {user:u,count:by[u]};}).sort(function(a,b){return b.count-a.count;});
+}
+function tvSceneLeaderboard(){
+  var lb=tvLeaderboard();
+  if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs recorded yet.</div>';
+  var top=lb[0].count||1, total=lb.reduce(function(a,b){return a+b.count;},0), medal=['#FFD45E','#CBD5E1','#E8995A'];
+  var rows=lb.slice(0,8).map(function(o,i){
+    var w=Math.max(6,Math.round(o.count/top*100)), rc=i<3?medal[i]:'var(--tvac)';
+    return '<div class="tv-lbrow"><span class="rk" style="color:'+rc+'">'+(i+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><div class="bar"><i style="width:'+w+'%;background:'+rc+'"></i></div><span class="ct">'+o.count+'</span></div>';
   }).join('');
-  return tvEyebrow('Low Stock', ps.length+(ps.length===1?' item below reorder':' below reorder'))+
-    (ps.length?'<div class="tv-list">'+rows+'</div>':'<div class="tv-empty">Every part is above its reorder point.</div>');
+  return tvEyebrow('Repair Leaderboard', total+' repairs completed')+'<div class="tv-lb">'+rows+'</div>';
 }
 function tvLiveItems(){ return ((tvState&&tvState.items)||[]).filter(tvItemLive); }
 function tvSceneItems(){
@@ -6438,13 +6494,21 @@ function tvMorningActive(){
   if(!tvState||tvState.morning===false) return false;
   var d=new Date(); return (d.getHours()*60+d.getMinutes()) < tvParseTime(tvState.morning_until||'10:30');
 }
-function tvScenes(){ return [ {key:'morning',render:tvSceneMorning}, {key:'fleet',render:tvSceneFleet}, {key:'tasks',render:tvSceneTasks}, {key:'lowstock',render:tvSceneLowStock}, {key:'items',render:tvSceneItems} ]; }
+function tvScenes(){
+  var list=[{key:'morning',render:tvSceneMorning}];
+  tvTypesPresent().forEach(function(t){ list.push({key:'type:'+t,render:(function(tt){return function(){return tvSceneType(tt);};})(t)}); });
+  list.push({key:'leaderboard',render:tvSceneLeaderboard});
+  list.push({key:'tasks',render:tvSceneTasks});
+  list.push({key:'items',render:tvSceneItems});
+  return list;
+}
 function tvEnabledScenes(){
   return tvScenes().filter(function(s){
     if(s.key==='morning') return tvMorningActive();
     if(tvState&&tvState.scenes&&tvState.scenes[s.key]===false) return false;
     if(s.key==='items') return tvLiveItems().length>0;
     if(s.key==='tasks') return tvShiftTasks().length>0;
+    if(s.key==='leaderboard') return tvLeaderboard().length>0;
     return true;
   });
 }
@@ -6536,19 +6600,17 @@ function tvDataSoon(){ clearTimeout(_tvDataT); _tvDataT=setTimeout(tvLoadData,25
 /* ---------- state + realtime ---------- */
 function tvApplyState(row){
   tvState=tvMergeState(row);
-  var site=tvState.site||'sydney', siteChanged=(site!==currentSite);
-  if(siteChanged) currentSite=site;
+  // Site is fixed by the TV's URL (#tv or #tv-<site>); the saved row never changes it.
   var sl=document.getElementById('tv-site'); if(sl) sl.textContent=(siteLabel(currentSite)||'').toUpperCase();
   var root=document.getElementById('tvroot'); if(root) root.style.setProperty('--tvac',siteAccent(currentSite));
   var tk=document.getElementById('tv-tk'); if(tk){ tk.innerHTML=(tvState.banner&&tvState.banner.trim())?('<b>HK</b> '+tvEsc(tvState.banner)):''; }
-  if(siteChanged) tvLoadData();
   if(!tvOverlayActive()) tvRefresh();
   tvSyncView();
   if(!_tvOverlay) tvScheduleNext();
 }
 function tvSubscribe(){
   try{
-    SBC.channel('tv-rt').on('postgres_changes',{event:'*',schema:'public',table:'tv_state'},function(p){ tvApplyState((p&&p.new)||null); }).subscribe();
+    SBC.channel('tv-rt').on('postgres_changes',{event:'*',schema:'public',table:'tv_state'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.site&&nw.site!==currentSite) return; tvApplyState(nw); }).subscribe();
     SBC.channel('tv-parts').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
@@ -6577,6 +6639,7 @@ function tvKeepAwake(){
 }
 function bootTvDisplay(){
   try{
+    currentSite=(window.__tvSite||currentSite||'sydney');   // which site this TV shows (from the URL)
     try{ document.title='HK Workshop · TV'; }catch(e){}
     // The board uses its OWN pulse overlay, not the cold-open splash — hide the
     // splash so it can never end up covering the board on a TV browser.
@@ -6595,7 +6658,7 @@ function bootTvDisplay(){
     try{ tvLoadData(); }catch(e){}
     try{ tvSubscribe(); }catch(e){}
     if(typeof SBC!=='undefined'&&SBC){
-      try{ SBC.from('tv_state').select('*').eq('id',1).then(function(r){ var row=(r&&r.data&&r.data[0])||null; try{ tvApplyState(row); }catch(e){} },function(){}); }catch(e){}
+      try{ SBC.from('tv_state').select('*').eq('site',currentSite).then(function(r){ var row=(r&&r.data&&r.data[0])||null; try{ tvApplyState(row); }catch(e){} },function(){}); }catch(e){}
     }
     tvSyncTimer=setInterval(tvSyncView,15000);     // catch scheduled messages + the morning cut-off
     tvPulseTimer=setInterval(tvHkPulse,60000);     // HK animation once a minute
@@ -6606,16 +6669,32 @@ function bootTvDisplay(){
 }
 
 /* ===================== TV DISPLAY control tab ===================== */
-var tvCastState=null,tvcTone='info',_tvcSaveT=null,_tvcCardImg='';
-function tvCastUrl(){ return location.origin+location.pathname+'#tv'; }
+var tvCastState=null,tvcTone='info',_tvcSaveT=null,_tvcCardImg='',tvcSite=null;
+function tvcCfgSite(){ if(!tvcSite) tvcSite=(currentSite||'sydney'); return tvcSite; }
+function tvCastUrl(){ return location.origin+location.pathname+'#tv-'+tvcCfgSite(); }
 function loadTvCast(){
   var wrap=document.getElementById('tvc-wrap'); if(wrap) wrap.innerHTML='<div class="tvc-card"><div class="hint">Loading&hellip;</div></div>';
   if(typeof SBC==='undefined'||!SBC){ tvCastState=tvMergeState(null); tvcRender(); return; }
-  SBC.from('tv_state').select('*').eq('id',1).then(function(r){ var row=(r&&r.data&&r.data[0])||null; tvCastState=tvMergeState(row); tvcRender(); },function(){ tvCastState=tvMergeState(null); tvcRender(); });
+  var site=tvcCfgSite();
+  if(typeof loadRfKarts==='function' && (typeof KART_LIST==='undefined' || !KART_LIST || !KART_LIST.length) && (typeof cu!=='undefined'&&cu)){ try{ loadRfKarts(function(){ if(tvCastState) tvcRender(); }); }catch(e){} }
+  SBC.from('tv_state').select('*').eq('site',site).then(function(r){ var row=(r&&r.data&&r.data[0])||null; tvCastState=tvMergeState(row); tvCastState.site=site; tvcRender(); },function(){ tvCastState=tvMergeState(null); tvCastState.site=site; tvcRender(); });
+}
+function tvcSetCfgSite(s){ if(s===tvcSite) return; tvcSite=s; loadTvCast(); }
+function tvcSiteSwitcher(){
+  var sites=(typeof allSites!=='undefined'&&allSites&&allSites.length)?allSites:[{id:'sydney',label:'Sydney'}];
+  if(sites.length<2) return '';   // only one venue — no need for a switcher
+  var cur=tvcCfgSite();
+  var chips=sites.map(function(s){ return '<button class="tvc-sitechip'+(s.id===cur?' on':'')+'" onclick="tvcSetCfgSite(\''+s.id+'\')">'+tvEsc(s.label||s.id)+'</button>'; }).join('');
+  return '<div class="tvc-card"><h3>Which TV</h3><p class="hint">Each venue has its own board &mdash; point that site&rsquo;s TV at the address below. Pick the venue you&rsquo;re setting up.</p><div class="tvc-sites">'+chips+'</div></div>';
 }
 function tvcSceneRow(key,label,desc){
   var on=tvCastState.scenes[key]!==false;
   return '<div class="tvc-switch"><span style="font-weight:700;font-size:14px">'+label+'<br><span style="font-weight:500;font-size:11px;color:var(--t2)">'+desc+'</span></span><button class="tvc-toggle'+(on?' on':'')+'" onclick="tvcToggleScene(\''+key+'\')"></button></div>';
+}
+function tvcTypeRows(){
+  var present=(typeof tvTypesPresent==='function')?tvTypesPresent():[];
+  if(!present.length) return '<div class="hint" style="margin:6px 0 0">Kart types will appear here once the fleet has loaded.</div>';
+  return present.map(function(t,i){ return (i?'<div style="height:8px"></div>':'')+tvcSceneRow('type:'+t, t+' karts', 'Count, OK / maint / damaged, damaged list'); }).join('');
 }
 /* datetime-local <-> ISO */
 function tvcToLocal(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; var p=function(n){return(n<10?'0':'')+n;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
@@ -6675,6 +6754,7 @@ function tvcRender(){
   }).join('') : '<div class="hint" style="margin:0">No cards on the TV right now.</div>';
   var tones=['info','good','warn','alert'],toneLbl={info:'Info',good:'Good',warn:'Warn',alert:'Alert'};
   wrap.innerHTML=''+
+    tvcSiteSwitcher()+
     '<div class="tvc-card"><h3>\ud83d\udcfa Open on the TV</h3><p class="hint">On the TV&rsquo;s web browser, go to this address and make it fullscreen. It needs no login and stays read-only.</p>'+
       '<div class="tvc-url"><span>'+tvEsc(tvCastUrl())+'</span><button id="tvc-copybtn" onclick="tvcCopyUrl()">Copy</button></div>'+
       '<div class="tvc-live" style="margin-top:10px"><span class="d"></span>Live &mdash; changes appear on the TV instantly</div></div>'+
@@ -6700,9 +6780,11 @@ function tvcRender(){
       '<div class="tvc-fld" style="margin-bottom:0"><span>On shift today <small style="font-weight:500;color:var(--t2)">&mdash; auto-fills from Deputy once connected</small></span>'+
         '<input class="staff-name-input" value="'+esc((tvCastState.shift||[]).join(', '))+'" placeholder="e.g. Rafael, Mia, Sam" oninput="tvcSetShift(this.value)"></div></div>'+
     '<div class="tvc-card"><h3>Panels</h3><p class="hint">Pick what rotates on the screen.</p>'+
-      tvcSceneRow('fleet','Fleet status','Readiness, attention list, by type')+
+      '<div class="tvc-sublbl">Fleet \u2014 one slide per kart type</div>'+
+      tvcTypeRows()+
+      '<div class="tvc-sublbl" style="margin-top:14px">Other panels</div>'+
+      tvcSceneRow('leaderboard','Repair leaderboard','Mechanics ranked by completed repairs')+
       '<div style="height:8px"></div>'+tvcSceneRow('tasks','Today\u2019s jobs','Open tasks for the crew on shift')+
-      '<div style="height:8px"></div>'+tvcSceneRow('lowstock','Low stock','Parts at or below reorder')+
       '<div style="height:8px"></div>'+tvcSceneRow('items','Notices','Cards you send (below)')+'</div>'+
     '<div class="tvc-card"><h3>Rotation speed</h3><p class="hint">Seconds each panel stays on screen.</p>'+
       '<div class="tvc-stepper"><button onclick="tvcStep(-3)">&minus;</button><div class="v">'+tvCastState.rotate_seconds+'<small>seconds</small></div><button onclick="tvcStep(3)">+</button></div></div>'+
@@ -6726,7 +6808,7 @@ function tvcSave(){
   clearTimeout(_tvcSaveT);
   _tvcSaveT=setTimeout(function(){
     if(typeof SBC==='undefined'||!SBC) return;
-    SBC.from('tv_state').upsert({id:1,scenes:tvCastState.scenes,morning:!!tvCastState.morning,morning_until:tvCastState.morning_until||'10:30',greeting:tvCastState.greeting||'',shift:tvCastState.shift||[],alert:tvCastState.alert,takeover:tvCastState.takeover,rotate_seconds:tvCastState.rotate_seconds,items:tvCastState.items,banner:tvCastState.banner||'',standby:!!tvCastState.standby,site:tvCastState.site||'sydney',updated_at:new Date().toISOString()}).then(function(){},function(){});
+    SBC.from('tv_state').upsert({site:tvCastState.site||tvcCfgSite(),scenes:tvCastState.scenes,morning:!!tvCastState.morning,morning_until:tvCastState.morning_until||'10:30',greeting:tvCastState.greeting||'',shift:tvCastState.shift||[],alert:tvCastState.alert,takeover:tvCastState.takeover,rotate_seconds:tvCastState.rotate_seconds,items:tvCastState.items,banner:tvCastState.banner||'',standby:!!tvCastState.standby,updated_at:new Date().toISOString()},{onConflict:'site'}).then(function(){},function(){});
   },350);
 }
 function tvcToggleMorning(){ tvCastState.morning=!tvCastState.morning; tvcRender(); tvcSave(); }

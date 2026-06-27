@@ -6633,9 +6633,53 @@ function tvSyncView(){
   }
 }
 /* ---------- data ---------- */
+/* LEAN TV data path. The board does NOT use the app's loadRfKarts (which pages
+   through ALL ~18k repair rows + all parts + all notes every call) or loadParts
+   (the board has no stock panel). Instead it pulls only:
+     • this site's karts (rf_karts, ~hundreds of rows, lean columns)
+     • this month/week's COMPLETED repairs only (for the leaderboard)
+     • OPEN kart notes only, this site (for the damaged-kart reasons)
+   This cuts the 24/7 board's Supabase egress by ~99%. */
+function tvLoadFleet(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var site=currentSite||'sydney';
+  var w=tvDayWindows(), ms=w.month+'-01';
+  var from=(w.weekStart<ms)?w.weekStart:ms;     // earliest date the leaderboard needs (covers week spanning a month edge)
+  // 1) Karts for THIS site only, lean columns
+  try{
+    SBC.from('rf_karts').select('rf_id,name,type,status,status_code,kart_id_label,brand,model,total_km,total_laps,total_hours,total_cost,long_term,type_color,site').eq('site',site).then(function(r){
+      var rows=(r&&r.data)||[];
+      if(rows.length){
+        KART_LIST=rows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
+        KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+      }
+      tvRerender();
+      // 2) completed repairs since the start of this week/month, this site's karts only
+      var keep={}; (KART_LIST||[]).forEach(function(k){ if(k.rfId!=null) keep[k.rfId]=true; });
+      try{
+        SBC.from('rf_repairs').select('rf_kart_id,date_repaired,mechanic,id').gte('date_repaired',from).then(function(rr){
+          var rows2=(rr&&rr.data)||[]; RF_REPAIRS_BY_ID={};
+          rows2.forEach(function(x){
+            if(!x.date_repaired||!keep[x.rf_kart_id]) return;
+            (RF_REPAIRS_BY_ID[x.rf_kart_id]=RF_REPAIRS_BY_ID[x.rf_kart_id]||[]).push({ id:Number(x.id)||0, status:'fixed', isoRepaired:x.date_repaired, user:x.mechanic||'\u2014' });
+          });
+          tvRerender();
+        },function(){});
+      }catch(e){}
+    },function(){});
+  }catch(e){}
+  // 3) OPEN kart notes for this site (the reason a kart is damaged), lean columns
+  try{
+    SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at').is('archived_at',null).eq('site',site).then(function(rn){
+      var rows=(rn&&rn.data)||[]; RF_NOTES_BY_ID={};
+      rows.forEach(function(n){ (RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[]).push({ note:n.note||'', createdIso:n.created_at||'', open:true }); });
+      Object.keys(RF_NOTES_BY_ID).forEach(function(id){ RF_NOTES_BY_ID[id].sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));}); });
+      tvRerender();
+    },function(){});
+  }catch(e){}
+}
 function tvLoadData(){
-  try{ loadParts(function(d){ if(d){ parts=d; } tvRerender(); }); }catch(e){}
-  try{ if(typeof loadRfKarts==='function') loadRfKarts(function(){ tvRerender(); }); }catch(e){}
+  try{ tvLoadFleet(); }catch(e){}
   try{ tvLoadTasks(); }catch(e){}
 }
 function tvDataSoon(){ clearTimeout(_tvDataT); _tvDataT=setTimeout(tvLoadData,2500); }
@@ -6653,8 +6697,8 @@ function tvApplyState(row){
 function tvSubscribe(){
   try{
     SBC.channel('tv-rt').on('postgres_changes',{event:'*',schema:'public',table:'tv_state'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.site&&nw.site!==currentSite) return; tvApplyState(nw); }).subscribe();
-    SBC.channel('tv-parts').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ tvDataSoon(); }).subscribe();
+    SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
   }catch(e){}
 }

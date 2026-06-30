@@ -5807,20 +5807,13 @@ var WEB_APP_URL='https://script.google.com/macros/s/AKfycbyC_Jj3rkosw79ICRDWme7Y
 var masterPin='';   // validated 6-digit code for this master session
 var mEditSku=null;  // sku being edited (null = adding new)
 
-// Master Access tab entry: a granted account opens the admin tools without typing a code. We obtain
-// the (still server-issued) master credential behind the scenes via the existing master-pin/master-write
-// path; if the account isn't cleared server-side, we fall back to the manual code gate.
+// Master Access entry: a granted account opens the admin tools and authorises every master
+// action with their OWN staff PIN — the edge functions check that PIN is a master admin
+// server-side. No rotating code. The owner key (owner panel) still works as a skeleton key.
 function masterAccessOpen(){
   openMaster();                                          // slide in immediately, like any other tab
-  if(masterPin) return;                                  // already unlocked this session
-  // unlock writes in the background (manager path). The owner can also unlock with the owner key.
-  fetch(SB_FN+'master-pin',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu&&cu.pin)||''})})
-    .then(function(r){return r.json();}).then(function(res){
-      if(res&&res.success&&res.code){
-        fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:res.code,op:'verify'})})
-          .then(function(r){return r.json();}).then(function(v){ if(v&&v.success){ masterPin=res.code; if(typeof mToolsStats==='function') mToolsStats(); } }).catch(function(){});
-      }
-    }).catch(function(){});
+  if(!masterPin && cu && cu.pin) masterPin=String(cu.pin);   // your PIN is the credential now
+  if(typeof mToolsStats==='function') mToolsStats();
 }
 
 /* ---- Owner controls: who has Master Access. Server-gated by OWNER_KEY + an emailed one-time code. ---- */

@@ -7199,7 +7199,15 @@ function qrSampleSku(){ var t=(typeof parts!=='undefined'&&parts)?(parts.find(fu
 /* image cache: HK logo (same-origin) + per-SKU product images (crossOrigin so canvas export works when the host serves CORS) */
 var _hkLogoImg=null, _prodImgs={};
 function _ensureHkLogo(cb){ if(_hkLogoImg&&_hkLogoImg.complete&&_hkLogoImg.naturalWidth){ if(cb)cb(); return; } var dom=document.querySelector('.sp-logo'); var src=dom&&dom.src?dom.src:''; if(!src){ if(cb)cb(); return; } _hkLogoImg=new Image(); _hkLogoImg.onload=function(){ if(cb)cb(); }; _hkLogoImg.onerror=function(){ if(cb)cb(); }; _hkLogoImg.src=src; }
-function _partImgUrl(sku){ var p=(typeof parts!=='undefined'&&parts)?parts.find(function(x){return String(x.sku)===String(sku);}):null; return (p&&p.image_url)?p.image_url:''; }
+function _partImgUrl(sku){
+  var p=(typeof parts!=='undefined'&&parts)?parts.find(function(x){return String(x.sku)===String(sku);}):null;
+  if(p&&p.image_url) return p.image_url;                                    // explicit per-part override wins
+  var s=String(sku||'').trim(); if(!s) return '';
+  // RIMO product photo. The shop's "Product No." equals the image filename, so the SKU builds the
+  // URL directly. Routed through our part-image proxy so it carries CORS headers (lets the photo be
+  // EMBEDDED in the printable label, not just previewed). Missing photos 404 -> graceful placeholder.
+  return SB_FN+'part-image?apikey='+SB_KEY+'&sku='+encodeURIComponent(s);
+}
 function _prodImg(url,cb){ if(!url){ if(cb)cb(null); return; } var im=_prodImgs[url]; if(im){ if(im.complete){ if(cb)cb(im.naturalWidth?im:null); } else { im.addEventListener('load',function(){ if(cb)cb(im.naturalWidth?im:null); }); im.addEventListener('error',function(){ if(cb)cb(null); }); } return; } im=new Image(); im.crossOrigin='anonymous'; _prodImgs[url]=im; im.onload=function(){ if(cb)cb(im.naturalWidth?im:null); }; im.onerror=function(){ if(cb)cb(null); }; im.src=url; }
 function _prodPreload(skus,cb){ if(QR_LAY.img!=='product'){ cb(); return; } var urls=[]; (skus||[]).forEach(function(s){ var u=_partImgUrl(s); if(u&&urls.indexOf(u)<0) urls.push(u); }); if(!urls.length){ cb(); return; } var left=urls.length; urls.forEach(function(u){ _prodImg(u,function(){ if(--left<=0) cb(); }); }); }
 

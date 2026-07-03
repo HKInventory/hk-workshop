@@ -1626,6 +1626,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 03Jul-E · native scan</div>
       </div>
     </div>
 
@@ -2753,7 +2754,7 @@ function startRealtime(){
   // writes the fleet row-by-row, and refreshing mid-sweep shows half-written counts that flicker.
   // So rf_karts refreshes fire ~1.6s after the LAST event (with a long maxWait safety), giving one
   // clean render per sweep instead of a strobing status bar. Other views keep tight timings.
-  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 1600, 10000);
+  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 5000, 30000);
   var _rtMech  = _debounce(function(){ if(_curScr()==='manager'&&typeof renderMechToday==='function'){try{renderMechToday();}catch(e){}} }, 200, 1200);
   var _rtMgr   = _debounce(function(){ if(_curScr()==='manager'&&typeof loadMgr==='function'){try{loadMgr();}catch(e){}} }, 220, 1400);
   var _rtBadge = _debounce(function(){ if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }, 220, 1400);
@@ -2811,8 +2812,12 @@ function startRealtime(){
     SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
     // RaceFacer tables -> refresh whatever RF view is open, live (debounced so a sync burst = one refresh).
     SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); }).subscribe();
-    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderNow(); }).subscribe();
-    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderNow(); }).subscribe();
+    // Repair/note events MERGE instantly (cheap, in-memory) but the kart-screen REDRAW is
+    // debounced: during a sync sweep thousands of these arrive, and redrawing per event is a
+    // DOM-rebuild storm — the strobing kart counts. One redraw ~1.2s after the burst settles.
+    var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 1200, 6000);
+    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); }).subscribe();
+    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderSoon(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); }).subscribe();
     SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
   }catch(e){}
@@ -3924,10 +3929,31 @@ function _handleScanPayload(url){
    - AUTO-TORCH — if the scene stays dark for ~1.5s the torch turns itself on (and back off
      when it brightens, unless the person pressed the button themselves).
    One variant combo is tried per tick, so CPU stays light; a full cycle completes ~every 1.5s. */
-var _auxT=null,_auxBusy=false,_auxCv=null,_auxIdx=0,_darkN=0,_brightN=0,_torchAuto=true;
+var _auxT=null,_auxBusy=false,_auxCv=null,_auxIdx=0,_darkN=0,_brightN=0,_torchAuto=true,_bd=null,_bdT=null,_bdBusy=false;
 var _AUX_VARIANTS=[{c:0.72,inv:true},{c:0.45,inv:false},{c:0.45,inv:true},{c:1.0,inv:true},{c:0.28,inv:false},{c:0.72,inv:false},{c:0.28,inv:true},{c:1.0,inv:false}];
 function _startInvertedScan(video){
   _stopInvertedScan(); _torchAuto=true;
+  // NATIVE DECODER FIRST. Modern Safari/Chrome expose the OS barcode engine (BarcodeDetector) —
+  // on iPhone that is the SAME Apple Vision engine the camera app uses, which is why the camera
+  // reads tags this JS library can't. When it exists, run it against the live video ~5x/sec;
+  // it natively handles inversion, slight blur and rough lighting. The JS variant pipeline
+  // below stays as the fallback for older devices (and runs alongside as belt-and-braces).
+  try{
+    if('BarcodeDetector' in window){
+      var mk=function(){ try{ _bd=new window.BarcodeDetector({formats:['qr_code']}); }catch(e){ _bd=null; } };
+      if(window.BarcodeDetector.getSupportedFormats){
+        window.BarcodeDetector.getSupportedFormats().then(function(fs){ if(fs&&fs.indexOf('qr_code')>=0){ mk(); } }).catch(function(){ mk(); });
+      } else mk();
+      _bdT=setInterval(function(){
+        if(!qrs || !_bd || _bdBusy || !video || video.readyState<2) return;
+        _bdBusy=true;
+        _bd.detect(video).then(function(codes){
+          _bdBusy=false;
+          if(codes && codes.length && codes[0].rawValue) _handleScanPayload(codes[0].rawValue);
+        }).catch(function(){ _bdBusy=false; });
+      },200);
+    }
+  }catch(e){}
   _auxT=setInterval(function(){
     if(!qrs || _auxBusy || !video || video.readyState<2 || !video.videoWidth) return;
     _auxBusy=true;
@@ -3978,7 +4004,7 @@ function _autoTorch(avg){
     if(_brightN>=6 && _torchOn){ try{ qrs.turnFlashOff().then(function(){ _torchOn=false; var b=document.getElementById('sc-torch'); if(b) b.style.background=''; }).catch(function(){}); }catch(e){} }
   } else { _darkN=0; _brightN=0; }
 }
-function _stopInvertedScan(){ clearInterval(_auxT); _auxT=null; _auxBusy=false; _auxIdx=0; _darkN=0; _brightN=0; }
+function _stopInvertedScan(){ clearInterval(_auxT); _auxT=null; _auxBusy=false; _auxIdx=0; _darkN=0; _brightN=0; clearInterval(_bdT); _bdT=null; _bd=null; _bdBusy=false; }
 function _initScanner(){
   var v=document.getElementById('qrv');
   // Check existing permission to skip prompt if granted

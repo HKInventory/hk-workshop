@@ -2146,6 +2146,15 @@
               <div class="qre-f"><label>Top</label><input id="qe-safe-top" type="number" min="0" max="30" step="0.5" oninput="qeSafeSet('top',this.value)"></div>
               <div class="qre-f"><label>Bottom</label><input id="qe-safe-bottom" type="number" min="0" max="30" step="0.5" oninput="qeSafeSet('bottom',this.value)"></div>
             </div>
+            <div class="qre-sec-h">Text style</div>
+            <div class="qre-grid2">
+              <div class="qre-f"><label>Description weight</label><select id="qe-desc-fw" onchange="qeTextSet('desc','fw',this.value)"><option value="400">Regular</option><option value="700">Bold</option><option value="900">Black — heaviest</option></select></div>
+              <div class="qre-f"><label>Description thicken (mm)</label><input id="qe-desc-st" type="number" min="0" max="0.6" step="0.05" oninput="qeTextSet('desc','st',this.value)"></div>
+            </div>
+            <div class="qre-grid2">
+              <div class="qre-f"><label>SKU weight</label><select id="qe-sku-fw" onchange="qeTextSet('sku','fw',this.value)"><option value="400">Regular</option><option value="700">Bold</option><option value="900">Black — heaviest</option></select></div>
+              <div class="qre-f"><label>SKU thicken (mm)</label><input id="qe-sku-st" type="number" min="0" max="0.6" step="0.05" oninput="qeTextSet('sku','st',this.value)"></div>
+            </div>
             <div class="qre-sec-h">3D print (STL)</div>
             <div class="qre-grid2">
               <div class="qre-f"><label>Depth — base plate (mm)</label><input id="qe-stl-base" type="number" min="0.4" max="10" step="0.2" oninput="qeStlSet('base',this.value)"></div>
@@ -3878,6 +3887,52 @@ function startScan(){
   },100);
 }
 
+// Shared scan-result handling for BOTH polarities. Accepts a ?sku= URL, a bare HK:<sku>
+// token, or a plain numeric SKU.
+function _handleScanPayload(url){
+  if(!url || !qrs) return;                          // qrs null = already handled / scanner closed
+  beep();
+  stopScan();
+  var skuMatch=url.match(/[?&]sku=([^&]+)/);
+  if(!skuMatch){
+    var bare=url.match(/^\s*HK:([\w\-.\/]+)\s*$/i);
+    if(bare) skuMatch=bare;
+  }
+  if(!skuMatch){
+    var raw=url.match(/^\s*(\d{4,})\s*$/);       // a plain numeric SKU (compact printed tags)
+    if(raw) skuMatch=raw;
+  }
+  if(!skuMatch){ setTimeout(showScanError,200); return; }
+  var sku=decodeURIComponent(skuMatch[1]);
+  setTimeout(function(){openTakeRestock(sku);},250);
+}
+/* Inverted-polarity scanning: the 3D-printed tags are LIGHT code on a BLACK base, which the
+   live scanner (spec polarity: dark-on-light) won't decode — phone cameras only manage it
+   because they secretly try both polarities. So we do the same: a few times a second, grab a
+   frame from the same camera stream, invert it, and hand it to the decoder. Whichever
+   polarity decodes first wins; both feed the same handler. */
+var _invT=null,_invBusy=false,_invCv=null;
+function _startInvertedScan(video){
+  _stopInvertedScan();
+  _invT=setInterval(function(){
+    if(!qrs || _invBusy || !video || video.readyState<2 || !video.videoWidth) return;
+    _invBusy=true;
+    try{
+      if(!_invCv) _invCv=document.createElement('canvas');
+      var maxW=640, sc=Math.min(1, maxW/video.videoWidth);
+      _invCv.width=Math.round(video.videoWidth*sc); _invCv.height=Math.round(video.videoHeight*sc);
+      var x=_invCv.getContext('2d',{willReadFrequently:true});
+      x.drawImage(video,0,0,_invCv.width,_invCv.height);
+      var im=x.getImageData(0,0,_invCv.width,_invCv.height), d=im.data;
+      for(var i=0;i<d.length;i+=4){ d[i]=255-d[i]; d[i+1]=255-d[i+1]; d[i+2]=255-d[i+2]; }
+      x.putImageData(im,0,0);
+      window.QrScanner.scanImage(_invCv,{returnDetailedScanResult:true})
+        .then(function(r){ _invBusy=false; var data=(r&&r.data!==undefined)?r.data:r; if(data) _handleScanPayload(data); })
+        .catch(function(){ _invBusy=false; });
+    }catch(e){ _invBusy=false; }
+  },350);
+}
+function _stopInvertedScan(){ clearTimeout(_invT); clearInterval(_invT); _invT=null; _invBusy=false; }
 function _initScanner(){
   var v=document.getElementById('qrv');
   // Check existing permission to skip prompt if granted
@@ -3896,32 +3951,7 @@ function _initScanner(){
     }catch(e){}
   }
   try {
-    qrs=new window.QrScanner(v,function(r){
-      var url=r.data||r;
-      if(url){
-        beep();
-        stopScan();
-        // Accept any HK part code: a URL containing ?sku=... (current Google URL,
-        // or any future domain) OR a bare "HK:<sku>" token. Backend-agnostic, so
-        // printed tags keep working after the Sheets → app migration.
-        var skuMatch=url.match(/[?&]sku=([^&]+)/);
-        if(!skuMatch){
-          var bare=url.match(/^\s*HK:([\w\-.\/]+)\s*$/i);
-          if(bare) skuMatch=bare;
-        }
-        if(!skuMatch){
-          var raw=url.match(/^\s*(\d{4,})\s*$/);   // a plain numeric SKU (compact printed tags)
-          if(raw) skuMatch=raw;
-        }
-        if(!skuMatch){
-          // Not an HK code — show error, don't navigate anywhere
-          setTimeout(showScanError,200);
-          return;
-        }
-        var sku=decodeURIComponent(skuMatch[1]);
-        setTimeout(function(){openTakeRestock(sku);},250);
-      }
-    },{
+    qrs=new window.QrScanner(v,function(r){ _handleScanPayload(r&&r.data!==undefined?r.data:r); },{
       preferredCamera:'environment',
       highlightScanRegion:true,
       highlightCodeOutline:true,
@@ -3929,6 +3959,7 @@ function _initScanner(){
     });
     qrs.start().then(function(){
       document.getElementById('sst').innerText='Point camera at QR code';
+      _startInvertedScan(v);                       // 3D tags are light-on-dark; scan that polarity too
     }).catch(function(err){
       document.getElementById('sst').innerText='Camera denied — Settings → Safari → Camera → Allow';
       document.getElementById('sbn').style.display='block';
@@ -3942,6 +3973,7 @@ function _initScanner(){
 }
 
 function stopScan(){
+  _stopInvertedScan();
   if(qrs){
     try{qrs.stop();qrs.destroy();}catch(e){}
     qrs=null;
@@ -7549,7 +7581,7 @@ function mRemove(sku){
 var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true, payload:'link',
   safe:{ left:7, right:7, top:0, bottom:7 },              // editable no-go buffer (mm) per edge — holder clearance
   stl:{ base:1.6, raise:0.8, mode:'raised', pxmm:4 },   // 3D print: plate mm, emboss mm, raised|engraved, detail px/mm
-  el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
+  el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7,fw:'700',st:0}, sku:{on:true,x:1,y:25.9,w:28,h:1.9,fw:'400',st:0} } };
 // No-go buffer: nothing can sit within this many mm of each label edge (holder clearance).
 // Editable in the editor per edge and stored in the shared design, so every device enforces
 // the same buffer. qrSafe() always returns sane clamped values even on old stored designs.
@@ -7616,7 +7648,7 @@ function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) r
    proportionally smaller sizes, wrapping on words and shrinking further if a single word is
    still too wide. Ellipsis only as a last resort. Lines are centred in the box, so long part
    names wrap and shrink to fit instead of running off the label. */
-function _drawFitText(ctx,text,bx,by,bw,bh,weight,color){
+function _drawFitText(ctx,text,bx,by,bw,bh,weight,color,strokeW){ strokeW=+strokeW||0;
   text=String(text||''); if(!text||bw<4||bh<4) return;
   var words=text.split(/\s+/).filter(Boolean), MIN=6, best=null, n, px;
   function wrapAt(px2){
@@ -7652,7 +7684,10 @@ function _drawFitText(ctx,text,bx,by,bw,bh,weight,color){
   ctx.fillStyle=color; ctx.font=weight+' '+best.px+'px Arial, sans-serif'; ctx.textAlign='center';
   var lh=best.px*1.12, total=best.lines.length*lh;
   var y0=by+(bh-total)/2+best.px*0.9;                           // vertically centred in the box
-  for(var k2=0;k2<best.lines.length;k2++) ctx.fillText(best.lines[k2], bx+bw/2, y0+k2*lh);
+  for(var k2=0;k2<best.lines.length;k2++){
+    ctx.fillText(best.lines[k2], bx+bw/2, y0+k2*lh);
+    if(strokeW>0){ ctx.strokeStyle=color; ctx.lineWidth=strokeW; ctx.lineJoin='round'; ctx.strokeText(best.lines[k2], bx+bw/2, y0+k2*lh); }
+  }
 }
 function qrSampleSku(){ var t=(typeof parts!=='undefined'&&parts)?(parts.find(function(p){return p.qr_print!==false;})||parts[0]):null; return t?{sku:String(t.sku),desc:(t.desc||String(t.sku))}:{sku:'SAMPLE-001',desc:'Sample part'}; }
 
@@ -7694,10 +7729,11 @@ function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
     else if(ph){ ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(ix-kp,iy-kp,iw+kp*2,ih+kp*2); ctx.fillStyle=lay.fg||'#000'; ctx.fillRect(ix,iy,iw,ih); ctx.fillStyle=lay.bg||'#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='700 '+Math.round(Math.min(iw,ih)*0.4)+'px Arial'; ctx.fillText(lay.img==='product'?'IMG':'HK', ix+iw/2, iy+ih/2+1); ctx.textBaseline='alphabetic'; }
   }
   ctx.textAlign='center';
-  if(E.desc.on){ var d=E.desc; _drawFitText(ctx,(desc||sku), d.x*S, d.y*S, d.w*S, d.h*S, '700', lay.fg||'#000'); }
-  if(E.sku.on){ var s2=E.sku, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.font='400 '+spx+'px Arial, sans-serif';
+  if(E.desc.on){ var d=E.desc; _drawFitText(ctx,(desc||sku), d.x*S, d.y*S, d.w*S, d.h*S, (d.fw||'700'), lay.fg||'#000', (+d.st||0)*S); }
+  if(E.sku.on){ var s2=E.sku, sfw=(s2.fw||'400'), sst=(+s2.st||0)*S, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.font=sfw+' '+spx+'px Arial, sans-serif';
     var sw=ctx.measureText(String(sku)).width; if(sw>s2.w*S){ spx=Math.max(5,Math.floor(spx*(s2.w*S)/sw)); }   // shrink to width, never chop a SKU
-    ctx.fillStyle='#666'; ctx.font='400 '+spx+'px Arial, sans-serif'; ctx.fillText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx); }
+    ctx.fillStyle='#666'; ctx.font=sfw+' '+spx+'px Arial, sans-serif'; ctx.fillText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx);
+    if(sst>0){ ctx.strokeStyle='#666'; ctx.lineWidth=sst; ctx.lineJoin='round'; ctx.strokeText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx); } }
 }
 
 /* export render at print DPI -> dataURL. Falls back (and warns once) if a cross-origin product image taints the canvas. */
@@ -7775,6 +7811,12 @@ function qeMove(ev){ if(!QE_DRAG) return; ev.preventDefault(); var p=_qePt(ev), 
 function qeUp(){ if(QE_DRAG){ QE_DRAG=null; QE_GUIDES=null; saveQrLay(); qeRender(); } }
 function qeSyncFields(){ var w=document.getElementById('qe-w'),h=document.getElementById('qe-h'); if(w)w.value=QR_LAY.wmm; if(h)h.value=QR_LAY.hmm; }
 function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else if(k==='payload'){ QR_LAY.payload=(v==='sku'?'sku':'link'); } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm'){ var _S2=qrSafe(); QR_LAY[k]=Math.max((k==='wmm'?_S2.left+_S2.right:_S2.top+_S2.bottom)+6,Math.min(120,n)); } } } qeClampSafe(); saveQrLay(); qeRender(); }
+function qeTextSet(el,k,v){
+  var e=QR_LAY.el[el]; if(!e) return;
+  if(k==='fw') e.fw=({'400':'400','700':'700','900':'900'}[String(v)]||'700');
+  else if(k==='st'){ var n=parseFloat(v); e.st=isNaN(n)?0:Math.max(0,Math.min(0.6,n)); }
+  saveQrLay(); qeRender();
+}
 function qeSafeSet(edge,v){
   if(!QR_LAY.safe) QR_LAY.safe=_clone(QR_LAY_DEFAULTS.safe);
   var n=parseFloat(v); QR_LAY.safe[edge]=isNaN(n)?QR_LAY_DEFAULTS.safe[edge]:Math.max(0,Math.min(30,n));
@@ -7826,6 +7868,7 @@ function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
   qeClampSafe();
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
   sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-payload',QR_LAY.payload||'link'); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
+  sv('qe-desc-fw',QR_LAY.el.desc.fw||'700'); sv('qe-desc-st',QR_LAY.el.desc.st||0); sv('qe-sku-fw',QR_LAY.el.sku.fw||'400'); sv('qe-sku-st',QR_LAY.el.sku.st||0);
   var _sf=qrSafe(); sv('qe-safe-left',_sf.left); sv('qe-safe-right',_sf.right); sv('qe-safe-top',_sf.top); sv('qe-safe-bottom',_sf.bottom);
   var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm)); _qeStlTotal();
   var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;

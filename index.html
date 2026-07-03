@@ -2116,6 +2116,7 @@
             <button class="qre-auto" onclick="qeAuto()">✨ Auto-arrange</button>
             <div class="qre-row">
               <button class="qre-reset" onclick="qeReset()">Reset</button>
+              <button class="qre-reset" onclick="qrSaveStl(qrSampleSku().sku)" title="Export this label's QR as a 3D-printable STL (base plate + raised code)">🧊 STL</button>
               <button class="qre-save" id="qe-save" onclick="qeSave()">Save design</button>
             </div>
             <div class="qre-saved" id="qe-saved"></div>
@@ -2179,6 +2180,7 @@
     <label class="m-lock"><input type="checkbox" id="m-f-lock"><span>🔒 Lock this minimum — don't auto-adjust from usage</span></label>
     <div class="m-lockhint" id="m-f-lockhint"></div>
     <div class="m-fld"><label>Location</label><input id="m-f-loc"></div>
+    <div class="m-fld"><label>Photo URL <span style="color:var(--t2);font-weight:400">(optional — for QR labels when the RIMO photo isn&#8217;t found by SKU)</span></label><input id="m-f-img" placeholder="Paste the RIMO product image address" inputmode="url" autocapitalize="off" autocorrect="off"></div>
     <div class="m-form-msg" id="m-form-msg"></div>
     <div class="m-form-row">
       <button class="m-form-btn m-cancel" onclick="mCloseForm()">Cancel</button>
@@ -2193,6 +2195,9 @@
     <div class="m-qr-row">
       <button class="m-qr-btn m-qr-close" onclick="mCloseQR()">Close</button>
       <button class="m-qr-btn m-qr-print" id="m-qr-printbtn">Print</button>
+    </div>
+    <div class="m-qr-row" style="margin-top:8px">
+      <button class="m-qr-btn m-qr-close" id="m-qr-stlbtn" style="flex:1">🧊 STL — 3D print</button>
     </div>
   </div>
 </div>
@@ -2559,6 +2564,7 @@ function mapPart(r){
     price_eur:(r.price_eur!=null?Number(r.price_eur):null),
     price_aud:(r.price_aud!=null?Number(r.price_aud):null),
     auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), qr_print:(r.qr_print===false?false:true), scans90:0,
+    image_url:(r.image_url||''), is_rimo:(r.is_rimo!==false), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
     is_rimo:_rimoVal(r.is_rimo), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
     used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
   };
@@ -7202,6 +7208,7 @@ function mFillForm(p){
   document.getElementById('m-f-min').value=(p&&p.min_stock!=null)?p.min_stock:'';
   document.getElementById('m-f-qty').value=p?p.qty:'';
   document.getElementById('m-f-loc').value=p?(p.loc||''):'';
+  var imEl=document.getElementById('m-f-img'); if(imEl) imEl.value=p?(p.image_url||''):'';
   document.getElementById('m-f-rimo').checked = p ? (p.is_rimo!==false) : true;
   document.getElementById('m-f-brand').value=p?(p.brand||''):'';
   document.getElementById('m-f-lead').value=(p&&p.lead_days!=null)?p.lead_days:'';
@@ -7250,6 +7257,7 @@ function mSave(){
     min_stock:document.getElementById('m-f-min').value.trim(),
     qty:document.getElementById('m-f-qty').value.trim(),
     location:document.getElementById('m-f-loc').value.trim(),
+    image_url:(document.getElementById('m-f-img')?document.getElementById('m-f-img').value.trim():''),
     lock:document.getElementById('m-f-lock').checked, site:(currentSite||'sydney'),
     is_rimo:isRimo, brand:brand, lead_days:(!isRimo&&leadRaw!=='')?Number(leadRaw):null };
   if(part.lock && part.min_stock===''){ mFormMsg('Enter a minimum to lock it, or untick to auto-adjust.'); return; }
@@ -7319,11 +7327,16 @@ var _hkLogoImg=null, _prodImgs={};
 function _ensureHkLogo(cb){ if(_hkLogoImg&&_hkLogoImg.complete&&_hkLogoImg.naturalWidth){ if(cb)cb(); return; } var dom=document.querySelector('.sp-logo'); var src=dom&&dom.src?dom.src:''; if(!src){ if(cb)cb(); return; } _hkLogoImg=new Image(); _hkLogoImg.onload=function(){ if(cb)cb(); }; _hkLogoImg.onerror=function(){ if(cb)cb(); }; _hkLogoImg.src=src; }
 function _partImgUrl(sku){
   var p=(typeof parts!=='undefined'&&parts)?parts.find(function(x){return String(x.sku)===String(sku);}):null;
-  if(p&&p.image_url) return p.image_url;                                    // explicit per-part override wins
+  if(p&&p.image_url){
+    // Explicit per-part override. RIMO-hosted URLs go through our proxy so they carry CORS headers
+    // (required to EMBED in the printable label, not just preview); other hosts are used as-is.
+    if(/^https:\/\/shop\.rimo-germany\.com\/images\/product_images\//i.test(p.image_url))
+      return SB_FN+'part-image?apikey='+SB_KEY+'&u='+encodeURIComponent(p.image_url);
+    return p.image_url;
+  }
   var s=String(sku||'').trim(); if(!s) return '';
-  // RIMO product photo. The shop's "Product No." equals the image filename, so the SKU builds the
-  // URL directly. Routed through our part-image proxy so it carries CORS headers (lets the photo be
-  // EMBEDDED in the printable label, not just previewed). Missing photos 404 -> graceful placeholder.
+  // RIMO product photo guessed from the SKU (the shop's "Product No." usually equals the image
+  // filename; the proxy tries the common suffix variants). Missing photos 404 -> placeholder.
   return SB_FN+'part-image?apikey='+SB_KEY+'&sku='+encodeURIComponent(s);
 }
 function _prodImg(url,cb){ if(!url){ if(cb)cb(null); return; } var im=_prodImgs[url]; if(im){ if(im.complete){ if(cb)cb(im.naturalWidth?im:null); } else { im.addEventListener('load',function(){ if(cb)cb(im.naturalWidth?im:null); }); im.addEventListener('error',function(){ if(cb)cb(null); }); } return; } im=new Image(); im.crossOrigin='anonymous'; _prodImgs[url]=im; im.onload=function(){ if(cb)cb(im.naturalWidth?im:null); }; im.onerror=function(){ if(cb)cb(null); }; im.src=url; }
@@ -7412,7 +7425,7 @@ function _qeImgHint(state,sku){ var h=document.getElementById('qe-img-hint'); if
   if(QR_LAY.img!=='product' || state==='' || state==='ok'){ h.style.display='none'; h.textContent=''; return; }
   if(state==='loading'){ h.style.display=''; h.style.background='rgba(124,133,151,0.12)'; h.style.color='var(--t2)'; h.style.border='1px solid rgba(124,133,151,0.25)'; h.innerHTML='<span class="qre-spin"></span> Looking up the RIMO photo\u2026'; return; }
   h.style.display=''; h.style.background='rgba(245,158,11,0.10)'; h.style.color='#F59E0B'; h.style.border='1px solid rgba(245,158,11,0.30)';
-  h.textContent='\u26A0 No RIMO photo found for SKU '+(sku||'')+' \u2014 the label falls back to the placeholder. (A few RIMO parts use a non-standard image filename.)';
+  h.textContent='\u26A0 No RIMO photo found for SKU '+(sku||'')+' \u2014 a few RIMO parts hide the photo behind a non-standard filename. Fix: find the part on the RIMO shop, copy the product image address, and paste it into Edit Part \u2192 Photo URL.';
 }
 function qeReset(){ QR_LAY=_clone(QR_LAY_DEFAULTS); QE_SEL=null; saveQrLay(); qrDesignerInit(); }
 function qeFlashSaved(text){ var t=document.getElementById('qe-saved'); if(!t) return; clearTimeout(t._t1); clearTimeout(t._t2); t.innerHTML='<span class="qre-spin"></span> Saving\u2026'; t.className='qre-saved show'; t._t1=setTimeout(function(){ t.innerHTML='\u2713 '+(text||'Design saved'); t.className='qre-saved show ok'; },420); t._t2=setTimeout(function(){ t.className='qre-saved'; },2200); }
@@ -7462,9 +7475,72 @@ function mQR(sku){
     var nt=document.getElementById('m-qr-note'); if(nt) nt.innerHTML='Print at 100% scale · exact '+(+QR_LAY.wmm||30)+'&times;'+(+QR_LAY.hmm||30)+'mm label';
   }); });
   var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,(p.desc||sku)); };
+  var sb=document.getElementById('m-qr-stlbtn'); if(sb) sb.onclick=function(){ qrSaveStl(sku); };
   document.getElementById('m-qr').classList.add('show');
 }
 function mCloseQR(){ document.getElementById('m-qr').classList.remove('show'); }
+/* ===== QR label -> STL for 3D printing =====================================================
+   Solid base plate (label width x height from the QR design) with the QR's dark modules raised
+   on top. Print the base in a light filament and swap to a dark one at the raise height (or
+   print dark-on-light the other way round) and the code scans straight off the plastic.
+   Geometry: millimetre units, Z up, binary STL. Adjacent dark modules in a row are merged into
+   one cuboid to keep files small. Text isn't extruded — tiny raised text prints badly and isn't
+   needed for scanning; the QR encodes the same ?sku= link as the printed labels. */
+var STL_BASE_MM=1.6, STL_RAISE_MM=0.8;   // base plate thickness / how proud the QR modules sit
+function _stlBox(dv,off,x0,y0,z0,x1,y1,z1){
+  function tri(nx,ny,nz,ax,ay,az,bx,by,bz,cx,cy,cz){
+    dv.setFloat32(off,nx,true);dv.setFloat32(off+4,ny,true);dv.setFloat32(off+8,nz,true);
+    dv.setFloat32(off+12,ax,true);dv.setFloat32(off+16,ay,true);dv.setFloat32(off+20,az,true);
+    dv.setFloat32(off+24,bx,true);dv.setFloat32(off+28,by,true);dv.setFloat32(off+32,bz,true);
+    dv.setFloat32(off+36,cx,true);dv.setFloat32(off+40,cy,true);dv.setFloat32(off+44,cz,true);
+    dv.setUint16(off+48,0,true); off+=50;
+  }
+  tri(0,0,-1, x0,y0,z0, x1,y1,z0, x1,y0,z0); tri(0,0,-1, x0,y0,z0, x0,y1,z0, x1,y1,z0);   // bottom
+  tri(0,0,1,  x0,y0,z1, x1,y0,z1, x1,y1,z1); tri(0,0,1,  x0,y0,z1, x1,y1,z1, x0,y1,z1);   // top
+  tri(0,-1,0, x0,y0,z0, x1,y0,z0, x1,y0,z1); tri(0,-1,0, x0,y0,z0, x1,y0,z1, x0,y0,z1);   // front
+  tri(0,1,0,  x0,y1,z0, x1,y1,z1, x1,y1,z0); tri(0,1,0,  x0,y1,z0, x0,y1,z1, x1,y1,z1);   // back
+  tri(-1,0,0, x0,y0,z0, x0,y0,z1, x0,y1,z1); tri(-1,0,0, x0,y0,z0, x0,y1,z1, x0,y1,z0);   // left
+  tri(1,0,0,  x1,y0,z0, x1,y1,z1, x1,y0,z1); tri(1,0,0,  x1,y0,z0, x1,y1,z0, x1,y1,z1);   // right
+  return off;
+}
+function qrStlBlob(sku,lay){
+  lay=lay||QR_LAY;
+  var qr=qrcode(0,_qrEc(lay)); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();
+  var n=qr.getModuleCount(), quiet=Math.max(0,Math.round(+lay.quiet||0)), total=n+quiet*2;
+  var W=(+lay.wmm||30), H=(+lay.hmm||30), B=lay.el&&lay.el.qr?lay.el.qr:{x:2,y:2,w:W-4,h:H-4};
+  var cell=Math.min(B.w,B.h)/total;
+  var ox=B.x+(B.w-cell*total)/2+quiet*cell;                 // centre the code in its box, skip the quiet zone
+  var oyTop=B.y+(B.h-cell*total)/2+quiet*cell;
+  // Merge each row's dark modules into runs -> one cuboid per run
+  var runs=[];
+  for(var r=0;r<n;r++){
+    var c=0;
+    while(c<n){
+      if(qr.isDark(r,c)){ var s=c; while(c<n&&qr.isDark(r,c)) c++; runs.push([r,s,c-s]); }
+      else c++;
+    }
+  }
+  var boxes=1+runs.length, buf=new ArrayBuffer(84+boxes*12*50), dv=new DataView(buf), off=84;
+  dv.setUint32(80,boxes*12,true);
+  off=_stlBox(dv,off,0,0,0,W,H,STL_BASE_MM);                // base plate
+  var zTop=STL_BASE_MM+STL_RAISE_MM;
+  runs.forEach(function(run){
+    var r=run[0], s=run[1], len=run[2];
+    var x0=ox+s*cell, x1=ox+(s+len)*cell;
+    var yTop=oyTop+r*cell;                                  // label Y runs downward; STL Y runs upward
+    var y1=H-yTop, y0=y1-cell;
+    off=_stlBox(dv,off,x0,y0,STL_BASE_MM,x1,y1,zTop);
+  });
+  return new Blob([buf],{type:'model/stl'});
+}
+function qrSaveStl(sku){
+  try{
+    var blob=qrStlBlob(sku,QR_LAY);
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=String(sku)+'.stl';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  }catch(e){ alert('Could not build the STL: '+(e&&e.message||e)); }
+}
 /* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
 function qrCanvas(sku){
   var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();

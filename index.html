@@ -2129,7 +2129,8 @@
             <button class="qre-auto" onclick="qeAuto()">✨ Auto-arrange</button>
             <div class="qre-row">
               <button class="qre-reset" onclick="qeReset()">Reset</button>
-              <button class="qre-reset" onclick="qrSaveStl(qrSampleSku().sku)" title="Export this label's QR as a 3D-printable STL (base plate + raised code)">🧊 STL</button>
+              <button class="qre-reset" onclick="qrSave3d(qrSampleSku().sku,'stl')" title="3D-printable STL — single body, swap filament colour at the base height">🧊 STL</button>
+              <button class="qre-reset" onclick="qrSave3d(qrSampleSku().sku,'3mf')" title="3MF — base plate and artwork as two coloured objects; slicers open it ready for two-colour printing">🎨 3MF</button>
               <button class="qre-save" id="qe-save" onclick="qeSave()">Save design</button>
             </div>
             <div class="qre-saved" id="qe-saved"></div>
@@ -2210,7 +2211,8 @@
       <button class="m-qr-btn m-qr-print" id="m-qr-printbtn">Print</button>
     </div>
     <div class="m-qr-row" style="margin-top:8px">
-      <button class="m-qr-btn m-qr-close" id="m-qr-stlbtn" style="flex:1">🧊 STL — 3D print</button>
+      <button class="m-qr-btn m-qr-close" id="m-qr-stlbtn" style="flex:1">🧊 STL</button>
+      <button class="m-qr-btn m-qr-close" id="m-qr-3mfbtn" style="flex:1">🎨 3MF</button>
     </div>
   </div>
 </div>
@@ -7490,7 +7492,8 @@ function mQR(sku){
     var nt=document.getElementById('m-qr-note'); if(nt) nt.innerHTML='Print at 100% scale · exact '+(+QR_LAY.wmm||30)+'&times;'+(+QR_LAY.hmm||30)+'mm label';
   }); });
   var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,(p.desc||sku)); };
-  var sb=document.getElementById('m-qr-stlbtn'); if(sb) sb.onclick=function(){ qrSaveStl(sku); };
+  var sb=document.getElementById('m-qr-stlbtn'); if(sb) sb.onclick=function(){ qrSave3d(sku,'stl'); };
+  var mb=document.getElementById('m-qr-3mfbtn'); if(mb) mb.onclick=function(){ qrSave3d(sku,'3mf'); };
   document.getElementById('m-qr').classList.add('show');
 }
 function mCloseQR(){ document.getElementById('m-qr').classList.remove('show'); }
@@ -7576,9 +7579,9 @@ function _crc32(u8){
   return (crc^-1)>>>0;
 }
 function _zipStore(files){                                  // files: [{name, data:Uint8Array}] -> stored (uncompressed) zip
-  var enc=new TextEncoder(), locs=[], total=0, i, f;
-  for(i=0;i<files.length;i++){ f=files[i]; f._n=enc.encode(f.name); f._crc=_crc32(f.data); f._off=0; total+=30+f._n.length+f.data.length; }
-  var cdSize=0; for(i=0;i<files.length;i++) cdSize+=46+files[i]._n.length;
+  var enc=new TextEncoder(), total=0, cdSize=0, i, f;
+  for(i=0;i<files.length;i++){ f=files[i]; f._n=enc.encode(f.name); f._crc=_crc32(f.data); f._off=0;
+    total+=30+f._n.length+f.data.length; cdSize+=46+f._n.length; }
   var buf=new Uint8Array(total+cdSize+22), dv=new DataView(buf.buffer), p=0;
   function u16(v){ dv.setUint16(p,v,true); p+=2; } function u32(v){ dv.setUint32(p,v,true); p+=4; }
   for(i=0;i<files.length;i++){ f=files[i]; f._off=p;
@@ -7590,26 +7593,12 @@ function _zipStore(files){                                  // files: [{name, da
     u32(0x02014b50); u16(20); u16(20); u16(0); u16(0); u16(0); u16(0); u32(f._crc); u32(f.data.length); u32(f.data.length); u16(f._n.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(f._off);
     buf.set(f._n,p); p+=f._n.length;
   }
-  u32(0x06054b50); u16(0); u16(0); u16(files.length); u16(files.length); u32(p-22-cdStart+22-22); p-=4; u32(p-cdStart-18+18-18);   // sizes fixed below
-  // (recompute the two EOCD size/offset fields deterministically)
-  dv.setUint32(buf.length-12, cdStart+ (buf.length-22-cdStart), true);   // placeholder guard
-  dv.setUint32(buf.length-12, buf.length-22-cdStart, true);             // central directory size
-  dv.setUint32(buf.length-8,  cdStart, true);                           // central directory offset
+  u32(0x06054b50); u16(0); u16(0); u16(files.length); u16(files.length); u32(cdSize); u32(cdStart); u16(0);
   return buf;
 }
-function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF vertex/triangle XML (indexed, 8 verts per box)
-  var vs=[], ts=[], vi=0;
-  function box(x0,y0,x1,y1){
-    vs.push(x0+' '+y0,x1+' '+y0,x1+' '+y1,x0+' '+y1);
-    var b=vi; vi+=8;
-    // vertex order: 0-3 bottom ring (z0), 4-7 top ring (z1)
-    ts.push([b,b+2,b+1],[b,b+3,b+2],[b+4,b+5,b+6],[b+4,b+6,b+7],
-            [b,b+1,b+5],[b,b+5,b+4],[b+1,b+2,b+6],[b+1,b+6,b+5],
-            [b+2,b+3,b+7],[b+2,b+7,b+6],[b+3,b+0,b+4],[b+3,b+4,b+7]);
-  }
-  var xml=[], run, x0,x1,y0,y1, k;
+function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF vertex/triangle XML (8 verts + 12 tris per box)
+  var xml=[], ts=[], vi=0, fz0=z0.toFixed(3), fz1=z1.toFixed(3);
   function pushBox(x0,y0,x1,y1){
-    var fz0=z0.toFixed(3), fz1=z1.toFixed(3);
     xml.push('<vertex x="'+x0+'" y="'+y0+'" z="'+fz0+'"/><vertex x="'+x1+'" y="'+y0+'" z="'+fz0+'"/><vertex x="'+x1+'" y="'+y1+'" z="'+fz0+'"/><vertex x="'+x0+'" y="'+y1+'" z="'+fz0+'"/>'
             +'<vertex x="'+x0+'" y="'+y0+'" z="'+fz1+'"/><vertex x="'+x1+'" y="'+y0+'" z="'+fz1+'"/><vertex x="'+x1+'" y="'+y1+'" z="'+fz1+'"/><vertex x="'+x0+'" y="'+y1+'" z="'+fz1+'"/>');
     var b=vi; vi+=8;

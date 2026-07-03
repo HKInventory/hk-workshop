@@ -1007,6 +1007,9 @@
     .qre-side{display:flex;flex-direction:column;gap:9px}
     .qre-sec{font-size:10.5px;color:var(--t2);font-weight:800;letter-spacing:.6px;text-transform:uppercase;margin-top:4px}
     .qre-f{display:flex;flex-direction:column;gap:4px}
+    .qre-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .qre-sec-h{margin-top:14px;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--t2)}
+    .qre-stl-note{margin-top:8px;font-size:11.5px;line-height:1.5;color:var(--t2);background:rgba(124,133,151,0.10);border:1px solid rgba(124,133,151,0.22);border-radius:8px;padding:7px 9px}
     .qre-f>label{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.2px}
     .qre-f input[type=number],.qre-f select{background:var(--card2);border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 9px;font-size:13px;font-weight:600;width:100%}
     .qre-f input[type=color]{width:100%;height:34px;border:1px solid var(--b2);border-radius:9px;background:var(--card2);padding:3px;cursor:pointer}
@@ -2112,6 +2115,16 @@
               <div class="qre-f"><label>Height</label><input id="qe-h" type="number" min="10" max="120" step="1" oninput="qeSet('hmm',this.value)"></div>
             </div>
             <label class="qre-chk"><input id="qe-grid" type="checkbox" checked onchange="qeSet('grid',this.checked)"> Snap to grid</label>
+            <div class="qre-sec-h">3D print (STL)</div>
+            <div class="qre-grid2">
+              <div class="qre-f"><label>Base plate (mm)</label><input id="qe-stl-base" type="number" min="0.4" max="10" step="0.2" oninput="qeStlSet('base',this.value)"></div>
+              <div class="qre-f"><label>Emboss (mm)</label><input id="qe-stl-raise" type="number" min="0.2" max="5" step="0.2" oninput="qeStlSet('raise',this.value)"></div>
+            </div>
+            <div class="qre-grid2">
+              <div class="qre-f"><label>Style</label><select id="qe-stl-mode" onchange="qeStlSet('mode',this.value)"><option value="raised">Raised — dark parts stand up</option><option value="engraved">Engraved — dark parts sunk</option></select></div>
+              <div class="qre-f"><label>Detail</label><select id="qe-stl-pxmm" onchange="qeStlSet('pxmm',this.value)"><option value="3">Draft · 0.33 mm</option><option value="4">Standard · 0.25 mm</option><option value="6">Fine · 0.17 mm</option></select></div>
+            </div>
+            <div class="qre-stl-note">The STL is the label exactly as designed — QR, text and product image are embossed together. Swap filament colour at the base height for a two-colour print. Photos are turned into a two-tone stencil.</div>
             <div class="qre-cap" id="qe-cap"></div>
             <button class="qre-auto" onclick="qeAuto()">✨ Auto-arrange</button>
             <div class="qre-row">
@@ -7279,6 +7292,7 @@ function mRemove(sku){
 
 /* ===== QR label editor (master) — drag & resize, prints exactly what you see ===== */
 var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true,
+  stl:{ base:1.6, raise:0.8, mode:'raised', pxmm:4 },   // 3D print: plate mm, emboss mm, raised|engraved, detail px/mm
   el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
 function _clone(o){ return JSON.parse(JSON.stringify(o)); }
 function _applyQrLay(o){                                // merge a stored layout object into QR_LAY (defaults-safe)
@@ -7458,6 +7472,7 @@ function qeAuto(){
 function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
   sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
+  var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm));
   var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;
     cv.addEventListener('mousedown',qeDown); window.addEventListener('mousemove',qeMove); window.addEventListener('mouseup',qeUp);
     cv.addEventListener('touchstart',qeDown,{passive:false}); cv.addEventListener('touchmove',qeMove,{passive:false}); cv.addEventListener('touchend',qeUp); }
@@ -7480,13 +7495,15 @@ function mQR(sku){
 }
 function mCloseQR(){ document.getElementById('m-qr').classList.remove('show'); }
 /* ===== QR label -> STL for 3D printing =====================================================
-   Solid base plate (label width x height from the QR design) with the QR's dark modules raised
-   on top. Print the base in a light filament and swap to a dark one at the raise height (or
-   print dark-on-light the other way round) and the code scans straight off the plastic.
-   Geometry: millimetre units, Z up, binary STL. Adjacent dark modules in a row are merged into
-   one cuboid to keep files small. Text isn't extruded — tiny raised text prints badly and isn't
-   needed for scanning; the QR encodes the same ?sku= link as the printed labels. */
-var STL_BASE_MM=1.6, STL_RAISE_MM=0.8;   // base plate thickness / how proud the QR modules sit
+   WYSIWYG: the label is rendered with the SAME drawing code as the printed PDF (QR + description
+   + SKU + product image, positioned per the design), then dark pixels are voxelised into solid
+   geometry. So whatever the label looks like on screen is what comes off the printer.
+   - Raised: dark parts stand proud of the base — swap to a dark filament at the base height.
+   - Engraved: dark parts sit recessed (the light areas are raised instead).
+   Adjacent pixels merge into cuboid runs to keep files sane. Millimetre units, Z up, binary STL. */
+function _stlCfg(){ var d=QR_LAY_DEFAULTS.stl, s=(QR_LAY&&QR_LAY.stl)||{}; return {
+  base:Math.max(0.4,Math.min(10,+s.base||d.base)), raise:Math.max(0.2,Math.min(5,+s.raise||d.raise)),
+  mode:(s.mode==='engraved'?'engraved':'raised'), pxmm:([3,4,6].indexOf(+s.pxmm)>=0?+s.pxmm:d.pxmm) }; }
 function _stlBox(dv,off,x0,y0,z0,x1,y1,z1){
   function tri(nx,ny,nz,ax,ay,az,bx,by,bz,cx,cy,cz){
     dv.setFloat32(off,nx,true);dv.setFloat32(off+4,ny,true);dv.setFloat32(off+8,nz,true);
@@ -7503,43 +7520,152 @@ function _stlBox(dv,off,x0,y0,z0,x1,y1,z1){
   tri(1,0,0,  x1,y0,z0, x1,y1,z1, x1,y0,z1); tri(1,0,0,  x1,y0,z0, x1,y1,z0, x1,y1,z1);   // right
   return off;
 }
-function qrStlBlob(sku,lay){
-  lay=lay||QR_LAY;
-  var qr=qrcode(0,_qrEc(lay)); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();
-  var n=qr.getModuleCount(), quiet=Math.max(0,Math.round(+lay.quiet||0)), total=n+quiet*2;
-  var W=(+lay.wmm||30), H=(+lay.hmm||30), B=lay.el&&lay.el.qr?lay.el.qr:{x:2,y:2,w:W-4,h:H-4};
-  var cell=Math.min(B.w,B.h)/total;
-  var ox=B.x+(B.w-cell*total)/2+quiet*cell;                 // centre the code in its box, skip the quiet zone
-  var oyTop=B.y+(B.h-cell*total)/2+quiet*cell;
-  // Merge each row's dark modules into runs -> one cuboid per run
-  var runs=[];
-  for(var r=0;r<n;r++){
-    var c=0;
-    while(c<n){
-      if(qr.isDark(r,c)){ var s=c; while(c<n&&qr.isDark(r,c)) c++; runs.push([r,s,c-s]); }
-      else c++;
+function _labelVoxels(sku,desc,lay){
+  lay=lay||QR_LAY; var cfg=_stlCfg(), S=cfg.pxmm;
+  var W=(+lay.wmm||30), H=(+lay.hmm||30), pw=Math.round(W*S), ph2=Math.round(H*S);
+  var c=document.createElement('canvas'); c.width=pw; c.height=ph2; var x=c.getContext('2d');
+  var prod=(lay.img==='product')?(_prodImgs[_partImgUrl(sku)]||null):null;
+  var px;
+  try{
+    _drawLabel(x,S,sku,desc,lay,{logo:_hkLogoImg,product:prod},false);
+    px=x.getImageData(0,0,pw,ph2).data;
+  }catch(e){
+    // A non-proxied external photo taints the canvas — re-render without the image rather than fail.
+    var l2=_clone(lay); if(l2.img==='product') l2.img='none';
+    x.clearRect(0,0,pw,ph2); _drawLabel(x,S,sku,desc,l2,{logo:_hkLogoImg,product:null},false);
+    px=x.getImageData(0,0,pw,ph2).data;
+  }
+  // Which pixels get the embossed layer: raised = dark pixels, engraved = light pixels.
+  var wantDark=(cfg.mode!=='engraved');
+  function hit(i){ var a=px[i+3]; if(a<40) return !wantDark;                       // transparent counts as light
+    var lum=0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2]; return wantDark?(lum<128):(lum>=128); }
+  // Merge each pixel row into horizontal runs -> one cuboid per run
+  var runs=[], r, cpx, i, s;
+  for(r=0;r<ph2;r++){
+    cpx=0;
+    while(cpx<pw){
+      i=(r*pw+cpx)*4;
+      if(hit(i)){ s=cpx; while(cpx<pw && hit((r*pw+cpx)*4)) cpx++; runs.push([r,s,cpx-s]); }
+      else cpx++;
     }
   }
+  return { W:W, H:H, cfg:cfg, runs:runs, mm:1/S };
+}
+function stlFromLabel(sku,desc,lay){
+  var v=_labelVoxels(sku,desc,lay), W=v.W, H=v.H, cfg=v.cfg, runs=v.runs, mm=v.mm;
   var boxes=1+runs.length, buf=new ArrayBuffer(84+boxes*12*50), dv=new DataView(buf), off=84;
   dv.setUint32(80,boxes*12,true);
-  off=_stlBox(dv,off,0,0,0,W,H,STL_BASE_MM);                // base plate
-  var zTop=STL_BASE_MM+STL_RAISE_MM;
+  off=_stlBox(dv,off,0,0,0,W,H,cfg.base);                                          // base plate
+  var zTop=cfg.base+cfg.raise;
   runs.forEach(function(run){
-    var r=run[0], s=run[1], len=run[2];
-    var x0=ox+s*cell, x1=ox+(s+len)*cell;
-    var yTop=oyTop+r*cell;                                  // label Y runs downward; STL Y runs upward
-    var y1=H-yTop, y0=y1-cell;
-    off=_stlBox(dv,off,x0,y0,STL_BASE_MM,x1,y1,zTop);
+    var rr=run[0], ss=run[1], len=run[2];
+    var x0=ss*mm, x1=(ss+len)*mm;
+    var y1=H-rr*mm, y0=y1-mm;                                                       // canvas Y down -> STL Y up
+    off=_stlBox(dv,off,x0,y0,cfg.base,x1,y1,zTop);
   });
   return new Blob([buf],{type:'model/stl'});
 }
-function qrSaveStl(sku){
-  try{
-    var blob=qrStlBlob(sku,QR_LAY);
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=String(sku)+'.stl';
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
-  }catch(e){ alert('Could not build the STL: '+(e&&e.message||e)); }
+/* ===== 3MF export ==========================================================================
+   A 3MF is a zip of XML. We write TWO mesh objects — the base plate and the embossed artwork —
+   each with its own display colour (taken from the label's background/QR colours), so slicers
+   like Bambu / PrusaSlicer open the file already split for a two-colour print: assign a filament
+   to each object and go. No filament-swap-at-height fiddling like the single-body STL. */
+function _crc32(u8){
+  var t=_crc32.t; if(!t){ t=_crc32.t=new Int32Array(256); for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c; } }
+  var crc=-1; for(var i=0;i<u8.length;i++) crc=(crc>>>8)^t[(crc^u8[i])&0xFF];
+  return (crc^-1)>>>0;
+}
+function _zipStore(files){                                  // files: [{name, data:Uint8Array}] -> stored (uncompressed) zip
+  var enc=new TextEncoder(), locs=[], total=0, i, f;
+  for(i=0;i<files.length;i++){ f=files[i]; f._n=enc.encode(f.name); f._crc=_crc32(f.data); f._off=0; total+=30+f._n.length+f.data.length; }
+  var cdSize=0; for(i=0;i<files.length;i++) cdSize+=46+files[i]._n.length;
+  var buf=new Uint8Array(total+cdSize+22), dv=new DataView(buf.buffer), p=0;
+  function u16(v){ dv.setUint16(p,v,true); p+=2; } function u32(v){ dv.setUint32(p,v,true); p+=4; }
+  for(i=0;i<files.length;i++){ f=files[i]; f._off=p;
+    u32(0x04034b50); u16(20); u16(0); u16(0); u16(0); u16(0); u32(f._crc); u32(f.data.length); u32(f.data.length); u16(f._n.length); u16(0);
+    buf.set(f._n,p); p+=f._n.length; buf.set(f.data,p); p+=f.data.length;
+  }
+  var cdStart=p;
+  for(i=0;i<files.length;i++){ f=files[i];
+    u32(0x02014b50); u16(20); u16(20); u16(0); u16(0); u16(0); u16(0); u32(f._crc); u32(f.data.length); u32(f.data.length); u16(f._n.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(f._off);
+    buf.set(f._n,p); p+=f._n.length;
+  }
+  u32(0x06054b50); u16(0); u16(0); u16(files.length); u16(files.length); u32(p-22-cdStart+22-22); p-=4; u32(p-cdStart-18+18-18);   // sizes fixed below
+  // (recompute the two EOCD size/offset fields deterministically)
+  dv.setUint32(buf.length-12, cdStart+ (buf.length-22-cdStart), true);   // placeholder guard
+  dv.setUint32(buf.length-12, buf.length-22-cdStart, true);             // central directory size
+  dv.setUint32(buf.length-8,  cdStart, true);                           // central directory offset
+  return buf;
+}
+function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF vertex/triangle XML (indexed, 8 verts per box)
+  var vs=[], ts=[], vi=0;
+  function box(x0,y0,x1,y1){
+    vs.push(x0+' '+y0,x1+' '+y0,x1+' '+y1,x0+' '+y1);
+    var b=vi; vi+=8;
+    // vertex order: 0-3 bottom ring (z0), 4-7 top ring (z1)
+    ts.push([b,b+2,b+1],[b,b+3,b+2],[b+4,b+5,b+6],[b+4,b+6,b+7],
+            [b,b+1,b+5],[b,b+5,b+4],[b+1,b+2,b+6],[b+1,b+6,b+5],
+            [b+2,b+3,b+7],[b+2,b+7,b+6],[b+3,b+0,b+4],[b+3,b+4,b+7]);
+  }
+  var xml=[], run, x0,x1,y0,y1, k;
+  function pushBox(x0,y0,x1,y1){
+    var fz0=z0.toFixed(3), fz1=z1.toFixed(3);
+    xml.push('<vertex x="'+x0+'" y="'+y0+'" z="'+fz0+'"/><vertex x="'+x1+'" y="'+y0+'" z="'+fz0+'"/><vertex x="'+x1+'" y="'+y1+'" z="'+fz0+'"/><vertex x="'+x0+'" y="'+y1+'" z="'+fz0+'"/>'
+            +'<vertex x="'+x0+'" y="'+y0+'" z="'+fz1+'"/><vertex x="'+x1+'" y="'+y0+'" z="'+fz1+'"/><vertex x="'+x1+'" y="'+y1+'" z="'+fz1+'"/><vertex x="'+x0+'" y="'+y1+'" z="'+fz1+'"/>');
+    var b=vi; vi+=8;
+    ts.push([b,b+2,b+1],[b,b+3,b+2],[b+4,b+5,b+6],[b+4,b+6,b+7],
+            [b,b+1,b+5],[b,b+5,b+4],[b+1,b+2,b+6],[b+1,b+6,b+5],
+            [b+2,b+3,b+7],[b+2,b+7,b+6],[b+3,b+0,b+4],[b+3,b+4,b+7]);
+  }
+  if(runs===null){ pushBox('0','0',W.toFixed(3),H.toFixed(3)); }
+  else runs.forEach(function(run){
+    var rr=run[0], ss=run[1], len=run[2];
+    pushBox((ss*mm).toFixed(3),(H-rr*mm-mm).toFixed(3),((ss+len)*mm).toFixed(3),(H-rr*mm).toFixed(3));
+  });
+  var tri=ts.map(function(t){return '<triangle v1="'+t[0]+'" v2="'+t[1]+'" v3="'+t[2]+'"/>';}).join('');
+  return '<vertices>'+xml.join('')+'</vertices><triangles>'+tri+'</triangles>';
+}
+function threeMfFromLabel(sku,desc,lay){
+  lay=lay||QR_LAY;
+  var v=_labelVoxels(sku,desc,lay), W=v.W, H=v.H, cfg=v.cfg, runs=v.runs, mm=v.mm;
+  var raised=(cfg.mode!=='engraved');
+  var baseCol=(raised?(lay.bg||'#FFFFFF'):(lay.fg||'#111111')).toUpperCase();
+  var embCol =(raised?(lay.fg||'#111111'):(lay.bg||'#FFFFFF')).toUpperCase();
+  var model='<?xml version="1.0" encoding="UTF-8"?>'
+    +'<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
+    +'<resources>'
+    +'<basematerials id="1"><base name="Base plate" displaycolor="'+baseCol+'"/><base name="Label artwork" displaycolor="'+embCol+'"/></basematerials>'
+    +'<object id="2" type="model" pid="1" pindex="0" name="Base plate"><mesh>'+_mfBoxes(null,W,H,mm,0,cfg.base)+'</mesh></object>'
+    +'<object id="3" type="model" pid="1" pindex="1" name="Label artwork"><mesh>'+_mfBoxes(runs,W,H,mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>'
+    +'</resources>'
+    +'<build><item objectid="2"/><item objectid="3"/></build>'
+    +'</model>';
+  var enc=new TextEncoder();
+  var zip=_zipStore([
+    {name:'[Content_Types].xml',data:enc.encode('<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>')},
+    {name:'_rels/.rels',data:enc.encode('<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>')},
+    {name:'3D/3dmodel.model',data:enc.encode(model)}
+  ]);
+  return new Blob([zip],{type:'model/3mf'});
+}
+function qrSave3d(sku,fmt){
+  var p=(parts||[]).find(function(x){return String(x.sku)===String(sku);});
+  var desc=(p&&p.desc)||String(sku);
+  _ensureHkLogo(function(){ _prodPreload([sku], function(){
+    try{
+      var blob=(fmt==='3mf')?threeMfFromLabel(sku,desc,QR_LAY):stlFromLabel(sku,desc,QR_LAY);
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=String(sku)+'.'+(fmt==='3mf'?'3mf':'stl');
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+    }catch(e){ alert('Could not build the file: '+(e&&e.message||e)); }
+  }); });
+}
+function qrSaveStl(sku){ qrSave3d(sku,'stl'); }
+function qeStlSet(k,v){
+  if(!QR_LAY.stl) QR_LAY.stl=_clone(QR_LAY_DEFAULTS.stl);
+  if(k==='mode') QR_LAY.stl.mode=(v==='engraved'?'engraved':'raised');
+  else QR_LAY.stl[k]=Number(v)||QR_LAY_DEFAULTS.stl[k];
+  saveQrLay();
 }
 /* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
 function qrCanvas(sku){

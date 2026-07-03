@@ -2122,9 +2122,10 @@
             <label class="qre-chk"><input id="qe-grid" type="checkbox" checked onchange="qeSet('grid',this.checked)"> Snap to grid</label>
             <div class="qre-sec-h">3D print (STL)</div>
             <div class="qre-grid2">
-              <div class="qre-f"><label>Base plate (mm)</label><input id="qe-stl-base" type="number" min="0.4" max="10" step="0.2" oninput="qeStlSet('base',this.value)"></div>
-              <div class="qre-f"><label>Emboss (mm)</label><input id="qe-stl-raise" type="number" min="0.2" max="5" step="0.2" oninput="qeStlSet('raise',this.value)"></div>
+              <div class="qre-f"><label>Depth — base plate (mm)</label><input id="qe-stl-base" type="number" min="0.4" max="10" step="0.2" oninput="qeStlSet('base',this.value)"></div>
+              <div class="qre-f"><label>Depth — emboss (mm)</label><input id="qe-stl-raise" type="number" min="0.2" max="5" step="0.2" oninput="qeStlSet('raise',this.value)"></div>
             </div>
+            <div class="m-tool-desc" id="qe-stl-total" style="margin-top:6px;text-align:center"></div>
             <div class="qre-grid2">
               <div class="qre-f"><label>Style</label><select id="qe-stl-mode" onchange="qeStlSet('mode',this.value)"><option value="raised">Raised — dark parts stand up</option><option value="engraved">Engraved — dark parts sunk</option></select></div>
               <div class="qre-f"><label>Detail</label><select id="qe-stl-pxmm" onchange="qeStlSet('pxmm',this.value)"><option value="3">Draft · 0.33 mm</option><option value="4">Standard · 0.25 mm</option><option value="6">Fine · 0.17 mm</option></select></div>
@@ -7301,6 +7302,19 @@ function mRemove(sku){
 var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true,
   stl:{ base:1.6, raise:0.8, mode:'raised', pxmm:4 },   // 3D print: plate mm, emboss mm, raised|engraved, detail px/mm
   el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
+// No-go buffer: nothing can sit within this many mm of the label's LEFT, RIGHT and BOTTOM edges
+// (the 3D-printed tags mount in a holder that covers those edges). Top stays free.
+var QR_SAFE={left:7,right:7,bottom:7,top:0};
+function qeClampSafe(){
+  var W=QR_LAY.wmm, H=QR_LAY.hmm, E=QR_LAY.el;
+  ['qr','img','desc','sku'].forEach(function(k){ var e=E[k]; if(!e) return;
+    e.w=Math.max(1,Math.min(e.w, W-QR_SAFE.left-QR_SAFE.right));
+    e.h=Math.max(1,Math.min(e.h, H-QR_SAFE.top-QR_SAFE.bottom));
+    if(k==='qr'||k==='img'){ var sq=Math.min(e.w,e.h); if(k==='qr'){ e.w=e.h=sq; } }
+    e.x=Math.max(QR_SAFE.left, Math.min(W-QR_SAFE.right-e.w, e.x));
+    e.y=Math.max(QR_SAFE.top,  Math.min(H-QR_SAFE.bottom-e.h, e.y));
+  });
+}
 function _clone(o){ return JSON.parse(JSON.stringify(o)); }
 function _applyQrLay(o){                                // merge a stored layout object into QR_LAY (defaults-safe)
   if(!o||typeof o!=='object') return false;
@@ -7446,6 +7460,17 @@ function qeRender(){ var cv=document.getElementById('qre-cv'); if(!cv) return; Q
   var W=Math.round(QR_LAY.wmm*S), H=Math.round(QR_LAY.hmm*S); cv.width=W; cv.height=H; cv.style.width=W+'px'; cv.style.height=H+'px';
   var x=cv.getContext('2d'), s=qrSampleSku();
   _drawLabel(x,S,s.sku,s.desc,QR_LAY,{ logo:_hkLogoImg, product:(QR_LAY.img==='product'?(_prodImgs[_partImgUrl(s.sku)]||null):null) },true);
+  // No-go buffer: shade the protected sides + bottom and outline the usable area, so it's
+  // obvious why pieces stop at that line.
+  x.save();
+  x.fillStyle='rgba(255,90,82,0.07)';
+  if(QR_SAFE.left>0)   x.fillRect(0,0,QR_SAFE.left*S,H);
+  if(QR_SAFE.right>0)  x.fillRect(W-QR_SAFE.right*S,0,QR_SAFE.right*S,H);
+  if(QR_SAFE.bottom>0) x.fillRect(QR_SAFE.left*S,H-QR_SAFE.bottom*S,W-(QR_SAFE.left+QR_SAFE.right)*S,QR_SAFE.bottom*S);
+  x.strokeStyle='rgba(255,90,82,0.35)'; x.lineWidth=1; x.setLineDash([5,4]);
+  x.strokeRect(QR_SAFE.left*S+0.5, QR_SAFE.top*S+0.5, W-(QR_SAFE.left+QR_SAFE.right)*S-1, H-(QR_SAFE.top+QR_SAFE.bottom)*S-1);
+  x.setLineDash([]);
+  x.restore();
   x.save();
   x.strokeStyle='rgba(0,207,255,.16)'; x.lineWidth=1; x.setLineDash([3,4]);
   x.beginPath(); x.moveTo(Math.round(W/2)+0.5,0); x.lineTo(Math.round(W/2)+0.5,H); x.moveTo(0,Math.round(H/2)+0.5); x.lineTo(W,Math.round(H/2)+0.5); x.stroke(); x.setLineDash([]);
@@ -7464,22 +7489,23 @@ function qeDown(ev){ ev.preventDefault(); var p=_qePt(ev), tol=11/QE_SCALE;
   QE_SEL=null; QE_DRAG=null; qeRender();
 }
 function qeMove(ev){ if(!QE_DRAG) return; ev.preventDefault(); var p=_qePt(ev), g=QR_LAY.grid?1:0.1; function sn(v){ return Math.round(v/g)*g; }
-  if(QE_DRAG.mode==='label'){ QR_LAY.wmm=Math.max(10,Math.min(120,sn(p.x))); QR_LAY.hmm=Math.max(10,Math.min(120,sn(p.y))); qeSyncFields(); qeRender(); return; }
+  var SL=QR_SAFE.left, SR=QR_SAFE.right, ST=QR_SAFE.top, SB=QR_SAFE.bottom;
+  if(QE_DRAG.mode==='label'){ QR_LAY.wmm=Math.max(SL+SR+6,Math.min(120,sn(p.x))); QR_LAY.hmm=Math.max(ST+SB+6,Math.min(120,sn(p.y))); qeClampSafe(); qeSyncFields(); qeRender(); return; }
   var e=QR_LAY.el[QE_DRAG.el]; if(!e) return;
   if(QE_DRAG.mode==='move'){
-    var nx=Math.max(0,Math.min(QR_LAY.wmm-e.w, sn(p.x-QE_DRAG.dx))), ny=Math.max(0,Math.min(QR_LAY.hmm-e.h, sn(p.y-QE_DRAG.dy)));
+    var nx=Math.max(SL,Math.min(QR_LAY.wmm-SR-e.w, sn(p.x-QE_DRAG.dx))), ny=Math.max(ST,Math.min(QR_LAY.hmm-SB-e.h, sn(p.y-QE_DRAG.dy)));
     var tol=1.4, gd={vx:null,hy:null}, cx=nx+e.w/2, cy=ny+e.h/2, vt=[QR_LAY.wmm/2], ht=[QR_LAY.hmm/2], k, o, i, best;
     for(k in QR_LAY.el){ if(k===QE_DRAG.el) continue; o=QR_LAY.el[k]; if(!o.on||(k==='img'&&QR_LAY.img==='none')) continue; vt.push(o.x+o.w/2); ht.push(o.y+o.h/2); }
-    best=null; for(i=0;i<vt.length;i++){ if(Math.abs(cx-vt[i])<=tol && (best==null||Math.abs(cx-vt[i])<Math.abs(cx-best))) best=vt[i]; } if(best!=null){ nx=Math.max(0,Math.min(QR_LAY.wmm-e.w, best-e.w/2)); gd.vx=best; }
-    best=null; for(i=0;i<ht.length;i++){ if(Math.abs(cy-ht[i])<=tol && (best==null||Math.abs(cy-ht[i])<Math.abs(cy-best))) best=ht[i]; } if(best!=null){ ny=Math.max(0,Math.min(QR_LAY.hmm-e.h, best-e.h/2)); gd.hy=best; }
+    best=null; for(i=0;i<vt.length;i++){ if(Math.abs(cx-vt[i])<=tol && (best==null||Math.abs(cx-vt[i])<Math.abs(cx-best))) best=vt[i]; } if(best!=null){ nx=Math.max(SL,Math.min(QR_LAY.wmm-SR-e.w, best-e.w/2)); gd.vx=best; }
+    best=null; for(i=0;i<ht.length;i++){ if(Math.abs(cy-ht[i])<=tol && (best==null||Math.abs(cy-ht[i])<Math.abs(cy-best))) best=ht[i]; } if(best!=null){ ny=Math.max(ST,Math.min(QR_LAY.hmm-SB-e.h, best-e.h/2)); gd.hy=best; }
     e.x=nx; e.y=ny; QE_GUIDES=(gd.vx!=null||gd.hy!=null)?gd:null;
   }
-  else if(QE_DRAG.mode==='resize'){ var nw=Math.max(2,sn(p.x-e.x)), nh=Math.max(1,sn(p.y-e.y)); if(QE_DRAG.el==='qr'){ var sq=Math.min(Math.max(4,Math.min(nw,nh)), QR_LAY.wmm-e.x, QR_LAY.hmm-e.y); e.w=e.h=sq; } else { e.w=Math.min(nw,QR_LAY.wmm-e.x); e.h=Math.min(nh,QR_LAY.hmm-e.y); } }
+  else if(QE_DRAG.mode==='resize'){ var nw=Math.max(2,sn(p.x-e.x)), nh=Math.max(1,sn(p.y-e.y)); if(QE_DRAG.el==='qr'){ var sq=Math.min(Math.max(4,Math.min(nw,nh)), QR_LAY.wmm-SR-e.x, QR_LAY.hmm-SB-e.y); e.w=e.h=sq; } else { e.w=Math.min(nw,QR_LAY.wmm-SR-e.x); e.h=Math.min(nh,QR_LAY.hmm-SB-e.y); } }
   qeRender();
 }
 function qeUp(){ if(QE_DRAG){ QE_DRAG=null; QE_GUIDES=null; saveQrLay(); qeRender(); } }
 function qeSyncFields(){ var w=document.getElementById('qe-w'),h=document.getElementById('qe-h'); if(w)w.value=QR_LAY.wmm; if(h)h.value=QR_LAY.hmm; }
-function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm') QR_LAY[k]=Math.max(10,Math.min(120,n)); } } saveQrLay(); qeRender(); }
+function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm') QR_LAY[k]=Math.max((k==='wmm'?QR_SAFE.left+QR_SAFE.right:QR_SAFE.top+QR_SAFE.bottom)+6,Math.min(120,n)); } } qeClampSafe(); saveQrLay(); qeRender(); }
 function qeToggle(el,on){ if(QR_LAY.el[el]){ QR_LAY.el[el].on=!!on; if(on) QE_SEL=el; } saveQrLay(); qeRender(); }
 function qeImg(v){ QR_LAY.img=v; QR_LAY.el.img.on=(v!=='none'); if(v!=='none') QE_SEL='img';
   if(v==='product'){ var sk=qrSampleSku().sku; _qeImgHint('loading',sk); _prodImg(_partImgUrl(sk), function(im){ _qeImgHint(im?'ok':'missing', sk); qeRender(); }); }
@@ -7497,33 +7523,36 @@ function qeFlashSaved(text){ var t=document.getElementById('qe-saved'); if(!t) r
 function qeSave(){ saveQrLay(); if(typeof mQRCount==='function') mQRCount(); qeFlashSaved('Design saved'); }
 function qeAuto(){
   var W=QR_LAY.wmm, H=QR_LAY.hmm, mg=Math.max(0.8, Math.min(W,H)*0.05), gap=Math.max(0.6, mg*0.7), ar=W/H, E=QR_LAY.el;
+  // Margins are asymmetric: sides + bottom carry the no-go buffer (QR_SAFE); the top stays free.
+  var L=Math.max(mg,QR_SAFE.left), Rm=Math.max(mg,QR_SAFE.right), Tm=Math.max(mg,QR_SAFE.top), Bm=Math.max(mg,QR_SAFE.bottom);
   var hasD=E.desc.on, hasS=E.sku.on;
-  E.qr.w=E.qr.h=Math.max(4, Math.min(E.qr.w, W-2*mg, H-2*mg));
-  ['desc','sku'].forEach(function(k){ E[k].h=Math.min(E[k].h, H-2*mg); });
+  E.qr.w=E.qr.h=Math.max(4, Math.min(E.qr.w, W-L-Rm, H-Tm-Bm));
+  ['desc','sku'].forEach(function(k){ E[k].h=Math.min(E[k].h, H-Tm-Bm); });
   if(ar>=1.45){
-    E.qr.x=mg; E.qr.y=Math.max(0,(H-E.qr.h)/2);
-    var tx=mg+E.qr.w+gap, tw=Math.max(3, W-tx-mg);
+    E.qr.x=L; E.qr.y=Math.max(Tm,Math.min(H-Bm-E.qr.h,(H-E.qr.h)/2));
+    var tx=L+E.qr.w+gap, tw=Math.max(3, W-tx-Rm);
     var bandH=(hasD?E.desc.h:0)+(hasS?E.sku.h:0)+((hasD&&hasS)?gap:0);
-    if(hasD&&hasS && bandH>H-2*mg){ gap=Math.max(0, H-2*mg-E.desc.h-E.sku.h); bandH=E.desc.h+E.sku.h+gap; }
-    var ty=Math.max(mg,(H-bandH)/2);
+    if(hasD&&hasS && bandH>H-Tm-Bm){ gap=Math.max(0, H-Tm-Bm-E.desc.h-E.sku.h); bandH=E.desc.h+E.sku.h+gap; }
+    var ty=Math.max(Tm,Math.min(H-Bm-bandH,(H-bandH)/2));
     E.desc.x=tx; E.desc.w=tw; E.desc.y=ty; if(hasD) ty+=E.desc.h+gap;
     E.sku.x=tx; E.sku.w=tw; E.sku.y=ty;
   } else {
-    var tw2=Math.max(3, W-2*mg), content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0), lines=(hasD?1:0)+(hasS?1:0);
-    if(content>H-2*mg && lines){ gap=Math.max(0,(H-2*mg-E.qr.h-(hasD?E.desc.h:0)-(hasS?E.sku.h:0))/lines); content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0); }
-    var top=Math.max(mg,(H-content)/2);
-    E.qr.x=Math.max(0,(W-E.qr.w)/2); E.qr.y=top; var y=top+E.qr.h+gap;
-    E.desc.x=mg; E.desc.w=tw2; E.desc.y=y; if(hasD) y+=E.desc.h+gap;
-    E.sku.x=mg; E.sku.w=tw2; E.sku.y=y;
+    var tw2=Math.max(3, W-L-Rm), content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0), lines=(hasD?1:0)+(hasS?1:0);
+    if(content>H-Tm-Bm && lines){ gap=Math.max(0,(H-Tm-Bm-E.qr.h-(hasD?E.desc.h:0)-(hasS?E.sku.h:0))/lines); content=E.qr.h+(hasD?gap+E.desc.h:0)+(hasS?gap+E.sku.h:0); }
+    var top=Math.max(Tm,Math.min(H-Bm-content,(H-content)/2));
+    E.qr.x=Math.max(L,Math.min(W-Rm-E.qr.w,(W-E.qr.w)/2)); E.qr.y=top; var y=top+E.qr.h+gap;
+    E.desc.x=L; E.desc.w=tw2; E.desc.y=y; if(hasD) y+=E.desc.h+gap;
+    E.sku.x=L; E.sku.w=tw2; E.sku.y=y;
   }
   if(QR_LAY.img!=='none'){ E.img.x=E.qr.x+(E.qr.w-E.img.w)/2; E.img.y=E.qr.y+(E.qr.h-E.img.h)/2; }
-  ['qr','img','desc','sku'].forEach(function(k){ var e=E[k]; e.x=Math.max(0,Math.min(W-e.w,e.x)); e.y=Math.max(0,Math.min(H-e.h,e.y)); });
+  qeClampSafe();
   QE_GUIDES=null; saveQrLay(); qeRender(); qeFlashSaved('Arranged & saved');
 }
 function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
+  qeClampSafe();
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
   sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
-  var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm));
+  var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm)); _qeStlTotal();
   var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;
     cv.addEventListener('mousedown',qeDown); window.addEventListener('mousemove',qeMove); window.addEventListener('mouseup',qeUp);
     cv.addEventListener('touchstart',qeDown,{passive:false}); cv.addEventListener('touchmove',qeMove,{passive:false}); cv.addEventListener('touchend',qeUp); }
@@ -7531,19 +7560,26 @@ function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
 }
 
 /* QR — identical payload + 30x30mm print layout as the old sheet */
+var _mqrToken=0;
 function mQR(sku){
   var p=(parts||[]).find(function(x){return x.sku===sku;}); if(!p) return;
-  _ensureHkLogo(function(){ _prodPreload([sku], function(){
-    var img=qrLabelCanvas(sku,(p.desc||sku),QR_LAY);
+  var tk=++_mqrToken, desc=(p.desc||sku);
+  function render(){
+    if(tk!==_mqrToken) return;                                 // a newer part was opened — drop this render
+    var img=qrLabelCanvas(sku,desc,QR_LAY);
     var maxBox=210, ar=(+QR_LAY.wmm||30)/(+QR_LAY.hmm||30);
     var w=(ar>=1?maxBox:Math.round(maxBox*ar)), h=(ar>=1?Math.round(maxBox/ar):maxBox);
     document.getElementById('m-qr-label').innerHTML='<img src="'+img+'" style="width:'+w+'px;height:'+h+'px">';
-    var nt=document.getElementById('m-qr-note'); if(nt) nt.innerHTML='Print at 100% scale · exact '+(+QR_LAY.wmm||30)+'&times;'+(+QR_LAY.hmm||30)+'mm label';
-  }); });
-  var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,(p.desc||sku)); };
+  }
+  // Open + draw THIS part immediately (previous label must never linger), using whatever images
+  // are already cached; then quietly re-draw once the logo/product photo finish loading.
+  var nt=document.getElementById('m-qr-note'); if(nt) nt.innerHTML='Print at 100% scale · exact '+(+QR_LAY.wmm||30)+'&times;'+(+QR_LAY.hmm||30)+'mm label';
+  var pb=document.getElementById('m-qr-printbtn'); pb.textContent='⤓ Save PDF'; pb.onclick=function(){ mSavePDFOne(sku,desc); };
   var sb=document.getElementById('m-qr-stlbtn'); if(sb) sb.onclick=function(){ qrSave3d(sku,'stl'); };
   var mb=document.getElementById('m-qr-3mfbtn'); if(mb) mb.onclick=function(){ qrSave3d(sku,'3mf'); };
   document.getElementById('m-qr').classList.add('show');
+  render();
+  _ensureHkLogo(function(){ _prodPreload([sku], render); });
 }
 function mCloseQR(){ document.getElementById('m-qr').classList.remove('show'); }
 /* ===== QR label -> STL for 3D printing =====================================================
@@ -7752,8 +7788,10 @@ function qeStlSet(k,v){
   if(!QR_LAY.stl) QR_LAY.stl=_clone(QR_LAY_DEFAULTS.stl);
   if(k==='mode') QR_LAY.stl.mode=(v==='engraved'?'engraved':'raised');
   else QR_LAY.stl[k]=Number(v)||QR_LAY_DEFAULTS.stl[k];
+  _qeStlTotal();
   saveQrLay();
 }
+function _qeStlTotal(){ var el=document.getElementById('qe-stl-total'); if(!el) return; var c2=_stlCfg(); el.textContent='Total printed depth: '+(c2.base+c2.raise).toFixed(1)+' mm ('+c2.base.toFixed(1)+' base + '+c2.raise.toFixed(1)+' emboss)'; }
 /* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
 function qrCanvas(sku){
   var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();

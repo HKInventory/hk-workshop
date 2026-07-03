@@ -7377,7 +7377,7 @@ function _qeImgHint(state,sku){ var h=document.getElementById('qe-img-hint'); if
   if(QR_LAY.img!=='product' || state==='' || state==='ok'){ h.style.display='none'; h.textContent=''; return; }
   if(state==='loading'){ h.style.display=''; h.style.background='rgba(124,133,151,0.12)'; h.style.color='var(--t2)'; h.style.border='1px solid rgba(124,133,151,0.25)'; h.innerHTML='<span class="qre-spin"></span> Looking up the RIMO photo\u2026'; return; }
   h.style.display=''; h.style.background='rgba(245,158,11,0.10)'; h.style.color='#F59E0B'; h.style.border='1px solid rgba(245,158,11,0.30)';
-  h.textContent='\u26A0 No RIMO photo for SKU '+(sku||'')+' \u2014 this label falls back to the placeholder. (Works only where the SKU is the RIMO product number.)';
+  h.textContent='\u26A0 No RIMO photo found for SKU '+(sku||'')+' \u2014 the label falls back to the placeholder. (A few RIMO parts use a non-standard image filename.)';
 }
 function qeReset(){ QR_LAY=_clone(QR_LAY_DEFAULTS); QE_SEL=null; saveQrLay(); qrDesignerInit(); }
 function qeFlashSaved(text){ var t=document.getElementById('qe-saved'); if(!t) return; clearTimeout(t._t1); clearTimeout(t._t2); t.innerHTML='<span class="qre-spin"></span> Saving\u2026'; t.className='qre-saved show'; t._t1=setTimeout(function(){ t.innerHTML='\u2713 '+(text||'Design saved'); t.className='qre-saved show ok'; },420); t._t2=setTimeout(function(){ t.className='qre-saved'; },2200); }

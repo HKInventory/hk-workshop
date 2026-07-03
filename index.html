@@ -1702,14 +1702,30 @@
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
         <div class="pgtitle">Intelligence</div>
-        <div id="raceTrack" class="rcard" style="text-align:left;padding:20px"><div style="font-size:13px;color:var(--t2)">Loading track…</div></div>
-        <div id="raceStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"></div>
-        <div id="raceDisc"></div>
-        <div id="raceWork"></div>
-        <div class="mc" style="border-style:dashed;opacity:.9">
-          <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--t2);text-transform:uppercase;margin-bottom:8px">Intelligence engine — coming</div>
-          <div style="font-size:13px;color:var(--t2);line-height:2">🧠&nbsp; Track danger score /100 from real damage history<br>🔧&nbsp; % damage rate per layout &amp; per part<br>📦&nbsp; Stock-out forecasting before events<br>📈&nbsp; Learns from itself as more data lands</div>
-          <div style="font-size:11.5px;color:var(--t2);opacity:.7;margin-top:8px">Unlocks once the sync logs which layout was live for each repair (track-layout timeline).</div>
+        <div class="md-tabs">
+          <button class="md-tab active" id="inteltab-today" onclick="intelTab('today')">Today</button>
+          <button class="md-tab" id="inteltab-layouts" onclick="intelTab('layouts')">Layouts</button>
+          <button class="md-tab" id="inteltab-ai" onclick="intelTab('ai')">🧠 AI Insights</button>
+        </div>
+        <div id="intel-pane-today">
+          <div id="raceTrack" class="rcard" style="text-align:left;padding:20px"><div style="font-size:13px;color:var(--t2)">Loading track…</div></div>
+          <div id="raceStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"></div>
+          <div id="raceDisc"></div>
+          <div id="raceWork"></div>
+        </div>
+        <div id="intel-pane-layouts" style="display:none">
+          <div id="intel-reco"></div>
+          <div id="intel-layouts"><div class="m-empty">Loading layout history…</div></div>
+          <div id="intel-weekdays"></div>
+        </div>
+        <div id="intel-pane-ai" style="display:none">
+          <div class="mc" style="text-align:left">
+            <div class="mct">AI deep analysis</div>
+            <div class="m-tool-desc">The engine's numbers get handed to HK AI along with your question. It reads the layout damage rates, part usage, damage types and corner mentions and writes an analysis — what's causing damage, which layout looks safest, and what to run next.</div>
+            <input class="m-search-in" id="intel-ai-q" style="margin-top:10px;width:100%" placeholder="Optional question — e.g. why is the hairpin layout so rough on bumpers?" autocomplete="off">
+            <button class="m-add" id="intel-ai-btn" style="width:100%;margin-top:10px" onclick="intelAiRun()">🧠 Run deep analysis</button>
+          </div>
+          <div id="intel-ai-out"></div>
         </div>
       </div>
     </div>
@@ -2111,6 +2127,7 @@
               <div class="qre-f"><label>Background</label><input id="qe-bg" type="color" oninput="qeSet('bg',this.value)"></div>
             </div>
             <div class="qre-two">
+              <div class="qre-f"><label>QR contains</label><select id="qe-payload" onchange="qeSet('payload',this.value)"><option value="link">Full app link</option><option value="sku">Compact code — bigger squares (best for 3D print)</option></select></div>
               <div class="qre-f"><label>Error correction</label><select id="qe-ec" onchange="qeSet('ec',this.value)"><option value="L">L · 7%</option><option value="M">M · 15%</option><option value="Q">Q · 25%</option><option value="H">H · 30%</option></select></div>
               <div class="qre-f"><label>Quiet zone</label><input id="qe-quiet" type="number" min="0" max="8" step="1" oninput="qeSet('quiet',this.value)"></div>
             </div>
@@ -2708,11 +2725,11 @@ function startRealtime(){
       clearTimeout(t); t=setTimeout(function(){ first=0; t=null; fn(); }, wait);
     };
   }
-  // Live-update reaction times. Short leading waits so a change shows almost instantly; a small
-  // maxWait still coalesces a burst (e.g. a heavy pass) into a few renders. Safe to run this tight
-  // because the sync now writes only changed rows (events are rare) and every render is signature-
-  // guarded (KSB_LAST / _nfSig / etc.) so an unchanged re-render rebuilds no DOM and never flickers.
-  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 180, 1200);
+  // Live-update reaction times. Kart refreshes wait for the sync burst to SETTLE: the runner
+  // writes the fleet row-by-row, and refreshing mid-sweep shows half-written counts that flicker.
+  // So rf_karts refreshes fire ~1.6s after the LAST event (with a long maxWait safety), giving one
+  // clean render per sweep instead of a strobing status bar. Other views keep tight timings.
+  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 1600, 10000);
   var _rtMech  = _debounce(function(){ if(_curScr()==='manager'&&typeof renderMechToday==='function'){try{renderMechToday();}catch(e){}} }, 200, 1200);
   var _rtMgr   = _debounce(function(){ if(_curScr()==='manager'&&typeof loadMgr==='function'){try{loadMgr();}catch(e){}} }, 220, 1400);
   var _rtBadge = _debounce(function(){ if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }, 220, 1400);
@@ -3257,7 +3274,7 @@ function updateUI(id){
   // Keep the live status/notes refresh running only while a kart list/detail screen is open.
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
-  if(id==='race' && typeof loadRace==='function') loadRace();
+  if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
 }
 function sizeTiles(){ layoutHome(); }
@@ -3882,6 +3899,10 @@ function _initScanner(){
         if(!skuMatch){
           var bare=url.match(/^\s*HK:([\w\-.\/]+)\s*$/i);
           if(bare) skuMatch=bare;
+        }
+        if(!skuMatch){
+          var raw=url.match(/^\s*(\d{4,})\s*$/);   // a plain numeric SKU (compact printed tags)
+          if(raw) skuMatch=raw;
         }
         if(!skuMatch){
           // Not an HK code — show error, don't navigate anywhere
@@ -4714,6 +4735,14 @@ function loadRfKarts(cb,force){
     heavyFresh ? Promise.resolve(null) : sbFetchAll('rf_kart_notes','*',null,null,'id').catch(function(){ return {data:[]}; })
   ]).then(function(rs){
     var krows=(rs[0]&&rs[0].data)||[];
+    // Mid-sync guard: if the fleet suddenly comes back >10% SMALLER than what we're showing for
+    // the same site, the runner is almost certainly mid-rewrite — showing it makes the counts
+    // strobe (63 adults -> 44 -> 63...). Keep the fuller fleet on screen and quietly re-check.
+    if(krows.length && KART_LIST.length && KARTS_SITE===site && krows.length < KART_LIST.length*0.9){
+      clearTimeout(window._kartsPartialT);
+      window._kartsPartialT=setTimeout(function(){ loadRfKarts(); }, 3000);
+      krows=[];                                              // skip applying this snapshot
+    }
     if(krows.length){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
       // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
@@ -5016,6 +5045,209 @@ function loadRace(){
     var rows=(res&&res.data)||[]; renderRaceStats(null,null,rows.length); renderRaceDisc(rows);
   }, function(){ renderRaceStats(null,null,0); renderRaceDisc([]); });
 }
+/* ===================== INTELLIGENCE ENGINE =====================
+   Attributes repairs + kart notes to the layout that was LIVE when they happened (track_history,
+   written by a DB trigger whenever tracks.live changes), then computes per-layout damage rates,
+   damage-type and corner breakdowns, weekday effects, and a safest-next-layout recommendation.
+   The AI Insights tab hands the same numbers to HK AI for a written deep-dive. History accrues
+   from the day the trigger goes in — the engine says so honestly while data is thin. */
+var INTEL={hist:null,summary:null,loading:false};
+function intelTab(name){
+  ['today','layouts','ai'].forEach(function(k){
+    var p=document.getElementById('intel-pane-'+k); if(p) p.style.display=(k===name)?'':'none';
+    var b=document.getElementById('inteltab-'+k); if(b) b.classList.toggle('active',k===name);
+  });
+  if(name==='layouts' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad();
+}
+function intelReset(){ intelTab('today'); }
+var INTEL_BUCKETS=[
+  ['Bumpers & pods', /bumper|pod|nerf|surround/i],
+  ['Steering',       /steer|tie ?rod|track ?rod|spindle|column|knuckle/i],
+  ['Axles & hubs',   /axle|stub|hub|bearing|wishbone/i],
+  ['Brakes',         /brake|caliper|disc\b|pad\b/i],
+  ['Wheels & tyres', /tyre|tire|wheel|rim\b/i],
+  ['Bodywork & seat',/body|panel|floor|seat|cowl|shell/i],
+  ['Electrical',     /wire|loom|cpu|battery|motor|controller|sensor|throttle|accelerator|charger/i],
+  ['Impact damage',  /crash|hit\b|impact|smash|bent|barrier|collision/i]
+];
+function _intelCorners(text,map){
+  var m, re=/\b(?:t|turn|corner)\s*#?(\d{1,2})\b/gi;
+  while((m=re.exec(text))){ var k='T'+m[1]; map[k]=(map[k]||0)+1; }
+  ['hairpin','chicane','esses','sweeper'].forEach(function(w){ if(new RegExp('\\b'+w,'i').test(text)) map[w.charAt(0).toUpperCase()+w.slice(1)]=(map[w.charAt(0).toUpperCase()+w.slice(1)]||0)+1; });
+}
+function intelLayoutsLoad(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  INTEL.loading=true;
+  var site=currentSite||'sydney';
+  var lh=document.getElementById('intel-layouts'); if(lh) lh.innerHTML='<div class="m-empty">Reading the layout timeline\u2026</div>';
+  Promise.all([
+    SBC.from('track_history').select('*').eq('site',site).order('started_at',{ascending:false}).limit(200).then(function(r){return (r&&r.data)||[];},function(){return null;}),
+    SBC.from('rf_karts').select('rf_id').eq('site',site).limit(2000).then(function(r){return ((r&&r.data)||[]).map(function(k){return k.rf_id;});},function(){return [];})
+  ]).then(function(rs){
+    var hist=rs[0], siteKarts={}; (rs[1]||[]).forEach(function(id){ siteKarts[id]=1; });
+    if(hist===null){ INTEL.loading=false; if(lh) lh.innerHTML='<div class="m-empty">The layout timeline isn\u2019t set up yet \u2014 run intelligence.sql in Supabase, then flip a layout live.</div>'; return; }
+    if(!hist.length){ INTEL.loading=false; if(lh) lh.innerHTML='<div class="m-empty">No layout history yet. It starts recording the moment a layout is set live (intelligence.sql adds the recorder). Come back after a layout change or two.</div>'; return; }
+    var minDate=hist[hist.length-1].started_at.slice(0,10);
+    Promise.all([
+      SBC.from('rf_repairs').select('rf_kart_id,date_discovered,cost,description,kart_type').gte('date_discovered',minDate).limit(20000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+      SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at').gte('created_at',minDate).limit(5000).then(function(r){return (r&&r.data)||[];},function(){return [];})
+    ]).then(function(dr){
+      var reps=dr[0].filter(function(r){return siteKarts[r.rf_kart_id];});
+      var notes=dr[1].filter(function(n){return siteKarts[n.rf_kart_id];});
+      INTEL.summary=intelAnalyse(hist,reps,notes);
+      INTEL.loading=false;
+      intelRender();
+    });
+  });
+}
+function intelAnalyse(hist,reps,notes){
+  var now=Date.now();
+  var periods=hist.map(function(h){
+    var s=new Date(h.started_at).getTime(), e=h.ended_at?new Date(h.ended_at).getTime():now;
+    return { name:h.track_name, direction:h.direction||'', live:!h.ended_at,
+             sd:h.started_at.slice(0,10), ed:(h.ended_at||new Date(now).toISOString()).slice(0,10),
+             days:Math.max(1,Math.round((e-s)/86400000*10)/10),
+             reps:0, cost:0, buckets:{}, corners:{}, types:{}, noteN:0 };
+  });
+  // Morning-check attribution: mechanics find a batch of breakages in the MORNING checks, so
+  // damage discovered on a layout-switch day belongs to the OUTGOING layout (yesterday's running),
+  // not the one that just went live. Matching oldest-first makes boundary days resolve that way.
+  function periodFor(dstr){ for(var i=periods.length-1;i>=0;i--){ if(dstr>=periods[i].sd && dstr<=periods[i].ed) return periods[i]; } return null; }
+  var weekdays=[0,0,0,0,0,0,0], wdNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var byDate={};
+  reps.forEach(function(r){
+    var d=(r.date_discovered||'').slice(0,10); if(!d) return;
+    var p=periodFor(d); var txt=String(r.description||'');
+    weekdays[new Date(d+'T12:00:00').getDay()]++;
+    var bd=byDate[d]=byDate[d]||{date:d,n:0,cost:0,layout:(p?p.name:''),buckets:{}};
+    bd.n++; bd.cost+=(+r.cost||0);
+    INTEL_BUCKETS.forEach(function(b){ if(b[1].test(txt)){ bd.buckets[b[0]]=(bd.buckets[b[0]]||0)+1; } });
+    if(!p) return;
+    p.reps++; p.cost+=(+r.cost||0);
+    if(r.kart_type) p.types[r.kart_type]=(p.types[r.kart_type]||0)+1;
+    INTEL_BUCKETS.forEach(function(b){ if(b[1].test(txt)) p.buckets[b[0]]=(p.buckets[b[0]]||0)+1; });
+    _intelCorners(txt,p.corners);
+  });
+  notes.forEach(function(n){
+    var d=(n.created_at||'').slice(0,10); var p=periodFor(d); if(!p) return;
+    p.noteN++;
+    var txt=String(n.note||'');
+    INTEL_BUCKETS.forEach(function(b){ if(b[1].test(txt)) p.buckets[b[0]]=(p.buckets[b[0]]||0)+1; });
+    _intelCorners(txt,p.corners);
+  });
+  // roll periods up per layout name for the ranking
+  var byTrack={};
+  periods.forEach(function(p){
+    var t=byTrack[p.name]=byTrack[p.name]||{name:p.name,days:0,reps:0,cost:0,live:false,corners:{},buckets:{}};
+    t.days+=p.days; t.reps+=p.reps; t.cost+=p.cost; t.live=t.live||p.live;
+    Object.keys(p.corners).forEach(function(k){ t.corners[k]=(t.corners[k]||0)+p.corners[k]; });
+    Object.keys(p.buckets).forEach(function(k){ t.buckets[k]=(t.buckets[k]||0)+p.buckets[k]; });
+  });
+  var tracks=Object.keys(byTrack).map(function(k){ var t=byTrack[k]; t.rate=t.reps/Math.max(1,t.days); t.costRate=t.cost/Math.max(1,t.days); return t; });
+  // Damage FINGERPRINT: each layout's damage-type mix as a vector; cosine similarity finds
+  // layouts that break karts the same WAY (the cross-reference that works when nobody writes
+  // down corners — similar features produce similar breakage patterns).
+  function _vec(t){ return INTEL_BUCKETS.map(function(b){ return t.buckets[b[0]]||0; }); }
+  function _cos(a,b){ var d=0,na=0,nb=0; for(var i=0;i<a.length;i++){ d+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; } return (na&&nb)?d/Math.sqrt(na*nb):0; }
+  tracks.forEach(function(t){
+    var hitsT=_vec(t).reduce(function(a,b){return a+b;},0); if(hitsT<4) return;   // too little signal to fingerprint
+    var best=null;
+    tracks.forEach(function(o){ if(o===t) return; var hitsO=_vec(o).reduce(function(a,b){return a+b;},0); if(hitsO<4) return;
+      var s2=_cos(_vec(t),_vec(o)); if(s2>=0.6 && (!best||s2>best.sim)) best={name:o.name,sim:s2}; });
+    if(best) t.like=best;
+  });
+  var spikes=Object.keys(byDate).map(function(k){return byDate[k];}).filter(function(d){return d.n>=2;}).sort(function(a,b){return b.n-a.n;}).slice(0,5);
+  var ranked=tracks.filter(function(t){return t.days>=2;}).sort(function(a,b){return a.rate-b.rate;});
+  var current=tracks.find(function(t){return t.live;})||null;
+  var safest=ranked[0]||null;
+  var suggestion=ranked.find(function(t){return !t.live;})||null;
+  // Never recommend switching TO a rougher layout: if what's running is already the safest
+  // known (or the best alternative is meaningfully worse), the advice is to stay put.
+  if(current && suggestion){ var cur=ranked.find(function(t){return t.name===current.name;}); if(cur && suggestion.rate>cur.rate*1.1) suggestion=null; }
+  var confident=ranked.length>=2;
+  return { periods:periods, tracks:tracks.sort(function(a,b){return a.rate-b.rate;}), weekdays:weekdays, wdNames:wdNames,
+           current:current, safest:safest, suggestion:suggestion, confident:confident, spikes:spikes,
+           totalReps:reps.length, totalNotes:notes.length, since:hist[hist.length-1].started_at.slice(0,10) };
+}
+function _iEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function _iTop(obj,n){ return Object.keys(obj).map(function(k){return [k,obj[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,n); }
+function intelRender(){
+  var S=INTEL.summary; if(!S) return;
+  var acc=(typeof siteAccent==='function'&&siteAccent())||'#00CFFF';
+  // Recommendation card
+  var rc=document.getElementById('intel-reco');
+  if(rc){
+    var h='<div class="mc" style="text-align:left"><div class="mct">Engine read</div>';
+    if(!S.confident){
+      h+='<div style="font-size:13px;color:var(--t2);line-height:1.9">Recording since <b>'+_iEsc(S.since)+'</b> \u00b7 '+S.totalReps+' repairs and '+S.totalNotes+' notes attributed so far. The ranking needs at least two layouts with 2+ days of running each \u2014 keep rotating layouts and this fills in on its own.</div>';
+    } else {
+      h+='<div style="font-size:13px;line-height:2;color:var(--t1)">';
+      if(S.current) h+='\ud83c\udfc1 Running now: <b>'+_iEsc(S.current.name)+'</b> \u2014 '+S.current.rate.toFixed(1)+' repairs/day here<br>';
+      if(S.safest)  h+='\ud83d\udee1\ufe0f Safest so far: <b style="color:#22C55E">'+_iEsc(S.safest.name)+'</b> \u2014 '+S.safest.rate.toFixed(1)+' repairs/day over '+Math.round(S.safest.days)+' days<br>';
+      if(S.suggestion && (!S.current||S.suggestion.name!==S.current.name)) h+='\ud83d\udca1 Suggested next: <b style="color:'+acc+'">'+_iEsc(S.suggestion.name)+'</b> \u2014 lowest damage rate not currently running';
+      else if(S.current && S.safest && S.current.name===S.safest.name) h+='\u2705 You\u2019re already on the safest known layout \u2014 no change recommended';
+      h+='</div>';
+    }
+    h+='</div>';
+    // Morning-check spike days — the batches mechanics found, attributed to the layout running
+    if(S.spikes&&S.spikes.length){
+      h+='<div class="mc" style="text-align:left"><div class="mct">Biggest morning-check batches</div><div style="font-size:12.5px;line-height:2;color:var(--t1)">';
+      S.spikes.forEach(function(d){ var tb=_iTop(d.buckets,1); h+='\ud83d\udcc5 '+_iEsc(d.date)+' \u2014 <b>'+d.n+'</b> found'+(d.layout?(' on <b>'+_iEsc(d.layout)+'</b>'):'')+(tb.length?(' \u00b7 mostly '+_iEsc(tb[0][0]).toLowerCase()):'')+'<br>'; });
+      h+='</div></div>';
+    }
+    rc.innerHTML=h;
+  }
+  // Per-layout cards (period timeline, newest first)
+  var lh=document.getElementById('intel-layouts');
+  if(lh){
+    var tk={}; S.tracks.forEach(function(t){ tk[t.name]=t; });
+    lh.innerHTML=S.periods.map(function(p){
+      var buck=_iTop(p.buckets,3).map(function(b){return _iEsc(b[0])+' \u00d7'+b[1];}).join(' \u00b7 ');
+      var corn=_iTop(p.corners,4).map(function(c){return _iEsc(c[0])+' \u00d7'+c[1];}).join(' \u00b7 ');
+      var types=_iTop(p.types,3).map(function(t){return _iEsc(t[0])+' \u00d7'+t[1];}).join(' \u00b7 ');
+      var like=tk[p.name]&&tk[p.name].like;
+      return '<div class="mc" style="text-align:left">'
+        +'<div style="display:flex;align-items:center;gap:8px"><div class="mct" style="margin:0">'+_iEsc(p.name)+'</div>'+(p.live?'<span style="font-size:10px;font-weight:800;color:#22C55E;background:#22C55E1f;border:1px solid #22C55E40;padding:2px 8px;border-radius:6px">LIVE</span>':'')+'</div>'
+        +'<div style="font-size:12px;color:var(--t2);margin:4px 0 8px">'+_iEsc(p.sd)+' \u2192 '+(p.live?'now':_iEsc(p.ed))+' \u00b7 '+p.days+' day'+(p.days===1?'':'s')+(p.direction?(' \u00b7 '+_iEsc(p.direction)):'')+'</div>'
+        +'<div style="font-size:13px;line-height:2;color:var(--t1)">\ud83d\udd27 <b>'+p.reps+'</b> repairs ('+(p.reps/Math.max(1,p.days)).toFixed(1)+'/day) \u00b7 \ud83d\udcb0 $'+Math.round(p.cost)+' \u00b7 \ud83d\udcdd '+p.noteN+' notes'
+        +(types?('<br>\ud83c\udfce\ufe0f '+types):'')
+        +(buck?('<br>\ud83d\udca5 '+buck):'')
+        +(like?('<br>\ud83e\udde9 Breaks karts like <b>'+_iEsc(like.name)+'</b> ('+Math.round(like.sim*100)+'% pattern match)'):'')
+        +(corn?('<br>\ud83d\udccd Corner mentions: '+corn):'')
+        +'</div></div>';
+    }).join('');
+  }
+  // Weekday profile
+  var wh=document.getElementById('intel-weekdays');
+  if(wh){
+    var mx=Math.max.apply(null,S.weekdays.concat([1]));
+    wh.innerHTML='<div class="mc" style="text-align:left"><div class="mct">Damage by weekday</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:96px;margin-top:8px">'
+      +S.weekdays.map(function(v,i){ var pc=Math.round(v/mx*100); return '<div style="text-align:center"><div style="height:70px;display:flex;align-items:flex-end"><div style="width:100%;height:'+Math.max(3,pc*0.7)+'px;background:'+acc+';border-radius:5px 5px 0 0;opacity:'+(0.35+0.65*v/mx).toFixed(2)+'"></div></div><div style="font-size:10px;color:var(--t2);margin-top:4px">'+S.wdNames[i]+'</div><div style="font-size:11px;font-weight:700;color:var(--t1)">'+v+'</div></div>'; }).join('')
+      +'</div><div style="font-size:11.5px;color:var(--t2);margin-top:8px;line-height:1.6">Busy days break more karts \u2014 this shows which days carry the load. True riders-on-track counts arrive once RaceFacer session sync lands; weekday is the honest proxy until then.</div></div>';
+  }
+}
+function intelAiRun(){
+  var out=document.getElementById('intel-ai-out'), btn=document.getElementById('intel-ai-btn');
+  if(!cu||!cu.pin){ if(out) out.innerHTML='<div class="m-empty">Sign in first.</div>'; return; }
+  function go(){
+    var q=(document.getElementById('intel-ai-q')?document.getElementById('intel-ai-q').value.trim():'');
+    var summary={ since:INTEL.summary.since, layouts:INTEL.summary.tracks.map(function(t){ return {name:t.name, days:Math.round(t.days*10)/10, repairs:t.reps, repairsPerDay:Math.round(t.rate*100)/100, costPerDay:Math.round(t.costRate), live:t.live, damageFingerprint:_iTop(t.buckets,6), breaksKartsLike:(t.like?{layout:t.like.name,patternMatch:Math.round(t.like.sim*100)+'%'}:null), cornerMentions:_iTop(t.corners,6)}; }), biggestMorningCheckBatches:(INTEL.summary.spikes||[]).map(function(d){return {date:d.date,found:d.n,layout:d.layout,mostly:_iTop(d.buckets,2)};}), damageByWeekday:INTEL.summary.wdNames.map(function(n,i){return [n,INTEL.summary.weekdays[i]];}) };
+    var question=(q||'Analyse our track layouts. Damage is found in batches during morning mechanic checks (nobody logs which corner), so reason from each layout\u2019s damage FINGERPRINT: which layouts break karts the same way and what shared feature likely explains it, which layout is roughest and why, how day-of-week load affects breakages, and what is the safest layout to run next?')
+      +'\n\nUse ONLY this engine data (from our layout timeline, repairs and kart notes). Be specific, quantify, and give a clear recommendation:\n'+JSON.stringify(summary);
+    if(btn){ btn.disabled=true; btn.textContent='Thinking\u2026'; }
+    if(out) out.innerHTML='<div class="m-empty">HK AI is reading the engine data\u2026</div>';
+    fetch(SB_FN+'hk-ai',{method:'POST',headers:HDRS,body:JSON.stringify({pin:cu.pin,question:question,site:(currentSite||'sydney'),history:[]})})
+      .then(function(r){return r.json();}).then(function(res){
+        if(btn){ btn.disabled=false; btn.textContent='\ud83e\udde0 Run deep analysis'; }
+        if(res&&res.success){ if(out) out.innerHTML='<div class="mc" style="text-align:left"><div class="mct">HK AI \u00b7 deep analysis</div><div style="font-size:13.5px;line-height:1.9;color:var(--t1);white-space:pre-wrap">'+_iEsc(res.answer)+'</div></div>'; }
+        else { if(out) out.innerHTML='<div class="m-empty">'+_iEsc((res&&res.message)||'HK AI could not run')+'</div>'; }
+      }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='\ud83e\udde0 Run deep analysis'; } if(out) out.innerHTML='<div class="m-empty">Connection error \u2014 is the hk-ai function deployed?</div>'; });
+  }
+  if(!INTEL.summary){ intelLayoutsLoad(); var w=setInterval(function(){ if(INTEL.summary){ clearInterval(w); go(); } },400); setTimeout(function(){clearInterval(w);},15000); }
+  else go();
+}
+
 function renderBeacons(t){
   var nm=document.getElementById('bcnTrk'), site=document.getElementById('bcnSite'), live=document.getElementById('bcnLive'), leglive=document.getElementById('bcnLegLive');
   var host=document.getElementById('bcnHost'), side=document.getElementById('bcnSide'), sideList=document.getElementById('bcnSideList');
@@ -7265,7 +7497,13 @@ function mSave(){
   var sku;
   if(mEditSku){ sku=mEditSku; }
   else if(skuIn===''){ sku='NS-'+Date.now().toString(36).toUpperCase()+Math.floor(Math.random()*1296).toString(36).toUpperCase(); }
-  else { if(!/^\d+$/.test(skuIn)){ mFormMsg('SKU must be numbers only \u2014 or leave it blank if the part has no SKU'); return; } sku=skuIn; }
+  else {
+    // RIMO product numbers are digits-only; other brands can use their own alphanumeric codes.
+    var isRimoSku=document.getElementById('m-f-rimo').checked;
+    if(isRimoSku && !/^\d+$/.test(skuIn)){ mFormMsg('RIMO SKUs are numbers only \u2014 untick \u201cRIMO part\u201d for another brand\u2019s code, or leave the SKU blank'); return; }
+    if(!isRimoSku && !/^[A-Za-z0-9._-]{2,32}$/.test(skuIn)){ mFormMsg('SKU can use letters, numbers, dots and dashes (2\u201332 characters) \u2014 or leave it blank'); return; }
+    sku=skuIn;
+  }
   var isRimo=document.getElementById('m-f-rimo').checked;
   var brand=document.getElementById('m-f-brand').value.trim(); if(isRimo&&!brand) brand='RIMO';
   var leadRaw=document.getElementById('m-f-lead').value.trim();
@@ -7299,7 +7537,7 @@ function mRemove(sku){
 }
 
 /* ===== QR label editor (master) — drag & resize, prints exactly what you see ===== */
-var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true,
+var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true, payload:'link',
   stl:{ base:1.6, raise:0.8, mode:'raised', pxmm:4 },   // 3D print: plate mm, emboss mm, raised|engraved, detail px/mm
   el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
 // No-go buffer: nothing can sit within this many mm of the label's LEFT, RIGHT and BOTTOM edges
@@ -7353,6 +7591,10 @@ function _qrRealtimeApply(val){                           // apply a live change
   if(document.getElementById('qre-cv')) qrDesignerInit();
 }
 if(!window.__tvSite){ setTimeout(syncQrLayFromServer,0); }   // pull the shared design once on boot (skip on the TV)
+// What the QR encodes. 'link' = the full app URL (any phone camera opens the app).
+// 'sku' = compact HK:<sku> token — ~40% bigger squares at the same size (21x21 vs 29x29),
+// which is what makes a 3D-printed code actually scannable. The in-app scanner reads both.
+function qrPayload(sku,l){ l=l||QR_LAY; return (l.payload==='sku') ? ('HK:'+String(sku)) : ((typeof WEB_APP_URL!=='undefined'?WEB_APP_URL:'')+'?sku='+sku); }
 function _qrEc(l){ return ({L:'L',M:'M',Q:'Q',H:'H'}[(l||QR_LAY).ec]||'M'); }
 function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) return s; while(s.length>1&&ctx.measureText(s+'\u2026').width>maxW)s=s.slice(0,-1); return s+'\u2026'; }
 /* Auto-fit a text block into its box: try 1 line at full size, then 2, then 3 lines at
@@ -7412,6 +7654,7 @@ function _partImgUrl(sku){
     return p.image_url;
   }
   var s=String(sku||'').trim(); if(!s) return '';
+  if(p&&p.is_rimo===false) return '';                        // another brand: no RIMO catalogue to look in
   // RIMO product photo guessed from the SKU (the shop's "Product No." usually equals the image
   // filename; the proxy tries the common suffix variants). Missing photos 404 -> placeholder.
   return SB_FN+'part-image?apikey='+SB_KEY+'&sku='+encodeURIComponent(s);
@@ -7424,7 +7667,7 @@ function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
   lay=lay||QR_LAY; imgs=imgs||{}; var W=Math.round(lay.wmm*S), H=Math.round(lay.hmm*S), E=lay.el;
   ctx.clearRect(0,0,W,H); ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(0,0,W,H);
   if(E.qr.on){ var b=E.qr, bw=Math.max(2,b.w*S), bh=Math.max(2,b.h*S), bx=b.x*S, by=b.y*S;
-    var qr=qrcode(0,_qrEc(lay)); qr.addData((typeof WEB_APP_URL!=='undefined'?WEB_APP_URL:'')+'?sku='+sku); qr.make();
+    var qr=qrcode(0,_qrEc(lay)); qr.addData(qrPayload(sku,lay)); qr.make();
     var n=qr.getModuleCount(), m=Math.max(0,Math.round(+lay.quiet)), total=n+m*2;
     var side=Math.min(bw,bh), cell=Math.max(1,Math.floor(side/total)), qs=cell*total;
     var ox=bx+Math.round((bw-qs)/2), oy=by+Math.round((bh-qs)/2);
@@ -7505,7 +7748,7 @@ function qeMove(ev){ if(!QE_DRAG) return; ev.preventDefault(); var p=_qePt(ev), 
 }
 function qeUp(){ if(QE_DRAG){ QE_DRAG=null; QE_GUIDES=null; saveQrLay(); qeRender(); } }
 function qeSyncFields(){ var w=document.getElementById('qe-w'),h=document.getElementById('qe-h'); if(w)w.value=QR_LAY.wmm; if(h)h.value=QR_LAY.hmm; }
-function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm') QR_LAY[k]=Math.max((k==='wmm'?QR_SAFE.left+QR_SAFE.right:QR_SAFE.top+QR_SAFE.bottom)+6,Math.min(120,n)); } } qeClampSafe(); saveQrLay(); qeRender(); }
+function qeSet(k,v){ if(k==='grid'){ QR_LAY.grid=!!v; } else if(k==='ec'||k==='fg'||k==='bg'){ QR_LAY[k]=v; } else if(k==='payload'){ QR_LAY.payload=(v==='sku'?'sku':'link'); } else { var n=parseFloat(v); if(!isNaN(n)){ if(k==='quiet') QR_LAY.quiet=Math.max(0,Math.min(8,Math.round(n))); else if(k==='wmm'||k==='hmm') QR_LAY[k]=Math.max((k==='wmm'?QR_SAFE.left+QR_SAFE.right:QR_SAFE.top+QR_SAFE.bottom)+6,Math.min(120,n)); } } qeClampSafe(); saveQrLay(); qeRender(); }
 function qeToggle(el,on){ if(QR_LAY.el[el]){ QR_LAY.el[el].on=!!on; if(on) QE_SEL=el; } saveQrLay(); qeRender(); }
 function qeImg(v){ QR_LAY.img=v; QR_LAY.el.img.on=(v!=='none'); if(v!=='none') QE_SEL='img';
   if(v==='product'){ var sk=qrSampleSku().sku; _qeImgHint('loading',sk); _prodImg(_partImgUrl(sk), function(im){ _qeImgHint(im?'ok':'missing', sk); qeRender(); }); }
@@ -7551,7 +7794,7 @@ function qeAuto(){
 function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
   qeClampSafe();
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
-  sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
+  sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-payload',QR_LAY.payload||'link'); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
   var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm)); _qeStlTotal();
   var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;
     cv.addEventListener('mousedown',qeDown); window.addEventListener('mousemove',qeMove); window.addEventListener('mouseup',qeUp);
@@ -7797,10 +8040,16 @@ function qeStlSet(k,v){
   _qeStlTotal();
   saveQrLay();
 }
-function _qeStlTotal(){ var el=document.getElementById('qe-stl-total'); if(!el) return; var c2=_stlCfg(); el.textContent='Total printed depth: '+(c2.base+c2.raise).toFixed(1)+' mm ('+c2.base.toFixed(1)+' base + '+c2.raise.toFixed(1)+' emboss)'; }
+function _qeStlTotal(){ var el=document.getElementById('qe-stl-total'); if(!el) return; var c2=_stlCfg();
+  var t='Total printed depth: '+(c2.base+c2.raise).toFixed(1)+' mm ('+c2.base.toFixed(1)+' base + '+c2.raise.toFixed(1)+' emboss)';
+  var warn=[];
+  if((+QR_LAY.quiet||0)<2) warn.push('\u26A0 Quiet zone is '+(+QR_LAY.quiet||0)+' \u2014 printed codes need breathing room to scan; set 2\u20134');
+  if(QR_LAY.payload!=='sku') warn.push('\ud83d\udca1 For 3D printing, set \u201cQR contains\u201d to Compact \u2014 ~40% bigger squares');
+  el.innerHTML=t+(warn.length?('<br><span style="color:#F59E0B">'+warn.join('<br>')+'</span>'):'');
+}
 /* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
 function qrCanvas(sku){
-  var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make();
+  var qr=qrcode(0,'M'); qr.addData(qrPayload(sku)); qr.make();
   var n=qr.getModuleCount(), m=4, total=n+m*2, scale=6;
   var c=document.createElement('canvas'); c.width=c.height=total*scale;
   var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.fillStyle='#000';
@@ -7816,7 +8065,7 @@ function mSavePDFOne(sku,desc){
 }
 
 /* QR helpers — generated locally so payload is the same ?sku= and a bulk export never depends on a network round-trip */
-function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(WEB_APP_URL+'?sku='+sku); qr.make(); return qr.createDataURL(6); }
+function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(qrPayload(sku)); qr.make(); return qr.createDataURL(6); }
 function mExportAllQR(){
   var list=(parts||[]).filter(function(p){return p.qr_print!==false;}); if(!list.length){ alert('No parts are ticked for the bulk QR PDF. Tick the ones you want, or use \u201cTick all\u201d.'); return; }
   _ensureHkLogo();

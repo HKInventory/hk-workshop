@@ -7748,20 +7748,26 @@ function threeMfFromLabel(sku,desc,lay){
     parts3d.push({name:'Top surface', v:vTop, pindex:1});
   }
   var W=(+lay.wmm||30), H=(+lay.hmm||30), mmv=1/cfg.pxmm;
-  var objs='', items='', oid=3;
+  var objs='', comps='<component objectid="2"/>', oid=3;
   parts3d.forEach(function(p3){
     objs+='<object id="'+oid+'" type="model" pid="1" pindex="'+(p3.pindex||1)+'" name="'+p3.name+'"><mesh>'+_mfBoxes(p3.v.runs,W,H,p3.v.mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>';
-    items+='<item objectid="'+oid+'"/>';
+    comps+='<component objectid="'+oid+'"/>';
     oid++;
   });
+  // All bodies are wrapped in ONE assembly object (3MF components). This matters for slicers:
+  // Bambu auto-rescales standalone objects it thinks are implausibly small (a 3mm SKU strip
+  // qualifies), which made single bodies import at the wrong size. As components of one
+  // label-sized object, everything imports at true millimetre scale as one multi-part object,
+  // and each part still takes its own filament.
   var model='<?xml version="1.0" encoding="UTF-8"?>'
     +'<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
     +'<resources>'
     +'<basematerials id="1"><base name="Base plate" displaycolor="'+baseCol+'"/><base name="Label artwork" displaycolor="'+embCol+'"/><base name="Photo mid tones" displaycolor="#8E9196"/></basematerials>'
     +'<object id="2" type="model" pid="1" pindex="0" name="Base plate"><mesh>'+_mfBoxes(null,W,H,mmv,0,cfg.base)+'</mesh></object>'
     +objs
+    +'<object id="'+oid+'" type="model" name="QR label '+String(sku).replace(/[<>&"]/g,'')+'"><components>'+comps+'</components></object>'
     +'</resources>'
-    +'<build><item objectid="2"/>'+items+'</build>'
+    +'<build><item objectid="'+oid+'"/></build>'
     +'</model>';
   var enc=new TextEncoder();
   var zip=_zipStore([

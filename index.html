@@ -2129,7 +2129,7 @@
               <div class="qre-f"><label>Style</label><select id="qe-stl-mode" onchange="qeStlSet('mode',this.value)"><option value="raised">Raised — dark parts stand up</option><option value="engraved">Engraved — dark parts sunk</option></select></div>
               <div class="qre-f"><label>Detail</label><select id="qe-stl-pxmm" onchange="qeStlSet('pxmm',this.value)"><option value="3">Draft · 0.33 mm</option><option value="4">Standard · 0.25 mm</option><option value="6">Fine · 0.17 mm</option></select></div>
             </div>
-            <div class="qre-stl-note">The STL is the label exactly as designed — QR, text and product image are embossed together. Swap filament colour at the base height for a two-colour print. Photos are turned into a two-tone stencil.</div>
+            <div class="qre-stl-note">The STL is the label exactly as designed — QR, text and product image embossed together. The 3MF goes further: every element is its own body, and the product photo is split into dark + mid tone bodies so it prints in three shades and actually looks like the part. Assign a filament to each body in your slicer.</div>
             <div class="qre-cap" id="qe-cap"></div>
             <button class="qre-auto" onclick="qeAuto()">✨ Auto-arrange</button>
             <div class="qre-row">
@@ -7572,9 +7572,23 @@ function _stlBox(dv,off,x0,y0,z0,x1,y1,z1){
   tri(1,0,0,  x1,y0,z0, x1,y1,z1, x1,y0,z1); tri(1,0,0,  x1,y0,z0, x1,y1,z0, x1,y1,z1);   // right
   return off;
 }
-function _labelVoxels(sku,desc,lay){
+function _labelVoxels(sku,desc,lay,only,band){
   lay=lay||QR_LAY; var cfg=_stlCfg(), S=cfg.pxmm;
+  if(only){                                                   // isolate ONE element (qr|desc|sku|img) for per-body export
+    var lo=_clone(lay);
+    ['qr','desc','sku','img'].forEach(function(k){ if(lo.el[k]) lo.el[k].on=(k===only)&&lay.el[k].on; });
+    if(only!=='img') lo.img='none';
+    lay=lo;
+  }
   var W=(+lay.wmm||30), H=(+lay.hmm||30), pw=Math.round(W*S), ph2=Math.round(H*S);
+  // Tone-band mode (product image): pixels are selected by a luminance RANGE instead of a
+  // simple dark/light threshold, and the scan is clipped to the image box so a coloured label
+  // background can never fall into a band. Used to posterise the photo into shade bodies.
+  var clip=null;
+  if(band && lay.el.img){ var ib2=lay.el.img;
+    clip={ x0:Math.max(0,Math.floor(ib2.x*S)), y0:Math.max(0,Math.floor(ib2.y*S)),
+           x1:Math.min(pw,Math.ceil((ib2.x+ib2.w)*S)), y1:Math.min(ph2,Math.ceil((ib2.y+ib2.h)*S)) };
+  }
   var c=document.createElement('canvas'); c.width=pw; c.height=ph2; var x=c.getContext('2d');
   var prod=(lay.img==='product')?(_prodImgs[_partImgUrl(sku)]||null):null;
   var px;
@@ -7589,15 +7603,18 @@ function _labelVoxels(sku,desc,lay){
   }
   // Which pixels get the embossed layer: raised = dark pixels, engraved = light pixels.
   var wantDark=(cfg.mode!=='engraved');
-  function hit(i){ var a=px[i+3]; if(a<40) return !wantDark;                       // transparent counts as light
+  function hit(i){ var a=px[i+3];
+    if(band){ if(a<40) return false; var lb=0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2]; return lb>=band.lo&&lb<band.hi; }
+    if(a<40) return !wantDark;                                 // transparent counts as light
     var lum=0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2]; return wantDark?(lum<128):(lum>=128); }
   // Merge each pixel row into horizontal runs -> one cuboid per run
   var runs=[], r, cpx, i, s;
-  for(r=0;r<ph2;r++){
-    cpx=0;
-    while(cpx<pw){
+  var r0=clip?clip.y0:0, r1=clip?clip.y1:ph2, c0=clip?clip.x0:0, c1=clip?clip.x1:pw;
+  for(r=r0;r<r1;r++){
+    cpx=c0;
+    while(cpx<c1){
       i=(r*pw+cpx)*4;
-      if(hit(i)){ s=cpx; while(cpx<pw && hit((r*pw+cpx)*4)) cpx++; runs.push([r,s,cpx-s]); }
+      if(hit(i)){ s=cpx; while(cpx<c1 && hit((r*pw+cpx)*4)) cpx++; runs.push([r,s,cpx-s]); }
       else cpx++;
     }
   }
@@ -7665,18 +7682,50 @@ function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF verte
 }
 function threeMfFromLabel(sku,desc,lay){
   lay=lay||QR_LAY;
-  var v=_labelVoxels(sku,desc,lay), W=v.W, H=v.H, cfg=v.cfg, runs=v.runs, mm=v.mm;
-  var raised=(cfg.mode!=='engraved');
+  var cfg=_stlCfg(), raised=(cfg.mode!=='engraved');
   var baseCol=(raised?(lay.bg||'#FFFFFF'):(lay.fg||'#111111')).toUpperCase();
   var embCol =(raised?(lay.fg||'#111111'):(lay.bg||'#FFFFFF')).toUpperCase();
+  // Bodies. Raised mode: each label element is voxelised on its own, so the QR, description,
+  // SKU and product image arrive in the slicer as INDEPENDENT bodies — colour or handle each
+  // separately. Engraved mode is inherently one connected top sheet, so it stays one body.
+  var parts3d=[];
+  if(raised){
+    var defs=[['qr','QR code'],['desc','Description'],['sku','SKU']];
+    defs.forEach(function(d3){
+      var key=d3[0];
+      if(!lay.el[key]||!lay.el[key].on) return;
+      var v=_labelVoxels(sku,desc,lay,key);
+      if(v.runs.length) parts3d.push({name:d3[1], v:v, pindex:1});
+    });
+    // Product image: posterised into TONE BANDS, each its own body, so the photo prints in
+    // three shades (base + mid-grey + dark) and actually reads as the part — a single binary
+    // stencil loses most of a photo. Light tones (>=176) stay the base plate.
+    if(lay.el.img&&lay.el.img.on&&lay.img!=='none'){
+      var vDark=_labelVoxels(sku,desc,lay,'img',{lo:0,  hi:96 });
+      var vMid =_labelVoxels(sku,desc,lay,'img',{lo:96, hi:176});
+      if(vDark.runs.length) parts3d.push({name:'Product image \u00b7 dark tones', v:vDark, pindex:1});
+      if(vMid.runs.length)  parts3d.push({name:'Product image \u00b7 mid tones',  v:vMid,  pindex:2});
+    }
+    if(!parts3d.length){ var vAll=_labelVoxels(sku,desc,lay); if(vAll.runs.length) parts3d.push({name:'Label artwork', v:vAll, pindex:1}); }
+  } else {
+    var vTop=_labelVoxels(sku,desc,lay);
+    parts3d.push({name:'Top surface', v:vTop, pindex:1});
+  }
+  var W=(+lay.wmm||30), H=(+lay.hmm||30), mmv=1/cfg.pxmm;
+  var objs='', items='', oid=3;
+  parts3d.forEach(function(p3){
+    objs+='<object id="'+oid+'" type="model" pid="1" pindex="'+(p3.pindex||1)+'" name="'+p3.name+'"><mesh>'+_mfBoxes(p3.v.runs,W,H,p3.v.mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>';
+    items+='<item objectid="'+oid+'"/>';
+    oid++;
+  });
   var model='<?xml version="1.0" encoding="UTF-8"?>'
     +'<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
     +'<resources>'
-    +'<basematerials id="1"><base name="Base plate" displaycolor="'+baseCol+'"/><base name="Label artwork" displaycolor="'+embCol+'"/></basematerials>'
-    +'<object id="2" type="model" pid="1" pindex="0" name="Base plate"><mesh>'+_mfBoxes(null,W,H,mm,0,cfg.base)+'</mesh></object>'
-    +'<object id="3" type="model" pid="1" pindex="1" name="Label artwork"><mesh>'+_mfBoxes(runs,W,H,mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>'
+    +'<basematerials id="1"><base name="Base plate" displaycolor="'+baseCol+'"/><base name="Label artwork" displaycolor="'+embCol+'"/><base name="Photo mid tones" displaycolor="#8E9196"/></basematerials>'
+    +'<object id="2" type="model" pid="1" pindex="0" name="Base plate"><mesh>'+_mfBoxes(null,W,H,mmv,0,cfg.base)+'</mesh></object>'
+    +objs
     +'</resources>'
-    +'<build><item objectid="2"/><item objectid="3"/></build>'
+    +'<build><item objectid="2"/>'+items+'</build>'
     +'</model>';
   var enc=new TextEncoder();
   var zip=_zipStore([

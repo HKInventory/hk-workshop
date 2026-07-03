@@ -2746,6 +2746,7 @@ function startRealtime(){
     SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderNow(); }).subscribe();
     SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderNow(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); }).subscribe();
+    SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
   }catch(e){}
 }
 startRealtime();
@@ -5975,7 +5976,7 @@ function mTab(name){
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
   if(name==='sites'&&!mSitesLoaded) siLoad();
-  if(name==='tools'){ mToolsStats(); mQRCount(); qrDesignerInit(); }
+  if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
   if(name==='access') acOpen();
@@ -7272,9 +7273,43 @@ function mRemove(sku){
 var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true,
   el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7}, sku:{on:true,x:1,y:25.9,w:28,h:1.9} } };
 function _clone(o){ return JSON.parse(JSON.stringify(o)); }
+function _applyQrLay(o){                                // merge a stored layout object into QR_LAY (defaults-safe)
+  if(!o||typeof o!=='object') return false;
+  for(var k in QR_LAY_DEFAULTS){ if(k==='el') continue; if(o[k]!==undefined&&o[k]!==null) QR_LAY[k]=o[k]; }
+  if(o.el){ for(var e in QR_LAY.el){ if(o.el[e]){ for(var p in QR_LAY.el[e]){ if(o.el[e][p]!==undefined) QR_LAY.el[e][p]=o.el[e][p]; } } } }
+  return true;
+}
 function loadQrLay(){ var d=_clone(QR_LAY_DEFAULTS); try{ var s=localStorage.getItem('hk_qr_layout'); if(s){ var o=JSON.parse(s); for(var k in d){ if(k==='el') continue; if(o[k]!==undefined&&o[k]!==null) d[k]=o[k]; } if(o.el){ for(var e in d.el){ if(o.el[e]){ for(var p in d.el[e]){ if(o.el[e][p]!==undefined) d.el[e][p]=o.el[e][p]; } } } } } }catch(e){} return d; }
 var QR_LAY=loadQrLay();
-function saveQrLay(){ try{ localStorage.setItem('hk_qr_layout',JSON.stringify(QR_LAY)); }catch(e){} }
+// The QR-label design is a SHARED Master Access setting — it must look identical on every device and
+// account. It lives in Supabase (ui_config, key 'qr_layout'); localStorage is only a fast local cache.
+// We pull the shared copy on boot + when opening the editor, subscribe to live changes, and push
+// (debounced) on every edit. Trust model matches tv_state: UI-gated, anon read/write.
+var _qrLastPushed='';
+function syncQrLayFromServer(cb,seedIfEmpty){
+  if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
+  SBC.from('ui_config').select('value').eq('key','qr_layout').maybeSingle().then(function(r){
+    if(r&&r.data&&r.data.value){ _qrLastPushed=JSON.stringify(r.data.value); _applyQrLay(r.data.value); try{localStorage.setItem('hk_qr_layout',JSON.stringify(QR_LAY));}catch(e){} if(document.getElementById('qre-cv')) qrDesignerInit(); }
+    else if(seedIfEmpty){ saveQrLay(); }     // no shared design stored yet — seed it from this device's layout
+    if(cb)cb();
+  },function(){ if(cb)cb(); });
+}
+var _qrSaveT=null;
+function saveQrLay(){ try{ localStorage.setItem('hk_qr_layout',JSON.stringify(QR_LAY)); }catch(e){}
+  clearTimeout(_qrSaveT); _qrSaveT=setTimeout(function(){
+    if(typeof SBC==='undefined'||!SBC) return;
+    var payload=_clone(QR_LAY); _qrLastPushed=JSON.stringify(payload);
+    SBC.from('ui_config').upsert({key:'qr_layout',value:payload,updated_at:new Date().toISOString()},{onConflict:'key'}).then(function(){},function(){});
+  }, 500);
+}
+function _qrRealtimeApply(val){                           // apply a live change pushed from another device
+  if(!val || QE_DRAG) return;                             // don't yank the layout mid-drag on this device
+  if(JSON.stringify(val)===_qrLastPushed) return;         // ignore our own echo
+  _qrLastPushed=JSON.stringify(val); _applyQrLay(val);
+  try{localStorage.setItem('hk_qr_layout',JSON.stringify(QR_LAY));}catch(e){}
+  if(document.getElementById('qre-cv')) qrDesignerInit();
+}
+if(!window.__tvSite){ setTimeout(syncQrLayFromServer,0); }   // pull the shared design once on boot (skip on the TV)
 function _qrEc(l){ return ({L:'L',M:'M',Q:'Q',H:'H'}[(l||QR_LAY).ec]||'M'); }
 function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) return s; while(s.length>1&&ctx.measureText(s+'\u2026').width>maxW)s=s.slice(0,-1); return s+'\u2026'; }
 function qrSampleSku(){ var t=(typeof parts!=='undefined'&&parts)?(parts.find(function(p){return p.qr_print!==false;})||parts[0]):null; return t?{sku:String(t.sku),desc:(t.desc||String(t.sku))}:{sku:'SAMPLE-001',desc:'Sample part'}; }

@@ -2080,7 +2080,12 @@
   </div>
   <div class="m-pane" id="m-pane-tools">
     <div class="m-list">
-      <div class="mc" style="margin-top:14px"><div class="mct">QR codes</div>
+      <div class="mc" style="margin-top:14px"><div class="mct">RIMO product photos</div>
+        <div class="m-tool-desc">Builds the photo index automatically from the RIMO shop's public catalogue — every part's photo is then found by SKU with no manual work, including the ones with odd filenames. Takes a few minutes; run it again every few months to pick up new parts.</div>
+        <button class="m-add" id="m-rimo-sync-btn" style="width:100%;margin-top:12px" onclick="mRimoSync()">⚡ Pull photos from RIMO automatically</button>
+        <div id="m-rimo-sync-status" class="m-tool-desc" style="margin-top:8px;text-align:center"></div>
+      </div>
+      <div class="mc"><div class="mct">QR codes</div>
         <div class="m-tool-desc">One PDF with a 30×30mm label for each <b>ticked</b> part — print and stick on the shelves. Same scan code as your existing tags. Use the ✓ / ✕ button beside any part in the Parts tab to include or exclude it.</div>
         <button class="m-add" id="m-qrall-btn" style="width:100%;margin-top:12px" onclick="mExportAllQR()">⤓ Save ticked QR codes (PDF)</button>
         <div id="m-qr-count" class="m-tool-desc" style="margin-top:8px;text-align:center"></div>
@@ -7711,6 +7716,36 @@ function mQRSetAll(val){
     .then(function(r){return r.json();}).then(function(res){
       if(res&&res.success){ try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){} }
     }).catch(function(){});
+}
+/* ----- RIMO photo index sync. Drives the rimo-image-sync crawler in a loop until the whole
+   catalogue is walked; the function keeps its own state so this resumes if interrupted. ----- */
+var _rimoSyncBusy=false;
+function _rimoStatus(t,col){ var el=document.getElementById('m-rimo-sync-status'); if(el){ el.textContent=t||''; el.style.color=col||''; } }
+function mRimoSync(){
+  if(_rimoSyncBusy) return;
+  if(!masterPin){ _rimoStatus('Open Master Access first','#FF5A52'); return; }
+  _rimoSyncBusy=true;
+  var btn=document.getElementById('m-rimo-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Syncing\u2026'; }
+  var calls=0;
+  function step(){
+    fetch(SB_FN+'rimo-image-sync',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'run'})})
+      .then(function(r){return r.json();}).then(function(res){
+        if(!res||!res.success){ fin('Sync failed: '+((res&&res.message)||'is the rimo-image-sync function deployed?'),'#FF5A52'); return; }
+        calls++;
+        if(res.done){
+          fin('\u2713 Done \u2014 '+(res.found||0)+' photos indexed from '+(res.scanned||0)+' pages. Labels now find photos by SKU automatically.','#22C55E');
+          _prodImgs={};                                        // drop stale not-found caches so photos appear immediately
+          if(document.getElementById('qre-cv')) qrDesignerInit();
+        } else {
+          _rimoStatus('Scanning the RIMO catalogue\u2026 '+(res.scanned||0)+' pages read \u00b7 '+(res.found||0)+' photos indexed \u00b7 '+(res.queued||0)+' pages queued');
+          if(calls>400){ fin('Stopped after '+calls+' rounds \u2014 tap again to continue where it left off.','#F59E0B'); return; }
+          setTimeout(step, 350);
+        }
+      }).catch(function(){ fin('Connection error \u2014 tap again to resume; the sync continues where it stopped.','#FF5A52'); });
+  }
+  function fin(msg,col){ _rimoSyncBusy=false; if(btn){ btn.disabled=false; btn.textContent='\u26A1 Pull photos from RIMO automatically'; } _rimoStatus(msg,col); }
+  _rimoStatus('Starting\u2026');
+  step();
 }
 function mQRCount(){
   var el=document.getElementById('m-qr-count'); if(!el) return;

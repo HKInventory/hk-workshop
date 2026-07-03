@@ -1617,6 +1617,12 @@
       <div class="phdr"><button class="back" onclick="stopScan();back()"> Back</button></div>
       <div class="scanf">
         <div id="qrvc"><video id="qrv" playsinline autoplay muted></video></div>
+        <div id="scan-aids" style="display:none;justify-content:center;gap:8px;margin:10px 0 2px">
+          <button class="btns" id="sc-torch" style="padding:9px 16px;font-size:13px" onclick="scanTorch()">🔦 Torch</button>
+          <button class="btns" id="sc-z1" style="padding:9px 16px;font-size:13px" onclick="scanZoom(1)">1×</button>
+          <button class="btns" id="sc-z15" style="padding:9px 16px;font-size:13px" onclick="scanZoom(1.5)">1.5×</button>
+          <button class="btns" id="sc-z2" style="padding:9px 16px;font-size:13px" onclick="scanZoom(2)">2×</button>
+        </div>
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
@@ -3906,33 +3912,73 @@ function _handleScanPayload(url){
   var sku=decodeURIComponent(skuMatch[1]);
   setTimeout(function(){openTakeRestock(sku);},250);
 }
-/* Inverted-polarity scanning: the 3D-printed tags are LIGHT code on a BLACK base, which the
-   live scanner (spec polarity: dark-on-light) won't decode — phone cameras only manage it
-   because they secretly try both polarities. So we do the same: a few times a second, grab a
-   frame from the same camera stream, invert it, and hand it to the decoder. Whichever
-   polarity decodes first wins; both feed the same handler. */
-var _invT=null,_invBusy=false,_invCv=null;
+/* Automatic hard-tag scanning — zero technique required.
+   The live scanner handles clean, spec-polarity codes. This auxiliary pipeline handles
+   everything else, cycling variants a few times a second:
+   - BOTH polarities (the 3D tags are light-on-dark, which plain decoders reject);
+   - FOUR digital-zoom crops (100/72/45/28% of frame) — so it works at whatever distance the
+     phone happens to be held: far away, the tight crop is a 3.5x zoom; up close, the full
+     frame fits. Nobody needs to know their phone's minimum focus distance;
+   - CONTRAST STRETCH per frame — dim workshops and washed-out bright scenes get normalised
+     before decoding;
+   - AUTO-TORCH — if the scene stays dark for ~1.5s the torch turns itself on (and back off
+     when it brightens, unless the person pressed the button themselves).
+   One variant combo is tried per tick, so CPU stays light; a full cycle completes ~every 1.5s. */
+var _auxT=null,_auxBusy=false,_auxCv=null,_auxIdx=0,_darkN=0,_brightN=0,_torchAuto=true;
+var _AUX_VARIANTS=[{c:0.72,inv:true},{c:0.45,inv:false},{c:0.45,inv:true},{c:1.0,inv:true},{c:0.28,inv:false},{c:0.72,inv:false},{c:0.28,inv:true},{c:1.0,inv:false}];
 function _startInvertedScan(video){
-  _stopInvertedScan();
-  _invT=setInterval(function(){
-    if(!qrs || _invBusy || !video || video.readyState<2 || !video.videoWidth) return;
-    _invBusy=true;
-    try{
-      if(!_invCv) _invCv=document.createElement('canvas');
-      var maxW=640, sc=Math.min(1, maxW/video.videoWidth);
-      _invCv.width=Math.round(video.videoWidth*sc); _invCv.height=Math.round(video.videoHeight*sc);
-      var x=_invCv.getContext('2d',{willReadFrequently:true});
-      x.drawImage(video,0,0,_invCv.width,_invCv.height);
-      var im=x.getImageData(0,0,_invCv.width,_invCv.height), d=im.data;
-      for(var i=0;i<d.length;i+=4){ d[i]=255-d[i]; d[i+1]=255-d[i+1]; d[i+2]=255-d[i+2]; }
-      x.putImageData(im,0,0);
-      window.QrScanner.scanImage(_invCv,{returnDetailedScanResult:true})
-        .then(function(r){ _invBusy=false; var data=(r&&r.data!==undefined)?r.data:r; if(data) _handleScanPayload(data); })
-        .catch(function(){ _invBusy=false; });
-    }catch(e){ _invBusy=false; }
-  },350);
+  _stopInvertedScan(); _torchAuto=true;
+  _auxT=setInterval(function(){
+    if(!qrs || _auxBusy || !video || video.readyState<2 || !video.videoWidth) return;
+    _auxBusy=true;
+    var a=_AUX_VARIANTS[_auxIdx%_AUX_VARIANTS.length], b=_AUX_VARIANTS[(_auxIdx+1)%_AUX_VARIANTS.length];
+    _auxIdx+=2;
+    _auxTry(video,a,true).then(function(hit){
+      if(hit||!qrs){ _auxBusy=false; return; }
+      return _auxTry(video,b,false).then(function(){ _auxBusy=false; });
+    }).catch(function(){ _auxBusy=false; });
+  },380);
 }
-function _stopInvertedScan(){ clearTimeout(_invT); clearInterval(_invT); _invT=null; _invBusy=false; }
+function _auxTry(video,vv,meter){
+  return new Promise(function(rz){
+    try{
+      if(!_auxCv) _auxCv=document.createElement('canvas');
+      var cw=Math.round(video.videoWidth*vv.c), ch=Math.round(video.videoHeight*vv.c);
+      var cx0=Math.round((video.videoWidth-cw)/2), cy0=Math.round((video.videoHeight-ch)/2);
+      var outW=640, sc=outW/cw;
+      _auxCv.width=outW; _auxCv.height=Math.round(ch*sc);
+      var x=_auxCv.getContext('2d',{willReadFrequently:true});
+      x.imageSmoothingEnabled=true;
+      x.drawImage(video,cx0,cy0,cw,ch,0,0,_auxCv.width,_auxCv.height);
+      var im=x.getImageData(0,0,_auxCv.width,_auxCv.height), d=im.data;
+      // pass 1 (sampled): scene luminance + contrast bounds
+      var mn=255,mx=0,sum=0,cnt=0;
+      for(var i=0;i<d.length;i+=64){ var l=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; if(l<mn)mn=l; if(l>mx)mx=l; sum+=l; cnt++; }
+      if(meter) _autoTorch(sum/Math.max(1,cnt));
+      var rng=Math.max(24,mx-mn);
+      // pass 2: grayscale, stretch to full range, invert if this variant wants it
+      for(var j=0;j<d.length;j+=4){
+        var g=0.299*d[j]+0.587*d[j+1]+0.114*d[j+2];
+        g=Math.max(0,Math.min(255,(g-mn)*255/rng));
+        if(vv.inv) g=255-g;
+        d[j]=d[j+1]=d[j+2]=g;
+      }
+      x.putImageData(im,0,0);
+      window.QrScanner.scanImage(_auxCv,{returnDetailedScanResult:true})
+        .then(function(r){ var data=(r&&r.data!==undefined)?r.data:r; if(data){ _handleScanPayload(data); rz(true); } else rz(false); })
+        .catch(function(){ rz(false); });
+    }catch(e){ rz(false); }
+  });
+}
+function _autoTorch(avg){
+  if(!qrs||!_torchAuto) return;
+  if(avg<45){ _darkN++; _brightN=0;
+    if(_darkN>=4 && !_torchOn){ try{ qrs.turnFlashOn().then(function(){ _torchOn=true; var b=document.getElementById('sc-torch'); if(b) b.style.background='#F59E0B'; }).catch(function(){}); }catch(e){} }
+  } else if(avg>110){ _brightN++; _darkN=0;
+    if(_brightN>=6 && _torchOn){ try{ qrs.turnFlashOff().then(function(){ _torchOn=false; var b=document.getElementById('sc-torch'); if(b) b.style.background=''; }).catch(function(){}); }catch(e){} }
+  } else { _darkN=0; _brightN=0; }
+}
+function _stopInvertedScan(){ clearInterval(_auxT); _auxT=null; _auxBusy=false; _auxIdx=0; _darkN=0; _brightN=0; }
 function _initScanner(){
   var v=document.getElementById('qrv');
   // Check existing permission to skip prompt if granted
@@ -3960,6 +4006,7 @@ function _initScanner(){
     qrs.start().then(function(){
       document.getElementById('sst').innerText='Point camera at QR code';
       _startInvertedScan(v);                       // 3D tags are light-on-dark; scan that polarity too
+      _scanAidsShow(v);                            // torch + zoom aids (shown only where supported)
     }).catch(function(err){
       document.getElementById('sst').innerText='Camera denied — Settings → Safari → Camera → Allow';
       document.getElementById('sbn').style.display='block';
@@ -3974,6 +4021,9 @@ function _initScanner(){
 
 function stopScan(){
   _stopInvertedScan();
+  _torchOn=false;
+  var _sa=document.getElementById('scan-aids'); if(_sa) _sa.style.display='none';
+  var _tb=document.getElementById('sc-torch'); if(_tb) _tb.style.background='';
   if(qrs){
     try{qrs.stop();qrs.destroy();}catch(e){}
     qrs=null;

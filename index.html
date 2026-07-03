@@ -7717,7 +7717,7 @@ function qrCanvas(sku){
 function qrLabelToPdf(doc,sku,desc,lay){ lay=lay||QR_LAY; var w=(+lay.wmm||30),h=(+lay.hmm||30); doc.addImage(qrLabelCanvas(sku,desc,lay),'PNG',0,0,w,h); }
 function mSavePDFOne(sku,desc){
   _ensureHkLogo(function(){ _prodPreload([sku], function(){
-    try{ var JP=window.jspdf.jsPDF, w=(+QR_LAY.wmm||30), h=(+QR_LAY.hmm||30); var doc=new JP({unit:'mm',format:[w,h]}); qrLabelToPdf(doc,sku,desc,QR_LAY); doc.save(String(sku)+'.pdf'); }
+    try{ var JP=window.jspdf.jsPDF, w=(+QR_LAY.wmm||30), h=(+QR_LAY.hmm||30); var doc=new JP({unit:'mm',format:[w,h],orientation:(w>=h?'landscape':'portrait')}); qrLabelToPdf(doc,sku,desc,QR_LAY); doc.save(String(sku)+'.pdf'); }
     catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
   }); });
 }
@@ -7733,8 +7733,8 @@ function mExportAllQR(){
   _prodPreload(list.map(function(p){return p.sku;}), function(){
     setTimeout(function(){
       try{
-        var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:[w,h]});
-        list.forEach(function(pp,i){ if(i>0) doc.addPage([w,h]); qrLabelToPdf(doc,pp.sku,pp.desc,QR_LAY); });
+        var JP=window.jspdf.jsPDF, ori=(w>=h?'landscape':'portrait'), doc=new JP({unit:'mm',format:[w,h],orientation:ori});
+        list.forEach(function(pp,i){ if(i>0) doc.addPage([w,h],ori); qrLabelToPdf(doc,pp.sku,pp.desc,QR_LAY); });
         doc.save('HK-QR-Codes.pdf');
       }catch(e){ alert('Could not generate the PDF: '+(e&&e.message?e.message:e)); }
       if(btn){ btn.innerHTML=old; btn.disabled=false; }

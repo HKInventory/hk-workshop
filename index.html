@@ -7341,6 +7341,48 @@ function _qrRealtimeApply(val){                           // apply a live change
 if(!window.__tvSite){ setTimeout(syncQrLayFromServer,0); }   // pull the shared design once on boot (skip on the TV)
 function _qrEc(l){ return ({L:'L',M:'M',Q:'Q',H:'H'}[(l||QR_LAY).ec]||'M'); }
 function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) return s; while(s.length>1&&ctx.measureText(s+'\u2026').width>maxW)s=s.slice(0,-1); return s+'\u2026'; }
+/* Auto-fit a text block into its box: try 1 line at full size, then 2, then 3 lines at
+   proportionally smaller sizes, wrapping on words and shrinking further if a single word is
+   still too wide. Ellipsis only as a last resort. Lines are centred in the box, so long part
+   names wrap and shrink to fit instead of running off the label. */
+function _drawFitText(ctx,text,bx,by,bw,bh,weight,color){
+  text=String(text||''); if(!text||bw<4||bh<4) return;
+  var words=text.split(/\s+/).filter(Boolean), MIN=6, best=null, n, px;
+  function wrapAt(px2){
+    ctx.font=weight+' '+px2+'px Arial, sans-serif';
+    var lines=[], cur='';
+    for(var i2=0;i2<words.length;i2++){
+      var t=cur?cur+' '+words[i2]:words[i2];
+      if(ctx.measureText(t).width<=bw) cur=t;
+      else { if(cur) lines.push(cur); cur=words[i2]; if(ctx.measureText(cur).width>bw){ lines.push(cur); cur=''; } }
+    }
+    if(cur) lines.push(cur);
+    var wide=0; for(var l2=0;l2<lines.length;l2++) wide=Math.max(wide,ctx.measureText(lines[l2]).width);
+    return {lines:lines,wide:wide};
+  }
+  // For each line count, find the largest size that fits (down to a floor so we prefer MORE
+  // slightly-smaller lines over ONE massively-shrunk line), then keep the biggest overall.
+  for(n=1;n<=3;n++){
+    var start=Math.max(MIN,Math.floor((bh/n)*0.88));
+    var floorN=Math.max(MIN,Math.floor(start*0.55));
+    for(px=start;px>=floorN;px--){
+      var w2=wrapAt(px);
+      if(w2.lines.length<=n && w2.wide<=bw && w2.lines.length*px*1.12<=bh+2){
+        if(!best||px>best.px) best={lines:w2.lines,px:px};
+        break;
+      }
+    }
+  }
+  if(!best){                                                    // nothing fit above the floors: smallest 3-line layout, ellipsised
+    px=MIN; var w3=wrapAt(px), lns=w3.lines.slice(0,3);
+    if(w3.lines.length>3) lns[2]=_fitText(ctx,lns[2]+' \u2026',bw);
+    best={lines:lns,px:px};
+  }
+  ctx.fillStyle=color; ctx.font=weight+' '+best.px+'px Arial, sans-serif'; ctx.textAlign='center';
+  var lh=best.px*1.12, total=best.lines.length*lh;
+  var y0=by+(bh-total)/2+best.px*0.9;                           // vertically centred in the box
+  for(var k2=0;k2<best.lines.length;k2++) ctx.fillText(best.lines[k2], bx+bw/2, y0+k2*lh);
+}
 function qrSampleSku(){ var t=(typeof parts!=='undefined'&&parts)?(parts.find(function(p){return p.qr_print!==false;})||parts[0]):null; return t?{sku:String(t.sku),desc:(t.desc||String(t.sku))}:{sku:'SAMPLE-001',desc:'Sample part'}; }
 
 /* image cache: HK logo (same-origin) + per-SKU product images (crossOrigin so canvas export works when the host serves CORS) */
@@ -7380,8 +7422,10 @@ function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
     else if(ph){ ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(ix-kp,iy-kp,iw+kp*2,ih+kp*2); ctx.fillStyle=lay.fg||'#000'; ctx.fillRect(ix,iy,iw,ih); ctx.fillStyle=lay.bg||'#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='700 '+Math.round(Math.min(iw,ih)*0.4)+'px Arial'; ctx.fillText(lay.img==='product'?'IMG':'HK', ix+iw/2, iy+ih/2+1); ctx.textBaseline='alphabetic'; }
   }
   ctx.textAlign='center';
-  if(E.desc.on){ var d=E.desc, fpx=Math.max(6,Math.round(d.h*S*0.92)); ctx.fillStyle=lay.fg||'#000'; ctx.font='700 '+fpx+'px Arial, sans-serif'; ctx.fillText(_fitText(ctx,(desc||sku),d.w*S), (d.x+d.w/2)*S, d.y*S+fpx); }
-  if(E.sku.on){ var s2=E.sku, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.fillStyle='#666'; ctx.font='400 '+spx+'px Arial, sans-serif'; ctx.fillText(_fitText(ctx,sku,s2.w*S), (s2.x+s2.w/2)*S, s2.y*S+spx); }
+  if(E.desc.on){ var d=E.desc; _drawFitText(ctx,(desc||sku), d.x*S, d.y*S, d.w*S, d.h*S, '700', lay.fg||'#000'); }
+  if(E.sku.on){ var s2=E.sku, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.font='400 '+spx+'px Arial, sans-serif';
+    var sw=ctx.measureText(String(sku)).width; if(sw>s2.w*S){ spx=Math.max(5,Math.floor(spx*(s2.w*S)/sw)); }   // shrink to width, never chop a SKU
+    ctx.fillStyle='#666'; ctx.font='400 '+spx+'px Arial, sans-serif'; ctx.fillText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx); }
 }
 
 /* export render at print DPI -> dataURL. Falls back (and warns once) if a cross-origin product image taints the canvas. */

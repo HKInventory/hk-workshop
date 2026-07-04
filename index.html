@@ -409,6 +409,11 @@
     .mk-chip.on{color:#0b0e13;background:var(--ac,#00CFFF);border-color:var(--ac,#00CFFF)}
     .mk-chip .mk-n{opacity:.6;font-weight:600;margin-left:4px}
     .mk-chip.on .mk-n{opacity:.8}
+    .ramp-banner{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#B45309,#D97706);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:9px 14px;text-align:center;cursor:pointer}
+    .notif-cta{display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(0,207,255,0.08);border-bottom:1px solid rgba(0,207,255,0.2);color:var(--t1);font-size:12.5px;font-weight:600;padding:8px 14px}
+    .notif-cta button{background:var(--ac,#00CFFF);color:#04222b;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:6px 14px}
+    .tv-ramp{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:22px;background:linear-gradient(90deg,#B45309,#F59E0B);color:#fff;font-weight:900;padding:14px 20px;font-size:26px;letter-spacing:.4px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+    .tv-ramp .tvr-timer{font-variant-numeric:tabular-nums;background:rgba(0,0,0,.25);border-radius:12px;padding:4px 14px}
     #ki-karts-sub{margin-top:8px}
     .ki-back{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--kacc);font-size:14px;font-weight:700;cursor:pointer;padding:6px 0 12px;font-family:inherit}
     .ki-back:active{opacity:.6}
@@ -1509,6 +1514,7 @@
   </div>
   <div class="tv-strip"></div>
   <div class="tv-stage" id="tv-stage"></div>
+  <div class="tv-ramp" id="tv-ramp" style="display:none"></div>
   <div class="tv-foot"><div class="tv-ticker" id="tv-ticker"><div class="tk" id="tv-tk"></div></div><div class="tv-dots" id="tv-dots"></div></div>
   <div class="tv-pulse"><div class="badge tv-logo"></div><div class="wm">Hyper Karting</div></div>
   <div class="tv-takeover">
@@ -1544,6 +1550,8 @@
       <span class="sb-dot"></span><span class="sb-name" id="sitePillName">Sydney</span><span class="sb-hint">tap to switch</span>
     </div>
     <div class="train-banner" id="trainBanner" style="display:none">🎓 Training mode — practice only<span class="tb-exit" onclick="logout()">Exit</span></div>
+    <div class="ramp-banner" id="rampBanner" style="display:none" onclick="go('home')"></div>
+    <div class="notif-cta" id="notifCta" style="display:none"><span id="notifCtaTxt">🔔 Get phone alerts — ramp clearances &amp; more</span><button onclick="notifEnable()">Enable</button></div>
     <div id="hdrAccent"></div>
   </div>
 
@@ -2069,6 +2077,7 @@
     <button class="m-tab" id="mtab-tools" onclick="mTab('tools')">🏷️ QR Editor</button>
     <button class="m-tab" id="mtab-tracks" onclick="mTab('tracks')">🏁 Tracks</button>
     <button class="m-tab" id="mtab-karts" onclick="mTab('karts')">🏎️ Karts</button>
+    <button class="m-tab" id="mtab-ramp" onclick="mTab('ramp')">🚧 Ramp</button>
     <button class="m-tab" id="mtab-access" onclick="mTab('access')">🔐 Access</button>
   </div>
   <div class="m-pane active" id="m-pane-parts">
@@ -2099,6 +2108,24 @@
       <div style="font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:8px">Add a venue and tap <b>Save sites</b> first — it'll then appear under each person's <b>Site access</b> in the Staff tab, where you grant who can use it.</div>
       <div class="m-form-msg" id="m-sites-msg"></div>
       <button class="m-form-btn m-save" id="m-sites-save" onclick="siSave()">Save sites</button>
+    </div>
+  </div>
+  <div class="m-pane" id="m-pane-ramp">
+    <div class="m-list">
+      <div class="mc" style="text-align:left"><div class="mct">Ramp access events</div>
+        <div class="m-tool-desc">When level 6 needs the ramp (sports events, shows), add it here. Everyone gets a banner in the app, the TV runs a countdown, and phones get alerts 4h / 1h / 30m before and at clear time.</div>
+        <div class="m-fld" style="margin-top:10px"><label>Event name</label><input id="mr-name" placeholder="e.g. Netball finals"></div>
+        <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label>Date</label><input id="mr-date" type="date"></div><div><label>Ramp clear from</label><input id="mr-start" type="time"></div><div><label>Until</label><input id="mr-end" type="time"></div></div>
+        <button class="m-add" style="width:100%;margin-top:8px" onclick="mrAdd()">+ Add event</button>
+        <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="mrImportToggle()">📋 Paste from spreadsheet</button>
+        <div id="mr-import" style="display:none;margin-top:8px">
+          <div class="m-tool-desc">Paste rows copied from Excel / Google Sheets — one event per line: <b>Name, Date, From, To</b> (tabs or commas). Dates like 12/8/2026 or 2026-08-12; times like 14:30 or 2:30pm.</div>
+          <textarea id="mr-import-text" style="width:100%;min-height:110px;margin-top:8px;background:var(--card2);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px;font-size:13px" placeholder="Netball finals&#9;12/8/2026&#9;9:00&#9;14:00"></textarea>
+          <button class="m-add" style="width:100%;margin-top:8px" onclick="mrImport()">Import pasted rows</button>
+        </div>
+        <div class="m-form-msg" id="mr-msg" style="margin-top:8px"></div>
+      </div>
+      <div class="m-list" id="mr-list"><div class="m-empty">Loading ramp events…</div></div>
     </div>
   </div>
   <div class="m-pane" id="m-pane-tools">
@@ -2241,7 +2268,8 @@
     </div>
     <label class="m-lock"><input type="checkbox" id="m-f-lock"><span>🔒 Lock this minimum — don't auto-adjust from usage</span></label>
     <div class="m-lockhint" id="m-f-lockhint"></div>
-    <div class="m-fld"><label>Location</label><input id="m-f-loc"></div>
+    <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Row</label><input id="m-f-row" placeholder="e.g. 3"></div><div><label>Shelf</label><input id="m-f-shelf" placeholder="e.g. B"></div></div>
+    <div class="m-fld"><label>Location note <span style="color:var(--t2);font-weight:400">(optional)</span></label><input id="m-f-loc" placeholder="Anything extra — bin, cupboard…"></div>
     <div class="m-fld"><label>Photo URL <span style="color:var(--t2);font-weight:400">(optional — for QR labels when the RIMO photo isn&#8217;t found by SKU)</span></label><input id="m-f-img" placeholder="Paste the RIMO product image address" inputmode="url" autocapitalize="off" autocorrect="off"></div>
     <div class="m-form-msg" id="m-form-msg"></div>
     <div class="m-form-row">
@@ -2272,6 +2300,7 @@
 var SB_URL='https://jnxdjzewfrcrexyscxul.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpueGRqemV3ZnJjcmV4eXNjeHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODg5NjEsImV4cCI6MjA5NTc2NDk2MX0.08rsipwLuq5uIR5WBi3z5_OnE9k0SvZsbb4hqiYuq74';
 var SB_FN=SB_URL+'/functions/v1/';
+var PUSH_PUBKEY='BCmCBwWlxL9wkxC-JW0AWlW5mPnY5eeayY25RtOmGgImiTh6cvIWoV-hKkiQfAEupScWGrCZXkPF9pOETm_AjDI';
 var HDRS={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 var SBC=window.supabase.createClient(SB_URL,SB_KEY);
 
@@ -3295,7 +3324,7 @@ function applyRoleVisibility(){
 
 function updateUI(id){
   var chip=document.getElementById('uchip');
-  if(cu&&id!=='pin'&&id!=='welcome'){chip.style.display='flex';document.getElementById('ue').innerText=cu.emoji;document.getElementById('un').innerText=cu.name.split(' ')[0];}
+  if(cu&&id!=='pin'&&id!=='welcome'){chip.style.display='flex';document.getElementById('ue').innerText=userEmoji(m);document.getElementById('un').innerText=cu.name.split(' ')[0];}
   else chip.style.display='none';
   applySiteAccent(id);
   if(id==='order'&&cu){var od=document.getElementById('ondisp');if(od)od.innerText=cu.emoji+' '+cu.name;}
@@ -3365,7 +3394,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=m.emoji;
@@ -6406,6 +6435,7 @@ function mTab(name){
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
   if(name==='sites'&&!mSitesLoaded) siLoad();
+  if(name==='ramp'){ mrLoad(); }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -6451,7 +6481,8 @@ function mkRenderFilters(all){
   if(te){
     var counts={}; (all||[]).forEach(function(k){ counts[k.type]=(counts[k.type]||0)+1; });
     var types=KART_TYPE_ORDER.filter(function(t){return counts[t];}); Object.keys(counts).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
-    var chips='<button class="mk-chip'+(MK_TYPE===''?' on':'')+'" style="--ac:#00CFFF" onclick="mkSetType(\'\')">All <span class="mk-n">'+((all&&all.length)||0)+'</span></button>';
+    var _mkAcc=(function(){ var ss=(typeof allSites!=='undefined'&&allSites)?allSites.find(function(x){return x.id===MK_SITE;}):null; return (ss&&ss.accent)||'#00CFFF'; })();
+    var chips='<button class="mk-chip'+(MK_TYPE===''?' on':'')+'" style="--ac:'+_mkAcc+'" onclick="mkSetType(\'\')">All <span class="mk-n">'+((all&&all.length)||0)+'</span></button>';
     chips+=types.map(function(t){ var col=KART_TYPE_COLOR[t]||'#2DD4BF'; return '<button class="mk-chip'+(MK_TYPE===t?' on':'')+'" style="--ac:'+col+'" onclick="mkSetType(\''+t+'\')">'+acEsc(t)+' <span class="mk-n">'+counts[t]+'</span></button>'; }).join('');
     te.innerHTML=chips;
   }
@@ -6897,9 +6928,10 @@ function acRender(){
   if(!mAccessDraft.roles.length){ h+='<div class="m-empty" style="margin:0 18px">No roles \u2014 tap \u201c+ Add role\u201d.</div>'; }
   h+=mAccessDraft.roles.map(function(r,i){
     var sys=_isMgrRole(r.name);
+    var emo='<input class="staff-name-input" type="text" maxlength="4" value="'+acEsc(r.emoji||'')+'" placeholder="🙂" title="Role emoji — fills every account with this role" oninput="acRoleEmoji('+i+',this.value)" style="flex:0 0 44px;width:44px;text-align:center;font-size:17px;padding:6px 2px;margin-right:8px">';
     var top = sys
-      ? '<span class="ac-role-name">'+acEsc(r.name)+'</span><span class="ac-lock">core role</span>'
-      : '<input class="ac-role-input" value="'+acEsc(r.name)+'" oninput="acRoleName('+i+',this.value)" placeholder="Role name"><button class="ac-del" onclick="acDelRole('+i+')" title="Delete role">\u00d7</button>';
+      ? emo+'<span class="ac-role-name">'+acEsc(r.name)+'</span><span class="ac-lock">core role</span>'
+      : emo+'<input class="ac-role-input" value="'+acEsc(r.name)+'" oninput="acRoleName('+i+',this.value)" placeholder="Role name"><button class="ac-del" onclick="acDelRole('+i+')" title="Delete role">\u00d7</button>';
     var body = acChips(r.tabs||[], 'acRoleTab', i);   // every role's tabs are editable now (core roles can't be renamed/deleted)
     return '<div class="ac-role-card"><div class="ac-role-top">'+top+'</div>'+body+'</div>';
   }).join('');
@@ -6916,6 +6948,11 @@ function acRender(){
   el.innerHTML=h;
 }
 function acRoleName(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].name=v; }   // trimmed on save
+function acRoleEmoji(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].emoji=String(v||'').trim(); }
+// Role emoji fills every account holding that role; the personal emoji is the fallback.
+function userEmoji(u){ u=u||cu; if(!u) return '🔧';
+  try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var r=rs.find(function(x){return x.name===u.role;}); if(r&&r.emoji) return r.emoji; }catch(e){}
+  return u.emoji||'🔧'; }
 function acRoleTab(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; var k=r.tabs.indexOf(key); if(k>=0)r.tabs.splice(k,1); else r.tabs.push(key); acRender(); }
 function acAddRole(){ if(!mAccessLoaded){ acLoad(); return; } mAccessDraft.roles.push({name:'', tabs:DEFAULT_NONMGR_TABS.slice()}); acRender(); var ins=document.querySelectorAll('#m-access-list .ac-role-input'); if(ins.length){ ins[ins.length-1].focus(); } }
 function acDelRole(i){ var r=mAccessDraft.roles[i]; if(!r||_isMgrRole(r.name)) return; if(!confirm('Delete role "'+(r.name||'this role')+'"? Staff with this role fall back to default access until reassigned.')) return; mAccessDraft.roles.splice(i,1); acRender(); }
@@ -7306,6 +7343,7 @@ function tvLoadFleet(){
 }
 function tvLoadData(){
   try{ tvLoadFleet(); }catch(e){}
+  try{ tvRampLoad(); }catch(e){}
   try{ tvLoadTasks(); }catch(e){}
 }
 function tvDataSoon(){ clearTimeout(_tvDataT); _tvDataT=setTimeout(tvLoadData,2500); }
@@ -7327,6 +7365,7 @@ function tvSubscribe(){
     SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-reps').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ tvDataSoon(); }).subscribe();
+    SBC.channel('tv-ramp').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ tvRampLoad(); }).subscribe();
   }catch(e){}
 }
 
@@ -7631,7 +7670,13 @@ function mFillForm(p){
   document.getElementById('m-f-aud').value=(p&&p.price_aud!=null)?p.price_aud:'';
   document.getElementById('m-f-min').value=(p&&p.min_stock!=null)?p.min_stock:'';
   document.getElementById('m-f-qty').value=p?p.qty:'';
-  document.getElementById('m-f-loc').value=p?(p.loc||''):'';
+  (function(){ var loc=p?(p.loc||''):'', row='', shelf='';
+    var rm=loc.match(/Row:\s*([^\u00b7]+?)(?:\s*\u00b7|$)/i); if(rm){ row=rm[1].trim(); loc=loc.replace(rm[0],''); }
+    var sm=loc.match(/Shelf:\s*([^\u00b7]+?)(?:\s*\u00b7|$)/i); if(sm){ shelf=sm[1].trim(); loc=loc.replace(sm[0],''); }
+    loc=loc.replace(/^[\s\u00b7]+|[\s\u00b7]+$/g,'');
+    document.getElementById('m-f-row').value=row; document.getElementById('m-f-shelf').value=shelf;
+    document.getElementById('m-f-loc').value=loc;
+  })();
   var imEl=document.getElementById('m-f-img'); if(imEl) imEl.value=p?(p.image_url||''):'';
   document.getElementById('m-f-rimo').checked = p ? (p.is_rimo!==false) : true;
   document.getElementById('m-f-brand').value=p?(p.brand||''):'';
@@ -7686,7 +7731,8 @@ function mSave(){
     price_aud:document.getElementById('m-f-aud').value.trim(),
     min_stock:document.getElementById('m-f-min').value.trim(),
     qty:document.getElementById('m-f-qty').value.trim(),
-    location:document.getElementById('m-f-loc').value.trim(),
+    location:(function(){ var b=[], r=document.getElementById('m-f-row').value.trim(), sh=document.getElementById('m-f-shelf').value.trim(), o=document.getElementById('m-f-loc').value.trim();
+      if(r) b.push('Row: '+r); if(sh) b.push('Shelf: '+sh); if(o) b.push(o); return b.join(' \u00b7 '); })(),
     image_url:(document.getElementById('m-f-img')?document.getElementById('m-f-img').value.trim():''),
     lock:document.getElementById('m-f-lock').checked, site:(currentSite||'sydney'),
     is_rimo:isRimo, brand:brand, lead_days:(!isRimo&&leadRaw!=='')?Number(leadRaw):null };
@@ -8344,6 +8390,126 @@ function mRimoSync(){
   function fin(msg,col){ _rimoSyncBusy=false; if(btn){ btn.disabled=false; btn.textContent='\u26A1 Pull photos from RIMO automatically'; } _rimoStatus(msg,col); }
   _rimoStatus('Starting\u2026');
   step();
+}
+/* ===================== RAMP ACCESS + PUSH NOTIFICATIONS ===================== */
+var RAMP_EVENTS=null,_rampT=null;
+function rampFetch(cb,force){
+  if(typeof SBC==='undefined'||!SBC){ if(cb)cb([]); return; }
+  if(RAMP_EVENTS&&!force){ if(cb)cb(RAMP_EVENTS); return; }
+  var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  SBC.from('ramp_events').select('*').eq('site',currentSite||'sydney').gte('date',today).order('date').order('start_t').limit(60)
+    .then(function(r){ RAMP_EVENTS=(r&&r.data)||[]; if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
+}
+function _rampMs(ev,t){ return new Date(ev.date+'T'+(t||'00:00')+':00').getTime(); }
+function _rampFmt(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+function _rampActive(list){
+  var now=Date.now();
+  for(var i=0;i<(list||[]).length;i++){ var ev=list[i], st=_rampMs(ev,ev.start_t), en=_rampMs(ev,ev.end_t);
+    if(now>=st-4*3600000 && now<=en) return {ev:ev,st:st,en:en}; }
+  return null;
+}
+function _dmy(d){ var p=String(d||'').split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):d; }
+function rampCheck(){
+  if(window.__tvSite) return;
+  rampFetch(function(list){
+    var a=_rampActive(list), b=document.getElementById('rampBanner'); if(!b) return;
+    if(a&&cu){ b.style.display='flex'; b.innerHTML='\ud83d\udea7 <b>Ramp needs to be clear</b> \u2014 '+tvEsc(a.ev.name)+' \u00b7 Date: '+_dmy(a.ev.date)+' \u00b7 Time: '+a.ev.start_t+' to '+a.ev.end_t; }
+    else b.style.display='none';
+  });
+  if(!_rampT) _rampT=setInterval(function(){ rampFetch(function(){rampCheck();},true); },60000);
+}
+/* ---- Master Access: Ramp tab ---- */
+var MR_LIST=[];
+function mrMsg(t,col){ var m=document.getElementById('mr-msg'); if(m){ m.textContent=t||''; m.style.color=col||'#22C55E'; } }
+function mrLoad(){ rampFetch(function(list){ MR_LIST=list||[]; mrRender(); },true); }
+function mrRender(){
+  var el=document.getElementById('mr-list'); if(!el) return;
+  if(!MR_LIST.length){ el.innerHTML='<div class="m-empty">No upcoming ramp events.</div>'; return; }
+  el.innerHTML=MR_LIST.map(function(ev){
+    return '<div class="mc" style="text-align:left;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:800">'+tvEsc(ev.name)+'</div><div style="font-size:12.5px;color:var(--t2);margin-top:3px">'+_dmy(ev.date)+' \u00b7 clear '+ev.start_t+' \u2013 '+ev.end_t+'</div></div><button class="ac-del" onclick="mrDelete('+ev.id+')" title="Delete">\u00d7</button></div>';
+  }).join('');
+}
+function mrAdd(){
+  var name=document.getElementById('mr-name').value.trim(), date=document.getElementById('mr-date').value, st=document.getElementById('mr-start').value, en=document.getElementById('mr-end').value;
+  if(!name||!date||!st||!en){ mrMsg('Fill in name, date and both times','#FF5A52'); return; }
+  mrSave([{name:name,date:date,start_t:st,end_t:en}],function(){ document.getElementById('mr-name').value=''; });
+}
+function mrSave(events,after){
+  mrMsg('Saving\u2026','');
+  fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'ramp-save',part:{site:(currentSite||'sydney'),events:events}})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ mrMsg('\u2713 Saved '+(res.saved||events.length)+' event'+(events.length===1?'':'s')); RAMP_EVENTS=null; mrLoad(); rampCheck(); if(after)after(); }
+      else mrMsg((res&&res.message)||'Save failed','#FF5A52');
+    }).catch(function(){ mrMsg('Connection error','#FF5A52'); });
+}
+function mrDelete(id){
+  if(!confirm('Delete this ramp event?')) return;
+  fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'ramp-delete',part:{id:id}})})
+    .then(function(r){return r.json();}).then(function(res){ if(res&&res.success){ RAMP_EVENTS=null; mrLoad(); rampCheck(); } else mrMsg((res&&res.message)||'Delete failed','#FF5A52'); })
+    .catch(function(){ mrMsg('Connection error','#FF5A52'); });
+}
+function mrImportToggle(){ var d=document.getElementById('mr-import'); if(d) d.style.display=(d.style.display==='none'?'':'none'); }
+function _mrDate(v){ v=String(v||'').trim();
+  var m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=v.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/); if(m){ var y=m[3].length===2?('20'+m[3]):m[3]; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  return null; }
+function _mrTime(v){ v=String(v||'').trim().toLowerCase();
+  var m=v.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/); if(!m) return null;
+  var h=+m[1], mi=m[2]?+m[2]:0; if(m[3]==='pm'&&h<12)h+=12; if(m[3]==='am'&&h===12)h=0;
+  if(h>23||mi>59) return null; return String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'); }
+function mrImport(){
+  var txt=document.getElementById('mr-import-text').value, rows=[], bad=0;
+  txt.split(/\r?\n/).forEach(function(line){
+    if(!line.trim()) return;
+    var c=line.split(/\t/); if(c.length<4) c=line.split(/,/);
+    if(c.length<4){ bad++; return; }
+    var d=_mrDate(c[1]), st=_mrTime(c[2]), en=_mrTime(c[3]);
+    if(!c[0].trim()||!d||!st||!en){ bad++; return; }
+    rows.push({name:c[0].trim(),date:d,start_t:st,end_t:en});
+  });
+  if(!rows.length){ mrMsg('Nothing importable found'+(bad?(' \u2014 '+bad+' bad line'+(bad===1?'':'s')):''),'#FF5A52'); return; }
+  mrSave(rows,function(){ document.getElementById('mr-import-text').value=''; if(bad) mrMsg('\u2713 Imported '+rows.length+' \u00b7 skipped '+bad+' bad line'+(bad===1?'':'s'),'#F59E0B'); });
+}
+/* ---- Push notifications ---- */
+function _b64ToU8(b){ var p='='.repeat((4-b.length%4)%4), r=(b+p).replace(/-/g,'+').replace(/_/g,'/'), raw=atob(r), a=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i); return a; }
+function notifCtaCheck(){
+  var c=document.getElementById('notifCta'); if(!c||window.__tvSite||!cu) return;
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), standalone=!!window.navigator.standalone;
+  if(!('Notification' in window)||!('PushManager' in window)){
+    if(isIOS&&!standalone){ c.style.display='flex'; document.getElementById('notifCtaTxt').textContent='\ud83d\udd14 For phone alerts: Share \u2192 Add to Home Screen, then enable inside the app'; var bb=c.querySelector('button'); if(bb) bb.style.display='none'; }
+    else c.style.display='none';
+    return;
+  }
+  c.style.display=(Notification.permission==='granted')?'none':'flex';
+}
+function notifEnable(){
+  if(!('Notification' in window)||!('PushManager' in window)) return;
+  Notification.requestPermission().then(function(p){
+    if(p!=='granted'){ notifCtaCheck(); return; }
+    navigator.serviceWorker.ready.then(function(reg){
+      return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToU8(PUSH_PUBKEY)});
+    }).then(function(sub){
+      var j=sub.toJSON();
+      return SBC.from('push_subs').upsert({endpoint:sub.endpoint,sub:j,name:(cu&&cu.name)||'',site:(currentSite||'sydney'),updated_at:new Date().toISOString()},{onConflict:'endpoint'});
+    }).then(function(){ notifCtaCheck(); }).catch(function(){ notifCtaCheck(); });
+  });
+}
+/* ---- TV ramp countdown ---- */
+var _tvRampT=null,_tvRampList=null;
+function tvRampLoad(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  SBC.from('ramp_events').select('*').eq('site',currentSite||'sydney').gte('date',today).order('date').order('start_t').limit(30)
+    .then(function(r){ _tvRampList=(r&&r.data)||[]; if(!_tvRampT) _tvRampT=setInterval(tvRampTick,1000); tvRampTick(); },function(){});
+}
+function tvRampTick(){
+  var el=document.getElementById('tv-ramp'); if(!el) return;
+  var a=_rampActive(_tvRampList||[]);
+  if(!a){ el.style.display='none'; return; }
+  var now=Date.now();
+  if(now<a.st) el.innerHTML='\ud83d\udea7 RAMP CLEAR BY '+a.ev.start_t+' \u00b7 '+tvEsc(a.ev.name)+' <span class="tvr-timer">'+_rampFmt(a.st-now)+'</span> until access needed \u00b7 ends '+a.ev.end_t;
+  else el.innerHTML='\ud83d\udea7 RAMP ACCESS ACTIVE \u00b7 '+tvEsc(a.ev.name)+' <span class="tvr-timer">'+_rampFmt(a.en-now)+'</span> until access no longer needed';
+  el.style.display='flex';
 }
 function mQRCount(){
   var el=document.getElementById('m-qr-count'); if(!el) return;

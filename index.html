@@ -1626,7 +1626,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 03Jul-E · native scan</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 03Jul-G · ZXing raw</div>
       </div>
     </div>
 
@@ -3929,10 +3929,47 @@ function _handleScanPayload(url){
    - AUTO-TORCH — if the scene stays dark for ~1.5s the torch turns itself on (and back off
      when it brightens, unless the person pressed the button themselves).
    One variant combo is tried per tick, so CPU stays light; a full cycle completes ~every 1.5s. */
+/* ZXing compiled to WebAssembly — a real C++ barcode engine, the standard answer to iOS
+   Safari lacking any native web barcode API. Loaded lazily on first scan (~1s once, then
+   cached); if the CDN is unreachable the old JS decoder keeps working as the fallback. */
+var _zx=null,_zxLoading=false;
+function _loadZx(){
+  if(_zx||_zxLoading) return; _zxLoading=true;
+  try{
+    (new Function('u','return import(u)'))('https://cdn.jsdelivr.net/npm/zxing-wasm@2/reader/+esm')
+      .then(function(m){ _zx=(m&&(m.readBarcodes||m.readBarcodesFromImageData))?m:null; })
+      .catch(function(){ _zx=null; _zxLoading=false; });
+  }catch(e){ _zx=null; _zxLoading=false; }
+}
+function _zxRead(imageData){
+  var fn=_zx&&(_zx.readBarcodes||_zx.readBarcodesFromImageData); if(!fn) return Promise.resolve(null);
+  return fn.call(_zx,imageData,{tryHarder:true,tryInvert:true,formats:['QRCode']}).then(function(rs){
+    var r=rs&&rs[0]; return r?(r.text||r.rawValue||null):null;
+  }).catch(function(){ return null; });
+}
+/* Camera boost: ask for a high-res feed (more pixels per module), and on multi-lens phones
+   prefer the virtual "Dual/Triple" back camera — that is the one where iOS itself manages
+   lens switching and close focus, exactly like the native camera app. The plain default on
+   Pro models can be a single lens that cannot focus at scanning distance. */
+function _camBoost(video){
+  function hiRes(){ try{ var tr=video&&video.srcObject&&video.srcObject.getVideoTracks()[0]; if(tr) tr.applyConstraints({width:{ideal:1920},height:{ideal:1080}}).catch(function(){}); }catch(e){} }
+  hiRes();
+  try{
+    window.QrScanner.listCameras(true).then(function(cams){
+      if(!cams||!cams.length||!qrs||!qrs.setCamera) return;
+      var pick=null;
+      cams.forEach(function(c){ var l=(c.label||'').toLowerCase();
+        if(/(back|rear)/.test(l) && /(dual|triple)/.test(l) && !/front/.test(l) && !pick) pick=c; });
+      if(pick) qrs.setCamera(pick.id).then(function(){ setTimeout(hiRes,400); }).catch(function(){});
+    }).catch(function(){});
+  }catch(e){}
+}
 var _auxT=null,_auxBusy=false,_auxCv=null,_auxIdx=0,_darkN=0,_brightN=0,_torchAuto=true,_bd=null,_bdT=null,_bdBusy=false;
 var _AUX_VARIANTS=[{c:0.72,inv:true},{c:0.45,inv:false},{c:0.45,inv:true},{c:1.0,inv:true},{c:0.28,inv:false},{c:0.72,inv:false},{c:0.28,inv:true},{c:1.0,inv:false}];
+var _ZX_VARIANTS=[{c:1.0,e:0},{c:0.72,e:0},{c:0.45,e:0},{c:0.28,e:0},{c:0.72,e:1},{c:1.0,e:1},{c:0.45,e:1},{c:0.28,e:1}];
 function _startInvertedScan(video){
   _stopInvertedScan(); _torchAuto=true;
+  _loadZx(); _camBoost(video);
   // NATIVE DECODER FIRST. Modern Safari/Chrome expose the OS barcode engine (BarcodeDetector) —
   // on iPhone that is the SAME Apple Vision engine the camera app uses, which is why the camera
   // reads tags this JS library can't. When it exists, run it against the live video ~5x/sec;
@@ -3957,7 +3994,8 @@ function _startInvertedScan(video){
   _auxT=setInterval(function(){
     if(!qrs || _auxBusy || !video || video.readyState<2 || !video.videoWidth) return;
     _auxBusy=true;
-    var a=_AUX_VARIANTS[_auxIdx%_AUX_VARIANTS.length], b=_AUX_VARIANTS[(_auxIdx+1)%_AUX_VARIANTS.length];
+    var _vl=_zx?_ZX_VARIANTS:_AUX_VARIANTS;
+    var a=_vl[_auxIdx%_vl.length], b=_vl[(_auxIdx+1)%_vl.length];
     _auxIdx+=2;
     _auxTry(video,a,true).then(function(hit){
       if(hit||!qrs){ _auxBusy=false; return; }
@@ -3981,6 +4019,13 @@ function _auxTry(video,vv,meter){
       var mn=255,mx=0,sum=0,cnt=0;
       for(var i=0;i<d.length;i+=64){ var l=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; if(l<mn)mn=l; if(l>mx)mx=l; sum+=l; cnt++; }
       if(meter) _autoTorch(sum/Math.max(1,cnt));
+      // ZXing path: RAW frame for e:0 variants (its local binarizer beats a global stretch in
+      // mixed lighting); global stretch only for the e:1 backup variants. Inversion is ZXing's
+      // own tryInvert — no manual invert needed.
+      if(_zx && !vv.e){
+        _zxRead(im).then(function(text){ if(text){ _handleScanPayload(text); rz(true); } else rz(false); });
+        return;
+      }
       var rng=Math.max(24,mx-mn);
       // pass 2: grayscale, stretch to full range, invert if this variant wants it
       for(var j=0;j<d.length;j+=4){
@@ -3990,6 +4035,13 @@ function _auxTry(video,vv,meter){
         d[j]=d[j+1]=d[j+2]=g;
       }
       x.putImageData(im,0,0);
+      if(_zx){
+        _zxRead(im).then(function(text){
+          if(text){ _handleScanPayload(text); rz(true); return; }
+          rz(false);
+        });
+        return;
+      }
       window.QrScanner.scanImage(_auxCv,{returnDetailedScanResult:true})
         .then(function(r){ var data=(r&&r.data!==undefined)?r.data:r; if(data){ _handleScanPayload(data); rz(true); } else rz(false); })
         .catch(function(){ rz(false); });
@@ -4034,7 +4086,9 @@ function _initScanner(){
       _startInvertedScan(v);                       // 3D tags are light-on-dark; scan that polarity too
       _scanAidsShow(v);                            // torch + zoom aids (shown only where supported)
     }).catch(function(err){
-      document.getElementById('sst').innerText='Camera denied — Settings → Safari → Camera → Allow';
+      document.getElementById('sst').innerText=(window.navigator.standalone
+        ? 'Camera denied — Settings → scroll to this app (Workshop) → Camera → Allow, then reopen'
+        : 'Camera denied — Settings → Safari → Camera → Allow (and aA menu → Website Settings → Camera → Allow)');
       document.getElementById('sbn').style.display='block';
       document.getElementById('ssp').style.display='none';
     });
@@ -7717,6 +7771,12 @@ if(!window.__tvSite){ setTimeout(syncQrLayFromServer,0); }   // pull the shared 
 // What the QR encodes. 'link' = the full app URL (any phone camera opens the app).
 // 'sku' = compact HK:<sku> token — ~40% bigger squares at the same size (21x21 vs 29x29),
 // which is what makes a 3D-printed code actually scannable. The in-app scanner reads both.
+function _qrAdd(qr,payload){
+  // QR alphanumeric mode (digits, A-Z and " $%*+-./:") packs ~40% tighter than byte mode —
+  // it is what lets a compact HK:<sku> tag carry EC Q/H while staying a 21x21 code.
+  if(/^[0-9A-Z $%*+\-.\/:]*$/.test(payload)) qr.addData(payload,'Alphanumeric');
+  else qr.addData(payload);
+}
 function qrPayload(sku,l){ l=l||QR_LAY; return (l.payload==='sku') ? ('HK:'+String(sku)) : ((typeof WEB_APP_URL!=='undefined'?WEB_APP_URL:'')+'?sku='+sku); }
 function _qrEc(l){ return ({L:'L',M:'M',Q:'Q',H:'H'}[(l||QR_LAY).ec]||'M'); }
 function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) return s; while(s.length>1&&ctx.measureText(s+'\u2026').width>maxW)s=s.slice(0,-1); return s+'\u2026'; }
@@ -7793,7 +7853,7 @@ function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
   lay=lay||QR_LAY; imgs=imgs||{}; var W=Math.round(lay.wmm*S), H=Math.round(lay.hmm*S), E=lay.el;
   ctx.clearRect(0,0,W,H); ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(0,0,W,H);
   if(E.qr.on){ var b=E.qr, bw=Math.max(2,b.w*S), bh=Math.max(2,b.h*S), bx=b.x*S, by=b.y*S;
-    var qr=qrcode(0,_qrEc(lay)); qr.addData(qrPayload(sku,lay)); qr.make();
+    var qr=qrcode(0,_qrEc(lay)); _qrAdd(qr,qrPayload(sku,lay)); qr.make();
     var n=qr.getModuleCount(), m=Math.max(0,Math.round(+lay.quiet)), total=n+m*2;
     var side=Math.min(bw,bh), cell=Math.max(1,Math.floor(side/total)), qs=cell*total;
     var ox=bx+Math.round((bw-qs)/2), oy=by+Math.round((bh-qs)/2);
@@ -7853,7 +7913,7 @@ function qeRender(){ var cv=document.getElementById('qre-cv'); if(!cv) return; Q
   var cap=document.getElementById('qe-cap'); if(cap){
     var modTxt='';
     try{
-      var q2=qrcode(0,_qrEc(QR_LAY)); q2.addData(qrPayload(s.sku)); q2.make();
+      var q2=qrcode(0,_qrEc(QR_LAY)); _qrAdd(q2,qrPayload(s.sku)); q2.make();
       var n2=q2.getModuleCount(), tot2=n2+2*Math.max(0,Math.round(+QR_LAY.quiet||0));
       var side2=Math.min(QR_LAY.el.qr.w,QR_LAY.el.qr.h);
       modTxt='  \u00b7  '+n2+'\u00d7'+n2+' @ '+(side2/tot2).toFixed(2)+'mm/square';
@@ -8196,11 +8256,12 @@ function _qeStlTotal(){ var el=document.getElementById('qe-stl-total'); if(!el) 
   var warn=[];
   if((+QR_LAY.quiet||0)<2) warn.push('\u26A0 Quiet zone is '+(+QR_LAY.quiet||0)+' \u2014 printed codes need breathing room to scan; set 2\u20134');
   if(QR_LAY.payload!=='sku') warn.push('\ud83d\udca1 For 3D printing, set \u201cQR contains\u201d to Compact \u2014 ~40% bigger squares');
+  if(QR_LAY.payload==='sku' && (QR_LAY.ec==='L'||QR_LAY.ec==='M')) warn.push('\ud83d\udca1 Compact tags: set Error correction to Q \u00b7 25% \u2014 same size code, shrugs off glare and print defects');
   el.innerHTML=t+(warn.length?('<br><span style="color:#F59E0B">'+warn.join('<br>')+'</span>'):'');
 }
 /* QR -> PNG on a canvas (synchronous, includes a 4-module quiet zone), then placed into a real PDF via jsPDF */
 function qrCanvas(sku){
-  var qr=qrcode(0,'M'); qr.addData(qrPayload(sku)); qr.make();
+  var qr=qrcode(0,'M'); _qrAdd(qr,qrPayload(sku)); qr.make();
   var n=qr.getModuleCount(), m=4, total=n+m*2, scale=6;
   var c=document.createElement('canvas'); c.width=c.height=total*scale;
   var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.fillStyle='#000';
@@ -8216,7 +8277,7 @@ function mSavePDFOne(sku,desc){
 }
 
 /* QR helpers — generated locally so payload is the same ?sku= and a bulk export never depends on a network round-trip */
-function qrDataUrl(sku){ var qr=qrcode(0,'M'); qr.addData(qrPayload(sku)); qr.make(); return qr.createDataURL(6); }
+function qrDataUrl(sku){ var qr=qrcode(0,'M'); _qrAdd(qr,qrPayload(sku)); qr.make(); return qr.createDataURL(6); }
 function mExportAllQR(){
   var list=(parts||[]).filter(function(p){return p.qr_print!==false;}); if(!list.length){ alert('No parts are ticked for the bulk QR PDF. Tick the ones you want, or use \u201cTick all\u201d.'); return; }
   _ensureHkLogo();

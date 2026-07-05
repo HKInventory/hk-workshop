@@ -1552,6 +1552,36 @@
     .ch-input textarea:focus{outline:none;border-color:#1A73E8}
     .ch-send{flex:none;width:46px;height:46px;border:none;border-radius:50%;background:linear-gradient(135deg,#1A73E8,#1666D6);color:#fff;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .ch-send:active{transform:scale(.94)}
+    .ck-hdrow{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 12px}
+    .ck-hdrow .ck-hd{margin:0}
+    .ck-new{background:var(--card);border:1px solid var(--b2);border-radius:999px;color:#4C9DFF;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;font-family:inherit}
+    .ck-new:active{transform:scale(.97)}
+    .ck-row2{display:flex;align-items:center;gap:13px;padding:11px 8px;border-radius:14px;cursor:pointer;transition:background .12s}
+    .ck-row2:active{background:var(--card)}
+    .ck-row2 .ch-av{width:46px;height:46px;font-size:21px;flex:none}
+    .ck-body2{flex:1;min-width:0}
+    .ck-toprow{display:flex;align-items:baseline;gap:8px}
+    .ck-nm2{font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+    .ck-row2.un .ck-nm2{font-weight:800}
+    .ck-at{font-size:11px;font-weight:800;color:#4C9DFF;background:rgba(26,115,232,.20);border-radius:6px;padding:1px 6px}
+    .ck-time{font-size:12px;color:var(--t2);flex:none}
+    .ck-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+    .ck-sub2{font-size:13.5px;color:var(--t2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.4}
+    .ck-sub2.unread{color:var(--t1);font-weight:600}
+    .ck-who{color:var(--t2);font-weight:600}
+    .ck-sub2.unread .ck-who{color:var(--t1)}
+    .ch-grpav{background:linear-gradient(150deg,#7C3AED,#4C1D95) !important;box-shadow:inset 0 0 0 1.5px rgba(167,139,250,.5) !important}
+    .ch-ment{color:#4C9DFF;font-weight:700}
+    .ch-ment.me{background:rgba(26,115,232,.20);color:#8FC0FF;border-radius:6px;padding:0 4px}
+    .ch-grp.me .ch-ment{color:#DCE8FF}
+    .ch-grp.me .ch-ment.me{background:rgba(255,255,255,.24);color:#fff}
+    .tile-badge{position:absolute;top:8px;right:10px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.45);z-index:2}
+    .cg-members{display:flex;flex-direction:column;gap:2px;margin-bottom:12px;max-height:46vh;overflow:auto}
+    .cg-mem{display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:12px;cursor:pointer}
+    .cg-mem:active{background:var(--card)}
+    .cg-mem .ch-av{width:36px;height:36px;font-size:17px;flex:none}
+    .cg-mn{flex:1;font-weight:600;font-size:14.5px}
+    .cg-chk{width:22px;height:22px;accent-color:#1A73E8;flex:none}
     .tk-chips{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 12px}
     .tk-chip{padding:8px 15px;border-radius:999px;border:1px solid var(--b1);background:transparent;color:var(--t1);font-size:13px;font-weight:700;cursor:pointer}
     .tk-chip.on{background:var(--accent,#00CFFF);border-color:transparent;color:#04070A}
@@ -1663,7 +1693,7 @@
             <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
             <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
-            <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div></div>
+            <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div><span class="tile-badge" id="wchats-badge" style="display:none"></span></div>
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
@@ -1699,7 +1729,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-B · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-C · ZXing raw</div>
       </div>
     </div>
 
@@ -2110,8 +2140,7 @@
       </div>
       <div class="sb">
         <div id="ch-list-view">
-          <div class="pgtitle">Chats</div>
-          <div class="ck-list" id="ch-channels"><div class="m-empty">Loading…</div></div>
+          <div class="ck-list" id="ch-channels"><div class="ch-empty">Loading…</div></div>
         </div>
         <div id="ch-thread-view" style="display:none">
           <div class="ch-thread">
@@ -2119,6 +2148,14 @@
             <div class="ch-msgs" id="ch-msgs"></div>
             <div class="ch-input"><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
           </div>
+        </div>
+        <div id="ch-group-view" style="display:none">
+          <div class="pgtitle">New group</div>
+          <label class="tk-fld"><span>Group name</span><input id="cg-name" maxlength="80" placeholder="e.g. Weekend crew"></label>
+          <div class="ck-sec" style="margin-top:6px">Add people</div>
+          <div class="cg-members" id="cg-members"></div>
+          <div class="m-form-msg" id="cg-msg"></div>
+          <button class="tk-btn" onclick="chatCreateGroup()">Create group</button>
         </div>
       </div>
     </div>
@@ -2174,6 +2211,8 @@
     <button class="m-tab" id="mtab-karts" onclick="mTab('karts')">🏎️ Karts</button>
     <button class="m-tab" id="mtab-ramp" onclick="mTab('ramp')">🚧 Ramp</button>
     <button class="m-tab" id="mtab-access" onclick="mTab('access')">🔐 Access</button>
+    <button class="m-tab" id="mtab-phones" onclick="mTab('phones')">📱 Phones</button>
+    <button class="m-tab" id="mtab-settings" onclick="mTab('settings')">⚙️ Settings</button>
   </div>
   <div class="m-pane active" id="m-pane-parts">
     <div class="m-tools">
@@ -2222,16 +2261,33 @@
         <div class="m-form-msg" id="mr-msg" style="margin-top:8px"></div>
       </div>
       <div class="m-list" id="mr-list"><div class="m-empty">Loading ramp events…</div></div>
-      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔔 Phones getting alerts</div>
-        <div class="m-tool-desc">Every device that has enabled push notifications. Ramp reminders, task assignments and DMs go to these phones.</div>
-        <button class="m-add" style="width:100%;margin-top:10px" onclick="mrPushLoad()">↻ Refresh list</button>
+    </div>
+  </div>
+  <div class="m-pane" id="m-pane-phones">
+    <div class="m-list">
+      <div class="mc" style="text-align:left"><div class="mct">📱 Phones getting alerts</div>
+        <div class="m-tool-desc">Every device that has turned on push. Ramp reminders, task assignments and chat messages go to these phones.</div>
+        <button class="m-add" style="width:100%;margin-top:10px" onclick="mrPushLoad()">↻ Refresh</button>
         <div id="mr-push-list" style="margin-top:10px"></div>
       </div>
-      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">⚙️ App settings</div>
-        <div class="m-tool-desc">Everyone is signed out automatically after this many minutes of inactivity. Shared setting — applies to every device.</div>
-        <div class="m-fld" style="margin-top:10px;max-width:230px"><label>Auto sign-out (minutes)</label><input id="mset-logout" type="number" min="1" max="600" step="1" placeholder="30"></div>
+    </div>
+  </div>
+  <div class="m-pane" id="m-pane-settings">
+    <div class="m-list">
+      <div class="mc" style="text-align:left"><div class="mct">⏱️ Auto sign-out</div>
+        <div class="m-tool-desc">Everyone is signed out automatically after this many minutes of inactivity. Shared — applies to every device.</div>
+        <div class="m-fld" style="margin-top:10px;max-width:230px"><label>Minutes of inactivity</label><input id="mset-logout" type="number" min="1" max="600" step="1" placeholder="30"></div>
         <div class="m-form-msg" id="mset-msg"></div>
         <button class="m-add" style="width:100%;margin-top:8px" onclick="saveAutoLogout()">Save</button>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔔 Phone alerts (this device)</div>
+        <div class="m-tool-desc">Turn on lock-screen alerts on the phone you’re using right now — use this if alerts aren’t coming through. On iPhone, add the app to your Home Screen first and open it from that icon.</div>
+        <button class="m-add" style="width:100%;margin-top:10px" onclick="notifEnable()">🔔 Enable / repair alerts on this phone</button>
+        <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="chatTestPush()">Send a test alert to my phone</button>
+        <div class="m-form-msg" id="mset-notif-msg" style="margin-top:10px"></div>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
+        <div class="m-tool-desc" id="mset-about">HK Workshop</div>
       </div>
     </div>
   </div>
@@ -3453,7 +3509,7 @@ function updateUI(id){
   else chip.style.display='none';
   applySiteAccent(id);
   if(id==='order'&&cu){var od=document.getElementById('ondisp');if(od)od.innerText=cu.emoji+' '+cu.name;}
-  if(id==='home'){sizeTiles();if(!homeAnimated){homeAnimated=true;animTiles();}}
+  if(id==='home'){sizeTiles();if(!homeAnimated){homeAnimated=true;animTiles();}if(typeof chatRefreshUnread==='function'){try{chatRefreshUnread();}catch(e){}}}
   // Keep the live status/notes refresh running only while a kart list/detail screen is open.
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
@@ -3521,7 +3577,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=m.emoji;
@@ -6568,14 +6624,16 @@ function mSearch(){ mRenderList(); }
 /* ----- Master tabs ----- */
 var mStaffDraft=[], mStaffLoaded=false;
 function mTab(name){
-  ['parts','staff','sites','tools','tracks','karts','ramp','access'].forEach(function(t){
+  ['parts','staff','sites','tools','tracks','karts','ramp','access','phones','settings'].forEach(function(t){
     var tab=document.getElementById('mtab-'+t), pane=document.getElementById('m-pane-'+t);
     if(tab) tab.classList.toggle('active',t===name);
     if(pane) pane.classList.toggle('active',t===name);
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
   if(name==='sites'&&!mSitesLoaded) siLoad();
-  if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); if(typeof mrPushLoad==='function') mrPushLoad(); var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); }
+  if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
+  if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-C \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8651,16 +8709,31 @@ function notifCtaCheck(){
   }
   c.style.display=(Notification.permission==='granted')?'none':'flex';
 }
+function _notifStatusEl(){ return document.getElementById('mset-notif-msg')||document.getElementById('ch-test-out'); }
+function _pushSay(t,c){ var e=_notifStatusEl(); if(e){ e.textContent=t; e.style.color=c||'var(--t2)'; } else { var ct=document.getElementById('notifCtaTxt'); if(ct) ct.textContent=t; } }
+// Robust enable: prompts, ensures the service worker is active, CLEARS any stale subscription
+// (one bound to an old VAPID key throws on re-subscribe), subscribes fresh, saves to push_subs,
+// and shows the exact failure if any step fails (the old version swallowed every error).
 function notifEnable(){
-  if(!('Notification' in window)||!('PushManager' in window)) return;
-  Notification.requestPermission().then(function(p){
-    if(p!=='granted'){ notifCtaCheck(); return; }
-    navigator.serviceWorker.ready.then(function(reg){
-      return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToU8(PUSH_PUBKEY)});
-    }).then(function(sub){
-      var j=sub.toJSON();
-      return SBC.from('push_subs').upsert({endpoint:sub.endpoint,sub:j,name:(cu&&cu.name)||'',site:(currentSite||'sydney'),updated_at:new Date().toISOString()},{onConflict:'endpoint'});
-    }).then(function(){ notifCtaCheck(); }).catch(function(){ notifCtaCheck(); });
+  if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
+    var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), standalone=!!window.navigator.standalone;
+    _pushSay(isIOS&&!standalone?'On iPhone: tap Share \u2192 Add to Home Screen, open HK from that icon, then try again.':'This browser can\u2019t do push notifications.','#F59E0B'); return;
+  }
+  _pushSay('Enabling\u2026','var(--t2)');
+  Promise.resolve(Notification.permission==='granted'?'granted':Notification.requestPermission()).then(function(perm){
+    if(perm!=='granted'){ _pushSay('Notifications are blocked for this app. On iPhone: delete the Home-Screen icon, re-add it, open it, then Enable.','#FF5A52'); return; }
+    return navigator.serviceWorker.getRegistration().then(function(reg){ return reg||navigator.serviceWorker.register('sw.js'); })
+      .then(function(){ return navigator.serviceWorker.ready; })
+      .then(function(reg){ return reg.pushManager.getSubscription().then(function(ex){ return ex?ex.unsubscribe().catch(function(){}).then(function(){return reg;}):reg; }); })
+      .then(function(reg){ return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToU8(PUSH_PUBKEY)}); })
+      .then(function(sub){ var j=sub.toJSON(); return SBC.from('push_subs').upsert({endpoint:sub.endpoint,sub:j,name:(cu&&cu.name)||'',site:(currentSite||'sydney'),updated_at:new Date().toISOString()},{onConflict:'endpoint'}); })
+      .then(function(res){
+        if(res&&res.error){ _pushSay('Phone subscribed, but saving to the database failed: '+(res.error.message||'unknown')+' \u2014 make sure ramp_push.sql has been run.','#FF5A52'); return; }
+        _pushSay('\u2713 This phone is set up for alerts. Send a test to confirm.','#22C55E'); try{notifCtaCheck();}catch(e){}
+      });
+  }).catch(function(err){
+    var m=(err&&err.message)||String(err);
+    _pushSay('Couldn\u2019t enable \u2014 '+m+(/applicationServerKey|key/i.test(m)?' (the VAPID public key in Supabase must exactly match the app).':''),'#FF5A52');
   });
 }
 /* ---- TV ramp countdown ---- */
@@ -8723,6 +8796,8 @@ function hideMasterPin(){
    matches tv_state/ui_config: UI-gated, anon read/write. Pushes go person-to-person through
    the notify-user edge function (DM sent, task assigned, task comment, task completed). */
 var CH_CHANNEL=null,CH_TITLE='',CH_OTHER=null,CH_MSGS=[],CH_DM=[];
+var CH_GROUPS=[],CH_LAST={},CH_UNREAD={},CH_MYGROUPS={},CH_GROUP_MEMBERS=null;
+function _isArr(x){ return Object.prototype.toString.call(x)==='[object Array]'; }
 var TK_FILTER='mine',TK_LIST=[],TK_ROWS=[],TK_SEL=null,TK_VIEW='list',TKD_MSGS=[];
 function _hkScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
 function _chDmChannel(a,b){ var p=[String(a||''),String(b||'')].sort(); return 'dm:'+p[0]+'|'+p[1]; }
@@ -8745,49 +8820,178 @@ function hkNotify(toName,title,body,tag,url){
 
 /* ---------- Chats ---------- */
 function chatEnter(){ chatShowList(); }
-function chatBack(){ if(CH_CHANNEL){ chatShowList(); } else back(); }
+function chatBack(){
+  var gv=document.getElementById('ch-group-view');
+  if(gv&&gv.style.display!=='none'){ chatShowList(); return; }
+  if(CH_CHANNEL){ chatShowList(); } else back();
+}
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
 function _chAvatar(name,st){ var hue=_chAvHue(name); return '<span class="ch-av" style="background:hsl('+hue+',52%,30%);box-shadow:inset 0 0 0 1.5px hsl('+hue+',58%,46%)">'+userEmoji(st||{name:name})+'</span>'; }
+function _reEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+/* ---- read/unread state (per device, localStorage) ---- */
+function _chReads(){ try{ return JSON.parse(localStorage.getItem('hk_chat_reads')||'{}')||{}; }catch(e){ return {}; } }
+function _chSaveReads(r){ try{ localStorage.setItem('hk_chat_reads',JSON.stringify(r)); }catch(e){} }
+function chatMarkRead(channel){ if(!channel) return; var r=_chReads(); r[channel]=Date.now(); _chSaveReads(r); CH_UNREAD[channel]=0; chatUpdateBadges(); }
+function chatUnreadTotal(){ var t=0,k; for(k in CH_UNREAD){ if(CH_UNREAD.hasOwnProperty(k)) t+=CH_UNREAD[k]||0; } return t; }
+function chatUpdateBadges(){
+  var n=chatUnreadTotal(), b=document.getElementById('wchats-badge');
+  if(b){ if(n>0){ b.textContent=(n>99?'99+':String(n)); b.style.display='flex'; } else b.style.display='none'; }
+}
+
+/* ---- @mention detection + highlighting ---- */
+function _chStaffTokens(){
+  var names=[]; (typeof STAFF!=='undefined'?STAFF:[]).forEach(function(s){ if(s&&s.name){ names.push(s.name); names.push(s.name.split(' ')[0]); } });
+  return names.filter(function(v,i,a){ return v&&a.indexOf(v)===i; }).sort(function(a,b){ return b.length-a.length; });
+}
+function _chMentioned(body){
+  var out=[]; body=String(body||'');
+  (typeof STAFF!=='undefined'?STAFF:[]).forEach(function(s){ if(!s||!s.name) return; var f=s.name.split(' ')[0];
+    if(new RegExp('@('+_reEsc(s.name)+'|'+_reEsc(f)+')(?![\\w])','i').test(body)) out.push(s.name); });
+  return out;
+}
+function _chMentionsMe(body){ if(!cu||!cu.name) return false; var f=cu.name.split(' ')[0];
+  return new RegExp('@('+_reEsc(cu.name)+'|'+_reEsc(f)+')(?![\\w])','i').test(String(body||'')); }
+function _chRenderBody(body){
+  body=String(body||''); var toks=_chStaffTokens(); if(!toks.length) return tvEsc(body);
+  var re=new RegExp('@('+toks.map(_reEsc).join('|')+')(?![\\w])','g');
+  var me=(cu&&cu.name)||'', myFirst=me.split(' ')[0], out='', last=0, m;
+  while((m=re.exec(body))){ out+=tvEsc(body.slice(last,m.index)); var nm=m[1], isMe=(nm===me||nm===myFirst);
+    out+='<span class="ch-ment'+(isMe?' me':'')+'">@'+tvEsc(nm)+'</span>'; last=m.index+m[0].length; }
+  out+=tvEsc(body.slice(last)); return out;
+}
+
 function chatTestPush(){
-  var out=document.getElementById('ch-test-out');
+  var out=_notifStatusEl();
   function say(t,c){ if(out){ out.textContent=t; out.style.color=c||'var(--t2)'; } }
   if(!cu||typeof SB_FN==='undefined'){ say('Not signed in.'); return; }
   say('Sending a test to your phone\u2026');
   fetch(SB_FN+'notify-user',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu.pin||''),toName:cu.name,title:'\ud83d\udd14 Test alert',body:'If you can see this, alerts are working.',tag:'hk-test'})})
     .then(function(r){return r.json();}).then(function(res){
       if(res&&res.success&&res.sent>0){ say('\u2713 Sent to '+res.sent+' device'+(res.sent===1?'':'s')+' \u2014 check your lock screen.','#22C55E'); }
-      else if(res&&res.success){ say('Reached the server, but this phone isn\u2019t subscribed yet \u2014 tap Enable on the \ud83d\udd14 banner (iPhone: Share \u2192 Add to Home Screen first).','#F59E0B'); }
+      else if(res&&res.success){ say('Reached the server, but this phone isn\u2019t subscribed yet \u2014 tap \u201cEnable / repair alerts\u201d (Master \u2192 Settings, or the \ud83d\udd14 banner). iPhone: add to Home Screen first.','#F59E0B'); }
       else { var m=(res&&res.message)||'no response'; say('Not sent \u2014 '+m+(/VAPID/i.test(m)?' (the 3 VAPID secrets aren\u2019t set on the function).':(/signed in/i.test(m)?' (your PIN isn\u2019t in the staff table the function checks).':' (is notify-user deployed with Verify JWT OFF?)')),'#FF5A52'); }
     }).catch(function(){ say('Couldn\u2019t reach notify-user \u2014 deploy it with Verify JWT OFF.','#FF5A52'); });
 }
+
+/* ---- conversation list ---- */
+function _chListTime(iso){
+  var t=Date.parse(iso); if(isNaN(t)) return ''; var d=new Date(t), now=new Date();
+  if(d.toDateString()===now.toDateString()) return _chTime(iso);
+  if(d.toDateString()===new Date(now.getTime()-86400000).toDateString()) return 'Yesterday';
+  if((now-d)/86400000<7) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  return d.getDate()+' '+_CH_MO[d.getMonth()];
+}
+function _chConvRow(channel, avatar, name, fallbackSub, onclick){
+  var m=CH_LAST[channel], me=(cu&&cu.name)||'';
+  var timeTxt='', unread=CH_UNREAD[channel]||0, mentionMe=false, subHtml=tvEsc(fallbackSub||'');
+  if(m){ timeTxt=_chListTime(m.created_at); var who=(m.author===me)?'You':tvEsc((m.author||'').split(' ')[0]);
+    mentionMe=_chMentionsMe(String(m.body||'')); subHtml='<span class="ck-who">'+who+':</span> '+_chRenderBody(String(m.body||'')); }
+  var right=(unread>0?'<span class="ck-badge">'+(unread>99?'99+':String(unread))+'</span>':(timeTxt?'<span class="ck-time">'+timeTxt+'</span>':''));
+  var subCls='ck-sub2'+(unread>0?' unread':'');
+  return '<div class="ck-row2'+(unread>0?' un':'')+'" onclick="'+onclick+'">'+avatar+
+    '<div class="ck-body2"><div class="ck-toprow"><span class="ck-nm2">'+tvEsc(name)+(mentionMe?' <span class="ck-at">@you</span>':'')+'</span>'+right+
+    '</div><div class="'+subCls+'">'+subHtml+'</div></div></div>';
+}
+function _chIndex(msgs, me, cs, reads){
+  CH_LAST={}; CH_UNREAD={};
+  msgs.forEach(function(m){
+    var ch=m.channel; if(!ch||ch.indexOf('task:')===0) return;
+    if(ch==='general'){ if(m.site&&m.site!==cs) return; }
+    else if(ch.indexOf('dm:')===0){ if(ch.slice(3).split('|').indexOf(me)<0) return; }
+    else if(ch.indexOf('group:')===0){ if(!CH_MYGROUPS[ch]) return; }
+    else return;
+    if(!CH_LAST[ch]) CH_LAST[ch]=m;
+    var t=Date.parse(m.created_at)||0, read=reads[ch]||0;
+    if(t>read && m.author!==me) CH_UNREAD[ch]=(CH_UNREAD[ch]||0)+1;
+  });
+}
 function chatShowList(){
-  CH_CHANNEL=null; CH_OTHER=null; CH_MSGS=[];
+  CH_CHANNEL=null; CH_OTHER=null; CH_MSGS=[]; CH_GROUP_MEMBERS=null;
+  var gv=document.getElementById('ch-group-view'); if(gv) gv.style.display='none';
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
   if(lv) lv.style.display=''; if(tv) tv.style.display='none';
-  var box=document.getElementById('ch-channels'); if(!box) return;
-  var cs=currentSite||'sydney', csL=(typeof siteLabel==='function'?siteLabel(cs):cs);
-  var html='<div class="ck-hd">Chats</div>';
-  html+='<div class="ck-row" onclick="chatOpenGeneral()"><span class="ch-av ch-team">\ud83d\udcac</span><div class="ck-body"><div class="ck-nm">Team chat</div><div class="ck-sub">Everyone at '+tvEsc(csL)+'</div></div><span class="ck-chev">\u203a</span></div>';
-  html+='<div class="ck-sec">Direct messages</div>';
-  var me=(cu&&cu.name)||'';
-  CH_DM=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){return s&&s.name&&s.name!==me;});
-  if(!CH_DM.length) html+='<div class="ch-empty">No other staff yet.</div>';
-  CH_DM.forEach(function(s,i){
-    html+='<div class="ck-row" onclick="chatOpenDm('+i+')">'+_chAvatar(s.name,s)+'<div class="ck-body"><div class="ck-nm">'+tvEsc(s.name)+'</div><div class="ck-sub">'+tvEsc(s.role||'')+'</div></div><span class="ck-chev">\u203a</span></div>';
-  });
-  html+='<div class="ck-test"><button class="ck-testbtn" onclick="chatTestPush()">\ud83d\udd14 Test message alerts on this phone</button><div class="ck-testout" id="ch-test-out"></div></div>';
-  box.innerHTML=html;
+  var box=document.getElementById('ch-channels'); if(box&&!box.getAttribute('data-ready')) box.innerHTML='<div class="ck-hd">Chats</div><div class="ch-empty">Loading\u2026</div>';
+  chatLoadList();
 }
-function chatOpenGeneral(){ chatOpen('general','\uD83D\uDCAC Team chat',null); }
-function chatOpenDm(i){ var s=CH_DM[i]; if(!s||!cu) return; chatOpen(_chDmChannel(cu.name,s.name),userEmoji(s)+' '+s.name,s.name); }
-function chatOpen(channel,title,other){
+function chatLoadList(){
+  if(typeof SBC==='undefined'||!SBC){ chatRenderList(); return; }
+  var me=(cu&&cu.name)||'', cs=currentSite||'sydney', reads=_chReads();
+  var pg=SBC.from('chat_groups').select('id,name,members,site,created_at').order('id',{ascending:false}).limit(100);
+  var pm=SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300);
+  Promise.all([pg,pm]).then(function(rs){
+    CH_GROUPS=((rs[0]&&rs[0].data)||[]).filter(function(g){ return g&&_isArr(g.members)&&g.members.indexOf(me)>=0; });
+    CH_MYGROUPS={}; CH_GROUPS.forEach(function(g){ CH_MYGROUPS['group:'+g.id]=g; });
+    _chIndex((rs[1]&&rs[1].data)||[], me, cs, reads); chatRenderList(); chatUpdateBadges();
+  },function(){
+    CH_GROUPS=[]; CH_MYGROUPS={};
+    SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300).then(function(r){
+      _chIndex((r&&r.data)||[], me, cs, reads); chatRenderList(); chatUpdateBadges();
+    },function(){ chatRenderList(); });
+  });
+}
+function chatRenderList(){
+  var box=document.getElementById('ch-channels'); if(!box) return;
+  var me=(cu&&cu.name)||'', cs=currentSite||'sydney', csL=(typeof siteLabel==='function'?siteLabel(cs):cs);
+  var html='<div class="ck-hdrow"><div class="ck-hd">Chats</div><button class="ck-new" onclick="chatNewGroup()">+ New group</button></div>';
+  html+=_chConvRow('general','<span class="ch-av ch-team">\ud83d\udcac</span>','Team chat','Everyone at '+csL,'chatOpenGeneral()');
+  if(CH_GROUPS&&CH_GROUPS.length){
+    html+='<div class="ck-sec">Groups</div>';
+    CH_GROUPS.forEach(function(g){ html+=_chConvRow('group:'+g.id,'<span class="ch-av ch-grpav">\ud83d\udc65</span>',g.name,((g.members||[]).length)+' members','chatOpenGroup('+g.id+')'); });
+  }
+  html+='<div class="ck-sec">Direct messages</div>';
+  CH_DM=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){ return s&&s.name&&s.name!==me; });
+  if(!CH_DM.length) html+='<div class="ch-empty">No other staff yet.</div>';
+  CH_DM.forEach(function(s,i){ html+=_chConvRow(_chDmChannel(me,s.name), _chAvatar(s.name,s), s.name, s.role||'', 'chatOpenDm('+i+')'); });
+  html+='<div class="ck-test"><button class="ck-testbtn" onclick="chatTestPush()">\ud83d\udd14 Test message alerts on this phone</button><div class="ck-testout" id="ch-test-out"></div></div>';
+  box.innerHTML=html; box.setAttribute('data-ready','1');
+}
+
+/* ---- create group ---- */
+function chatNewGroup(){
+  var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view');
+  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='';
+  var me=(cu&&cu.name)||'', nm=document.getElementById('cg-name'); if(nm) nm.value='';
+  var box=document.getElementById('cg-members');
+  if(box){ box.innerHTML=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){ return s&&s.name&&s.name!==me; }).map(function(s){
+    return '<label class="cg-mem">'+_chAvatar(s.name,s)+'<span class="cg-mn">'+tvEsc(s.name)+'</span><input type="checkbox" class="cg-chk" value="'+tvEsc(s.name)+'"></label>'; }).join(''); }
+  var mg=document.getElementById('cg-msg'); if(mg) mg.textContent='';
+  if(nm) setTimeout(function(){ try{ nm.focus(); }catch(e){} },80);
+}
+function chatCreateGroup(){
+  var mg=document.getElementById('cg-msg'); function say(t,c){ if(mg){ mg.textContent=t; mg.style.color=c||'#FF5A52'; } }
+  var el=document.getElementById('cg-name'), name=(el&&el.value||'').trim();
+  if(!name){ say('Give the group a name'); return; }
+  var picks=[]; Array.prototype.forEach.call(document.querySelectorAll('#cg-members .cg-chk'),function(c){ if(c.checked) picks.push(c.value); });
+  if(!picks.length){ say('Pick at least one person'); return; }
+  var me=(cu&&cu.name)||''; if(picks.indexOf(me)<0) picks.push(me);
+  if(typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  say('Creating\u2026','var(--t2)');
+  SBC.from('chat_groups').insert({name:name.slice(0,80),members:picks,created_by:me,site:currentSite||'sydney'}).select('id,name,members,site').then(function(r){
+    if(r&&r.error){ say('Couldn\u2019t create \u2014 '+(r.error.message||'run chat_groups.sql')); return; }
+    var g=(r&&r.data&&r.data[0])||null;
+    if(g){ CH_GROUPS.unshift(g); CH_MYGROUPS['group:'+g.id]=g; chatOpenGroup(g.id); } else chatShowList();
+  },function(){ say('Connection error'); });
+}
+
+/* ---- open a conversation ---- */
+function chatOpenGeneral(){ CH_GROUP_MEMBERS=null; chatOpen('general','Team chat',null); }
+function chatOpenDm(i){ var s=CH_DM[i]; if(!s||!cu) return; CH_GROUP_MEMBERS=null; chatOpen(_chDmChannel(cu.name,s.name),s.name,s.name,s); }
+function chatOpenGroup(id){ var g=CH_MYGROUPS['group:'+id]||(CH_GROUPS.filter(function(x){return x.id===id;})[0]);
+  CH_GROUP_MEMBERS=(g&&g.members)||[]; chatOpen('group:'+id,(g&&g.name)||'Group',null); }
+function chatOpen(channel,title,other,dmStaff){
   CH_CHANNEL=channel; CH_TITLE=title; CH_OTHER=other||null; CH_MSGS=[];
+  var gv=document.getElementById('ch-group-view'); if(gv) gv.style.display='none';
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
   if(lv) lv.style.display='none'; if(tv) tv.style.display='';
   var t=document.getElementById('ch-title');
-  if(t){ if(other){ t.innerHTML=_chAvatar(other,_staffByName(other))+'<span>'+tvEsc(other)+'</span>'; } else { t.innerHTML='<span class="ch-av ch-team">\ud83d\udcac</span><span>Team chat</span>'; } }
-  var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="m-empty">Loading\u2026</div>';
-  chatFetch();
+  if(t){
+    if(other){ t.innerHTML=_chAvatar(other,dmStaff||_staffByName(other))+'<span>'+tvEsc(title)+'</span>'; }
+    else if(channel.indexOf('group:')===0){ t.innerHTML='<span class="ch-av ch-grpav">\ud83d\udc65</span><span>'+tvEsc(title)+'</span>'; }
+    else { t.innerHTML='<span class="ch-av ch-team">\ud83d\udcac</span><span>'+tvEsc(title)+'</span>'; }
+  }
+  var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="ch-empty">Loading\u2026</div>';
+  chatMarkRead(channel); chatFetch();
 }
 function chatFetch(){
   if(typeof SBC==='undefined'||!SBC||!CH_CHANNEL) return;
@@ -8795,14 +8999,14 @@ function chatFetch(){
   var q=SBC.from('messages').select('id,channel,site,author,body,created_at').eq('channel',ch).order('id',{ascending:false}).limit(200);
   if(ch==='general') q=q.eq('site',currentSite||'sydney');
   q.then(function(r){
-    if(CH_CHANNEL!==ch) return;                       // user navigated away mid-flight
+    if(CH_CHANNEL!==ch) return;
     CH_MSGS=((r&&r.data)||[]).slice().reverse();
-    chatRenderMsgs('ch-msgs',CH_MSGS,true);
-  },function(){ var el=document.getElementById('ch-msgs'); if(el) el.innerHTML='<div class="m-empty">Couldn\u2019t load messages \u2014 check the connection.</div>'; });
+    chatRenderMsgs('ch-msgs',CH_MSGS,true); chatMarkRead(ch);
+  },function(){ var el=document.getElementById('ch-msgs'); if(el) el.innerHTML='<div class="ch-empty">Couldn\u2019t load messages \u2014 check the connection.</div>'; });
 }
 function chatRenderMsgs(elId,msgs,scroll){
   var el=document.getElementById(elId); if(!el) return;
-  if(!msgs.length){ el.innerHTML='<div class="ch-empty">No messages yet \u2014 say hi \uD83D\uDC4B</div>'; return; }
+  if(!msgs.length){ el.innerHTML='<div class="ch-empty">No messages yet \u2014 say hi \ud83d\udc4b</div>'; return; }
   var me=(cu&&cu.name)||'',html='',lastDay='',prevAuthor=null,prevT=0;
   msgs.forEach(function(m){
     var t=Date.parse(m.created_at)||0, mine=(m.author===me), st=_staffByName(m.author);
@@ -8815,7 +9019,7 @@ function chatRenderMsgs(elId,msgs,scroll){
       if(!mine) html+=_chAvatar(m.author,st);
       html+='<div class="ch-col"><div class="ch-hd">'+(mine?'':'<b>'+tvEsc((m.author||'').split(' ')[0])+'</b> ')+'<span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
-    html+='<div class="ch-bub">'+tvEsc(m.body)+'</div>';
+    html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>';
     lastDay=day; prevAuthor=m.author; prevT=t;
   });
   if(prevAuthor!==null) html+='</div></div>';
@@ -8827,33 +9031,58 @@ function chatSend(){
   var ta=document.getElementById('ch-text'),txt=(ta&&ta.value||'').trim();
   if(!txt||!CH_CHANNEL||!cu||typeof SBC==='undefined'||!SBC) return;
   ta.value='';
-  var ch=CH_CHANNEL,other=CH_OTHER;
-  SBC.from('messages').insert({channel:ch,site:currentSite||'sydney',author:cu.name,body:txt.slice(0,2000)}).then(function(r){
+  var ch=CH_CHANNEL,other=CH_OTHER,me=cu.name;
+  SBC.from('messages').insert({channel:ch,site:currentSite||'sydney',author:me,body:txt.slice(0,2000)}).then(function(r){
     if(r&&r.error){ ta.value=txt; return; }
-    if(CH_CHANNEL===ch){                              // local echo (realtime replaces it when the row arrives)
-      CH_MSGS.push({_local:true,channel:ch,author:cu.name,body:txt.slice(0,2000),created_at:new Date().toISOString()});
-      chatRenderMsgs('ch-msgs',CH_MSGS,true);
-    }
-    if(other) hkNotify(other,'\uD83D\uDCAC '+((cu.name||'').split(' ')[0]),txt.slice(0,160),'hk-dm');
+    if(CH_CHANNEL===ch){ CH_MSGS.push({_local:true,channel:ch,author:me,body:txt.slice(0,2000),created_at:new Date().toISOString()}); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
+    chatMarkRead(ch);
+    var rec={};
+    if(other) rec[other]=1;
+    if(ch.indexOf('group:')===0&&CH_GROUP_MEMBERS){ CH_GROUP_MEMBERS.forEach(function(n){ if(n!==me) rec[n]=1; }); }
+    _chMentioned(txt).forEach(function(n){ if(n!==me) rec[n]=1; });
+    var title=(ch.indexOf('group:')===0)?('\ud83d\udc65 '+(CH_TITLE||'Group')):('\ud83d\udcac '+((me||'').split(' ')[0]));
+    var k; for(k in rec){ if(rec.hasOwnProperty(k)) hkNotify(k,title,txt.slice(0,160),'hk-chat'); }
   },function(){ ta.value=txt; });
 }
-/* Realtime: a new message row lands in whichever thread is open (chat screen or task comments). */
+/* Refresh unread counts without rendering the list (login + returning home). */
+function chatRefreshUnread(){
+  if(typeof SBC==='undefined'||!SBC||!cu) return;
+  var me=cu.name, cs=currentSite||'sydney', reads=_chReads();
+  var pg=SBC.from('chat_groups').select('id,members').limit(100);
+  var pm=SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300);
+  Promise.all([pg,pm]).then(function(rs){
+    CH_MYGROUPS={}; ((rs[0]&&rs[0].data)||[]).forEach(function(g){ if(g&&_isArr(g.members)&&g.members.indexOf(me)>=0) CH_MYGROUPS['group:'+g.id]=g; });
+    _chIndex((rs[1]&&rs[1].data)||[], me, cs, reads); chatUpdateBadges();
+  },function(){
+    SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300).then(function(r){ CH_MYGROUPS={}; _chIndex((r&&r.data)||[], me, cs, reads); chatUpdateBadges(); },function(){});
+  });
+}
+/* Realtime: a new message row lands in the open thread, or bumps an unread badge elsewhere. */
 function _rtMsgIn(row){
   if(!row||!row.channel) return;
-  var me=(cu&&cu.name)||'';
-  function fold(list){                                // drop the optimistic local copy of my own send
-    if(row.author!==me) return;
-    for(var i=list.length-1;i>=0;i--){ if(list[i]._local&&list[i].body===row.body){ list.splice(i,1); return; } }
-  }
-  if(CH_CHANNEL&&row.channel===CH_CHANNEL&&_hkScr()==='chats'){
-    if(row.channel==='general'&&row.site&&row.site!==(currentSite||'sydney')) return;
+  var me=(cu&&cu.name)||'', ch=row.channel;
+  function fold(list){ if(row.author!==me) return; for(var i=list.length-1;i>=0;i--){ if(list[i]._local&&list[i].body===row.body){ list.splice(i,1); return; } } }
+  if(CH_CHANNEL&&ch===CH_CHANNEL&&_hkScr()==='chats'){
+    if(ch==='general'&&row.site&&row.site!==(currentSite||'sydney')) return;
     fold(CH_MSGS);
     if(!CH_MSGS.some(function(m){return m.id===row.id;})){ CH_MSGS.push(row); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
-    return;
+    chatMarkRead(ch); return;
   }
-  if(TK_SEL&&TK_VIEW==='detail'&&row.channel==='task:'+TK_SEL.id&&_hkScr()==='tasks'){
+  if(TK_SEL&&TK_VIEW==='detail'&&ch==='task:'+TK_SEL.id&&_hkScr()==='tasks'){
     fold(TKD_MSGS);
     if(!TKD_MSGS.some(function(m){return m.id===row.id;})){ TKD_MSGS.push(row); chatRenderMsgs('tkd-msgs',TKD_MSGS,false); }
+    return;
+  }
+  if(row.author!==me && ch.indexOf('task:')!==0){
+    var relevant=false, cs=currentSite||'sydney';
+    if(ch==='general') relevant=(!row.site||row.site===cs);
+    else if(ch.indexOf('dm:')===0) relevant=(ch.slice(3).split('|').indexOf(me)>=0);
+    else if(ch.indexOf('group:')===0) relevant=!!CH_MYGROUPS[ch];
+    if(relevant){
+      CH_LAST[ch]=row; CH_UNREAD[ch]=(CH_UNREAD[ch]||0)+1; chatUpdateBadges();
+      var lv=document.getElementById('ch-list-view');
+      if(_hkScr()==='chats'&&!CH_CHANNEL&&lv&&lv.style.display!=='none') chatRenderList();
+    }
   }
 }
 

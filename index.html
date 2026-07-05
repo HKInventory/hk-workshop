@@ -850,7 +850,9 @@
     .m-tools{display:flex;gap:10px;padding:12px 18px;flex-shrink:0}
     .m-search-in{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;-webkit-appearance:none}
     .m-search-in:focus{outline:none;border-color:var(--acc)}
-    .m-add{background:var(--grad);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:14px;padding:11px 16px;cursor:pointer;white-space:nowrap}
+    *{overflow-wrap:break-word}
+    .m-add{background:var(--grad);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:14px;padding:11px 16px;cursor:pointer;white-space:normal;line-height:1.3}
+    .ck-testbtn.ghost{background:transparent;border:1px dashed var(--b2);color:var(--t2)}
     .m-list{flex:1;overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 24px);-webkit-overflow-scrolling:touch}
     .m-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:11px 12px;margin-bottom:8px}
     .m-row-main{flex:1;min-width:0;cursor:pointer}
@@ -1729,7 +1731,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-C · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-D · ZXing raw</div>
       </div>
     </div>
 
@@ -6633,7 +6635,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-C \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-D \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8943,7 +8945,7 @@ function chatRenderList(){
   CH_DM=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){ return s&&s.name&&s.name!==me; });
   if(!CH_DM.length) html+='<div class="ch-empty">No other staff yet.</div>';
   CH_DM.forEach(function(s,i){ html+=_chConvRow(_chDmChannel(me,s.name), _chAvatar(s.name,s), s.name, s.role||'', 'chatOpenDm('+i+')'); });
-  html+='<div class="ck-test"><button class="ck-testbtn" onclick="chatTestPush()">\ud83d\udd14 Test message alerts on this phone</button><div class="ck-testout" id="ch-test-out"></div></div>';
+  html+='<div class="ck-test"><button class="ck-testbtn" onclick="notifEnable()">🔔 Enable / repair alerts on this phone</button><button class="ck-testbtn ghost" onclick="chatTestPush()">\ud83d\udd14 Test message alerts on this phone</button><div class="ck-testout" id="ch-test-out"></div></div>';
   box.innerHTML=html; box.setAttribute('data-ready','1');
 }
 

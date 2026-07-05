@@ -1533,6 +1533,15 @@
     .ch-team{background:linear-gradient(150deg,#0E7490,#155E75);box-shadow:inset 0 0 0 1.5px rgba(34,211,238,.5)}
     .ch-thread{display:flex;flex-direction:column;min-height:calc(100% - 4px)}
     #s-chats .sb{padding-bottom:max(env(safe-area-inset-bottom),0px)}
+    #s-chats .sb.thread-mode{overflow:hidden;padding-bottom:0}
+    #ch-thread-view{height:100%}
+    #ch-thread-view .ch-thread{height:100%;min-height:0}
+    #ch-thread-view .ch-msgs{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    #ch-thread-view .ch-input{position:static;flex:none;background:var(--bg);border-top:1px solid var(--b1);padding-bottom:calc(max(env(safe-area-inset-bottom),0px) + 10px)}
+    .ch-attach{flex:none;width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--b2);color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .ch-img{max-width:min(240px,68vw);max-height:280px;border-radius:12px;display:block;cursor:pointer}
+    .ch-bub.ch-bub-img{padding:3px !important;background:rgba(255,255,255,.06) !important}
+    .ch-cap{padding:5px 6px 2px;font-size:14px}
     #ch-title{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:800;margin-bottom:6px}
     #ch-title .ch-av{width:34px;height:34px;font-size:16px}
     .ch-msgs{flex:1;display:flex;flex-direction:column;padding:6px 0 12px}
@@ -1753,7 +1762,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-G · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-H · ZXing raw</div>
       </div>
     </div>
 
@@ -2168,8 +2177,7 @@
         </div>
         <div class="mc" style="text-align:left"><div class="mct">🎨 Your avatar</div>
           <div class="m-tool-desc">Your emoji and colour show next to your name across chats and tasks.</div>
-          <div class="acct-row2" style="margin-top:10px"><span class="acct-lbl">Emoji</span><input id="acct-emoji" class="acct-emoji-in" maxlength="4" placeholder="🙂" oninput="acctSetEmoji(this.value)"></div>
-          <div class="acct-lbl" style="margin-top:13px">Colour</div>
+          <div class="acct-lbl" style="margin-top:2px">Colour</div>
           <div class="acct-swatches" id="acct-swatches"></div>
           <div class="acct-row2" style="margin-top:13px"><span class="acct-lbl">Custom</span><input id="acct-hex" class="acct-hex-in" maxlength="7" placeholder="#3B82F6"><button class="acct-hex-btn" onclick="acctSetColorHex()">Apply</button></div>
         </div>
@@ -2199,7 +2207,7 @@
           <div class="ch-thread">
             <div class="pgtitle" id="ch-title" style="margin-bottom:8px">Chat</div>
             <div class="ch-msgs" id="ch-msgs"></div>
-            <div class="ch-input"><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
+            <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">🖼️</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
           </div>
         </div>
         <div id="ch-group-view" style="display:none">
@@ -6700,7 +6708,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-G \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-H \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7216,7 +7224,6 @@ function acRoleName(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].name=v
 function acRoleEmoji(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].emoji=String(v||'').trim(); }
 // Role emoji fills every account holding that role; the personal emoji is the fallback.
 function userEmoji(u){ u=u||cu; if(!u) return '🔧';
-  try{ if(typeof USER_EMOJI!=='undefined'&&USER_EMOJI&&USER_EMOJI[u.name]) return USER_EMOJI[u.name]; }catch(e){}
   try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var r=rs.find(function(x){return x.name===u.role;}); if(r&&r.emoji) return r.emoji; }catch(e){}
   return u.emoji||'🔧'; }
 function acRoleTab(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; var k=r.tabs.indexOf(key); if(k>=0)r.tabs.splice(k,1); else r.tabs.push(key); acRender(); }
@@ -8960,7 +8967,7 @@ function _chConvRow(channel, avatar, name, fallbackSub, onclick){
   var m=CH_LAST[channel], me=(cu&&cu.name)||'';
   var timeTxt='', unread=CH_UNREAD[channel]||0, mentionMe=false, subHtml=tvEsc(fallbackSub||'');
   if(m){ timeTxt=_chListTime(m.created_at); var who=(m.author===me)?'You':tvEsc((m.author||'').split(' ')[0]);
-    mentionMe=_chMentionsMe(String(m.body||'')); subHtml='<span class="ck-who">'+who+':</span> '+_chRenderBody(String(m.body||'')); }
+    mentionMe=_chMentionsMe(String(m.body||'')); var _pb=String(m.body||'').trim()||((m.image)?'\ud83d\udcf7 Photo':''); subHtml='<span class="ck-who">'+who+':</span> '+_chRenderBody(_pb); }
   var right=(unread>0?'<span class="ck-badge">'+(unread>99?'99+':String(unread))+'</span>':(timeTxt?'<span class="ck-time">'+timeTxt+'</span>':''));
   var subCls='ck-sub2'+(unread>0?' unread':'');
   return '<div class="ck-row2'+(unread>0?' un':'')+'" onclick="'+onclick+'">'+avatar+
@@ -8984,7 +8991,7 @@ function chatShowList(){
   CH_CHANNEL=null; CH_OTHER=null; CH_MSGS=[]; CH_GROUP_MEMBERS=null;
   var gv=document.getElementById('ch-group-view'); if(gv) gv.style.display='none'; var _iv=document.getElementById('ch-info-view'); if(_iv) _iv.style.display='none';
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
-  if(lv) lv.style.display=''; if(tv) tv.style.display='none';
+  if(lv) lv.style.display=''; if(tv) tv.style.display='none'; _chSbMode(false);
   var box=document.getElementById('ch-channels'); if(box&&!box.getAttribute('data-ready')) box.innerHTML='<div class="ck-hd">Chats</div><div class="ch-empty">Loading\u2026</div>';
   chatLoadList();
 }
@@ -8992,14 +8999,14 @@ function chatLoadList(){
   if(typeof SBC==='undefined'||!SBC){ chatRenderList(); return; }
   var me=(cu&&cu.name)||'', cs=currentSite||'sydney', reads=_chReads();
   var pg=SBC.from('chat_groups').select('*').order('id',{ascending:false}).limit(100);
-  var pm=SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300);
+  var pm=SBC.from('messages').select('*').order('id',{ascending:false}).limit(300);
   Promise.all([pg,pm]).then(function(rs){
     CH_GROUPS=((rs[0]&&rs[0].data)||[]).filter(function(g){ return g&&_isArr(g.members)&&g.members.indexOf(me)>=0; });
     CH_MYGROUPS={}; CH_GROUPS.forEach(function(g){ CH_MYGROUPS['group:'+g.id]=g; });
     _chIndex((rs[1]&&rs[1].data)||[], me, cs, reads); chatRenderList(); chatUpdateBadges();
   },function(){
     CH_GROUPS=[]; CH_MYGROUPS={};
-    SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300).then(function(r){
+    SBC.from('messages').select('*').order('id',{ascending:false}).limit(300).then(function(r){
       _chIndex((r&&r.data)||[], me, cs, reads); chatRenderList(); chatUpdateBadges();
     },function(){ chatRenderList(); });
   });
@@ -9023,7 +9030,7 @@ function chatRenderList(){
 /* ---- create group ---- */
 function chatNewGroup(){
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view');
-  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='';
+  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display=''; _chSbMode(false);
   var me=(cu&&cu.name)||'', nm=document.getElementById('cg-name'); if(nm) nm.value='';
   var box=document.getElementById('cg-members');
   if(box){ box.innerHTML=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){ return s&&s.name&&s.name!==me; }).map(function(s){
@@ -9065,12 +9072,12 @@ function chatOpen(channel,title,other,dmStaff){
     else { t.innerHTML='<span class="ch-av ch-team">\ud83d\udcac</span><span>'+tvEsc(title)+'</span>'; }
   }
   var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="ch-empty">Loading\u2026</div>';
-  chatMarkRead(channel); chatFetch();
+  chatMarkRead(channel); _chSbMode(true); chatFetch();
 }
 function chatFetch(){
   if(typeof SBC==='undefined'||!SBC||!CH_CHANNEL) return;
   var ch=CH_CHANNEL;
-  var q=SBC.from('messages').select('id,channel,site,author,body,created_at').eq('channel',ch).order('id',{ascending:false}).limit(200);
+  var q=SBC.from('messages').select('*').eq('channel',ch).order('id',{ascending:false}).limit(200);
   if(ch==='general') q=q.eq('site',currentSite||'sydney');
   q.then(function(r){
     if(CH_CHANNEL!==ch) return;
@@ -9093,14 +9100,54 @@ function chatRenderMsgs(elId,msgs,scroll){
       if(!mine) html+=_chAvatar(m.author,st);
       html+='<div class="ch-col"><div class="ch-hd">'+(mine?'':'<b>'+tvEsc((m.author||'').split(' ')[0])+'</b> ')+'<span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
-    html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>';
+    if(m.image){ html+='<div class="ch-bub ch-bub-img"><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+'</div>':'')+'</div>'; }
+    else { html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>'; }
     lastDay=day; prevAuthor=m.author; prevT=t;
   });
   if(prevAuthor!==null) html+='</div></div>';
   el.innerHTML=html;
-  if(scroll){ setTimeout(function(){ var p=el; while(p&&p.className.indexOf('sb')<0) p=p.parentElement; if(p) p.scrollTop=p.scrollHeight; },40); }
+  if(scroll){ setTimeout(function(){ try{el.scrollTop=el.scrollHeight;}catch(e){} var p=el; while(p&&(!p.className||p.className.indexOf('sb')<0)) p=p.parentElement; if(p){try{p.scrollTop=p.scrollHeight;}catch(e){}} },40); }
 }
 function chatKey(e){ if(e&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); chatSend(); } }
+function _chSbMode(on){ var sb=document.querySelector('#s-chats .sb'); if(sb) sb.classList[on?'add':'remove']('thread-mode'); }
+function _chPush(ch,other,body){
+  if(!cu) return; var me=cu.name, isGrp=(ch.indexOf('group:')===0), rec={};
+  if(other) rec[other]=1;
+  if(isGrp){ var gm=(CH_GROUP_MEMBERS&&CH_GROUP_MEMBERS.length)?CH_GROUP_MEMBERS:((CH_MYGROUPS[ch]&&CH_MYGROUPS[ch].members)||[]); gm.forEach(function(n){ if(n&&n!==me) rec[n]=1; }); }
+  _chMentioned(body||'').forEach(function(n){ if(n!==me) rec[n]=1; });
+  var emo=(typeof userEmoji==='function')?userEmoji(cu):'\ud83d\udd27', mf=(me||'').split(' ')[0];
+  var title=isGrp?(emo+' '+mf+' \u00b7 '+(CH_TITLE||'Group')):(emo+' '+mf), tag=isGrp?('hkc-'+ch):('hkc-dm-'+me), k;
+  for(k in rec){ if(rec.hasOwnProperty(k)) hkNotify(k,title,String(body||'').slice(0,160),tag); }
+}
+function _chOpenImg(u){ try{ window.open(u,'_blank'); }catch(e){} }
+function chatPickImage(){ var f=document.getElementById('ch-file'); if(f){ f.value=''; f.click(); } }
+function _chResizeImage(file,cb){
+  try{ var url=URL.createObjectURL(file), img=new Image();
+    img.onload=function(){ var max=1600,w=img.width||1,ht=img.height||1,s=Math.min(1,max/Math.max(w,ht)); var cw=Math.max(1,Math.round(w*s)),chh=Math.max(1,Math.round(ht*s)); var c=document.createElement('canvas'); c.width=cw; c.height=chh; try{ c.getContext('2d').drawImage(img,0,0,cw,chh); c.toBlob(function(b){ URL.revokeObjectURL(url); cb(b||file); },'image/jpeg',0.82); }catch(e){ URL.revokeObjectURL(url); cb(file); } };
+    img.onerror=function(){ URL.revokeObjectURL(url); cb(file); }; img.src=url;
+  }catch(e){ cb(file); }
+}
+function chatUploadImage(inp){
+  var file=inp&&inp.files&&inp.files[0]; if(inp) inp.value='';
+  if(!file||!CH_CHANNEL||!cu||typeof SBC==='undefined'||!SBC) return;
+  var ch=CH_CHANNEL,other=CH_OTHER,me=cu.name, ta=document.getElementById('ch-text'), ph=ta?ta.placeholder:'';
+  function done(msg){ if(ta){ ta.placeholder=msg; setTimeout(function(){ if(ta) ta.placeholder=ph||'Message\u2026'; },2500); } }
+  if(ta) ta.placeholder='Sending photo\u2026';
+  _chResizeImage(file,function(blob){
+    var path=(currentSite||'sydney')+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+    SBC.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(res){
+      if(res&&res.error){ done('Upload failed \u2014 run chat_images.sql'); return; }
+      var pu=SBC.storage.from('chat-images').getPublicUrl(path), url=pu&&pu.data&&pu.data.publicUrl;
+      if(ta) ta.placeholder=ph||'Message\u2026';
+      if(!url) return;
+      SBC.from('messages').insert({channel:ch,site:currentSite||'sydney',author:me,body:'',image:url}).then(function(r){
+        if(r&&r.error){ done('Couldn\u2019t send'); return; }
+        if(CH_CHANNEL===ch){ CH_MSGS.push({_local:true,channel:ch,author:me,body:'',image:url,created_at:new Date().toISOString()}); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
+        chatMarkRead(ch); _chPush(ch,other,'\ud83d\udcf7 Photo');
+      },function(){ done('Couldn\u2019t send'); });
+    },function(){ done('Upload failed'); });
+  });
+}
 function chatSend(){
   var ta=document.getElementById('ch-text'),txt=(ta&&ta.value||'').trim();
   if(!txt||!CH_CHANNEL||!cu||typeof SBC==='undefined'||!SBC) return;
@@ -9110,14 +9157,7 @@ function chatSend(){
     if(r&&r.error){ ta.value=txt; return; }
     if(CH_CHANNEL===ch){ CH_MSGS.push({_local:true,channel:ch,author:me,body:txt.slice(0,2000),created_at:new Date().toISOString()}); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
     chatMarkRead(ch);
-    var rec={}, isGrp=(ch.indexOf('group:')===0);
-    if(other) rec[other]=1;
-    if(isGrp){ var gm=(CH_GROUP_MEMBERS&&CH_GROUP_MEMBERS.length)?CH_GROUP_MEMBERS:((CH_MYGROUPS[ch]&&CH_MYGROUPS[ch].members)||[]); gm.forEach(function(n){ if(n&&n!==me) rec[n]=1; }); }
-    _chMentioned(txt).forEach(function(n){ if(n!==me) rec[n]=1; });
-    var _emo=(typeof userEmoji==='function')?userEmoji(cu):'\ud83d\udd27', _mf=(me||'').split(' ')[0];
-    var title=isGrp?(_emo+' '+_mf+' \u00b7 '+(CH_TITLE||'Group')):(_emo+' '+_mf);
-    var _tag=isGrp?('hkc-'+ch):('hkc-dm-'+me);
-    var k; for(k in rec){ if(rec.hasOwnProperty(k)) hkNotify(k,title,txt.slice(0,160),_tag); }
+    _chPush(ch,other,txt);
   },function(){ ta.value=txt; });
 }
 /* Refresh unread counts without rendering the list (login + returning home). */
@@ -9125,12 +9165,12 @@ function chatRefreshUnread(){
   if(typeof SBC==='undefined'||!SBC||!cu) return;
   var me=cu.name, cs=currentSite||'sydney', reads=_chReads();
   var pg=SBC.from('chat_groups').select('id,members').limit(100);
-  var pm=SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300);
+  var pm=SBC.from('messages').select('*').order('id',{ascending:false}).limit(300);
   Promise.all([pg,pm]).then(function(rs){
     CH_MYGROUPS={}; ((rs[0]&&rs[0].data)||[]).forEach(function(g){ if(g&&_isArr(g.members)&&g.members.indexOf(me)>=0) CH_MYGROUPS['group:'+g.id]=g; });
     _chIndex((rs[1]&&rs[1].data)||[], me, cs, reads); chatUpdateBadges();
   },function(){
-    SBC.from('messages').select('channel,site,author,body,created_at').order('id',{ascending:false}).limit(300).then(function(r){ CH_MYGROUPS={}; _chIndex((r&&r.data)||[], me, cs, reads); chatUpdateBadges(); },function(){});
+    SBC.from('messages').select('*').order('id',{ascending:false}).limit(300).then(function(r){ CH_MYGROUPS={}; _chIndex((r&&r.data)||[], me, cs, reads); chatUpdateBadges(); },function(){});
   });
 }
 /* Realtime: a new message row lands in the open thread, or bumps an unread badge elsewhere. */
@@ -9171,8 +9211,8 @@ var ACCT_SWATCHES=['#EF4444','#F97316','#F59E0B','#EAB308','#84CC16','#22C55E','
 function userColor(u){ u=u||cu||{}; var c=(typeof USER_COLORS!=='undefined'&&USER_COLORS)?USER_COLORS[u.name]:null; if(c) return c; return 'hsl('+_chAvHue(u.name||'')+',52%,30%)'; }
 function loadUserColors(cb){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
-  SBC.from('user_prefs').select('name,color,emoji').then(function(r){
-    var m={},e={}; ((r&&r.data)||[]).forEach(function(x){ if(x&&x.name){ if(x.color) m[x.name]=x.color; if(x.emoji) e[x.name]=x.emoji; } }); USER_COLORS=m; USER_EMOJI=e; if(cb)cb();
+  SBC.from('user_prefs').select('name,color').then(function(r){
+    var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x&&x.name&&x.color) m[x.name]=x.color; }); USER_COLORS=m; if(cb)cb();
   },function(){ if(cb)cb(); });
 }
 function openAccount(){ if(!cu) return; go('account'); }
@@ -9181,13 +9221,12 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-G \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-H \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var cur=String(userColor(cu)).toLowerCase();
   var sw=document.getElementById('acct-swatches');
   if(sw){ sw.innerHTML=ACCT_SWATCHES.map(function(c){ return '<div class="acct-sw'+(c.toLowerCase()===cur?' on':'')+'" style="background:'+c+'" onclick="acctSetColor(\''+c+'\')"></div>'; }).join(''); }
   var hx=document.getElementById('acct-hex'); if(hx&&document.activeElement!==hx) hx.value=(/^#([0-9a-f]{6})$/i.test(cur)?cur:'');
-  var em=document.getElementById('acct-emoji'); if(em&&document.activeElement!==em) em.value=(USER_EMOJI[cu.name]||'');
 }
 function acctSetColor(c){
   if(!cu) return; USER_COLORS[cu.name]=c;
@@ -9202,7 +9241,7 @@ function acctSetEmoji(v){ if(!cu) return; v=(v||'').trim().slice(0,4); if(v) USE
 function chatGroupInfo(){
   var g=CH_GROUP; if(!g) return;
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view'),iv=document.getElementById('ch-info-view');
-  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='none'; if(iv) iv.style.display='';
+  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='none'; if(iv) iv.style.display=''; _chSbMode(false);
   var av=document.getElementById('ci-av'); if(av) av.textContent=g.emoji||'\ud83d\udc65';
   var nm=document.getElementById('ci-name'); if(nm) nm.textContent=g.name||'Group';
   var ct=document.getElementById('ci-count'); if(ct) ct.textContent=((g.members||[]).length)+' members';
@@ -9438,4 +9477,3 @@ function mrPushLoad(){
 </script>
 </body>
 </html>
-    

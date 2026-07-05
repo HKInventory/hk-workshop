@@ -409,7 +409,7 @@
     .mk-chip.on{color:#0b0e13;background:var(--ac,#00CFFF);border-color:var(--ac,#00CFFF)}
     .mk-chip .mk-n{opacity:.6;font-weight:600;margin-left:4px}
     .mk-chip.on .mk-n{opacity:.8}
-    .ramp-banner{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,#B91C1C,#DC2626);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:9px 14px;text-align:center;cursor:pointer;box-shadow:0 0 14px rgba(220,38,38,.45);animation:rampPulse 1.5s ease-in-out infinite}
+    .ramp-banner{display:block;background:linear-gradient(90deg,#B91C1C,#DC2626);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.2px;padding:5px 12px;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     @keyframes rampPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
     .notif-cta{display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(0,207,255,0.08);border-bottom:1px solid rgba(0,207,255,0.2);color:var(--t1);font-size:12.5px;font-weight:600;padding:8px 14px}
     .notif-cta button{background:var(--ac,#00CFFF);color:#04222b;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:6px 14px}
@@ -1560,6 +1560,57 @@
     .ch-empty{text-align:center;color:var(--t2);font-size:13px;padding:30px 12px}
     .ch-day{align-self:center;margin:16px 0 4px}
     .ch-day span{font-size:11px;font-weight:700;color:var(--t2);background:var(--card2);border-radius:999px;padding:4px 13px}
+    /* ---- Google-Chat restyle ---- */
+    .gc-search{margin:2px 0 14px}
+    .gc-search input{width:100%;box-sizing:border-box;background:#1F2228;border:1px solid transparent;border-radius:24px;color:var(--t1);padding:12px 18px;font-size:15px;font-family:inherit;outline:none}
+    .gc-search input::placeholder{color:#9AA0A6}
+    .gc-search input:focus{border-color:rgba(138,180,248,.5)}
+    .ck-hd{font-size:22px;font-weight:800}
+    .ck-new{background:rgba(138,180,248,.12);border:none;color:#8AB4F8}
+    .ck-sec{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#9AA0A6;text-transform:uppercase;margin:18px 2px 4px}
+    .ck-row2{padding:10px 6px;border-radius:16px}
+    .ck-row2 .ch-av{width:46px;height:46px;font-size:21px;border-radius:14px}
+    .ck-nm2{font-size:15.5px;font-weight:600;color:#E8EAED}
+    .ck-row2.un .ck-nm2{font-weight:800;color:#fff}
+    .ck-time{font-size:11.5px;color:#9AA0A6}
+    .ck-sub2{font-size:13.5px;color:#9AA0A6}
+    .ck-sub2.unread{color:#E8EAED}
+    .ck-badge{background:#1A73E8;min-width:22px;height:22px;font-size:11.5px}
+    .ck-at{color:#8AB4F8;background:rgba(138,180,248,.16)}
+    /* thread: flat, left-aligned, like Google Chat */
+    .ch-grp{gap:11px;margin-top:16px}
+    .ch-grp.me{flex-direction:row}
+    .ch-grp .ch-av{width:36px;height:36px;font-size:17px;border-radius:50%}
+    .ch-col{max-width:100%;flex:1;min-width:0}
+    .ch-grp.me .ch-col{align-items:flex-start}
+    .ch-hd{font-size:13.5px;color:#E8EAED;font-weight:700;margin:0 0 1px}
+    .ch-grp.me .ch-hd{text-align:left}
+    .ch-hd .ch-tm{font-weight:400;font-size:11px;color:#9AA0A6;margin-left:6px}
+    .ch-bub{background:none;border-radius:0;padding:1px 0 0;font-size:15px;line-height:1.45;color:#E8EAED;max-width:100%}
+    .ch-grp.me .ch-bub{background:none;color:#E8EAED}
+    .ch-grp.me .ch-bub:first-of-type{border-top-right-radius:0}
+    .ch-bub.ch-bub-img{padding:4px 0 0 !important;background:none !important}
+    .ch-img{border-radius:14px;border:1px solid var(--b1)}
+    .ch-ment{color:#8AB4F8}
+    .ch-ment.me{background:rgba(138,180,248,.18);color:#AECBFA}
+    .ch-grp.me .ch-ment{color:#8AB4F8}
+    .ch-grp.me .ch-ment.me{background:rgba(138,180,248,.18);color:#AECBFA}
+    /* composer pill */
+    #ch-thread-view .ch-input{border-top:none;background:var(--bg);padding:8px 4px calc(max(env(safe-area-inset-bottom),0px) + 10px);gap:8px}
+    .ch-input textarea{background:#1F2228;border:1px solid transparent;border-radius:22px;padding:12px 16px;font-size:15px;color:var(--t1)}
+    .ch-input textarea:focus{border-color:rgba(138,180,248,.5)}
+    .ch-send{width:42px;height:42px;background:#1A73E8;border-radius:50%;font-size:16px}
+    .ch-attach{width:42px;height:42px;background:#1F2228;border:none;font-size:17px}
+    body.bigtext .ch-bub{font-size:17px}
+    body.hugetext .ch-bub{font-size:18.5px}
+    body.hugetext .ck-nm2{font-size:18px}
+    body.hugetext .ck-sub2{font-size:16px}
+    body.hugetext .tk-t{font-size:18px}
+    body.hugetext .ci-mn,body.hugetext .cg-mn{font-size:17px}
+    body.hugetext #ch-text,body.hugetext #tkd-text{font-size:17px}
+    .acct-pin-in{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:15px;font-family:inherit;letter-spacing:4px;text-align:center}
+    .acct-slider{width:100%;accent-color:#1A73E8;margin-top:14px}
+    .acct-slider-labels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--t2);font-weight:700;margin-top:4px}
     .ch-input{position:sticky;bottom:0;display:flex;gap:9px;align-items:flex-end;padding:10px 0 calc(max(env(safe-area-inset-bottom),0px) + 6px);background:var(--bg)}
     .ch-input textarea{flex:1;min-height:46px;max-height:120px;resize:none;background:var(--card);border:1.5px solid var(--b2);border-radius:23px;color:var(--t1);padding:12px 16px;font-size:14.5px;font-family:inherit;box-sizing:border-box}
     .ch-input textarea:focus{outline:none;border-color:#1A73E8}
@@ -1773,7 +1824,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-I · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-J · ZXing raw</div>
       </div>
     </div>
 
@@ -2198,9 +2249,19 @@
           <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="chatTestPush()">Send a test alert to my phone</button>
           <div class="m-form-msg" id="mset-notif-msg" style="margin-top:10px"></div>
         </div>
-        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔠 Bigger text</div>
-          <div class="m-tool-desc">Larger text in chats and tasks on this device.</div>
-          <label class="bt-toggle"><input type="checkbox" id="acct-bigtext" onchange="toggleBigText(this.checked)"><span>Bigger text on</span></label>
+        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔑 Change my PIN</div>
+          <div class="m-tool-desc">Pick a new 4-digit PIN for signing in. Managers can still see PINs in Master Access if you forget.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+            <div><div class="acct-lbl" style="margin-bottom:5px">Current PIN</div><input id="acct-pin-cur" class="acct-pin-in" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+            <div><div class="acct-lbl" style="margin-bottom:5px">New PIN</div><input id="acct-pin-new" class="acct-pin-in" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+          </div>
+          <div class="m-form-msg" id="acct-pin-msg" style="margin-top:8px"></div>
+          <button class="m-add" style="width:100%;margin-top:8px" onclick="acctChangePin()">Change PIN</button>
+        </div>
+        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔠 Text size</div>
+          <div class="m-tool-desc">Bigger text in chats and tasks on this device.</div>
+          <input type="range" min="0" max="2" step="1" class="acct-slider" id="acct-txtsz" onchange="setTextSize(this.value)" oninput="setTextSize(this.value)">
+          <div class="acct-slider-labels"><span>Normal</span><span>Large</span><span>Huge</span></div>
         </div>
         <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
           <div class="m-tool-desc" id="acct-about">HK Workshop</div>
@@ -2216,6 +2277,7 @@
       </div>
       <div class="sb">
         <div id="ch-list-view">
+          <div class="gc-search"><input id="ch-search" placeholder="Search chats" oninput="chatFilter(this.value)"></div>
           <div class="ck-list" id="ch-channels"><div class="ch-empty">Loading…</div></div>
         </div>
         <div id="ch-thread-view" style="display:none">
@@ -2349,8 +2411,10 @@
         <div class="m-tool-desc">When level 6 needs the ramp (sports events, shows), add it here. Everyone gets a banner in the app, the TV runs a countdown, and phones get alerts 4h / 1h / 30m before and at clear time.</div>
         <div class="m-fld" style="margin-top:10px"><label>Event name</label><input id="mr-name" placeholder="e.g. Netball finals"></div>
         <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label>Date</label><input id="mr-date" type="date"></div><div><label>Ramp clear from</label><input id="mr-start" type="time"></div><div><label>Until</label><input id="mr-end" type="time"></div></div>
+        <div class="m-fld" style="margin-top:8px"><label>Closed until — optional, for multi-day closures (ends this date at the “Until” time)</label><input id="mr-date2" type="date"></div>
         <div class="m-fld" style="margin-top:8px"><label>Applies to</label><select id="mr-site" style="width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:14px;font-family:inherit;-webkit-appearance:none"><option value="">All sites (everyone gets the alert)</option></select></div>
-        <button class="m-add" style="width:100%;margin-top:8px" onclick="mrAdd()">+ Add event</button>
+        <button class="m-add" style="width:100%;margin-top:8px" id="mr-add-btn" onclick="mrAdd()">+ Add event</button>
+        <button class="m-add" style="width:100%;margin-top:6px;background:transparent;border:1px dashed var(--b2);color:var(--t2);display:none" id="mr-cancel-btn" onclick="mrCancelEdit()">Cancel editing</button>
         <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="mrImportToggle()">📋 Paste from spreadsheet</button>
         <div id="mr-import" style="display:none;margin-top:8px">
           <div class="m-tool-desc">Paste rows copied from Excel / Google Sheets — one event per line: <b>Name, Date, From, To</b> (tabs or commas). Dates like 12/8/2026 or 2026-08-12; times like 14:30 or 2:30pm.</div>
@@ -3135,10 +3199,19 @@ var STAFF=[
 // ── Sizing ──
 function sz(){
   var app=document.getElementById('app');
-  app.style.height=window.innerHeight+'px';
-  document.getElementById('nav').style.height=(window.innerHeight-document.getElementById('hdr').offsetHeight)+'px';
+  var _H=window.innerHeight;
+  if(window.navigator.standalone){
+    var _kb=window.visualViewport&&(window.innerHeight-window.visualViewport.height)>60;   // keyboard open?
+    if(!_kb) _H+=_safeBottom();                     // paint under the home indicator like native apps
+  }
+  app.style.height=_H+'px';
+  document.getElementById('nav').style.height=(_H-document.getElementById('hdr').offsetHeight)+'px';
   if(typeof stk!=='undefined'&&stk.length&&stk[stk.length-1]==='home') sizeTiles();
 }
+function _safeBottom(){ if(window.__sab!=null) return window.__sab;
+  try{ var p=document.createElement('div'); p.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden'; document.body.appendChild(p); window.__sab=p.offsetHeight||0; p.parentNode.removeChild(p); }catch(e){ window.__sab=0; }
+  return window.__sab; }
+if(window.visualViewport){ try{ window.visualViewport.addEventListener('resize',function(){ sz(); }); }catch(e){} }
 sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility();});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 
@@ -6731,7 +6804,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-I \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-J \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7054,11 +7127,13 @@ function mLoadSnap(cb,force){
       var ws=_mSnapWaiters.slice(); _mSnapWaiters=[]; ws.forEach(function(w){ try{w(res);}catch(e){} });
     }).catch(function(){ _mSnapBusy=false; var ws=_mSnapWaiters.slice(); _mSnapWaiters=[]; ws.forEach(function(w){ try{w(null);}catch(e){} }); });
 }
+var MS_ORIG={};
+function roleEmojiFor(r){ try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var f=rs.find(function(x){return x.name===r;}); if(f&&f.emoji) return f.emoji; }catch(e){} return (r==='Manager'||r==='Assistant Manager')?'\u2b50':'\ud83d\udd27'; }
 /* ----- Staff editor (server-backed, authorised by your PIN) ----- */
 function msLoad(){
   var el=document.getElementById('m-staff-list'); el.innerHTML='<div class="m-empty">Loading staff…</div>';
   mLoadSnap(function(res){
-      if(res&&res.success){ var acc=res.access||[]; mMasterSites=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent};}); mStaffDraft=(res.staff||[]).map(function(x){ var mine=acc.filter(function(a){return a.staff_name===x.name;}).map(function(a){return a.site;}); return {name:x.name||'',role:x.role||'Mechanic',pin:x.pin||'',emoji:x.emoji||'🔧',sites:mine}; }); mStaffLoaded=true; msRender(); }
+      if(res&&res.success){ var acc=res.access||[]; mMasterSites=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent};}); mStaffDraft=(res.staff||[]).map(function(x){ var mine=acc.filter(function(a){return a.staff_name===x.name;}).map(function(a){return a.site;}); return {name:x.name||'',role:x.role||'Mechanic',pin:x.pin||'',emoji:x.emoji||'🔧',sites:mine}; }); mStaffLoaded=true; MS_ORIG={}; mStaffDraft.forEach(function(s){MS_ORIG[s.name]=s.role;}); msRender(); }
       else if(el){ el.innerHTML='<div class="m-empty">'+((res&&res.message)||'Could not load staff — make sure you have Master Access.')+'</div>'; }
   });
 }
@@ -7066,23 +7141,24 @@ function msRender(){
   var el=document.getElementById('m-staff-list');
   if(!mStaffDraft.length){ el.innerHTML='<div class="m-empty">No staff yet — tap “+ Add”.</div>'; return; }
   el.innerHTML=mStaffDraft.map(function(x,i){
+    var lockPin=(x.name==='Harvey Betts'&&(!cu||cu.name!=='Harvey Betts'));
     return '<div class="prow staff-edit-row" data-idx="'+i+'">'
       +'<button class="staff-del-btn" onclick="msDeleteRow('+i+')" title="Remove">×</button>'
       +'<div class="staff-edit-meta">'
       +  '<div style="display:flex;gap:6px;align-items:center">'
-      +    '<input class="staff-name-input" type="text" maxlength="4" value="'+acEsc(x.emoji||'🔧')+'" placeholder="🙂" title="Account emoji" oninput="msField('+i+',\'emoji\',this.value)" style="flex:0 0 44px;width:44px;text-align:center;font-size:17px;padding:6px 2px">'
+      +    '<span class="staff-name-input" title="Emoji comes from the role" style="flex:0 0 44px;width:44px;text-align:center;font-size:17px;padding:6px 2px;opacity:.9">'+acEsc(roleEmojiFor(x.role))+'</span>'
       +    '<input class="staff-name-input" type="text" value="'+(x.name||'').replace(/"/g,'&quot;')+'" placeholder="Full name" oninput="msField('+i+',\'name\',this.value)" style="flex:1 1 0;min-width:0;width:auto">'
       +  '</div>'
       +  '<div class="staff-role-line"><select class="staff-role-select" onchange="msField('+i+',\'role\',this.value)">'
       +    msRoleOpts(x.role)
       +  '</select></div>'
       +'</div>'
-      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN" oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN"'+(lockPin?' disabled style="opacity:.4" title="Only the Owner can change Harvey\u2019s PIN"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
       +'<div class="staff-sites"><span class="staff-sites-label">Site access'+(_isMgr(x.role)?' · managers get all':'')+'</span>'+ mMasterSites.map(function(s){ var on=_isMgr(x.role)||((x.sites||[]).indexOf(s.id)>=0); return '<button type="button" class="ssite'+(on?' on':'')+(_isMgr(x.role)?' lock':'')+'" style="--ac:'+s.accent+'" onclick="msToggleSite('+i+',\''+s.id+'\')">'+s.label+'</button>'; }).join('')+'</div>'
       +'</div>';
   }).join('');
 }
-function msField(i,f,v){ if(mStaffDraft[i]) mStaffDraft[i][f]=v.trim(); }
+function msField(i,f,v){ if(!mStaffDraft[i]) return; mStaffDraft[i][f]=v.trim(); if(f==='role'){ mStaffDraft[i].emoji=roleEmojiFor(v.trim()); msRender(); } }
 function msToggleSite(i,sid){ var st=mStaffDraft[i]; if(!st||_isMgr(st.role)) return; if(!st.sites) st.sites=[]; var k=st.sites.indexOf(sid); if(k>=0) st.sites.splice(k,1); else st.sites.push(sid); msRender(); }
 /* ----- Sites editor ----- */
 function siLoad(){
@@ -7129,6 +7205,7 @@ function siAddRow(){ if(!mSitesLoaded){ siLoad(); return; } var pos=mSitesDraft.
 function siSave(){
   var msg=document.getElementById('m-sites-msg'), btn=document.getElementById('m-sites-save'); msg.style.color='';
   for(var i=0;i<mSitesDraft.length;i++){ if(!(mSitesDraft[i].label||'').trim()){ msg.style.color='var(--red)'; msg.textContent='Every site needs a name.'; return; } if(!/^#[0-9a-fA-F]{6}$/.test(mSitesDraft[i].accent||'')){ msg.style.color='var(--red)'; msg.textContent=(mSitesDraft[i].label||'A site')+' needs a hex colour.'; return; } }
+  for(var _e=0;_e<mStaffDraft.length;_e++){ mStaffDraft[_e].emoji=roleEmojiFor(mStaffDraft[_e].role); }
   msg.textContent=''; btn.textContent='Saving\u2026'; btn.disabled=true;
   mInvalidateSnap();
   fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'sites-save',sites:mSitesDraft})})
@@ -7155,7 +7232,20 @@ function msSave(){
   fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'save',staff:mStaffDraft})})
     .then(function(r){return r.json();}).then(function(res){
       btn.textContent='Save staff changes'; btn.disabled=false;
-      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.emoji||((st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'))};}); if(cu){ var _me=STAFF.filter(function(s){return s.name===cu.name;})[0]; if(_me){ cu.emoji=_me.emoji; var ueEl=document.getElementById('ue'); if(ueEl) ueEl.innerText=cu.emoji; try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} } } if(cu&&cu.name){ loadSites(function(){}); } setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
+      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; STAFF=mStaffDraft.map(function(st){return {name:st.name,role:st.role,pin:st.pin,emoji:(st.emoji||((st.role==='Manager'||st.role==='Assistant Manager')?'⭐':'🔧'))};}); if(cu){ var _me=STAFF.filter(function(s){return s.name===cu.name;})[0]; if(_me){ cu.emoji=_me.emoji; var ueEl=document.getElementById('ue'); if(ueEl) ueEl.innerText=userEmoji(cu); try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} } } if(cu&&cu.name){ loadSites(function(){}); }
+        try{ ROSTER=null; loadRoster(); }catch(e){}
+        try{
+          var changed=[]; mStaffDraft.forEach(function(s){ if(MS_ORIG[s.name]&&MS_ORIG[s.name]!==s.role) changed.push(s.name); });
+          if(changed.length&&ACCESS_CFG&&ACCESS_CFG.overrides){
+            var ov={},k,touched=false;
+            for(k in ACCESS_CFG.overrides){ if(ACCESS_CFG.overrides.hasOwnProperty(k)){ if(changed.indexOf(k)>=0){ touched=true; } else ov[k]=ACCESS_CFG.overrides[k]; } }
+            if(touched){ ACCESS_CFG.overrides=ov;
+              fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'access-save',access:{roles:ACCESS_CFG.roles,overrides:ov}})}).then(function(){},function(){});
+            }
+          }
+          MS_ORIG={}; mStaffDraft.forEach(function(s){MS_ORIG[s.name]=s.role;});
+        }catch(e){}
+        setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save staff changes'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
 }
@@ -8713,7 +8803,7 @@ var RAMP_EVENTS=null,_rampT=null;
 function rampFetch(cb,force){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb([]); return; }
   if(RAMP_EVENTS&&!force){ if(cb)cb(RAMP_EVENTS); return; }
-  var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  var today=new Date(Date.now()-14*86400000).toISOString().slice(0,10);
   var _cs=currentSite||'sydney';
   SBC.from('ramp_events').select('*').gte('date',today).order('date').order('start_t').limit(120)
     .then(function(r){ RAMP_EVENTS=((r&&r.data)||[]).filter(function(e){ return !e.site || e.site===_cs; }); if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
@@ -8722,7 +8812,8 @@ function _rampMs(ev,t){ return new Date(ev.date+'T'+(t||'00:00')+':00').getTime(
 function _rampFmt(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
 function _rampActive(list){
   var now=Date.now();
-  for(var i=0;i<(list||[]).length;i++){ var ev=list[i], st=_rampMs(ev,ev.start_t), en=_rampMs(ev,ev.end_t);
+  for(var i=0;i<(list||[]).length;i++){ var ev=list[i], st=_rampMs(ev,ev.start_t);
+    var en=new Date((ev.date_to||ev.date)+'T'+(ev.end_t||'00:00')+':00').getTime();
     if(now>=st-4*3600000 && now<=en) return {ev:ev,st:st,en:en}; }
   return null;
 }
@@ -8731,13 +8822,15 @@ function rampCheck(){
   if(window.__tvSite) return;
   rampFetch(function(list){
     var a=_rampActive(list), b=document.getElementById('rampBanner'); if(!b) return;
-    if(a&&cu){ b.style.display='flex'; b.innerHTML='\ud83d\udea7 <b>Ramp needs to be clear</b> \u2014 '+tvEsc(a.ev.name)+' \u00b7 Date: '+_dmy(a.ev.date)+' \u00b7 Time: '+a.ev.start_t+' to '+a.ev.end_t; }
+    if(a&&cu){ var _tdy=new Date().toISOString().slice(0,10), _multi=a.ev.date_to&&a.ev.date_to!==a.ev.date;
+      var _when=_multi?('until '+_dmy(a.ev.date_to)):((a.ev.date===_tdy?'':_dmy(a.ev.date)+' \u00b7 ')+a.ev.start_t+'\u2013'+a.ev.end_t);
+      b.style.display='block'; b.innerHTML='\ud83d\udea7 Ramp clear \u00b7 '+tvEsc(a.ev.name)+' \u00b7 '+_when; }
     else b.style.display='none';
   });
   if(!_rampT) _rampT=setInterval(function(){ rampFetch(function(){rampCheck();},true); },60000);
 }
 /* ---- Master Access: Ramp tab ---- */
-var MR_LIST=[];
+var MR_LIST=[],MR_EDIT=null;
 function mrMsg(t,col){ var m=document.getElementById('mr-msg'); if(m){ m.textContent=t||''; m.style.color=col||'#22C55E'; } }
 function mrLoad(){ rampFetch(function(list){ MR_LIST=list||[]; mrRender(); },true); }
 function mrFillSites(){
@@ -8750,13 +8843,37 @@ function mrRender(){
   var el=document.getElementById('mr-list'); if(!el) return;
   if(!MR_LIST.length){ el.innerHTML='<div class="m-empty">No upcoming ramp events.</div>'; return; }
   el.innerHTML=MR_LIST.map(function(ev){
-    return '<div class="mc" style="text-align:left;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:800">'+tvEsc(ev.name)+'</div><div style="font-size:12.5px;color:var(--t2);margin-top:3px">'+_dmy(ev.date)+' \u00b7 clear '+ev.start_t+' \u2013 '+ev.end_t+(ev.site?' · only '+tvEsc(typeof siteLabel==='function'?siteLabel(ev.site):ev.site):' · all sites')+'</div></div><button class="ac-del" onclick="mrDelete('+ev.id+')" title="Delete">\u00d7</button></div>';
+    return '<div class="mc" style="text-align:left;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:800">'+tvEsc(ev.name)+'</div><div style="font-size:12.5px;color:var(--t2);margin-top:3px">'+_dmy(ev.date)+(ev.date_to&&ev.date_to!==ev.date?' \u2192 '+_dmy(ev.date_to):'')+' \u00b7 clear '+ev.start_t+' \u2013 '+ev.end_t+(ev.site?' · only '+tvEsc(typeof siteLabel==='function'?siteLabel(ev.site):ev.site):' · all sites')+'</div></div><button class="ac-del" style="background:rgba(76,157,255,.12);color:#4C9DFF;border-color:rgba(76,157,255,.3)" onclick="mrEdit('+ev.id+')" title="Edit">\u270e</button><button class="ac-del" onclick="mrDelete('+ev.id+')" title="Delete">\u00d7</button></div>';
   }).join('');
 }
 function mrAdd(){
   var name=document.getElementById('mr-name').value.trim(), date=document.getElementById('mr-date').value, st=document.getElementById('mr-start').value, en=document.getElementById('mr-end').value;
+  var d2El=document.getElementById('mr-date2'), d2=d2El?d2El.value:'';
   if(!name||!date||!st||!en){ mrMsg('Fill in name, date and both times','#FF5A52'); return; }
-  mrSave([{name:name,date:date,start_t:st,end_t:en}],function(){ document.getElementById('mr-name').value=''; });
+  if(d2&&d2<date){ mrMsg('\u201cClosed until\u201d can\u2019t be before the start date','#FF5A52'); return; }
+  var ev={name:name,date:date,start_t:st,end_t:en,date_to:(d2&&d2!==date)?d2:null};
+  if(MR_EDIT!=null) ev.id=MR_EDIT;
+  mrSave([ev],function(){ mrCancelEdit(); });
+}
+function mrEdit(id){
+  var ev=(MR_LIST||[]).filter(function(x){return x.id===id;})[0]; if(!ev) return;
+  MR_EDIT=id;
+  document.getElementById('mr-name').value=ev.name||'';
+  document.getElementById('mr-date').value=ev.date||'';
+  var d2=document.getElementById('mr-date2'); if(d2) d2.value=(ev.date_to&&ev.date_to!==ev.date)?ev.date_to:'';
+  document.getElementById('mr-start').value=ev.start_t||'';
+  document.getElementById('mr-end').value=ev.end_t||'';
+  var ss=document.getElementById('mr-site'); if(ss){ try{ss.value=ev.site||'';}catch(e){} }
+  var ab=document.getElementById('mr-add-btn'); if(ab) ab.textContent='\u2713 Save changes';
+  var cb=document.getElementById('mr-cancel-btn'); if(cb) cb.style.display='';
+  mrMsg('Editing \u201c'+ev.name+'\u201d \u2014 change anything, then Save','#4C9DFF');
+}
+function mrCancelEdit(){
+  MR_EDIT=null;
+  document.getElementById('mr-name').value='';
+  var d2=document.getElementById('mr-date2'); if(d2) d2.value='';
+  var ab=document.getElementById('mr-add-btn'); if(ab) ab.textContent='+ Add event';
+  var cb=document.getElementById('mr-cancel-btn'); if(cb) cb.style.display='none';
 }
 function mrSave(events,after){
   mrMsg('Saving\u2026','');
@@ -8838,7 +8955,7 @@ function notifEnable(){
 var _tvRampT=null,_tvRampList=null;
 function tvRampLoad(){
   if(typeof SBC==='undefined'||!SBC) return;
-  var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  var today=new Date(Date.now()-14*86400000).toISOString().slice(0,10);
   var _cs=currentSite||'sydney';
   SBC.from('ramp_events').select('*').gte('date',today).order('date').order('start_t').limit(60)
     .then(function(r){ _tvRampList=((r&&r.data)||[]).filter(function(e){ return !e.site || e.site===_cs; }); if(!_tvRampT) _tvRampT=setInterval(tvRampTick,1000); tvRampTick(); },function(){});
@@ -8894,7 +9011,7 @@ function hideMasterPin(){
    matches tv_state/ui_config: UI-gated, anon read/write. Pushes go person-to-person through
    the notify-user edge function (DM sent, task assigned, task comment, task completed). */
 var CH_CHANNEL=null,CH_TITLE='',CH_OTHER=null,CH_MSGS=[],CH_DM=[];
-var CH_GROUPS=[],CH_LAST={},CH_UNREAD={},CH_MYGROUPS={},CH_GROUP_MEMBERS=null,CH_GROUP=null;
+var CH_GROUPS=[],CH_LAST={},CH_UNREAD={},CH_MYGROUPS={},CH_GROUP_MEMBERS=null,CH_GROUP=null,CH_FILTER='';
 var USER_EMOJI={};
 function _isArr(x){ return Object.prototype.toString.call(x)==='[object Array]'; }
 var TK_FILTER='mine',TK_LIST=[],TK_ROWS=[],TK_SEL=null,TK_VIEW='list',TKD_MSGS=[];
@@ -9039,19 +9156,21 @@ function chatLoadList(){
     },function(){ chatRenderList(); });
   });
 }
+function chatFilter(v){ CH_FILTER=String(v||''); chatRenderList(); }
 function chatRenderList(){
   var box=document.getElementById('ch-channels'); if(!box) return;
   var me=(cu&&cu.name)||'', cs=currentSite||'sydney', csL=(typeof siteLabel==='function'?siteLabel(cs):cs);
+  var q=CH_FILTER.trim().toLowerCase(); function _pass(n){ return !q||String(n||'').toLowerCase().indexOf(q)>=0; }
   var html='<div class="ck-hdrow"><div class="ck-hd">Chats</div><button class="ck-new" onclick="chatNewGroup()">+ New group</button></div>';
-  html+=_chConvRow('general','<span class="ch-av ch-team">\ud83d\udcac</span>','Team chat','Everyone at '+csL,'chatOpenGeneral()');
+  if(_pass('Team chat')) html+=_chConvRow('general','<span class="ch-av ch-team">\ud83d\udcac</span>','Team chat','Everyone at '+csL,'chatOpenGeneral()');
   if(CH_GROUPS&&CH_GROUPS.length){
     html+='<div class="ck-sec">Groups</div>';
-    CH_GROUPS.forEach(function(g){ html+=_chConvRow('group:'+g.id,_grpAvatar(g),g.name,((g.members||[]).length)+' members','chatOpenGroup('+g.id+')'); });
+    CH_GROUPS.forEach(function(g){ if(_pass(g.name)) html+=_chConvRow('group:'+g.id,_grpAvatar(g),g.name,((g.members||[]).length)+' members','chatOpenGroup('+g.id+')'); });
   }
   html+='<div class="ck-sec">Direct messages</div>';
   CH_DM=_roster().filter(function(s){ return s&&s.name&&s.name!==me; });
   if(!CH_DM.length) html+='<div class="ch-empty">No other staff yet.</div>';
-  CH_DM.forEach(function(s,i){ html+=_chConvRow(_chDmChannel(me,s.name), _chAvatar(s.name,s), s.name, s.role||'', 'chatOpenDm('+i+')'); });
+  CH_DM.forEach(function(s,i){ if(_pass(s.name)) html+=_chConvRow(_chDmChannel(me,s.name), _chAvatar(s.name,s), s.name, s.role||'', 'chatOpenDm('+i+')'); });
   box.innerHTML=html; box.setAttribute('data-ready','1');
 }
 
@@ -9125,8 +9244,8 @@ function chatRenderMsgs(elId,msgs,scroll){
       if(prevAuthor!==null) html+='</div></div>';
       if(newDay) html+='<div class="ch-day"><span>'+tvEsc(day)+'</span></div>';
       html+='<div class="ch-grp'+(mine?' me':'')+'">';
-      if(!mine) html+=_chAvatar(m.author,st);
-      html+='<div class="ch-col"><div class="ch-hd">'+(mine?'':'<b>'+tvEsc((m.author||'').split(' ')[0])+'</b> ')+'<span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
+      html+=_chAvatar(m.author,st);
+      html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
     if(m.image){ html+='<div class="ch-bub ch-bub-img"><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+'</div>':'')+'</div>'; }
     else { html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>'; }
@@ -9244,16 +9363,31 @@ function loadUserColors(cb){
   },function(){ if(cb)cb(); });
 }
 function openAccount(){ if(!cu) return; try{accountRender();}catch(e){} go('account'); }
-function toggleBigText(on){ try{ document.body.classList.toggle('bigtext',!!on); localStorage.setItem('hk_bigtext', on?'1':'0'); }catch(e){} }
-(function(){ try{ if(localStorage.getItem('hk_bigtext')==='1'&&document.body) document.body.classList.add('bigtext'); }catch(e){} })();
+function setTextSize(v){ v=+v||0; try{ document.body.classList.toggle('bigtext',v>=1); document.body.classList.toggle('hugetext',v>=2); localStorage.setItem('hk_txtsz',String(v)); }catch(e){} }
+(function(){ try{ var v=localStorage.getItem('hk_txtsz'); if(v==null&&localStorage.getItem('hk_bigtext')==='1') v='1'; if(v&&document.body) setTextSize(v); }catch(e){} })();
+function acctChangePin(){
+  var msgEl=document.getElementById('acct-pin-msg'); function say(t,c){ if(msgEl){ msgEl.textContent=t; msgEl.style.color=c||'#FF5A52'; } }
+  var cur=(document.getElementById('acct-pin-cur').value||'').trim(), nw=(document.getElementById('acct-pin-new').value||'').trim();
+  if(!cu){ say('Not signed in'); return; }
+  if(!/^\d{4}$/.test(cur)||!/^\d{4}$/.test(nw)){ say('Both PINs need to be 4 digits'); return; }
+  if(cur!==(cu.pin||'')){ say('Current PIN is wrong'); return; }
+  if(cur===nw){ say('New PIN is the same as the current one'); return; }
+  say('Changing\u2026','var(--t2)');
+  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({op:'self-pin',name:cu.name,pin:cur,newPin:nw})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ cu.pin=nw; try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} document.getElementById('acct-pin-cur').value=''; document.getElementById('acct-pin-new').value=''; say('\u2713 PIN changed \u2014 use it next time you sign in','#22C55E'); }
+      else say((res&&res.message)||'Couldn\u2019t change PIN \u2014 redeploy master-staff');
+    }).catch(function(){ say('Connection error \u2014 is master-staff deployed?'); });
+}
 function accountRender(){
   if(!cu) return;
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-I \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-J \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
-  var bt=document.getElementById('acct-bigtext'); if(bt) bt.checked=document.body.classList.contains('bigtext');
+  var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
+  var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
   var cur=String(userColor(cu)).toLowerCase();
   var sw=document.getElementById('acct-swatches');
   if(sw){ sw.innerHTML=ACCT_SWATCHES.map(function(c){ return '<div class="acct-sw'+(c.toLowerCase()===cur?' on':'')+'" style="background:'+c+'" onclick="acctSetColor(\''+c+'\')"></div>'; }).join(''); }
@@ -9276,7 +9410,7 @@ function chatGroupInfo(){
   var av=document.getElementById('ci-av'); if(av){ av.textContent=g.emoji||'\ud83d\udc65'; if(g.color){ av.classList.remove('ch-grpav'); av.style.background=g.color; } else { av.classList.add('ch-grpav'); av.style.background=''; } }
   var nm=document.getElementById('ci-name'); if(nm) nm.textContent=g.name||'Group';
   var ct=document.getElementById('ci-count'); if(ct) ct.textContent=((g.members||[]).length)+' members';
-  var admin=(cu&&cu.name===g.created_by);
+  var admin=(cu&&(cu.name===g.created_by||(!g.created_by&&(cu.role==='Manager'||cu.role==='Assistant Manager'))));
   var ad=document.getElementById('ci-admin'); if(ad) ad.style.display=admin?'':'none';
   var vw=document.getElementById('ci-viewmem'); if(vw) vw.style.display=admin?'none':'';
   var mem=document.getElementById('ci-members');
@@ -9292,7 +9426,8 @@ function chatGroupInfo(){
 }
 function ciPickColor(c){ _CI_COLOR=c; var col=document.getElementById('ci-colors'); if(col){ Array.prototype.forEach.call(col.children,function(el){ el.classList.toggle('on',(el.getAttribute('data-c')||'').toLowerCase()===String(c).toLowerCase()); }); } }
 function chatSaveGroupInfo(){
-  var g=CH_GROUP; if(!g||!cu||cu.name!==g.created_by||typeof SBC==='undefined'||!SBC) return;
+  var g=CH_GROUP; if(!g||!cu||typeof SBC==='undefined'||!SBC) return;
+  if(cu.name!==g.created_by&&!(!g.created_by&&(cu.role==='Manager'||cu.role==='Assistant Manager'))) return;
   var ms=document.getElementById('ci-msg'); function say(t,c){ if(ms){ ms.textContent=t; ms.style.color=c||'#FF5A52'; } }
   var emo=(document.getElementById('ci-emoji').value||'').trim().slice(0,4);
   var nm=(document.getElementById('ci-rename').value||'').trim().slice(0,80);
@@ -9300,10 +9435,19 @@ function chatSaveGroupInfo(){
   var picks=[]; Array.prototype.forEach.call(document.querySelectorAll('#ci-editmem .ci-chk'),function(c){ if(c.checked) picks.push(c.value); });
   if(picks.indexOf(g.created_by)<0) picks.push(g.created_by);
   say('Saving\u2026','var(--t2)');
+  function _applied(){ g.emoji=emo; g.name=nm; g.members=picks; g.color=_CI_COLOR||null; CH_MYGROUPS['group:'+g.id]=g; CH_TITLE=nm; CH_GROUP_MEMBERS=picks;
+    say('Saved \u2713','#22C55E'); setTimeout(function(){ chatOpenGroup(g.id); },450); }
   SBC.from('chat_groups').update({emoji:emo||null,name:nm,members:picks,color:_CI_COLOR||null}).eq('id',g.id).then(function(r){
-    if(r&&r.error){ say('Save failed \u2014 '+(r.error.message||'run staff_and_group.sql')); return; }
-    g.emoji=emo; g.name=nm; g.members=picks; g.color=_CI_COLOR||null; CH_MYGROUPS['group:'+g.id]=g; CH_TITLE=nm; CH_GROUP_MEMBERS=picks;
-    say('Saved \u2713','#22C55E'); setTimeout(function(){ chatOpenGroup(g.id); },450);
+    if(r&&r.error){
+      if(/color/i.test(r.error.message||'')){
+        SBC.from('chat_groups').update({emoji:emo||null,name:nm,members:picks}).eq('id',g.id).then(function(r2){
+          if(r2&&r2.error){ say('Save failed \u2014 '+(r2.error.message||'')); return; }
+          _CI_COLOR=''; _applied(); say('Saved \u2713 (colour needs security_ramp.sql run once)','#F59E0B');
+        },function(){ say('Connection error'); });
+        return;
+      }
+      say('Save failed \u2014 '+(r.error.message||'run staff_and_group.sql')); return; }
+    _applied();
   },function(){ say('Connection error'); });
 }
 /* ---------- Tasks ---------- */

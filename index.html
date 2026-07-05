@@ -121,9 +121,9 @@
     .pchk{color:var(--acc);font-weight:600}
     .hname{font-size:16px;font-weight:700;letter-spacing:-0.3px}
     .hsub{font-size:10px;color:var(--t2);margin-top:1px;text-transform:uppercase;letter-spacing:0.5px}
-    .uchip{display:none;align-items:center;gap:7px;background:var(--card);border:1px solid var(--b2);border-radius:999px;padding:6px 13px 6px 8px;cursor:pointer;transition:background .12s}
+    .uchip{display:none;align-items:center;gap:5px;background:var(--card);border:1px solid var(--b2);border-radius:999px;padding:6px 8px 6px 8px;transition:background .12s}
     .uchip:active{background:var(--card2)}
-    .ue{font-size:15px}.un{font-size:13px;font-weight:600}.uo{font-size:10px;color:var(--red);font-weight:500;margin-left:2px}
+    .ue{font-size:15px}.un{font-size:13px;font-weight:600}.uo{font-size:10px;color:var(--red);font-weight:600;background:transparent;border:none;border-left:1px solid var(--b2);padding:4px 3px 4px 8px;margin-left:3px;cursor:pointer;font-family:inherit}
 
     /* ── Nav ── */
     #nav{flex:1;position:relative;overflow:hidden;min-height:0}
@@ -1584,6 +1584,15 @@
     .cg-mem .ch-av{width:36px;height:36px;font-size:17px;flex:none}
     .cg-mn{flex:1;font-weight:600;font-size:14.5px}
     .cg-chk{width:22px;height:22px;accent-color:#1A73E8;flex:none}
+    .uname{display:flex;align-items:center;gap:6px;cursor:pointer}
+    .acct-head{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 18px}
+    .acct-av{width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+    .acct-name{font-size:20px;font-weight:800}
+    .acct-role{font-size:13px;color:var(--t2)}
+    .acct-swatches{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+    .acct-sw{width:40px;height:40px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .1s}
+    .acct-sw:active{transform:scale(.92)}
+    .acct-sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg),0 0 10px rgba(255,255,255,.3)}
     .tk-chips{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 12px}
     .tk-chip{padding:8px 15px;border-radius:999px;border:1px solid var(--b1);background:transparent;color:var(--t1);font-size:13px;font-weight:700;cursor:pointer}
     .tk-chip.on{background:var(--accent,#00CFFF);border-color:transparent;color:#04070A}
@@ -1639,8 +1648,9 @@
         <img class="hk-icon" src="icon-192.png" alt="HK">
         <div><div class="hname">Workshop</div><div class="hsub">Hyper Karting</div></div>
       </div>
-      <div class="uchip" id="uchip" onclick="logout()">
-        <span class="ue" id="ue">👋</span><span class="un" id="un">Name</span><span class="uo">logout</span>
+      <div class="uchip" id="uchip">
+        <div class="uname" onclick="openAccount()"><span class="ue" id="ue">👋</span><span class="un" id="un">Name</span></div>
+        <button class="uo" onclick="logout()">logout</button>
       </div>
     </div>
     <div class="sitebar" id="siteBar" onclick="onSitePill()" style="display:none">
@@ -1731,7 +1741,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-D · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-E · ZXing raw</div>
       </div>
     </div>
 
@@ -2135,6 +2145,32 @@
       </div>
     </div>
 
+    <!-- ACCOUNT -->
+    <div class="scr" id="s-account">
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
+      <div class="sb">
+        <div class="acct-head">
+          <div class="acct-av" id="acct-av">🔧</div>
+          <div class="acct-name" id="acct-name">Name</div>
+          <div class="acct-role" id="acct-role">Role</div>
+        </div>
+        <div class="mc" style="text-align:left"><div class="mct">🎨 Account colour</div>
+          <div class="m-tool-desc">Choose your avatar colour — everyone sees it next to your name in chats and tasks.</div>
+          <div class="acct-swatches" id="acct-swatches"></div>
+        </div>
+        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔔 Phone alerts (this device)</div>
+          <div class="m-tool-desc">Turn on lock-screen alerts on the phone you’re using now — ramp clearances, task assignments and chat messages. On iPhone, add the app to your Home Screen first and open it from that icon.</div>
+          <button class="m-add" style="width:100%;margin-top:10px" onclick="notifEnable()">🔔 Enable / repair alerts on this phone</button>
+          <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="chatTestPush()">Send a test alert to my phone</button>
+          <div class="m-form-msg" id="mset-notif-msg" style="margin-top:10px"></div>
+        </div>
+        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
+          <div class="m-tool-desc" id="acct-about">HK Workshop</div>
+        </div>
+        <button class="m-add" style="width:100%;margin:16px 0 8px;background:transparent;border:1px solid var(--red);color:var(--red)" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
     <!-- CHATS -->
     <div class="scr" id="s-chats">
       <div class="phdr">
@@ -2281,12 +2317,6 @@
         <div class="m-fld" style="margin-top:10px;max-width:230px"><label>Minutes of inactivity</label><input id="mset-logout" type="number" min="1" max="600" step="1" placeholder="30"></div>
         <div class="m-form-msg" id="mset-msg"></div>
         <button class="m-add" style="width:100%;margin-top:8px" onclick="saveAutoLogout()">Save</button>
-      </div>
-      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔔 Phone alerts (this device)</div>
-        <div class="m-tool-desc">Turn on lock-screen alerts on the phone you’re using right now — use this if alerts aren’t coming through. On iPhone, add the app to your Home Screen first and open it from that icon.</div>
-        <button class="m-add" style="width:100%;margin-top:10px" onclick="notifEnable()">🔔 Enable / repair alerts on this phone</button>
-        <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="chatTestPush()">Send a test alert to my phone</button>
-        <div class="m-form-msg" id="mset-notif-msg" style="margin-top:10px"></div>
       </div>
       <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
         <div class="m-tool-desc" id="mset-about">HK Workshop</div>
@@ -3512,6 +3542,7 @@ function updateUI(id){
   applySiteAccent(id);
   if(id==='order'&&cu){var od=document.getElementById('ondisp');if(od)od.innerText=cu.emoji+' '+cu.name;}
   if(id==='home'){sizeTiles();if(!homeAnimated){homeAnimated=true;animTiles();}if(typeof chatRefreshUnread==='function'){try{chatRefreshUnread();}catch(e){}}}
+  if(id==='account'&&typeof accountRender==='function'){try{accountRender();}catch(e){}}
   // Keep the live status/notes refresh running only while a kart list/detail screen is open.
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
@@ -3579,7 +3610,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();loadUserColors();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=m.emoji;
@@ -6635,7 +6666,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-D \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-E \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8828,7 +8859,7 @@ function chatBack(){
   if(CH_CHANNEL){ chatShowList(); } else back();
 }
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
-function _chAvatar(name,st){ var hue=_chAvHue(name); return '<span class="ch-av" style="background:hsl('+hue+',52%,30%);box-shadow:inset 0 0 0 1.5px hsl('+hue+',58%,46%)">'+userEmoji(st||{name:name})+'</span>'; }
+function _chAvatar(name,st){ return '<span class="ch-av" style="background:'+userColor({name:name})+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)">'+userEmoji(st||{name:name})+'</span>'; }
 function _reEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 
 /* ---- read/unread state (per device, localStorage) ---- */
@@ -8945,7 +8976,6 @@ function chatRenderList(){
   CH_DM=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){ return s&&s.name&&s.name!==me; });
   if(!CH_DM.length) html+='<div class="ch-empty">No other staff yet.</div>';
   CH_DM.forEach(function(s,i){ html+=_chConvRow(_chDmChannel(me,s.name), _chAvatar(s.name,s), s.name, s.role||'', 'chatOpenDm('+i+')'); });
-  html+='<div class="ck-test"><button class="ck-testbtn" onclick="notifEnable()">🔔 Enable / repair alerts on this phone</button><button class="ck-testbtn ghost" onclick="chatTestPush()">\ud83d\udd14 Test message alerts on this phone</button><div class="ck-testout" id="ch-test-out"></div></div>';
   box.innerHTML=html; box.setAttribute('data-ready','1');
 }
 
@@ -9038,12 +9068,14 @@ function chatSend(){
     if(r&&r.error){ ta.value=txt; return; }
     if(CH_CHANNEL===ch){ CH_MSGS.push({_local:true,channel:ch,author:me,body:txt.slice(0,2000),created_at:new Date().toISOString()}); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
     chatMarkRead(ch);
-    var rec={};
+    var rec={}, isGrp=(ch.indexOf('group:')===0);
     if(other) rec[other]=1;
-    if(ch.indexOf('group:')===0&&CH_GROUP_MEMBERS){ CH_GROUP_MEMBERS.forEach(function(n){ if(n!==me) rec[n]=1; }); }
+    if(isGrp){ var gm=(CH_GROUP_MEMBERS&&CH_GROUP_MEMBERS.length)?CH_GROUP_MEMBERS:((CH_MYGROUPS[ch]&&CH_MYGROUPS[ch].members)||[]); gm.forEach(function(n){ if(n&&n!==me) rec[n]=1; }); }
     _chMentioned(txt).forEach(function(n){ if(n!==me) rec[n]=1; });
-    var title=(ch.indexOf('group:')===0)?('\ud83d\udc65 '+(CH_TITLE||'Group')):('\ud83d\udcac '+((me||'').split(' ')[0]));
-    var k; for(k in rec){ if(rec.hasOwnProperty(k)) hkNotify(k,title,txt.slice(0,160),'hk-chat'); }
+    var _emo=(typeof userEmoji==='function')?userEmoji(cu):'\ud83d\udd27', _mf=(me||'').split(' ')[0];
+    var title=isGrp?(_emo+' '+_mf+' \u00b7 '+(CH_TITLE||'Group')):(_emo+' '+_mf);
+    var _tag=isGrp?('hkc-'+ch):('hkc-dm-'+me);
+    var k; for(k in rec){ if(rec.hasOwnProperty(k)) hkNotify(k,title,txt.slice(0,160),_tag); }
   },function(){ ta.value=txt; });
 }
 /* Refresh unread counts without rendering the list (login + returning home). */
@@ -9086,6 +9118,33 @@ function _rtMsgIn(row){
       if(_hkScr()==='chats'&&!CH_CHANNEL&&lv&&lv.style.display!=='none') chatRenderList();
     }
   }
+}
+
+/* ---------- Account + avatar colours ---------- */
+var USER_COLORS={};
+var ACCT_SWATCHES=['#2563EB','#7C3AED','#DB2777','#DC2626','#EA580C','#D97706','#16A34A','#0D9488','#0891B2','#4B5563','#B45309','#9333EA'];
+function userColor(u){ u=u||cu||{}; var c=(typeof USER_COLORS!=='undefined'&&USER_COLORS)?USER_COLORS[u.name]:null; if(c) return c; return 'hsl('+_chAvHue(u.name||'')+',52%,30%)'; }
+function loadUserColors(cb){
+  if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
+  SBC.from('user_prefs').select('name,color').then(function(r){
+    var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x&&x.name&&x.color) m[x.name]=x.color; }); USER_COLORS=m; if(cb)cb();
+  },function(){ if(cb)cb(); });
+}
+function openAccount(){ if(!cu) return; go('account'); }
+function accountRender(){
+  if(!cu) return;
+  var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
+  var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
+  var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-E \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
+  var sw=document.getElementById('acct-swatches');
+  if(sw){ var cur=String(userColor(cu)).toLowerCase(); sw.innerHTML=ACCT_SWATCHES.map(function(c){ return '<div class="acct-sw'+(c.toLowerCase()===cur?' on':'')+'" style="background:'+c+'" onclick="acctSetColor(\''+c+'\')"></div>'; }).join(''); }
+}
+function acctSetColor(c){
+  if(!cu) return; USER_COLORS[cu.name]=c;
+  if(typeof SBC!=='undefined'&&SBC){ SBC.from('user_prefs').upsert({name:cu.name,color:c,updated_at:new Date().toISOString()},{onConflict:'name'}).then(function(){},function(){}); }
+  accountRender();
 }
 
 /* ---------- Tasks ---------- */

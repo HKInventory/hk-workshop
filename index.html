@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -862,7 +863,7 @@
     .m-row-del{color:var(--red)}
     .m-tabs{display:flex;gap:6px;padding:10px 18px 2px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
     .m-tabs::-webkit-scrollbar{display:none}
-    .m-tab{flex:1;min-width:64px;white-space:nowrap;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:13px;padding:10px 4px;cursor:pointer}
+    .m-tab{flex:1;min-width:62px;white-space:normal;line-height:1.15;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:11.5px;padding:9px 5px;min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}
     .m-tab.active{background:var(--grad);color:#fff;border-color:transparent}
     .m-pane{display:none;flex:1;flex-direction:column;min-height:0}
     .m-pane.active{display:flex}
@@ -1205,6 +1206,13 @@
     .bcnlt{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--red);letter-spacing:.1em}
     .bcnlt .d{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 7px 2px rgba(255,59,48,.7);animation:bcnpulse 2.6s ease-in-out infinite}
   
+    /* Scan QR — distinct emerald so it never blends with Intelligence/Finance */
+    .tile.tc{background:linear-gradient(150deg,#065F46,#0B3B30)!important;border-color:#10B98155!important}
+    .tile.tc .ti{filter:drop-shadow(0 0 6px rgba(16,185,129,.5))}
+    /* TV Display — distinct violet vs Kart Info/Sessions */
+    .tile.ttv{background:linear-gradient(150deg,#5B21B6,#2E1065)!important;border-color:#8B5CF655!important}
+    .tile.kicpu{background:linear-gradient(150deg,#155E75,#083344)!important;border-color:#22D3EE55!important}
+    .tile.kidh{background:linear-gradient(150deg,#92400E,#3B2408)!important;border-color:#F59E0B55!important}
     /* beacons: Dehaardt function reference */
     .bcndfoot{padding:10px;border-top:1px solid var(--b1)}
     .bcndfn{width:100%;background:var(--card2);border:1px solid var(--b2);color:var(--t1);border-radius:11px;padding:11px 12px;cursor:pointer;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;justify-content:center}
@@ -1642,6 +1650,7 @@
     <div class="scr" id="s-take">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
+        <div class="tk-prod-img" id="tkImgWrap" style="display:none"><img id="tkImg" alt="" style="max-width:150px;max-height:150px;border-radius:14px;background:#fff;padding:6px;object-fit:contain"><div id="tkImgHint" style="font-size:11.5px;color:var(--t2);margin-top:6px"></div></div>
         <div class="tk-name-hdr" id="tkDesc">—</div>
         <div class="tk-stock-row" id="tkMeta">—</div>
         <div class="tk-pill-row">
@@ -1878,7 +1887,7 @@
             <div class="tile tse" id="kit-notes" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
             <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile tasks" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
-            <div class="tile tc" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
+            <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile kidh" id="kit-dehaardt" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
           </div>
@@ -2952,6 +2961,7 @@ function logoTap(){
   if(typeof loadRfKarts==='function'){ try{ loadRfKarts(function(){}); }catch(e){} } // re-pull the fleet
 }
 function go(id){
+  try{ _resetTabView(id); }catch(e){}
   if(navLock) return;  // block spam taps during in-flight transition
   var curId=stk.length?stk[stk.length-1]:null,cur=curId?s(curId):null,nxt=s(id);
   if(!nxt||id===curId) return;
@@ -3322,9 +3332,18 @@ function applyRoleVisibility(){
   if(typeof applyKiSectionVis==='function'){try{applyKiSectionVis();}catch(e){}}
 }
 
+// Reopening a tab returns it to its default view (top of list, default filters) rather than
+// wherever it was left. Scroll is reset after render; per-tab view state is cleared here.
+function _resetTabView(id){
+  if(id==='kartinfo'||id==='kartlist'){ try{ if(typeof KART_TYPE!=='undefined') KART_TYPE=(typeof KART_TYPE_ORDER!=='undefined'&&KART_TYPE_ORDER[0])||KART_TYPE; }catch(e){} }
+  if(id==='search'){ var si=document.getElementById('si'); if(si) si.value=''; }
+  if(id==='order'){ var os=document.getElementById('os'); if(os) os.value=''; }
+  // scroll every scrollable body in the target screen back to the top after the frame paints
+  setTimeout(function(){ var sc=document.getElementById('s-'+id); if(sc){ sc.querySelectorAll('.sb,.m-list,.scr-scroll').forEach(function(e){ e.scrollTop=0; }); } window.scrollTo&&window.scrollTo(0,0); },30);
+}
 function updateUI(id){
   var chip=document.getElementById('uchip');
-  if(cu&&id!=='pin'&&id!=='welcome'){chip.style.display='flex';document.getElementById('ue').innerText=userEmoji(m);document.getElementById('un').innerText=cu.name.split(' ')[0];}
+  if(cu&&id!=='pin'&&id!=='welcome'){chip.style.display='flex';document.getElementById('ue').innerText=userEmoji(cu);document.getElementById('un').innerText=(cu.name||'').split(' ')[0]||'User';}
   else chip.style.display='none';
   applySiteAccent(id);
   if(id==='order'&&cu){var od=document.getElementById('ondisp');if(od)od.innerText=cu.emoji+' '+cu.name;}
@@ -3394,7 +3413,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=m.emoji;
@@ -4170,11 +4189,24 @@ function _showTakePage(sku){
     document.getElementById('tkLocPill').style.display='none';
   }
   document.getElementById('tkName').innerText=cu?cu.name:'';
+  _tkShowImage(p);
   document.getElementById('tkInput').value='1';
   document.getElementById('tkMsg').innerHTML='';
   document.getElementById('takeBtn').disabled=false;
   document.getElementById('restockBtn').disabled=false;
   go('take');
+}
+function _tkShowImage(p){
+  var wrap=document.getElementById('tkImgWrap'), img=document.getElementById('tkImg'), hint=document.getElementById('tkImgHint');
+  if(!wrap||!img) return;
+  wrap.style.display='none'; hint.textContent=''; img.style.display='none';
+  var url=(typeof _partImgUrl==='function')?_partImgUrl(p.sku):'';
+  if(!url){ if(p&&p.is_rimo===false){ wrap.style.display=''; hint.textContent='\ud83d\udce6 '+(p.brand?tvEsc(p.brand)+' part':'Non-RIMO part')+' \u2014 no image on file'; } return; }
+  wrap.style.display=''; hint.textContent='Loading photo\u2026';
+  var probe=new Image();
+  probe.onload=function(){ img.src=url; img.style.display=''; hint.textContent=''; };
+  probe.onerror=function(){ img.style.display='none'; hint.textContent='\u26a0\ufe0f No RIMO photo for SKU '+tvEsc(p.sku)+' \u2014 add one in Edit Part \u2192 Photo URL'; };
+  probe.src=url;
 }
 function submitTake(action){
   if(!currentTakeSku||!cu)return;
@@ -7790,6 +7822,18 @@ var QR_LAY=loadQrLay();
 // We pull the shared copy on boot + when opening the editor, subscribe to live changes, and push
 // (debounced) on every edit. Trust model matches tv_state: UI-gated, anon read/write.
 var _qrLastPushed='';
+function loadAutoLogout(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('ui_config').select('value').eq('key','auto_logout').maybeSingle().then(function(r){
+    if(r&&r.data&&r.data.value&&r.data.value.mins){ AUTO_LOGOUT_MIN=Math.max(1,Math.min(600,+r.data.value.mins||30)); try{resetIdleTimer();}catch(e){} var f=document.getElementById('mset-logout'); if(f) f.value=AUTO_LOGOUT_MIN; }
+  },function(){});
+}
+function saveAutoLogout(){
+  var v=Math.max(1,Math.min(600,parseInt(document.getElementById('mset-logout').value,10)||30));
+  AUTO_LOGOUT_MIN=v; try{resetIdleTimer();}catch(e){}
+  var msg=document.getElementById('mset-msg');
+  if(typeof SBC!=='undefined'&&SBC){ SBC.from('ui_config').upsert({key:'auto_logout',value:{mins:v},updated_at:new Date().toISOString()},{onConflict:'key'}).then(function(){ if(msg){msg.textContent='\u2713 Saved \u2014 sign-out after '+v+' min idle';msg.style.color='#22C55E';} },function(){ if(msg){msg.textContent='Save failed';msg.style.color='#FF5A52';} }); }
+}
 function syncQrLayFromServer(cb,seedIfEmpty){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
   SBC.from('ui_config').select('value').eq('key','qr_layout').maybeSingle().then(function(r){
@@ -8397,8 +8441,9 @@ function rampFetch(cb,force){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb([]); return; }
   if(RAMP_EVENTS&&!force){ if(cb)cb(RAMP_EVENTS); return; }
   var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  SBC.from('ramp_events').select('*').eq('site',currentSite||'sydney').gte('date',today).order('date').order('start_t').limit(60)
-    .then(function(r){ RAMP_EVENTS=(r&&r.data)||[]; if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
+  var _cs=currentSite||'sydney';
+  SBC.from('ramp_events').select('*').gte('date',today).order('date').order('start_t').limit(120)
+    .then(function(r){ RAMP_EVENTS=((r&&r.data)||[]).filter(function(e){ return !e.site || e.site===_cs; }); if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
 }
 function _rampMs(ev,t){ return new Date(ev.date+'T'+(t||'00:00')+':00').getTime(); }
 function _rampFmt(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
@@ -8499,8 +8544,9 @@ var _tvRampT=null,_tvRampList=null;
 function tvRampLoad(){
   if(typeof SBC==='undefined'||!SBC) return;
   var today=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  SBC.from('ramp_events').select('*').eq('site',currentSite||'sydney').gte('date',today).order('date').order('start_t').limit(30)
-    .then(function(r){ _tvRampList=(r&&r.data)||[]; if(!_tvRampT) _tvRampT=setInterval(tvRampTick,1000); tvRampTick(); },function(){});
+  var _cs=currentSite||'sydney';
+  SBC.from('ramp_events').select('*').gte('date',today).order('date').order('start_t').limit(60)
+    .then(function(r){ _tvRampList=((r&&r.data)||[]).filter(function(e){ return !e.site || e.site===_cs; }); if(!_tvRampT) _tvRampT=setInterval(tvRampTick,1000); tvRampTick(); },function(){});
 }
 function tvRampTick(){
   var el=document.getElementById('tv-ramp'); if(!el) return;

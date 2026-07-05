@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1509,6 +1508,40 @@
       color:#FCA5A5;font-size:18px;font-weight:800;cursor:pointer;line-height:1}
     .tvc-live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--grn)}
     .tvc-live .d{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn);animation:tvdot 1.6s ease-in-out infinite}
+    /* ===== Chats + Tasks ===== */
+    .ck-list{display:flex;flex-direction:column;gap:10px}
+    .ck-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:13px 14px;cursor:pointer}
+    .ck-row:active{transform:scale(0.985)}
+    .ck-em{font-size:21px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:50%;flex:none}
+    .ck-nm{font-weight:800;font-size:14.5px}
+    .ck-sub{font-size:12px;color:var(--t2);margin-top:2px}
+    .ck-sec{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:16px 2px 8px}
+    .ch-thread{display:flex;flex-direction:column;min-height:calc(100% - 8px)}
+    .ch-msgs{flex:1;display:flex;flex-direction:column;gap:10px;padding:4px 0 12px}
+    .ch-m{max-width:82%;align-self:flex-start}
+    .ch-m.me{align-self:flex-end}
+    .ch-meta{font-size:11px;color:var(--t2);margin:0 6px 3px}
+    .ch-m.me .ch-meta{text-align:right}
+    .ch-bub{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:9px 12px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+    .ch-m.me .ch-bub{background:linear-gradient(150deg,#0E7490,#155E75);border-color:#22D3EE44}
+    .ch-day{align-self:center;font-size:11px;font-weight:700;color:var(--t2);background:var(--card2);border-radius:999px;padding:4px 12px;margin:6px 0 0}
+    .ch-input{position:sticky;bottom:0;display:flex;gap:8px;padding:10px 0 calc(max(env(safe-area-inset-bottom),0px) + 6px);background:var(--bg)}
+    .ch-input textarea{flex:1;min-height:44px;max-height:120px;resize:none;background:var(--card);border:1.5px solid var(--b2);border-radius:14px;color:var(--t1);padding:11px 13px;font-size:14px;font-family:inherit;box-sizing:border-box}
+    .ch-send{flex:none;width:48px;border:none;border-radius:14px;background:linear-gradient(145deg,#0891B2,#0E7490);color:#fff;font-size:18px;cursor:pointer}
+    .tk-chips{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 12px}
+    .tk-chip{padding:8px 15px;border-radius:999px;border:1px solid var(--b1);background:transparent;color:var(--t1);font-size:13px;font-weight:700;cursor:pointer}
+    .tk-chip.on{background:var(--accent,#00CFFF);border-color:transparent;color:#04070A}
+    .tk-row{display:flex;align-items:stretch;gap:11px;background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:12px 13px;cursor:pointer}
+    .tk-row:active{transform:scale(0.985)}
+    .tk-row.done{opacity:.55}
+    .tk-pr{width:5px;border-radius:3px;flex:none}
+    .tk-t{font-weight:800;font-size:14.5px}
+    .tk-sub{font-size:12px;color:var(--t2);margin-top:3px}
+    .tk-fld{display:block;margin-bottom:10px}
+    .tk-fld>span{display:block;font-size:12px;font-weight:700;color:#fff;margin-bottom:6px}
+    .tk-fld input,.tk-fld select,.tk-fld textarea{width:100%;box-sizing:border-box;background:var(--card2);border:1.5px solid var(--b2);border-radius:12px;color:var(--t1);padding:11px 12px;font-size:14px;font-family:inherit}
+    .tk-btn{width:100%;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:800;color:#fff;background:linear-gradient(145deg,#0891B2,#0E7490);cursor:pointer;margin-top:4px}
+    .tk-btn.tk-done{background:linear-gradient(145deg,#16A34A,#166534)}
   </style>
 </head>
 <body>
@@ -1605,14 +1638,14 @@
             <div class="tile mgr"      id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="ti">⭐</div><div class="tl">Manager Dashboard</div><div class="ts">Live data &amp; staff</div></div>
             <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
-            <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Coming soon</div></div>
-            <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Coming soon</div></div>
+            <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
+            <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div></div>
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
             <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
-            <div class="tile tvc"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
+            <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
             <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
           </div>
         </div>
@@ -1642,7 +1675,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 03Jul-G · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-A · ZXing raw</div>
       </div>
     </div>
 
@@ -1992,16 +2025,41 @@
     <!-- TASKS -->
     <div class="scr" id="s-tasks">
       <div class="phdr">
-        <button class="back" onclick="back()"> Back</button>
+        <button class="back" onclick="taskBack()"> Back</button>
       </div>
       <div class="sb">
-        <div class="pgtitle">Tasks</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">✅</div>
-          <div style="font-size:18px;font-weight:800;color:#FB923C;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">📋&nbsp; Managers assign tasks to mechanics<br>📅&nbsp; Due dates &amp; priority<br>📝&nbsp; Mechanics add progress notes<br>🔔&nbsp; Status updates as work progresses<br>✔️&nbsp; Mark complete when done</div>
+        <div id="tk-list-view">
+          <div class="pgtitle">Tasks</div>
+          <div class="tk-chips">
+            <button class="tk-chip on" id="tkc-mine" onclick="taskFilter('mine')">My tasks</button>
+            <button class="tk-chip" id="tkc-all" onclick="taskFilter('all')">All open</button>
+            <button class="tk-chip" id="tkc-done" onclick="taskFilter('done')">Completed</button>
+          </div>
+          <button class="tk-btn" id="tk-new-btn" style="display:none;margin-bottom:12px" onclick="taskNew()">+ New task</button>
+          <div class="ck-list" id="tk-list"><div class="m-empty">Loading tasks…</div></div>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Assign · track · complete<br><span style="color:#FB923C;font-weight:600">Coming soon</span></div></div>
+        <div id="tk-form-view" style="display:none">
+          <div class="pgtitle">New task</div>
+          <label class="tk-fld"><span>Title</span><input id="tkf-title" maxlength="140" placeholder="e.g. Replace kart 12 bumper"></label>
+          <label class="tk-fld"><span>Details (optional)</span><textarea id="tkf-details" rows="3" placeholder="Anything the assignee needs to know"></textarea></label>
+          <label class="tk-fld"><span>Assign to</span><select id="tkf-assignee"></select></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <label class="tk-fld"><span>Due date</span><input id="tkf-due" type="date"></label>
+            <label class="tk-fld"><span>Priority</span><select id="tkf-priority"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option></select></label>
+          </div>
+          <div class="m-form-msg" id="tkf-msg"></div>
+          <button class="tk-btn" onclick="taskCreate()">Create task</button>
+        </div>
+        <div id="tk-detail-view" style="display:none">
+          <div class="pgtitle" id="tkd-title">Task</div>
+          <div class="mc" style="text-align:left" id="tkd-info"></div>
+          <button class="tk-btn tk-done" id="tkd-complete" onclick="taskComplete()">✔ Mark complete</button>
+          <div class="ck-sec">Comments</div>
+          <div class="ch-thread" style="min-height:0">
+            <div class="ch-msgs" id="tkd-msgs"></div>
+            <div class="ch-input"><textarea id="tkd-text" placeholder="Add a comment…" onkeydown="taskCommentKey(event)"></textarea><button class="ch-send" onclick="taskComment()">➤</button></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2024,16 +2082,20 @@
     <!-- CHATS -->
     <div class="scr" id="s-chats">
       <div class="phdr">
-        <button class="back" onclick="back()"> Back</button>
+        <button class="back" onclick="chatBack()"> Back</button>
       </div>
       <div class="sb">
-        <div class="pgtitle">Chats</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">💬</div>
-          <div style="font-size:18px;font-weight:800;color:#E879F9;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">💬&nbsp; Message anyone on the team<br>👥&nbsp; One big workshop group chat<br>🔔&nbsp; Notifications for new messages<br>📎&nbsp; Share parts, photos &amp; updates</div>
+        <div id="ch-list-view">
+          <div class="pgtitle">Chats</div>
+          <div class="ck-list" id="ch-channels"><div class="m-empty">Loading…</div></div>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Talk to the whole team<br><span style="color:#E879F9;font-weight:600">Coming soon</span></div></div>
+        <div id="ch-thread-view" style="display:none">
+          <div class="ch-thread">
+            <div class="pgtitle" id="ch-title" style="margin-bottom:8px">Chat</div>
+            <div class="ch-msgs" id="ch-msgs"></div>
+            <div class="ch-input"><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2135,6 +2197,17 @@
         <div class="m-form-msg" id="mr-msg" style="margin-top:8px"></div>
       </div>
       <div class="m-list" id="mr-list"><div class="m-empty">Loading ramp events…</div></div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">🔔 Phones getting alerts</div>
+        <div class="m-tool-desc">Every device that has enabled push notifications. Ramp reminders, task assignments and DMs go to these phones.</div>
+        <button class="m-add" style="width:100%;margin-top:10px" onclick="mrPushLoad()">↻ Refresh list</button>
+        <div id="mr-push-list" style="margin-top:10px"></div>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">⚙️ App settings</div>
+        <div class="m-tool-desc">Everyone is signed out automatically after this many minutes of inactivity. Shared setting — applies to every device.</div>
+        <div class="m-fld" style="margin-top:10px;max-width:230px"><label>Auto sign-out (minutes)</label><input id="mset-logout" type="number" min="1" max="600" step="1" placeholder="30"></div>
+        <div class="m-form-msg" id="mset-msg"></div>
+        <button class="m-add" style="width:100%;margin-top:8px" onclick="saveAutoLogout()">Save</button>
+      </div>
     </div>
   </div>
   <div class="m-pane" id="m-pane-tools">
@@ -2521,8 +2594,8 @@ function tutSteps(){
     {tab:'finance', reqTile:'#wfin', enter:_nav('finance',function(){loadFin();}), wait:300, emoji:'\ud83d\udcb0', title:'Finance', body:'Stock value, monthly spend and dead stock for this site. Managers only.', spot:'#s-finance .sb', gate:{ev:'next'}},
     {tab:'genorder', reqTile:'#wgord', enter:_nav('genorder',function(){loadGenOrder();}), wait:300, emoji:'\ud83d\udce6', title:'Generate Order', body:'Build a RIMO order from real usage. <b>Tap a tab</b> \u2014 Sydney, Melbourne or Combined \u2014 to switch which site you\u2019re ordering for.', spot:'#go-scope', gate:{sel:'#go-scope .go-seg',ev:'click',hint:'Tap a site tab to continue',delay:500}},
     {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Coming soon \u2014 ask questions about stock, usage and ordering in plain English.', spot:null, gate:{ev:'next'}},
-    {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Coming soon \u2014 assign and track workshop jobs.', spot:null, gate:{ev:'next'}},
-    {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:120, emoji:'\ud83d\udcac', title:'Chats', body:'Coming soon \u2014 message the team without leaving the app.', spot:null, gate:{ev:'next'}},
+    {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Assign and track workshop jobs \u2014 with a phone alert when one lands on you.', spot:null, gate:{ev:'next'}},
+    {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:120, emoji:'\ud83d\udcac', title:'Chats', body:'Message the team without leaving the app \u2014 group chat and DMs.', spot:null, gate:{ev:'next'}},
     {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 with damage prediction coming.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
     {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Beacons', body:'The live track layout with every Dehaardt beacon and its sector/function numbers.', spot:null, gate:{ev:'next'}},
@@ -2858,6 +2931,8 @@ function startRealtime(){
     SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderSoon(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); }).subscribe();
     SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
+    SBC.channel('msg-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},function(p){ if(typeof _rtMsgIn==='function'){try{_rtMsgIn((p&&p.new)||null);}catch(e){}} }).subscribe();
+    SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn();}catch(e){}} }).subscribe();
   }catch(e){}
 }
 startRealtime();
@@ -3335,7 +3410,13 @@ function applyRoleVisibility(){
 // Reopening a tab returns it to its default view (top of list, default filters) rather than
 // wherever it was left. Scroll is reset after render; per-tab view state is cleared here.
 function _resetTabView(id){
-  if(id==='kartinfo'||id==='kartlist'){ try{ if(typeof KART_TYPE!=='undefined') KART_TYPE=(typeof KART_TYPE_ORDER!=='undefined'&&KART_TYPE_ORDER[0])||KART_TYPE; }catch(e){} }
+  if(id==='kartinfo'||id==='kartlist'){ try{
+    if(typeof SELECTED_KART_TYPE!=='undefined') SELECTED_KART_TYPE=(typeof KART_TYPE_ORDER!=='undefined'&&KART_TYPE_ORDER[0])||'Adult';   // the real kart-type state var (KART_TYPE never existed)
+    var _ks=document.getElementById('kart-search'); if(_ks) _ks.value='';
+    if(id==='kartlist'){ if(typeof renderTypeTabs==='function') renderTypeTabs(); if(typeof renderKartChips==='function') renderKartChips(); }
+  }catch(e){} }
+  if(id==='chats'){ try{ if(typeof chatShowList==='function'&&document.getElementById('ch-list-view')) chatShowList(); }catch(e){} }
+  if(id==='tasks'){ try{ if(typeof TK_FILTER!=='undefined') TK_FILTER='mine'; }catch(e){} }
   if(id==='search'){ var si=document.getElementById('si'); if(si) si.value=''; }
   if(id==='order'){ var os=document.getElementById('os'); if(os) os.value=''; }
   // scroll every scrollable body in the target screen back to the top after the frame paints
@@ -3351,6 +3432,8 @@ function updateUI(id){
   // Keep the live status/notes refresh running only while a kart list/detail screen is open.
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
+  if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
+  if(id==='tasks' && typeof tasksEnter==='function'){ try{tasksEnter();}catch(e){} }
   if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
 }
@@ -6460,14 +6543,14 @@ function mSearch(){ mRenderList(); }
 /* ----- Master tabs ----- */
 var mStaffDraft=[], mStaffLoaded=false;
 function mTab(name){
-  ['parts','staff','sites','tools','tracks','karts','access'].forEach(function(t){
+  ['parts','staff','sites','tools','tracks','karts','ramp','access'].forEach(function(t){
     var tab=document.getElementById('mtab-'+t), pane=document.getElementById('m-pane-'+t);
     if(tab) tab.classList.toggle('active',t===name);
     if(pane) pane.classList.toggle('active',t===name);
   });
   if(name==='staff'&&!mStaffLoaded) msLoad();
   if(name==='sites'&&!mSitesLoaded) siLoad();
-  if(name==='ramp'){ mrLoad(); }
+  if(name==='ramp'){ mrLoad(); if(typeof mrPushLoad==='function') mrPushLoad(); var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7170,7 +7253,7 @@ var TV_TASKS=[];
 function tvLoadTasks(){
   if(typeof SBC==='undefined'||!SBC) return;
   try{
-    SBC.from('tasks').select('id,title,assignee,status,due,site').eq('site',currentSite||'sydney').neq('status','done').order('due',{ascending:true}).then(function(r){ TV_TASKS=(r&&r.data)||[]; tvRerender(); },function(){});
+    SBC.from('tasks').select('id,title,assignee,status,due:due_date,site').eq('site',currentSite||'sydney').neq('status','done').order('due_date',{ascending:true}).then(function(r){ TV_TASKS=(r&&r.data)||[]; tvRerender(); },function(){});
   }catch(e){}
 }
 function tvShiftTasks(){
@@ -7341,9 +7424,18 @@ function tvLoadFleet(){
   try{
     SBC.from('rf_karts').select('rf_id,name,type,status,status_code,kart_id_label,brand,model,total_km,total_laps,total_hours,total_cost,long_term,type_color,site').eq('site',site).then(function(r){
       var rows=(r&&r.data)||[];
+      // Same mid-sync guard as loadRfKarts: the runner rewrites the fleet row-by-row, and a fetch
+      // mid-sweep returns a half-written (smaller) fleet. This path applied it straight to the
+      // board — the strobing counts. Keep the fuller fleet on screen and quietly re-check.
+      if(rows.length && KART_LIST.length && KARTS_SITE===site && rows.length < KART_LIST.length*0.9){
+        clearTimeout(window._tvPartialT);
+        window._tvPartialT=setTimeout(function(){ try{tvLoadFleet();}catch(e){} }, 4000);
+        rows=[];
+      }
       if(rows.length){
         KART_LIST=rows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
         KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+        KARTS_AT=Date.now(); KARTS_SITE=site;
       }
       tvRerender();
       // 2) completed repairs since the start of this week/month, this site's karts only
@@ -8590,6 +8682,314 @@ function hideMasterPin(){
   clearInterval(mpinTimer);
   var body=document.getElementById('mpin-body');
   if(body) body.innerHTML='<button class="mpin-reveal" onclick="revealMasterPin()">Tap to reveal master code</button>';
+}
+
+/* ===================== CHATS + TASKS =====================
+   One `messages` table backs every thread: 'general' (site chat, filtered by site column),
+   'dm:<a>|<b>' (names sorted), and 'task:<id>' (comment thread on a task, reused inside the
+   task detail view). Tasks live in the extended `tasks` table (chats_tasks.sql). Trust model
+   matches tv_state/ui_config: UI-gated, anon read/write. Pushes go person-to-person through
+   the notify-user edge function (DM sent, task assigned, task comment, task completed). */
+var CH_CHANNEL=null,CH_TITLE='',CH_OTHER=null,CH_MSGS=[],CH_DM=[];
+var TK_FILTER='mine',TK_LIST=[],TK_ROWS=[],TK_SEL=null,TK_VIEW='list',TKD_MSGS=[];
+function _hkScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
+function _chDmChannel(a,b){ var p=[String(a||''),String(b||'')].sort(); return 'dm:'+p[0]+'|'+p[1]; }
+function _staffByName(n){ return (typeof STAFF!=='undefined'?STAFF:[]).find(function(s){return s.name===n;}); }
+function _chTime(iso){ var t=Date.parse(iso); if(isNaN(t)) return ''; var d=new Date(t),hh=d.getHours()%12||12,mm=d.getMinutes(),ap=d.getHours()<12?'am':'pm'; return hh+':'+(mm<10?'0':'')+mm+ap; }
+var _CH_MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _chDay(iso){ var t=Date.parse(iso); if(isNaN(t)) return ''; var d=new Date(t),now=new Date();
+  if(d.toDateString()===now.toDateString()) return 'Today';
+  if(d.toDateString()===new Date(now.getTime()-86400000).toDateString()) return 'Yesterday';
+  return d.getDate()+' '+_CH_MO[d.getMonth()]+(d.getFullYear()!==now.getFullYear()?' '+d.getFullYear():''); }
+function _tkDue(dt){ var t=Date.parse(dt); if(isNaN(t)) return ''; var d=new Date(t); return d.getDate()+' '+_CH_MO[d.getMonth()]; }
+function _tkOverdue(t){ if(!t||!t.due_date||t.status==='done') return false; var d=Date.parse(t.due_date); if(isNaN(d)) return false; var today=new Date(); today.setHours(0,0,0,0); return d<today.getTime(); }
+/* Fire-and-forget push to one person's phones (skips self / empty). */
+function hkNotify(toName,title,body,tag,url){
+  try{
+    if(!toName||!cu||toName===cu.name||typeof SB_FN==='undefined') return;
+    fetch(SB_FN+'notify-user',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu.pin||''),toName:toName,title:title,body:body||'',tag:tag||'hkws-msg',url:url||'./'})}).catch(function(){});
+  }catch(e){}
+}
+
+/* ---------- Chats ---------- */
+function chatEnter(){ chatShowList(); }
+function chatBack(){ if(CH_CHANNEL){ chatShowList(); } else back(); }
+function chatShowList(){
+  CH_CHANNEL=null; CH_OTHER=null; CH_MSGS=[];
+  var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
+  if(lv) lv.style.display=''; if(tv) tv.style.display='none';
+  var box=document.getElementById('ch-channels'); if(!box) return;
+  var cs=currentSite||'sydney', csL=(typeof siteLabel==='function'?siteLabel(cs):cs);
+  var html='<div class="ck-row" onclick="chatOpenGeneral()"><div class="ck-em">\uD83D\uDCAC</div><div style="flex:1"><div class="ck-nm">Team chat</div><div class="ck-sub">Everyone at '+tvEsc(csL)+'</div></div></div>';
+  html+='<div class="ck-sec">Direct messages</div>';
+  var me=(cu&&cu.name)||'';
+  CH_DM=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){return s&&s.name&&s.name!==me;});
+  if(!CH_DM.length) html+='<div class="m-empty">No other staff yet.</div>';
+  CH_DM.forEach(function(s,i){
+    html+='<div class="ck-row" onclick="chatOpenDm('+i+')"><div class="ck-em">'+userEmoji(s)+'</div><div style="flex:1"><div class="ck-nm">'+tvEsc(s.name)+'</div><div class="ck-sub">'+tvEsc(s.role||'')+'</div></div></div>';
+  });
+  box.innerHTML=html;
+}
+function chatOpenGeneral(){ chatOpen('general','\uD83D\uDCAC Team chat',null); }
+function chatOpenDm(i){ var s=CH_DM[i]; if(!s||!cu) return; chatOpen(_chDmChannel(cu.name,s.name),userEmoji(s)+' '+s.name,s.name); }
+function chatOpen(channel,title,other){
+  CH_CHANNEL=channel; CH_TITLE=title; CH_OTHER=other||null; CH_MSGS=[];
+  var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
+  if(lv) lv.style.display='none'; if(tv) tv.style.display='';
+  var t=document.getElementById('ch-title'); if(t) t.innerText=title;
+  var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="m-empty">Loading\u2026</div>';
+  chatFetch();
+}
+function chatFetch(){
+  if(typeof SBC==='undefined'||!SBC||!CH_CHANNEL) return;
+  var ch=CH_CHANNEL;
+  var q=SBC.from('messages').select('id,channel,site,author,body,created_at').eq('channel',ch).order('id',{ascending:false}).limit(200);
+  if(ch==='general') q=q.eq('site',currentSite||'sydney');
+  q.then(function(r){
+    if(CH_CHANNEL!==ch) return;                       // user navigated away mid-flight
+    CH_MSGS=((r&&r.data)||[]).slice().reverse();
+    chatRenderMsgs('ch-msgs',CH_MSGS,true);
+  },function(){ var el=document.getElementById('ch-msgs'); if(el) el.innerHTML='<div class="m-empty">Couldn\u2019t load messages \u2014 check the connection.</div>'; });
+}
+function chatRenderMsgs(elId,msgs,scroll){
+  var el=document.getElementById(elId); if(!el) return;
+  if(!msgs.length){ el.innerHTML='<div class="m-empty">No messages yet \u2014 say hi \uD83D\uDC4B</div>'; return; }
+  var me=(cu&&cu.name)||'',html='',lastDay='';
+  msgs.forEach(function(m){
+    var day=_chDay(m.created_at);
+    if(day&&day!==lastDay){ html+='<div class="ch-day">'+day+'</div>'; lastDay=day; }
+    var mine=(m.author===me), st=_staffByName(m.author);
+    html+='<div class="ch-m'+(mine?' me':'')+'"><div class="ch-meta">'
+      +(mine?'You':userEmoji(st||{name:m.author})+' '+tvEsc((m.author||'').split(' ')[0]))
+      +' \u00b7 '+_chTime(m.created_at)+'</div><div class="ch-bub">'+tvEsc(m.body)+'</div></div>';
+  });
+  el.innerHTML=html;
+  if(scroll){ setTimeout(function(){ var p=el; while(p&&p.className.indexOf('sb')<0) p=p.parentElement; if(p) p.scrollTop=p.scrollHeight; },40); }
+}
+function chatKey(e){ if(e&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); chatSend(); } }
+function chatSend(){
+  var ta=document.getElementById('ch-text'),txt=(ta&&ta.value||'').trim();
+  if(!txt||!CH_CHANNEL||!cu||typeof SBC==='undefined'||!SBC) return;
+  ta.value='';
+  var ch=CH_CHANNEL,other=CH_OTHER;
+  SBC.from('messages').insert({channel:ch,site:currentSite||'sydney',author:cu.name,body:txt.slice(0,2000)}).then(function(r){
+    if(r&&r.error){ ta.value=txt; return; }
+    if(CH_CHANNEL===ch){                              // local echo (realtime replaces it when the row arrives)
+      CH_MSGS.push({_local:true,channel:ch,author:cu.name,body:txt.slice(0,2000),created_at:new Date().toISOString()});
+      chatRenderMsgs('ch-msgs',CH_MSGS,true);
+    }
+    if(other) hkNotify(other,'\uD83D\uDCAC '+((cu.name||'').split(' ')[0]),txt.slice(0,160),'hk-dm');
+  },function(){ ta.value=txt; });
+}
+/* Realtime: a new message row lands in whichever thread is open (chat screen or task comments). */
+function _rtMsgIn(row){
+  if(!row||!row.channel) return;
+  var me=(cu&&cu.name)||'';
+  function fold(list){                                // drop the optimistic local copy of my own send
+    if(row.author!==me) return;
+    for(var i=list.length-1;i>=0;i--){ if(list[i]._local&&list[i].body===row.body){ list.splice(i,1); return; } }
+  }
+  if(CH_CHANNEL&&row.channel===CH_CHANNEL&&_hkScr()==='chats'){
+    if(row.channel==='general'&&row.site&&row.site!==(currentSite||'sydney')) return;
+    fold(CH_MSGS);
+    if(!CH_MSGS.some(function(m){return m.id===row.id;})){ CH_MSGS.push(row); chatRenderMsgs('ch-msgs',CH_MSGS,true); }
+    return;
+  }
+  if(TK_SEL&&TK_VIEW==='detail'&&row.channel==='task:'+TK_SEL.id&&_hkScr()==='tasks'){
+    fold(TKD_MSGS);
+    if(!TKD_MSGS.some(function(m){return m.id===row.id;})){ TKD_MSGS.push(row); chatRenderMsgs('tkd-msgs',TKD_MSGS,false); }
+  }
+}
+
+/* ---------- Tasks ---------- */
+function tasksEnter(){
+  var nb=document.getElementById('tk-new-btn');
+  if(nb) nb.style.display=(typeof canSetTasks==='function'&&canSetTasks(cu))?'':'none';
+  var chips={mine:'tkc-mine',all:'tkc-all',done:'tkc-done'};
+  Object.keys(chips).forEach(function(k){ var c=document.getElementById(chips[k]); if(c) c.classList.toggle('on',k===TK_FILTER); });
+  taskShowList(true);
+}
+function taskBack(){ if(TK_VIEW!=='list'){ taskShowList(false); } else back(); }
+function _tkViews(which){
+  TK_VIEW=which;
+  ['tk-list-view','tk-form-view','tk-detail-view'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display=(id==='tk-'+which+'-view')?'':'none';
+  });
+}
+function taskShowList(refetch){
+  TK_SEL=null; TKD_MSGS=[]; _tkViews('list');
+  if(refetch===false) taskRenderList(); else taskFetch();
+}
+function taskFetch(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('tasks').select('id,site,title,details,assignee,created_by,due_date,priority,status,created_at,done_at').order('id',{ascending:false}).limit(400).then(function(r){
+    var cs=currentSite||'sydney';
+    TK_LIST=((r&&r.data)||[]).filter(function(t){ return t&&t.title&&(!t.site||t.site===cs); });   // JS site filter — tolerates legacy null-site rows (same lesson as ramp)
+    taskRenderList();
+  },function(){ var el=document.getElementById('tk-list'); if(el) el.innerHTML='<div class="m-empty">Couldn\u2019t load tasks \u2014 check the connection.</div>'; });
+}
+function taskFilter(f){
+  TK_FILTER=f;
+  ['mine','all','done'].forEach(function(k){ var c=document.getElementById('tkc-'+k); if(c) c.classList.toggle('on',k===f); });
+  taskRenderList();
+}
+var _TK_PRI={high:0,normal:1,low:2},_TK_PC={high:'#F87171',normal:'#22D3EE',low:'#94A3B8'};
+function taskRenderList(){
+  var el=document.getElementById('tk-list'); if(!el) return;
+  var me=(cu&&cu.name)||'';
+  var rows=TK_LIST.filter(function(t){
+    if(TK_FILTER==='done') return t.status==='done';
+    if(t.status==='done') return false;
+    return TK_FILTER==='all'||t.assignee===me;
+  });
+  if(TK_FILTER==='done'){ rows.sort(function(a,b){ return String(b.done_at||'').localeCompare(String(a.done_at||'')); }); }
+  else rows.sort(function(a,b){
+    var ad=a.due_date||'9999-12-31',bd=b.due_date||'9999-12-31';
+    return ad.localeCompare(bd)||((_TK_PRI[a.priority]!==undefined?_TK_PRI[a.priority]:1)-(_TK_PRI[b.priority]!==undefined?_TK_PRI[b.priority]:1))||(b.id-a.id);
+  });
+  TK_ROWS=rows;
+  if(!rows.length){
+    el.innerHTML='<div class="m-empty">'+(TK_FILTER==='mine'?'Nothing assigned to you right now \uD83C\uDF89':(TK_FILTER==='done'?'No completed tasks yet.':'No open tasks.'))+'</div>';
+    return;
+  }
+  el.innerHTML=rows.map(function(t,i){
+    var st=_staffByName(t.assignee);
+    var sub=(t.assignee?userEmoji(st||{name:t.assignee})+' '+tvEsc(t.assignee):'\u2754 Unassigned');
+    if(t.status==='done') sub+=' \u00b7 \u2714 done';
+    else if(t.due_date) sub+=' \u00b7 '+(_tkOverdue(t)?'<span style="color:#F87171;font-weight:800">\u26A0\uFE0F Overdue \u00b7 '+_tkDue(t.due_date)+'</span>':'due '+_tkDue(t.due_date));
+    return '<div class="tk-row'+(t.status==='done'?' done':'')+'" onclick="taskOpenIdx('+i+')"><div class="tk-pr" style="background:'+(_TK_PC[t.priority]||_TK_PC.normal)+'"></div><div style="flex:1"><div class="tk-t">'+tvEsc(t.title)+'</div><div class="tk-sub">'+sub+'</div></div></div>';
+  }).join('');
+}
+function taskNew(){
+  if(typeof canSetTasks==='function'&&!canSetTasks(cu)) return;
+  _tkViews('form');
+  var sel=document.getElementById('tkf-assignee');
+  if(sel) sel.innerHTML=(typeof STAFF!=='undefined'?STAFF:[]).filter(function(s){return s&&s.name;}).map(function(s){
+    return '<option value="'+tvEsc(s.name)+'"'+(cu&&s.name===cu.name?' selected':'')+'>'+userEmoji(s)+' '+tvEsc(s.name)+'</option>';
+  }).join('');
+  var tt=document.getElementById('tkf-title'); if(tt){ tt.value=''; setTimeout(function(){ try{tt.focus();}catch(e){} },80); }
+  var dd=document.getElementById('tkf-details'); if(dd) dd.value='';
+  var du=document.getElementById('tkf-due'); if(du) du.value='';
+  var pr=document.getElementById('tkf-priority'); if(pr) pr.value='normal';
+  var mg=document.getElementById('tkf-msg'); if(mg) mg.textContent='';
+}
+function taskCreate(){
+  var mg=document.getElementById('tkf-msg');
+  function say(t,c){ if(mg){ mg.textContent=t; mg.style.color=c||'#FF5A52'; } }
+  var title=(document.getElementById('tkf-title').value||'').trim();
+  if(!title){ say('Give the task a title'); return; }
+  if(!cu||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  var row={
+    site:currentSite||'sydney',
+    title:title.slice(0,140),
+    details:(document.getElementById('tkf-details').value||'').trim().slice(0,1000),
+    assignee:document.getElementById('tkf-assignee').value||'',
+    created_by:cu.name,
+    due_date:document.getElementById('tkf-due').value||null,
+    priority:document.getElementById('tkf-priority').value||'normal',
+    status:'open'
+  };
+  say('Saving\u2026','var(--t2)');
+  SBC.from('tasks').insert(row).then(function(r){
+    if(r&&r.error){ say('Save failed \u2014 '+(r.error.message||'try again')); return; }
+    hkNotify(row.assignee,'\u2705 New task: '+row.title.slice(0,60),
+      (row.due_date?'Due '+_tkDue(row.due_date)+'. ':'')+(row.details||('From '+(cu.name||'').split(' ')[0])).slice(0,140),'hk-task');
+    taskShowList(true);
+  },function(){ say('Connection error'); });
+}
+function taskOpenIdx(i){ var t=TK_ROWS[i]; if(!t) return; TK_SEL=t; _tkViews('detail'); taskRenderDetail(); tkdFetch(); }
+function taskRenderDetail(){
+  var t=TK_SEL; if(!t) return;
+  var tt=document.getElementById('tkd-title'); if(tt) tt.innerText=t.title||'Task';
+  var st=_staffByName(t.assignee);
+  var lines=[];
+  lines.push('<div style="font-weight:800;margin-bottom:2px">'+(t.assignee?userEmoji(st||{name:t.assignee})+' '+tvEsc(t.assignee):'\u2754 Unassigned')+'</div>');
+  var meta=[];
+  if(t.created_by) meta.push('set by '+tvEsc(t.created_by));
+  if(t.due_date) meta.push(_tkOverdue(t)?'<span style="color:#F87171;font-weight:800">\u26A0\uFE0F overdue \u2014 was due '+_tkDue(t.due_date)+'</span>':'due '+_tkDue(t.due_date));
+  meta.push('<span style="color:'+(_TK_PC[t.priority]||_TK_PC.normal)+';font-weight:800">'+tvEsc(t.priority||'normal')+' priority</span>');
+  if(t.status==='done'&&t.done_at) meta.push('\u2714 done '+_chDay(t.done_at));
+  lines.push('<div style="font-size:12.5px;color:var(--t2)">'+meta.join(' \u00b7 ')+'</div>');
+  if(t.details) lines.push('<div style="font-size:14px;line-height:1.55;margin-top:10px;white-space:pre-wrap">'+tvEsc(t.details)+'</div>');
+  var info=document.getElementById('tkd-info'); if(info) info.innerHTML=lines.join('');
+  var btn=document.getElementById('tkd-complete');
+  if(btn){
+    btn.textContent=(t.status==='done')?'\u21A9 Reopen task':'\u2714 Mark complete';
+    btn.classList.toggle('tk-done',t.status!=='done');
+  }
+}
+function tkdFetch(){
+  if(typeof SBC==='undefined'||!SBC||!TK_SEL) return;
+  var id=TK_SEL.id;
+  var el=document.getElementById('tkd-msgs'); if(el) el.innerHTML='<div class="m-empty">Loading\u2026</div>';
+  SBC.from('messages').select('id,channel,site,author,body,created_at').eq('channel','task:'+id).order('id',{ascending:true}).limit(200).then(function(r){
+    if(!TK_SEL||TK_SEL.id!==id) return;
+    TKD_MSGS=(r&&r.data)||[];
+    if(!TKD_MSGS.length){ var e2=document.getElementById('tkd-msgs'); if(e2) e2.innerHTML='<div class="m-empty">No comments yet.</div>'; return; }
+    chatRenderMsgs('tkd-msgs',TKD_MSGS,false);
+  },function(){ var e3=document.getElementById('tkd-msgs'); if(e3) e3.innerHTML='<div class="m-empty">Couldn\u2019t load comments.</div>'; });
+}
+function taskCommentKey(e){ if(e&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); taskComment(); } }
+function taskComment(){
+  var ta=document.getElementById('tkd-text'),txt=(ta&&ta.value||'').trim(),t=TK_SEL;
+  if(!txt||!t||!cu||typeof SBC==='undefined'||!SBC) return;
+  ta.value='';
+  SBC.from('messages').insert({channel:'task:'+t.id,site:t.site||currentSite||'sydney',author:cu.name,body:txt.slice(0,2000)}).then(function(r){
+    if(r&&r.error){ ta.value=txt; return; }
+    if(TK_SEL&&TK_SEL.id===t.id){
+      TKD_MSGS.push({_local:true,channel:'task:'+t.id,author:cu.name,body:txt.slice(0,2000),created_at:new Date().toISOString()});
+      chatRenderMsgs('tkd-msgs',TKD_MSGS,false);
+    }
+    var other=(cu.name===t.assignee)?t.created_by:t.assignee;
+    hkNotify(other,'\uD83D\uDCAC '+String(t.title||'Task').slice(0,50),((cu.name||'').split(' ')[0])+': '+txt.slice(0,140),'hk-task');
+  },function(){ ta.value=txt; });
+}
+function taskComplete(){
+  var t=TK_SEL; if(!t||typeof SBC==='undefined'||!SBC) return;
+  var toDone=(t.status!=='done');
+  var patch=toDone?{status:'done',done_at:new Date().toISOString()}:{status:'open',done_at:null};
+  SBC.from('tasks').update(patch).eq('id',t.id).then(function(r){
+    if(r&&r.error) return;
+    TK_SEL=Object.assign({},t,patch);
+    var k=TK_LIST.findIndex(function(x){return x.id===t.id;}); if(k>=0) TK_LIST[k]=TK_SEL;
+    taskRenderDetail();
+    if(toDone) hkNotify(t.created_by,'\u2714 Done: '+String(t.title||'Task').slice(0,60),((cu&&cu.name)||'Someone')+' marked it complete.','hk-task');
+  },function(){});
+}
+/* Realtime: task rows changed while the Tasks screen is open — refresh whichever view is showing. */
+var _tkRtT=null;
+function _rtTaskIn(){
+  if(_hkScr()!=='tasks') return;
+  clearTimeout(_tkRtT);
+  _tkRtT=setTimeout(function(){
+    if(_hkScr()!=='tasks') return;
+    if(TK_VIEW==='list') taskFetch();
+    else if(TK_VIEW==='detail'&&TK_SEL&&typeof SBC!=='undefined'&&SBC){
+      SBC.from('tasks').select('id,site,title,details,assignee,created_by,due_date,priority,status,created_at,done_at').eq('id',TK_SEL.id).maybeSingle().then(function(r){
+        if(r&&r.data&&TK_SEL&&r.data.id===TK_SEL.id){ TK_SEL=r.data; taskRenderDetail(); }
+      },function(){});
+    }
+  },600);
+}
+
+/* ---------- Ramp pane: phones subscribed to push (master-write op push-list) ---------- */
+function mrPushLoad(){
+  var el=document.getElementById('mr-push-list'); if(!el) return;
+  el.innerHTML='<div class="m-empty">Loading\u2026</div>';
+  fetch(SB_FN+'master-write',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'push-list'})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(!res||!res.success){ el.innerHTML='<div class="m-empty">Couldn\u2019t load \u2014 '+tvEsc((res&&res.message)||'error')+'</div>'; return; }
+      var subs=res.subs||[];
+      if(!subs.length){ el.innerHTML='<div class="m-empty">No phones subscribed yet \u2014 staff enable alerts from the \uD83D\uDD14 banner on the home screen.</div>'; return; }
+      var by={},order=[];
+      subs.forEach(function(s){ var n=(s&&s.name)||'Unknown'; if(!by[n]){ by[n]=[]; order.push(n); } by[n].push(s); });
+      el.innerHTML=order.map(function(n){
+        var list=by[n],newest=list[0],st=_staffByName(n);
+        var when=''; var tm=Date.parse(newest.updated_at||''); if(!isNaN(tm)){ var d=new Date(tm); when=d.getDate()+' '+_CH_MO[d.getMonth()]+' '+_chTime(newest.updated_at); }
+        var sub=list.length+' device'+(list.length===1?'':'s')+(newest.site?(' \u00b7 '+tvEsc(typeof siteLabel==='function'?siteLabel(newest.site):newest.site)):'')+(when?(' \u00b7 updated '+when):'');
+        return '<div class="mc" style="text-align:left;display:flex;align-items:center;gap:12px;margin-top:8px"><div style="font-size:20px">'+userEmoji(st||{name:n})+'</div><div style="flex:1"><div style="font-weight:800">'+tvEsc(n)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">'+sub+'</div></div></div>';
+      }).join('');
+    }).catch(function(){ el.innerHTML='<div class="m-empty">Connection error.</div>'; });
 }
 
 </script>

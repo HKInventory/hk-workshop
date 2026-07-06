@@ -1613,6 +1613,43 @@
     .acct-pin-in{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:15px;font-family:inherit;letter-spacing:4px;text-align:center}
     .acct-slider{width:100%;accent-color:#1A73E8;margin-top:14px}
     .acct-slider-labels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--t2);font-weight:700;margin-top:4px}
+    .ch-attach{font-size:22px;font-weight:600;color:#D5D9DE;line-height:1}
+    @media(max-width:899px){ .ch-grp.me .ch-hd b{display:none} }
+    @media(min-width:900px){
+      #s-chats .sb{display:grid;grid-template-columns:minmax(320px,400px) minmax(0,1fr);padding:0;overflow:hidden}
+      #s-chats .sb.thread-mode{padding:0}
+      #ch-list-view{grid-column:1;grid-row:1;height:100%;overflow-y:auto;padding:18px 16px calc(max(env(safe-area-inset-bottom),0px) + 24px);border-right:1px solid #26292E}
+      #ch-thread-view,#ch-group-view,#ch-info-view{grid-column:2;grid-row:1;height:100%;overflow-y:auto;padding:14px 18px}
+      #ch-thread-view{overflow:hidden;padding:14px}
+      #ch-thread-view .ch-thread{background:#1A1D21;border:1px solid #2A2E33;border-radius:18px;height:100%;min-height:0;overflow:hidden}
+      #ch-title{padding:15px 20px;margin:0 !important;border-bottom:1px solid #2A2E33;font-size:16px}
+      #ch-thread-view .ch-msgs{padding:8px 22px 14px}
+      #ch-thread-view .ch-input{margin:0 16px;border-top:1px solid #2A2E33;background:transparent;padding:10px 0 16px;gap:10px}
+      .ch-input textarea{background:#282B30}
+      /* flat, left-aligned messages — like Google Chat desktop */
+      .ch-grp{align-items:flex-start;gap:11px;margin-top:18px}
+      .ch-grp.me{flex-direction:row}
+      .ch-grp.me .ch-av{display:flex}
+      .ch-grp .ch-av{width:34px;height:34px;font-size:16px;margin-bottom:0}
+      .ch-col{max-width:100%;flex:1;min-width:0}
+      .ch-grp.me .ch-col{align-items:flex-start}
+      .ch-hd{margin:0 0 2px;font-size:13.5px;color:#E8EAED;font-weight:700}
+      .ch-grp.me .ch-hd{text-align:left}
+      .ch-hd b{color:#E8EAED}
+      .ch-hd .ch-tm{font-size:11.5px;color:#9AA0A6;margin-left:8px}
+      .ch-bub{background:none !important;border-radius:0;padding:0 0 2px;color:#E8EAED !important;max-width:100%}
+      .ch-grp .ch-bub+.ch-bub{margin-top:7px}
+      .ch-bub.ch-bub-img{padding:4px 0 0 !important}
+      /* list pane */
+      .ck-hdrow .ck-hd{font-size:20px}
+      .ck-row2{padding:10px 12px;border-radius:12px;margin:1px 0}
+      .ck-row2:hover{background:#24272C}
+      .ck-row2.sel{background:#2A2E33}
+      .ck-row2 .ch-av{width:42px;height:42px;font-size:19px;border-radius:12px}
+      .ck-badge{min-width:10px;width:10px;height:10px;padding:0;font-size:0;line-height:0;background:#8AB4F8}
+      .ck-sub2{-webkit-line-clamp:1}
+      .gc-search input{background:#282B30}
+    }
     .ch-input{position:sticky;bottom:0;display:flex;gap:9px;align-items:flex-end;padding:10px 0 calc(max(env(safe-area-inset-bottom),0px) + 6px);background:var(--bg)}
     .ch-input textarea{flex:1;min-height:46px;max-height:120px;resize:none;background:var(--card);border:1.5px solid var(--b2);border-radius:23px;color:var(--t1);padding:12px 16px;font-size:14.5px;font-family:inherit;box-sizing:border-box}
     .ch-input textarea:focus{outline:none;border-color:#1A73E8}
@@ -1826,7 +1863,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-M · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-N · ZXing raw</div>
       </div>
     </div>
 
@@ -2286,7 +2323,7 @@
           <div class="ch-thread">
             <div class="pgtitle" id="ch-title" style="margin-bottom:8px">Chat</div>
             <div class="ch-msgs" id="ch-msgs"></div>
-            <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">🖼️</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
+            <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">+</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
           </div>
         </div>
         <div id="ch-group-view" style="display:none">
@@ -6823,7 +6860,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-M \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-N \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9062,6 +9099,7 @@ function hkNotify(toName,title,body,tag,url){
 }
 
 /* ---------- Chats ---------- */
+function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
 function chatEnter(){ chatShowList(); }
 function chatGoBack(){
   var iv=document.getElementById('ch-info-view'); if(iv&&iv.style.display!=='none'){ if(CH_GROUP){ chatOpenGroup(CH_GROUP.id); } else chatShowList(); return true; }
@@ -9134,7 +9172,7 @@ function _chConvRow(channel, avatar, name, fallbackSub, onclick){
     mentionMe=_chMentionsMe(String(m.body||'')); var _pb=String(m.body||'').trim()||((m.image)?'\ud83d\udcf7 Photo':''); subHtml='<span class="ck-who">'+who+':</span> '+_chRenderBody(_pb); }
   var right=(unread>0?'<span class="ck-badge">'+(unread>99?'99+':String(unread))+'</span>':(timeTxt?'<span class="ck-time">'+timeTxt+'</span>':''));
   var subCls='ck-sub2'+(unread>0?' unread':'');
-  return '<div class="ck-row2'+(unread>0?' un':'')+'" onclick="'+onclick+'">'+avatar+
+  return '<div class="ck-row2'+(unread>0?' un':'')+((CH_CHANNEL===channel)?' sel':'')+'" data-ch="'+tvEsc(channel)+'" onclick="'+onclick+'">'+avatar+
     '<div class="ck-body2"><div class="ck-toprow"><span class="ck-nm2">'+tvEsc(name)+(mentionMe?' <span class="ck-at">@you</span>':'')+'</span>'+right+
     '</div><div class="'+subCls+'">'+subHtml+'</div></div></div>';
 }
@@ -9196,7 +9234,7 @@ function chatRenderList(){
 /* ---- create group ---- */
 function chatNewGroup(){
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view');
-  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display=''; _chSbMode(false);
+  if(lv) lv.style.display=_gcDesk()?'':'none'; if(tv) tv.style.display='none'; if(gv) gv.style.display=''; _chSbMode(false);
   var me=(cu&&cu.name)||'', nm=document.getElementById('cg-name'); if(nm) nm.value='';
   var box=document.getElementById('cg-members');
   if(box){ box.innerHTML=_roster().filter(function(s){ return s&&s.name&&s.name!==me; }).map(function(s){
@@ -9229,7 +9267,7 @@ function chatOpen(channel,title,other,dmStaff){
   CH_CHANNEL=channel; CH_TITLE=title; CH_OTHER=other||null; CH_MSGS=[]; if(channel.indexOf('group:')!==0) CH_GROUP=null;
   var gv=document.getElementById('ch-group-view'); if(gv) gv.style.display='none'; var _iv=document.getElementById('ch-info-view'); if(_iv) _iv.style.display='none';
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view');
-  if(lv) lv.style.display='none'; if(tv) tv.style.display='';
+  if(lv) lv.style.display=_gcDesk()?'':'none'; if(tv) tv.style.display='';
   var t=document.getElementById('ch-title');
   if(t){
     t.onclick=null; t.style.cursor='';
@@ -9238,7 +9276,8 @@ function chatOpen(channel,title,other,dmStaff){
     else { t.innerHTML='<span class="ch-av ch-team">\ud83d\udcac</span><span>'+tvEsc(title)+'</span>'; }
   }
   var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="ch-empty">Loading\u2026</div>';
-  chatMarkRead(channel); _chSbMode(true); chatFetch();
+  try{ var _rows=document.querySelectorAll('#ch-channels .ck-row2'); for(var _ri=0;_ri<_rows.length;_ri++){ _rows[_ri].classList.toggle('sel',_rows[_ri].getAttribute('data-ch')===channel); } }catch(e){}
+  chatMarkRead(channel); _chSbMode(_gcDesk()?false:true); chatFetch();
 }
 function chatFetch(){
   if(typeof SBC==='undefined'||!SBC||!CH_CHANNEL) return;
@@ -9263,8 +9302,8 @@ function chatRenderMsgs(elId,msgs,scroll){
       if(prevAuthor!==null) html+='</div></div>';
       if(newDay) html+='<div class="ch-day"><span>'+tvEsc(day)+'</span></div>';
       html+='<div class="ch-grp'+(mine?' me':'')+'">';
-      if(!mine) html+=_chAvatar(m.author,st);
-      html+='<div class="ch-col"><div class="ch-hd">'+(mine?'':'<b>'+tvEsc((m.author||'').split(' ')[0])+'</b> ')+'<span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
+      html+=_chAvatar(m.author,st);
+      html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
     if(m.image){ html+='<div class="ch-bub ch-bub-img"><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+'</div>':'')+'</div>'; }
     else { html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>'; }
@@ -9404,7 +9443,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-M \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-N \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -9426,7 +9465,7 @@ function acctSetEmoji(v){ if(!cu) return; v=(v||'').trim().slice(0,4); if(v) USE
 function chatGroupInfo(){
   var g=CH_GROUP; if(!g) return;
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view'),iv=document.getElementById('ch-info-view');
-  if(lv) lv.style.display='none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='none'; if(iv) iv.style.display=''; _chSbMode(false);
+  if(lv) lv.style.display=_gcDesk()?'':'none'; if(tv) tv.style.display='none'; if(gv) gv.style.display='none'; if(iv) iv.style.display=''; _chSbMode(false);
   var av=document.getElementById('ci-av'); if(av){ av.textContent=g.emoji||'\ud83d\udc65'; if(g.color){ av.classList.remove('ch-grpav'); av.style.background=g.color; } else { av.classList.add('ch-grpav'); av.style.background=''; } }
   var nm=document.getElementById('ci-name'); if(nm) nm.textContent=g.name||'Group';
   var ct=document.getElementById('ci-count'); if(ct) ct.textContent=((g.members||[]).length)+' members';

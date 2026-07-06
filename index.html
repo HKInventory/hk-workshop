@@ -1388,9 +1388,14 @@
     .tv-lbhdr .tv-ct4>span{font-size:1.1vmin;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--mut)}
     .tv-lbrow .tv-ct4>b{font-size:2.1vmin;font-weight:800;color:var(--dim)}
     .tv-lbrow .tv-ct4>b.hi{font-size:2.7vmin;color:var(--tvac)}
-    .tv-lbrow{transition:transform .55s cubic-bezier(.2,.85,.3,1)}
+    .tv-lbrow{transition:transform 2.6s cubic-bezier(.22,.86,.24,1)}
     .tv-lbhdr .tv-ct4>span.on{color:var(--tvac)}
     .tv-lbrow .tv-ct4>b.on{color:var(--tvac);font-size:2.7vmin}
+    .tv-lb.compact .tv-lbrow{padding:.55vmin 1.6vmin}
+    .tv-lb.compact .tv-lbrow .nm{font-size:2.15vmin}
+    .tv-lb.compact .tv-lbrow .rk{font-size:1.9vmin}
+    .tv-lb.compact .tv-lbrow .tv-ct4>b{font-size:1.75vmin}
+    .tv-lb.compact .tv-lbrow .tv-ct4>b.on{font-size:2.25vmin}
     .tv-ct1{flex:0 0 auto}
     .tv-ct1>b{display:block;min-width:8vmin;text-align:right;font-size:3.1vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--tvac)}
     /* low stock */
@@ -1472,10 +1477,11 @@
     .tv-standby .badge{width:17vmin;height:17vmin;opacity:.6}
     .tv-pulse{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vmin;
       background:radial-gradient(circle at 50% 45%,#0A1018,#04070A 72%);opacity:0;pointer-events:none;transition:opacity .55s ease}
-    #tvroot.pulsing .tv-pulse{opacity:1;transition:opacity .3s ease}
+    .tv-pulse{transition:opacity 1.25s cubic-bezier(.4,0,.2,1)}
+    #tvroot.pulsing .tv-pulse{opacity:1;transition:opacity .9s cubic-bezier(.4,0,.2,1)}
     .tv-pulse .badge{width:24vmin;height:24vmin;min-width:150px;min-height:150px;filter:drop-shadow(0 0 4vmin rgba(0,207,255,.45))}
-    #tvroot.pulsing .tv-pulse .badge{animation:tvpulse 1.5s cubic-bezier(.4,0,.2,1)}
-    @keyframes tvpulse{0%{transform:scale(.62);opacity:0}38%{transform:scale(1.05);opacity:1}72%{transform:scale(1)}100%{transform:scale(1)}}
+    #tvroot.pulsing .tv-pulse .badge{animation:tvpulse 2.6s cubic-bezier(.33,0,.16,1)}
+    @keyframes tvpulse{0%{transform:scale(.78);opacity:0}32%{opacity:1}55%{transform:scale(1.015)}100%{transform:scale(1);opacity:1}}
     .tv-pulse .wm{font-size:1.8vmin;font-weight:800;letter-spacing:.46em;text-transform:uppercase;color:var(--mut)}
 
     /* ===================== TV DISPLAY control tab ===================== */
@@ -1625,6 +1631,22 @@
     .ch-actbar{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}
     .ch-actbar button{background:var(--card);border:1px solid var(--b2);border-radius:999px;color:var(--t1);font-size:12px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:inherit}
     .ch-actbar button.del{color:#FF6B63;border-color:rgba(255,107,99,.4)}
+    .ch-mini{display:flex;gap:16px;justify-content:flex-end;margin:3px 4px 0;opacity:.45}
+    .ch-mini button{background:none;border:none;color:#9AA0A6;font-size:12.5px;line-height:1;padding:2px 3px;cursor:pointer;font-family:inherit}
+    .ch-mini .x{font-size:11px}
+    .ch-mini button:active,.ch-mini button:hover{color:#E8EAED}
+    .ch-seen{font-size:11px;color:#9AA0A6;text-align:right;margin:5px 6px 0}
+    .ch-tolist{background:none;border:none;color:var(--t1);font-size:27px;line-height:1;padding:0 8px 3px 0;cursor:pointer;font-family:inherit}
+    @media(min-width:900px){ .ch-tolist{display:none} }
+    .ch-minilink{background:none;border:none;color:var(--acc);font-size:14px;font-weight:700;padding:0 0 10px;cursor:pointer;font-family:inherit;display:block;text-align:left}
+    @media(min-width:900px){ .ch-minilink{display:none} }
+    .bcn-grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+    .bcn-grid.n3 .bcn-cell:nth-child(3){grid-column:1/-1}
+    .bcn-cell{position:relative;border:1px solid var(--b2);border-radius:16px;background:var(--card);overflow:hidden;padding:0;cursor:pointer;aspect-ratio:4/3.4;display:flex;flex-direction:column;font-family:inherit}
+    .bcn-cell:active{transform:scale(.985)}
+    .bcn-cell-map{flex:1;display:block;position:relative;overflow:hidden;min-height:0}
+    .bcn-cell-map svg,.bcn-cell-map img{width:100%;height:100%;object-fit:contain;display:block}
+    .bcn-cell-nm{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;font-weight:700;font-size:13.5px;color:var(--t1);border-top:1px solid var(--b1)}
     .ch-thread{position:relative}
     .ch-mention{position:absolute;left:10px;right:10px;bottom:76px;z-index:5;background:#1F2228;border:1px solid var(--b2);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.5);overflow:hidden;max-height:44vh;overflow-y:auto}
     .ch-ment-row{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer}
@@ -1907,7 +1929,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-W · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-X · ZXing raw</div>
       </div>
     </div>
 
@@ -2365,13 +2387,14 @@
         </div>
         <div id="ch-thread-view" style="display:none">
           <div class="ch-thread">
-            <div class="pgtitle" id="ch-title" style="margin-bottom:8px">Chat</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><button class="ch-tolist" onclick="chatShowList()">‹</button><div class="pgtitle" id="ch-title" style="margin-bottom:0;flex:1;min-width:0">Chat</div></div>
             <div class="ch-msgs" id="ch-msgs"></div>
             <div id="ch-mention" class="ch-mention" style="display:none"></div>
             <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">+</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)" oninput="chatMentionCheck()"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
           </div>
         </div>
         <div id="ch-group-view" style="display:none">
+          <button class="ch-minilink" onclick="chatShowList()">‹ All chats</button>
           <div class="pgtitle">New group</div>
           <label class="tk-fld"><span>Group name</span><input id="cg-name" maxlength="80" placeholder="e.g. Weekend crew"></label>
           <div class="ck-sec" style="margin-top:6px">Add people</div>
@@ -2380,6 +2403,7 @@
           <button class="tk-btn" onclick="chatCreateGroup()">Create group</button>
         </div>
         <div id="ch-info-view" style="display:none">
+          <button class="ch-minilink" onclick="if(CH_GROUP){chatOpenGroup(CH_GROUP.id);}else{chatShowList();}">‹ Back to chat</button>
           <div class="acct-head">
             <div class="acct-av ch-grpav" id="ci-av">👥</div>
             <div class="acct-name" id="ci-name">Group</div>
@@ -3265,6 +3289,8 @@ function startRealtime(){
         else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
         else if(p&&p.eventType==='DELETE'&&p.old&&p.old.id!=null){ var rm=false; for(var i=(CH_MSGS||[]).length-1;i>=0;i--){ if(CH_MSGS[i].id===p.old.id){ CH_MSGS.splice(i,1); rm=true; } } if(rm) chatRenderMsgs('ch-msgs',CH_MSGS,false); }
       }catch(e){}
+    }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
+      try{ var row=p&&(p.new||p.old); if(row&&row.channel===CH_CHANNEL){ if(p&&p.new) CH_READS[p.new.name]=p.new.at; chatUpdateSeen(); } }catch(e){}
     }).subscribe();
     SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} }).subscribe();
     SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} }).subscribe();
@@ -3432,6 +3458,7 @@ function go(id){
 function back(){
   if(navLock) return;
   if(stk.length&&stk[stk.length-1]==='chats'&&typeof chatGoBack==='function'&&chatGoBack()) return;
+  if(stk.length&&stk[stk.length-1]==='beacons'&&window.BCN_FROM_GRID&&typeof bcnBackToGrid==='function'&&bcnBackToGrid()) return;
   if(stk.length<=1) return;
   navLock=true;
   var appEl2=document.getElementById('app');
@@ -3516,7 +3543,7 @@ nav.addEventListener('touchmove',function(e){
     var curId=stk[stk.length-1],prevId=stk[stk.length-2];
     if(!curId||!prevId) return;
     if(curId==='welcome'||curId==='pin'||prevId==='pin') return;
-    if(curId==='chats'&&typeof chatGoBack==='function'){ var _cg=document.getElementById('ch-group-view'),_ci=document.getElementById('ch-info-view'); if(CH_CHANNEL||(_cg&&_cg.style.display!=='none')||(_ci&&_ci.style.display!=='none')){ swiping=false; swipeStarted=false; _chatSwipeConsumed=true; document.body.style.overflow=''; document.body.style.touchAction=''; try{chatGoBack();}catch(e){} return; } }
+    if(curId==='chats'){ swiping=false; swipeStarted=false; _chatSwipeConsumed=true; document.body.style.overflow=''; document.body.style.touchAction=''; return; }   // chats: vertical scroll only, no screen-drag
     swipeCur=s(curId);
     swipePrev=s(prevId);
     if(!swipeCur||!swipePrev) return;
@@ -4530,12 +4557,39 @@ function _auxTry(video,vv,meter){
 function _autoTorch(avg){
   if(!qrs||!_torchAuto) return;
   if(avg<45){ _darkN++; _brightN=0;
-    if(_darkN>=4 && !_torchOn){ try{ qrs.turnFlashOn().then(function(){ _torchOn=true; var b=document.getElementById('sc-torch'); if(b) b.style.background='#F59E0B'; }).catch(function(){}); }catch(e){} }
+    if(_darkN>=4 && !_torchOn){ try{ qrs.turnFlashOn().then(function(){ _torchOn=true; var b=document.getElementById('sc-torch'); if(b) b.classList.add('on'); }).catch(function(){}); }catch(e){} }
   } else if(avg>110){ _brightN++; _darkN=0;
-    if(_brightN>=6 && _torchOn){ try{ qrs.turnFlashOff().then(function(){ _torchOn=false; var b=document.getElementById('sc-torch'); if(b) b.style.background=''; }).catch(function(){}); }catch(e){} }
+    if(_brightN>=6 && _torchOn){ try{ qrs.turnFlashOff().then(function(){ _torchOn=false; var b=document.getElementById('sc-torch'); if(b){ b.classList.remove('on'); b.style.background=''; } }).catch(function(){}); }catch(e){} }
   } else { _darkN=0; _brightN=0; }
 }
 function _stopInvertedScan(){ clearInterval(_auxT); _auxT=null; _auxBusy=false; _auxIdx=0; _darkN=0; _brightN=0; clearInterval(_bdT); _bdT=null; _bd=null; _bdBusy=false; }
+function _scanTrack(){ try{ var v=document.getElementById('qrv'); var st=v&&v.srcObject; var ts=st&&st.getVideoTracks?st.getVideoTracks():null; return (ts&&ts[0])||null; }catch(e){ return null; } }
+function _scanAidsShow(video){
+  try{
+    var t=_scanTrack(); window._qrsTrack=t;
+    _torchOn=false; var tb=document.getElementById('sc-torch'); if(tb){ tb.classList.remove('on'); tb.style.background=''; }
+    var caps=(t&&t.getCapabilities)?t.getCapabilities():{};
+    var aids=document.getElementById('scan-aids'); if(aids) aids.style.display=(caps&&caps.zoom)?'flex':'none';
+  }catch(e){}
+}
+function _torchTrack(on,done){
+  var t=_scanTrack();
+  if(!t||!t.applyConstraints){ done(false); return; }
+  try{ t.applyConstraints({advanced:[{torch:on}]}).then(function(){done(true);},function(){done(false);}); }catch(e){ done(false); }
+}
+function scanTorch(){
+  var tb=document.getElementById('sc-torch'), want=!_torchOn;
+  function done(ok){ if(ok){ _torchOn=want; if(tb){ tb.classList.toggle('on',_torchOn); tb.style.background=''; } } }
+  try{
+    if(qrs&&qrs.turnFlashOn&&qrs.turnFlashOff){ (want?qrs.turnFlashOn():qrs.turnFlashOff()).then(function(){done(true);},function(){_torchTrack(want,done);}); return; }
+  }catch(e){}
+  _torchTrack(want,done);
+}
+function scanZoom(z){
+  var t=_scanTrack(); if(!t||!t.applyConstraints) return;
+  try{ var c=t.getCapabilities?t.getCapabilities():null; if(c&&c.zoom){ z=Math.max(c.zoom.min||1,Math.min(c.zoom.max||3,z)); } }catch(e){}
+  try{ t.applyConstraints({advanced:[{zoom:z}]}).then(function(){},function(){}); }catch(e){}
+}
 function _initScanner(){
   var v=document.getElementById('qrv');
   // Check existing permission to skip prompt if granted
@@ -5641,12 +5695,39 @@ function loadBeaconTracks(cb){
 function beaconTracksForSite(){ var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney';
   return allBeaconTracks().filter(function(t){return t.site===site;})
     .sort(function(a,b){ return (b.live?1:0)-(a.live?1:0) || String(a.name).localeCompare(String(b.name)); }); }   // live first, then A-Z
+window.BCN_FROM_GRID=false;
 function loadBeacons(){
   loadBeaconTracks(function(){
     var list=beaconTracksForSite();
-    var t=list.find(function(x){return x.live;})||list[0]||null;
+    var live=list.filter(function(x){return x.live;});
+    if(live.length>1){ window.BCN_FROM_GRID=false; bcnShowGrid(live); buildBeaconList(null); return; }
+    var t=live[0]||list[0]||null;
     renderBeacons(t); buildBeaconList(t?t.id:null);
   });
+}
+function bcnShowGrid(live){
+  var host=document.getElementById('bcnHost'); if(!host) return;
+  var nm=document.getElementById('bcnTrk'); if(nm) nm.textContent=live.length+' tracks live';
+  var lv=document.getElementById('bcnLive'); if(lv) lv.style.display='';
+  var lgl=document.getElementById('bcnLegLive'); if(lgl) lgl.style.display='none';
+  var side=document.getElementById('bcnSide'); if(side) side.style.display='none';
+  var site=document.getElementById('bcnSite'); if(site) site.textContent='tap a track to zoom in';
+  host.innerHTML='<div class="bcn-grid n'+Math.min(4,live.length)+'">'+live.map(function(t){
+    var bg=t.blueprintUrl?'<img class="bcnbp" src="'+t.blueprintUrl+'" alt="">':(t.mapSvg||BCN_MAP_SVG);
+    return '<button class="bcn-cell" data-id="'+t.id+'"><span class="bcn-cell-map">'+bg+'</span><span class="bcn-cell-nm">'+t.name+'<span class="bcnlt"><span class="d"></span>Live</span></span></button>';
+  }).join('')+'</div>';
+  host.querySelectorAll('.bcn-cell').forEach(function(el){
+    el.addEventListener('click',function(){
+      var t=allBeaconTracks().find(function(x){return x.id===el.dataset.id;});
+      if(t){ window.BCN_FROM_GRID=true; renderBeacons(t); buildBeaconList(t.id); }
+    });
+  });
+}
+function bcnBackToGrid(){
+  var live=beaconTracksForSite().filter(function(x){return x.live;});
+  window.BCN_FROM_GRID=false;
+  if(live.length>1){ bcnShowGrid(live); buildBeaconList(null); return true; }
+  return false;
 }
 // ===== RaceFacer tab: live track of the day + today's repairs / parts / discrepancies (real data only) =====
 function raceEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -6029,7 +6110,7 @@ function buildBeaconList(curId){
       +'</span></span>'+(t.live?'<span class="bcnlt"><span class="d"></span>Live</span>':'')+'</button>';
   }).join('');
   dl.querySelectorAll('.bcnti').forEach(function(el){
-    el.addEventListener('click',function(){ var t=allBeaconTracks().find(function(x){return x.id===el.dataset.id;}); if(t){ renderBeacons(t); buildBeaconList(t.id); closeBeaconDrawer(); } });
+    el.addEventListener('click',function(){ var t=allBeaconTracks().find(function(x){return x.id===el.dataset.id;}); if(t){ window.BCN_FROM_GRID=false; renderBeacons(t); buildBeaconList(t.id); closeBeaconDrawer(); } });
   });
 }
 document.addEventListener('click',function(){ if(bcnPop) closeBeaconPop(); });
@@ -6917,7 +6998,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-W \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-X \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7649,8 +7730,7 @@ function tvLbStart(){
   if(TV_LB_T){ clearInterval(TV_LB_T); TV_LB_T=null; }
   if(!document.getElementById('tv-lb-wrap')) return;
   TV_LB_PHASE=0; tvLbApply(false);
-  var secs=Math.max(5,Number(tvState&&tvState.rotate_seconds)||18);
-  var step=Math.max(3.5,secs/4)*1000;
+  var step=10000;   // 10s on each of Daily / Week / Month / All-time
   TV_LB_T=setInterval(function(){
     if(!document.getElementById('tv-lb-wrap')){ clearInterval(TV_LB_T); TV_LB_T=null; return; }
     TV_LB_PHASE=(TV_LB_PHASE+1)%4; tvLbApply(true);
@@ -7661,9 +7741,9 @@ function tvSceneLeaderboard(){
   if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs recorded yet.</div>';
   // rows = union of the top 7 on each metric (so a big daily performer appears even if their all-time is low)
   var pick=[], seen={}, k, s, j;
-  for(k=0;k<TV_LB_KEYS.length;k++){ s=tvLbSort(lb,TV_LB_KEYS[k]).slice(0,7);
+  for(k=0;k<TV_LB_KEYS.length;k++){ s=tvLbSort(lb,TV_LB_KEYS[k]).slice(0,14);
     for(j=0;j<s.length;j++){ if(!seen[s[j].user]){ seen[s[j].user]=1; pick.push(s[j]); } } }
-  if(pick.length>9) pick=tvLbSort(pick,'all').slice(0,9);
+  if(pick.length>14) pick=tvLbSort(pick,'all').slice(0,14);
   TV_LB_DATA=pick;
   var medal=['#FFD45E','#CBD5E1','#E8995A'];
   var order=tvLbSort(pick,'day');
@@ -7673,7 +7753,7 @@ function tvSceneLeaderboard(){
   }).join('');
   clearTimeout(window._tvLbBoot); window._tvLbBoot=setTimeout(tvLbStart,120);
   return tvEyebrow('Repair Leaderboard','Today \u2192 Week \u2192 Month \u2192 All-time')+
-    '<div class="tv-lb" id="tv-lb-wrap"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct4"><span class="on">Today</span><span>Week</span><span>Month</span><span>All-time</span></span></div>'+rows+'</div>';
+    '<div class="tv-lb'+(pick.length>9?' compact':'')+'" id="tv-lb-wrap"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct4"><span class="on">Today</span><span>Week</span><span>Month</span><span>All-time</span></span></div>'+rows+'</div>';
 }
 function _repairName(u){
   u=String(u||'').trim(); if(!u) return '';
@@ -7855,6 +7935,7 @@ function tvScheduleNext(){
   if(tvOverlayActive()) return;
   var list=tvEnabledScenes(); if(list.length<2) return;
   var secs=Math.max(5,Number(tvState&&tvState.rotate_seconds)||18);
+  try{ var _cl=list[((tvIdx%list.length)+list.length)%list.length]; if(_cl&&_cl.key==='leaderboard') secs=Math.max(secs,41); }catch(e){}   // hold for the 4\u00d710s ranking phases
   _tvRotT=setTimeout(tvAdvance,secs*1000);
 }
 function tvStartRotation(){ try{ tvRenderCurrent(true); }catch(e){} try{ tvScheduleNext(); }catch(e){} }
@@ -7999,7 +8080,7 @@ function tvHkPulse(){
   if(tvOverlayActive()) return;     // don't cover an emergency/message/standby with the logo
   root.classList.add('pulsing');
   if(root._pulseT) clearTimeout(root._pulseT);
-  root._pulseT=setTimeout(function(){ root.classList.remove('pulsing'); },1700);
+  root._pulseT=setTimeout(function(){ root.classList.remove('pulsing'); },3400);
 }
 /* Best-effort: ask the browser to keep the screen awake (re-acquired when the
    tab becomes visible again, since wake locks auto-release while hidden).
@@ -9257,13 +9338,37 @@ function hkNotify(toName,title,body,tag,url){
 
 /* ---------- Chats ---------- */
 function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
-function chatEnter(){ chatShowList(); }
-function chatGoBack(){
-  var iv=document.getElementById('ch-info-view'); if(iv&&iv.style.display!=='none'){ if(CH_GROUP){ chatOpenGroup(CH_GROUP.id); } else chatShowList(); return true; }
-  var gv=document.getElementById('ch-group-view'); if(gv&&gv.style.display!=='none'){ chatShowList(); return true; }
-  if(CH_CHANNEL){ chatShowList(); return true; }
-  return false;
+function chatEnter(){ chatShowList(); chatOpenDefault(); }
+var _chDefT=null;
+function chatOpenDefault(){
+  if(!cu) return; var role=cu.role||'';
+  if(role!=='Mechanic'&&role!=='Manager'&&role!=='Assistant Manager') return;
+  _chWorkshopEnsure(function(gid){
+    if(!gid) return; var tries=0; clearInterval(_chDefT);
+    _chDefT=setInterval(function(){
+      tries++;
+      if(_hkScr()!=='chats'||CH_CHANNEL){ clearInterval(_chDefT); return; }
+      var g=(CH_GROUPS||[]).filter(function(x){return x.id===gid;})[0];
+      if(g){ clearInterval(_chDefT); chatOpenGroup(gid); }
+      else if(tries>14){ clearInterval(_chDefT); }
+    },250);
+  });
 }
+function _chWorkshopEnsure(cb){
+  if(window._wsGid){ cb(window._wsGid); return; }
+  if(typeof SBC==='undefined'||!SBC){ cb(null); return; }
+  SBC.from('chat_groups').select('id').eq('name','Workshop').limit(1).then(function(r){
+    var row=r&&r.data&&r.data[0];
+    if(row){ window._wsGid=row.id; cb(row.id); return; }
+    var mem=_roster().filter(function(s){ var rl=s.role||''; return rl==='Mechanic'||rl==='Manager'||rl==='Assistant Manager'; }).map(function(s){return s.name;});
+    if(cu&&mem.indexOf(cu.name)<0) mem.push(cu.name);
+    if(!mem.length){ cb(null); return; }
+    SBC.from('chat_groups').insert({name:'Workshop',emoji:'\ud83d\udd27',members:mem,created_by:'Harvey Betts'}).select('id').then(function(r2){
+      var id=r2&&r2.data&&r2.data[0]&&r2.data[0].id; window._wsGid=id||null; cb(window._wsGid);
+    },function(){ cb(null); });
+  },function(){ cb(null); });
+}
+function chatGoBack(){ return false; }   // Back always leaves Chats \u2192 home
 function chatBack(){ if(typeof chatGoBack==='function'&&chatGoBack()) return; back(); }
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
 function _chAvatar(name,st){ return '<span class="ch-av" style="background:'+userColor({name:name})+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)">'+userEmoji(st||{name:name})+'</span>'; }
@@ -9272,7 +9377,36 @@ function _reEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 /* ---- read/unread state (per device, localStorage) ---- */
 function _chReads(){ try{ return JSON.parse(localStorage.getItem('hk_chat_reads')||'{}')||{}; }catch(e){ return {}; } }
 function _chSaveReads(r){ try{ localStorage.setItem('hk_chat_reads',JSON.stringify(r)); }catch(e){} }
-function chatMarkRead(channel){ if(!channel) return; var r=_chReads(); r[channel]=Date.now(); _chSaveReads(r); var _had=CH_UNREAD[channel]||0; CH_UNREAD[channel]=0; chatUpdateBadges(); if(_had>0){ var _cc=document.getElementById('ch-channels'); if(_cc&&_cc.getAttribute('data-ready')){ try{chatRenderList();}catch(e){} } } }
+var CH_READS={};
+function chatLoadReads(){
+  if(typeof SBC==='undefined'||!SBC||!CH_CHANNEL) return; var ch=CH_CHANNEL;
+  SBC.from('chat_reads').select('name,at').eq('channel',ch).then(function(r){
+    if(CH_CHANNEL!==ch) return; CH_READS={};
+    ((r&&r.data)||[]).forEach(function(x){ CH_READS[x.name]=x.at; });
+    chatUpdateSeen();
+  },function(){});
+}
+function chatUpdateSeen(){
+  var box=document.getElementById('ch-msgs'); if(!box||!cu) return;
+  var old=document.getElementById('ch-seen'); if(old&&old.parentNode) old.parentNode.removeChild(old);
+  var me=cu.name,last=null,i;
+  for(i=CH_MSGS.length-1;i>=0;i--){ if(CH_MSGS[i].author===me){ last=CH_MSGS[i]; break; } }
+  if(!last) return;
+  var t=Date.parse(last.created_at)||0, txt='';
+  if(CH_CHANNEL&&CH_CHANNEL.indexOf('dm:')===0){
+    var other=CH_OTHER&&CH_OTHER.name, at=other?CH_READS[other]:null;
+    txt=(at&&Date.parse(at)>=t)?'Seen':'Delivered';
+  } else {
+    var mem=(CH_GROUP&&CH_GROUP.members)||null,n=0,k;
+    if(mem){ for(k=0;k<mem.length;k++){ if(mem[k]===me) continue; var a=CH_READS[mem[k]]; if(a&&Date.parse(a)>=t) n++; } }
+    else { for(k in CH_READS){ if(k!==me&&Date.parse(CH_READS[k])>=t) n++; } }
+    txt=n?('Seen by '+n):'Delivered';
+  }
+  var d=document.createElement('div'); d.id='ch-seen'; d.className='ch-seen'; d.textContent=txt; box.appendChild(d);
+}
+function chatMarkRead(channel){ if(!channel) return; var r=_chReads(); r[channel]=Date.now(); _chSaveReads(r); var _had=CH_UNREAD[channel]||0; CH_UNREAD[channel]=0; chatUpdateBadges(); if(_had>0){ var _cc=document.getElementById('ch-channels'); if(_cc&&_cc.getAttribute('data-ready')){ try{chatRenderList();}catch(e){} } }
+  try{ if(typeof SBC!=='undefined'&&SBC&&cu&&cu.name){ SBC.from('chat_reads').upsert({channel:channel,name:cu.name,at:new Date().toISOString()},{onConflict:'channel,name'}).then(function(){},function(){}); } }catch(e){}
+}
 function chatUnreadTotal(){ var t=0,k; for(k in CH_UNREAD){ if(CH_UNREAD.hasOwnProperty(k)) t+=CH_UNREAD[k]||0; } return t; }
 function chatUpdateBadges(){
   var n=chatUnreadTotal(), b=document.getElementById('wchats-badge');
@@ -9445,6 +9579,8 @@ function chatFetch(){
     if(CH_CHANNEL!==ch) return;
     CH_MSGS=((r&&r.data)||[]).slice().reverse();
     chatRenderMsgs('ch-msgs',CH_MSGS,true); chatMarkRead(ch);
+    var _bx=document.getElementById('ch-msgs'); if(_bx){ _bx.scrollTop=_bx.scrollHeight; setTimeout(function(){ _bx.scrollTop=_bx.scrollHeight; },160); }
+    chatLoadReads();
   },function(){ var el=document.getElementById('ch-msgs'); if(el) el.innerHTML='<div class="ch-empty">Couldn\u2019t load messages \u2014 check the connection.</div>'; });
 }
 function chatRenderMsgs(elId,msgs,scroll){
@@ -9463,10 +9599,11 @@ function chatRenderMsgs(elId,msgs,scroll){
       html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
     var _mid=(m.id!=null)?(' data-mid="'+m.id+'"'):'';
-    var _own=(mine&&m.id!=null&&elId==='ch-msgs')?(' onclick="chatMsgActions('+m.id+')"'):'';
+    var _own='';
     var _ed=(m.edited?' <span class="ch-edited">(edited)</span>':'');
     if(m.image){ html+='<div class="ch-bub ch-bub-img"'+_mid+_own+'><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="event.stopPropagation();_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+_ed+'</div>':'')+'</div>'; }
     else { html+='<div class="ch-bub"'+_mid+_own+'>'+_chRenderBody(m.body)+_ed+'</div>'; }
+    if(mine&&m.id!=null&&elId==='ch-msgs'){ html+='<div class="ch-mini">'+(m.image?'':'<button onclick="chatEditMsg('+m.id+')" title="Edit">\u270e</button>')+'<button class="x" onclick="chatDeleteMsg('+m.id+')" title="Delete">\u2715</button></div>'; }
     lastDay=day; prevAuthor=m.author; prevT=t;
   });
   if(prevAuthor!==null) html+='</div></div>';
@@ -9665,7 +9802,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-W \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-X \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -9684,6 +9821,46 @@ function acctSetEmoji(v){ if(!cu) return; v=(v||'').trim().slice(0,4); if(v) USE
   if(typeof SBC!=='undefined'&&SBC){ SBC.from('user_prefs').upsert({name:cu.name,emoji:v,updated_at:new Date().toISOString()},{onConflict:'name'}).then(function(){},function(){}); }
   var av=document.getElementById('acct-av'); if(av) av.textContent=userEmoji(cu); var ue=document.getElementById('ue'); if(ue) ue.textContent=userEmoji(cu); }
 
+function _chAdmins(g){
+  var out=[], mem=(g&&g.members)||[];
+  if(g&&g.created_by) out.push(g.created_by);
+  var ros=_roster();
+  mem.forEach(function(n){ var s=ros.filter(function(x){return x.name===n;})[0]; if(s&&(s.role==='Manager'||s.role==='Assistant Manager')&&out.indexOf(n)<0) out.push(n); });
+  if(!out.length&&mem.length) out.push(mem[0]);
+  return out;
+}
+function _chIsAdmin(g){ return !!(cu&&g&&_chAdmins(g).indexOf(cu.name)>=0); }
+function _ciRenderDel(g){
+  var host=document.getElementById('ci-admin'); if(!host) return;
+  var el=document.getElementById('ci-del'); if(!el){ el=document.createElement('div'); el.id='ci-del'; host.appendChild(el); }
+  var admins=_chAdmins(g), votes=((g.del_votes)||[]).filter(function(v){return admins.indexOf(v)>=0;});
+  var mine=cu&&votes.indexOf(cu.name)>=0;
+  el.innerHTML='<div style="border-top:1px solid var(--b2);margin-top:14px;padding-top:12px">'
+    +'<div style="font-size:12px;color:var(--t2);margin-bottom:8px">Deleting this chat needs all '+admins.length+' admin'+(admins.length>1?'s':'')+' to approve \u00b7 '+votes.length+'/'+admins.length+' approved'+(votes.length?' \u2014 '+votes.map(function(v){return v.split(' ')[0];}).join(', '):'')+'</div>'
+    +'<button class="m-add" style="width:100%;background:rgba(255,90,82,.12);border:1px solid rgba(255,90,82,.4);color:#FF6B63" onclick="chatVoteDelete()">'+(mine?'Withdraw my delete approval':'\ud83d\uddd1 Approve deleting this chat')+'</button></div>';
+}
+function chatVoteDelete(){
+  var g=CH_GROUP; if(!g||!_chIsAdmin(g)||typeof SBC==='undefined'||!SBC) return;
+  var admins=_chAdmins(g), votes=((g.del_votes)||[]).slice(), me=cu.name, i=votes.indexOf(me);
+  if(i>=0) votes.splice(i,1); else votes.push(me);
+  votes=votes.filter(function(v){return admins.indexOf(v)>=0;});
+  var all=admins.length>0&&admins.every(function(a){return votes.indexOf(a)>=0;});
+  if(all){
+    if(!confirm('Delete \u201c'+g.name+'\u201d for everyone? All its messages go too.')) return;
+    SBC.from('messages').delete().eq('channel','group:'+g.id).then(function(){
+      SBC.from('chat_groups').delete().eq('id',g.id).then(function(r){
+        if(r&&r.error){ alert('Couldn\u2019t delete \u2014 run chat_admin.sql'); return; }
+        window._wsGid=(window._wsGid===g.id?null:window._wsGid);
+        CH_GROUP=null; CH_CHANNEL=null; chatShowList(); chatLoadList();
+      },function(){});
+    },function(){});
+    return;
+  }
+  SBC.from('chat_groups').update({del_votes:votes}).eq('id',g.id).then(function(r){
+    if(r&&r.error){ alert('Run chat_admin.sql first \u2014 delete approvals need it'); return; }
+    g.del_votes=votes; _ciRenderDel(g);
+  },function(){});
+}
 function chatGroupInfo(){
   var g=CH_GROUP; if(!g) return;
   var lv=document.getElementById('ch-list-view'),tv=document.getElementById('ch-thread-view'),gv=document.getElementById('ch-group-view'),iv=document.getElementById('ch-info-view');
@@ -9691,8 +9868,9 @@ function chatGroupInfo(){
   var av=document.getElementById('ci-av'); if(av){ av.textContent=g.emoji||'\ud83d\udc65'; if(g.color){ av.classList.remove('ch-grpav'); av.style.background=g.color; } else { av.classList.add('ch-grpav'); av.style.background=''; } }
   var nm=document.getElementById('ci-name'); if(nm) nm.textContent=g.name||'Group';
   var ct=document.getElementById('ci-count'); if(ct) ct.textContent=((g.members||[]).length)+' members';
-  var admin=(cu&&(cu.name===g.created_by||(!g.created_by&&(cu.role==='Manager'||cu.role==='Assistant Manager'))));
+  var admin=_chIsAdmin(g);
   var ad=document.getElementById('ci-admin'); if(ad) ad.style.display=admin?'':'none';
+  if(admin){ setTimeout(function(){ try{_ciRenderDel(g);}catch(e){} },0); }
   var vw=document.getElementById('ci-viewmem'); if(vw) vw.style.display=admin?'none':'';
   var mem=document.getElementById('ci-members');
   if(mem) mem.innerHTML=(g.members||[]).map(function(n){ var st=_staffByName(n); return '<div class="ci-mem">'+_chAvatar(n,st)+'<span class="ci-mn">'+tvEsc(n)+(n===g.created_by?' <span class="ci-admin-tag">admin</span>':'')+'</span></div>'; }).join('');
@@ -9708,7 +9886,7 @@ function chatGroupInfo(){
 function ciPickColor(c){ _CI_COLOR=c; var col=document.getElementById('ci-colors'); if(col){ Array.prototype.forEach.call(col.children,function(el){ el.classList.toggle('on',(el.getAttribute('data-c')||'').toLowerCase()===String(c).toLowerCase()); }); } }
 function chatSaveGroupInfo(){
   var g=CH_GROUP; if(!g||!cu||typeof SBC==='undefined'||!SBC) return;
-  if(cu.name!==g.created_by&&!(!g.created_by&&(cu.role==='Manager'||cu.role==='Assistant Manager'))) return;
+  if(!_chIsAdmin(g)) return;
   var ms=document.getElementById('ci-msg'); function say(t,c){ if(ms){ ms.textContent=t; ms.style.color=c||'#FF5A52'; } }
   var emo=(document.getElementById('ci-emoji').value||'').trim().slice(0,4);
   var nm=(document.getElementById('ci-rename').value||'').trim().slice(0,80);

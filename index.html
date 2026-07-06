@@ -1824,7 +1824,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-J · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-L · ZXing raw</div>
       </div>
     </div>
 
@@ -2351,6 +2351,12 @@
       <div id="ogate-otp" style="display:none;margin-top:12px">
         <input class="mgate-input" id="ogate-code" type="tel" inputmode="numeric" maxlength="6" placeholder="------" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')ownerConfirm()">
         <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerConfirm()">Confirm change</button></div>
+      </div>
+      <div style="border-top:1px solid var(--b2);margin-top:16px;padding-top:14px">
+        <div style="font-size:11px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Owner sign-in PIN</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:8px">Set a new PIN for the Harvey Betts account. This is the only place it can be changed \u2014 knowing the old PIN isn\u2019t enough.</div>
+        <input class="mgate-input" id="ogate-newpin" type="tel" inputmode="numeric" maxlength="4" placeholder="New 4-digit PIN" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')ownerSetPin()">
+        <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerSetPin()">Change owner PIN</button></div>
       </div>
     </div>
     <div class="mgate-msg" id="ogate-msg" style="color:var(--t2)"></div>
@@ -6713,6 +6719,17 @@ function ownerConfirm(){
     }).catch(function(){ _ownerMsg('Connection error',false); });
 }
 
+function ownerSetPin(){
+  var key=_ownerKey(); if(!key){ _ownerMsg('Enter your owner key first',false); return; }
+  var el=document.getElementById('ogate-newpin'), nw=(el&&el.value||'').trim();
+  if(!/^\d{4}$/.test(nw)){ _ownerMsg('New PIN must be 4 digits',false); return; }
+  _ownerMsg('Changing owner PIN\u2026');
+  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:key,op:'owner-set-pin',newPin:nw})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.success){ if(el) el.value=''; if(cu&&cu.name===MASTER_OWNER){ cu.pin=nw; try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} } _ownerMsg('\u2713 Owner PIN changed \u2014 use it next time you sign in. Anyone with the old PIN is now locked out.',true); }
+      else { _ownerMsg((res&&res.message)||'Could not change PIN',false); }
+    }).catch(function(){ _ownerMsg('Connection error',false); });
+}
 function openMasterGate(){
   document.getElementById('mgate').classList.add('show');
   document.getElementById('mgate-input').value='';
@@ -6804,7 +6821,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-J \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-L \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7141,7 +7158,7 @@ function msRender(){
   var el=document.getElementById('m-staff-list');
   if(!mStaffDraft.length){ el.innerHTML='<div class="m-empty">No staff yet — tap “+ Add”.</div>'; return; }
   el.innerHTML=mStaffDraft.map(function(x,i){
-    var lockPin=(x.name==='Harvey Betts'&&(!cu||cu.name!=='Harvey Betts'));
+    var lockPin=(x.name===MASTER_OWNER);
     return '<div class="prow staff-edit-row" data-idx="'+i+'">'
       +'<button class="staff-del-btn" onclick="msDeleteRow('+i+')" title="Remove">×</button>'
       +'<div class="staff-edit-meta">'
@@ -7153,7 +7170,7 @@ function msRender(){
       +    msRoleOpts(x.role)
       +  '</select></div>'
       +'</div>'
-      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN"'+(lockPin?' disabled style="opacity:.4" title="Only the Owner can change Harvey\u2019s PIN"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN"'+(lockPin?' readonly title="Harvey\u2019s PIN is changed from Owner controls only"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
       +'<div class="staff-sites"><span class="staff-sites-label">Site access'+(_isMgr(x.role)?' · managers get all':'')+'</span>'+ mMasterSites.map(function(s){ var on=_isMgr(x.role)||((x.sites||[]).indexOf(s.id)>=0); return '<button type="button" class="ssite'+(on?' on':'')+(_isMgr(x.role)?' lock':'')+'" style="--ac:'+s.accent+'" onclick="msToggleSite('+i+',\''+s.id+'\')">'+s.label+'</button>'; }).join('')+'</div>'
       +'</div>';
   }).join('');
@@ -9369,6 +9386,7 @@ function acctChangePin(){
   var msgEl=document.getElementById('acct-pin-msg'); function say(t,c){ if(msgEl){ msgEl.textContent=t; msgEl.style.color=c||'#FF5A52'; } }
   var cur=(document.getElementById('acct-pin-cur').value||'').trim(), nw=(document.getElementById('acct-pin-new').value||'').trim();
   if(!cu){ say('Not signed in'); return; }
+  if(cu.name===MASTER_OWNER){ say('The owner PIN is changed from Master Access \u2192 Owner controls (with your Owner key), not here.'); return; }
   if(!/^\d{4}$/.test(cur)||!/^\d{4}$/.test(nw)){ say('Both PINs need to be 4 digits'); return; }
   if(cur!==(cu.pin||'')){ say('Current PIN is wrong'); return; }
   if(cur===nw){ say('New PIN is the same as the current one'); return; }
@@ -9384,7 +9402,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-J \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-L \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

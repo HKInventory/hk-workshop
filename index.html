@@ -318,8 +318,17 @@
     .lcard.l{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.38)}
 
     /* ── Scan ── */
-    .scanf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 20px}
-    #qrvc{width:100%;max-width:270px;aspect-ratio:1;border-radius:24px;overflow:hidden;background:var(--card);border:1.5px solid var(--b2);box-shadow:0 0 50px rgba(0,207,255,.08);position:relative}
+    .scanf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 20px}
+    .scan-title{font-size:24px;font-weight:800;letter-spacing:.2px}
+    #qrvc{width:100%;max-width:340px;aspect-ratio:1;border-radius:28px;overflow:hidden;background:#000;border:5px solid #fff;box-shadow:0 10px 44px rgba(0,0,0,.55);position:relative}
+    #qrv{width:100%;height:100%;object-fit:cover}
+    .scan-btns{display:flex;gap:56px;align-items:center;justify-content:center;margin-top:6px}
+    .scan-rnd{width:64px;height:64px;border-radius:50%;border:none;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+    .scan-rnd:active{transform:scale(.92)}
+    .scan-rnd.dark{background:#17191D;color:#fff;border:1px solid var(--b2)}
+    .scan-rnd.lite{background:#E8EAED;color:#111}
+    .scan-rnd.on{background:#FFD600;color:#111}
+    .scan-tip{max-width:340px;font-size:12px;color:var(--t2);background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:10px 13px;line-height:1.45;text-align:left}
     /* qr-scanner yellow corner highlights */
     .scan-region-highlight-svg{stroke:#FFD600!important;stroke-width:5!important;filter:drop-shadow(0 0 8px rgba(255,214,0,0.6))}
     .code-outline-highlight{stroke:#00CFFF!important;stroke-width:3!important}
@@ -1609,6 +1618,16 @@
     .ch-grp:not(.me) .ch-av{display:flex !important}
     .ch-bub{background:#2A2F37 !important;border-radius:19px !important}
     .ch-grp.me .ch-bub{background:#1A73E8 !important;color:#fff !important}
+    .ch-edited{font-size:10.5px;opacity:.6;font-style:italic}
+    .ch-actbar{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}
+    .ch-actbar button{background:var(--card);border:1px solid var(--b2);border-radius:999px;color:var(--t1);font-size:12px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:inherit}
+    .ch-actbar button.del{color:#FF6B63;border-color:rgba(255,107,99,.4)}
+    .ch-thread{position:relative}
+    .ch-mention{position:absolute;left:10px;right:10px;bottom:76px;z-index:5;background:#1F2228;border:1px solid var(--b2);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.5);overflow:hidden;max-height:44vh;overflow-y:auto}
+    .ch-ment-row{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer}
+    .ch-ment-row:hover,.ch-ment-row:active{background:#2A2E33}
+    .ch-ment-row .ch-av{width:32px;height:32px;font-size:15px;flex:none}
+    .ch-ment-row span{font-weight:600;font-size:14.5px}
     .ch-bub.ch-bub-img{background:rgba(255,255,255,.05) !important}
     .ch-img{border-radius:15px;border:1px solid var(--b1)}
     .ch-ment{color:#8AB4F8}
@@ -1685,7 +1704,7 @@
     .ck-row2.un .ck-nm2{font-weight:800}
     .ck-at{font-size:11px;font-weight:800;color:#4C9DFF;background:rgba(26,115,232,.20);border-radius:6px;padding:1px 6px}
     .ck-time{font-size:12px;color:var(--t2);flex:none}
-    .ck-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+    .ck-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#1A73E8;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
     .ck-sub2{font-size:13.5px;color:var(--t2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.4}
     .ck-sub2.unread{color:var(--t1);font-weight:600}
     .ck-who{color:var(--t2);font-weight:600}
@@ -1870,17 +1889,22 @@
     <div class="scr" id="s-scan">
       <div class="phdr"><button class="back" onclick="stopScan();back()"> Back</button></div>
       <div class="scanf">
+        <div class="scan-title">Scan a part</div>
         <div id="qrvc"><video id="qrv" playsinline autoplay muted></video></div>
-        <div id="scan-aids" style="display:none;justify-content:center;gap:8px;margin:10px 0 2px">
-          <button class="btns" id="sc-torch" style="padding:9px 16px;font-size:13px" onclick="scanTorch()">🔦 Torch</button>
-          <button class="btns" id="sc-z1" style="padding:9px 16px;font-size:13px" onclick="scanZoom(1)">1×</button>
-          <button class="btns" id="sc-z15" style="padding:9px 16px;font-size:13px" onclick="scanZoom(1.5)">1.5×</button>
-          <button class="btns" id="sc-z2" style="padding:9px 16px;font-size:13px" onclick="scanZoom(2)">2×</button>
+        <p class="shint" id="sst">Starting camera…</p>
+        <div id="scan-tip" class="scan-tip" style="display:none">iPhone asking for the camera every time? Open this site in <b>Safari</b> once → tap <b>aA</b> → <b>Website Settings</b> → <b>Camera: Allow</b> — the Home-Screen app then remembers it.</div>
+        <div class="scan-btns">
+          <button class="scan-rnd dark" id="sc-kb" onclick="scanManual()" title="Type the SKU">⌨️</button>
+          <button class="scan-rnd lite" id="sc-torch" onclick="scanTorch()" title="Torch">🔦</button>
         </div>
-        <p class="shint" id="sst">Starting camera...</p>
+        <div id="scan-aids" style="display:none;justify-content:center;gap:8px">
+          <button class="btns" id="sc-z1" style="padding:8px 14px;font-size:12.5px" onclick="scanZoom(1)">1×</button>
+          <button class="btns" id="sc-z15" style="padding:8px 14px;font-size:12.5px" onclick="scanZoom(1.5)">1.5×</button>
+          <button class="btns" id="sc-z2" style="padding:8px 14px;font-size:12.5px" onclick="scanZoom(2)">2×</button>
+        </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
-        <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-T · ZXing raw</div>
+        <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-V · ZXing raw</div>
       </div>
     </div>
 
@@ -2340,7 +2364,8 @@
           <div class="ch-thread">
             <div class="pgtitle" id="ch-title" style="margin-bottom:8px">Chat</div>
             <div class="ch-msgs" id="ch-msgs"></div>
-            <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">+</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
+            <div id="ch-mention" class="ch-mention" style="display:none"></div>
+            <div class="ch-input"><input type="file" id="ch-file" accept="image/*" style="display:none" onchange="chatUploadImage(this)"><button class="ch-attach" onclick="chatPickImage()">+</button><textarea id="ch-text" placeholder="Message…" onkeydown="chatKey(event)" oninput="chatMentionCheck()"></textarea><button class="ch-send" onclick="chatSend()">➤</button></div>
           </div>
         </div>
         <div id="ch-group-view" style="display:none">
@@ -2470,7 +2495,7 @@
   <div class="m-pane" id="m-pane-ramp">
     <div class="m-list">
       <div class="mc" style="text-align:left"><div class="mct">Ramp access events</div>
-        <div class="m-tool-desc">When level 6 needs the ramp (sports events, shows), add it here. Everyone gets a banner in the app, the TV runs a countdown, and phones get alerts 4h / 1h / 30m before and at clear time.</div>
+        <div class="m-tool-desc">When level 6 needs the ramp (sports events, shows), add it here. Everyone gets a banner in the app, the TV runs a countdown, and phones get alerts 4h / 30m before and at clear time.</div>
         <div class="m-fld" style="margin-top:10px"><label>Event name</label><input id="mr-name" placeholder="e.g. Netball finals"></div>
         <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div><label>Date</label><input id="mr-date" type="date"></div><div><label>Ramp clear from</label><input id="mr-start" type="time"></div><div><label>Until</label><input id="mr-end" type="time"></div></div>
         <div class="m-fld" style="margin-top:8px"><label>Closed until — optional, for multi-day closures (ends this date at the “Until” time)</label><input id="mr-date2" type="date"></div>
@@ -3231,7 +3256,13 @@ function startRealtime(){
     SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderSoon(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
     SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
-    SBC.channel('msg-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},function(p){ if(typeof _rtMsgIn==='function'){try{_rtMsgIn((p&&p.new)||null);}catch(e){}} }).subscribe();
+    SBC.channel('msg-rt').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
+      try{
+        if(p&&p.eventType==='INSERT'&&p.new&&typeof _rtMsgIn==='function'){ _rtMsgIn(p.new); }
+        else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
+        else if(p&&p.eventType==='DELETE'&&p.old&&p.old.id!=null){ var rm=false; for(var i=(CH_MSGS||[]).length-1;i>=0;i--){ if(CH_MSGS[i].id===p.old.id){ CH_MSGS.splice(i,1); rm=true; } } if(rm) chatRenderMsgs('ch-msgs',CH_MSGS,false); }
+      }catch(e){}
+    }).subscribe();
     SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} }).subscribe();
     SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} }).subscribe();
   }catch(e){}
@@ -4509,11 +4540,10 @@ function _initScanner(){
     try{
       navigator.permissions.query({name:'camera'}).then(function(res){
         if(res.state==='granted'){
-          document.getElementById('sst').innerText='Opening camera...';
-        } else if(res.state==='denied'){
-          document.getElementById('sst').innerText='Camera blocked — Settings → Safari → Camera → Allow';
-          document.getElementById('sbn').style.display='block';
-          document.getElementById('ssp').style.display='none';
+          document.getElementById('sst').innerText='Opening camera...'; window._camWasPrompt=false;
+        } else if(res.state==='prompt'){ window._camWasPrompt=true; } else if(res.state==='denied'){
+          document.getElementById('sst').innerText='Camera is off for this app';
+          var tp=document.getElementById('scan-tip'); if(tp) tp.style.display='';
           return;
         }
       }).catch(function(){});
@@ -4527,15 +4557,17 @@ function _initScanner(){
       maxScansPerSecond:5
     });
     qrs.start().then(function(){
-      document.getElementById('sst').innerText='Point camera at QR code';
+      document.getElementById('sst').innerText='Point at a part\u2019s QR label';
+      try{
+        var tp=document.getElementById('scan-tip');
+        if(tp&&window._camWasPrompt&&localStorage.getItem('hk_cam_ok')==='1') tp.style.display='';   // it asked AGAIN despite an earlier grant
+        localStorage.setItem('hk_cam_ok','1');
+      }catch(e){}
       _startInvertedScan(v);                       // 3D tags are light-on-dark; scan that polarity too
       _scanAidsShow(v);                            // torch + zoom aids (shown only where supported)
     }).catch(function(err){
-      document.getElementById('sst').innerText=(window.navigator.standalone
-        ? 'Camera denied — Settings → scroll to this app (Workshop) → Camera → Allow, then reopen'
-        : 'Camera denied — Settings → Safari → Camera → Allow (and aA menu → Website Settings → Camera → Allow)');
-      document.getElementById('sbn').style.display='block';
-      document.getElementById('ssp').style.display='none';
+      document.getElementById('sst').innerText='Waiting for the camera\u2026';
+      if(_hkScr()==='scan'){ qrs=null; clearTimeout(window._scanRetryT); window._scanRetryT=setTimeout(function(){ if(_hkScr()==='scan'&&!qrs) startScan(); },2500); }
     });
   } catch(e){
     document.getElementById('sst').innerText='Error: '+e.message;
@@ -4544,11 +4576,15 @@ function _initScanner(){
   }
 }
 
+function scanManual(){
+  var code=prompt('Type the SKU or part number:');
+  if(code&&code.trim()) _handleScanPayload(code.trim());
+}
 function stopScan(){
   _stopInvertedScan();
   _torchOn=false;
   var _sa=document.getElementById('scan-aids'); if(_sa) _sa.style.display='none';
-  var _tb=document.getElementById('sc-torch'); if(_tb) _tb.style.background='';
+  var _tb=document.getElementById('sc-torch'); if(_tb) _tb.classList.remove('on');
   if(qrs){
     try{qrs.stop();qrs.destroy();}catch(e){}
     qrs=null;
@@ -4600,8 +4636,9 @@ function _tkShowImage(p){
   var url=(typeof _partImgUrl==='function')?_partImgUrl(p.sku):'';
   if(!url){ if(p&&p.is_rimo===false){ wrap.style.display=''; hint.textContent='\ud83d\udce6 '+(p.brand?tvEsc(p.brand)+' part':'Non-RIMO part')+' \u2014 no image on file'; } return; }
   wrap.style.display=''; hint.textContent='Loading photo\u2026';
+  img.src=url; img.style.opacity='.25'; img.style.display='';    // show immediately; sharpens when loaded (sw cache makes repeats instant)
   var probe=new Image();
-  probe.onload=function(){ img.src=url; img.style.display=''; hint.textContent=''; };
+  probe.onload=function(){ img.src=url; img.style.opacity=''; img.style.display=''; hint.textContent=''; };
   probe.onerror=function(){ img.style.display='none'; hint.textContent='\u26a0\ufe0f No RIMO photo for SKU '+tvEsc(p.sku)+' \u2014 add one in Edit Part \u2192 Photo URL'; };
   probe.src=url;
 }
@@ -6877,7 +6914,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-T \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-V \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9366,15 +9403,69 @@ function chatRenderMsgs(elId,msgs,scroll){
       html+=_chAvatar(m.author,st);
       html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
     }
-    if(m.image){ html+='<div class="ch-bub ch-bub-img"><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+'</div>':'')+'</div>'; }
-    else { html+='<div class="ch-bub">'+_chRenderBody(m.body)+'</div>'; }
+    var _mid=(m.id!=null)?(' data-mid="'+m.id+'"'):'';
+    var _own=(mine&&m.id!=null&&elId==='ch-msgs')?(' onclick="chatMsgActions('+m.id+')"'):'';
+    var _ed=(m.edited?' <span class="ch-edited">(edited)</span>':'');
+    if(m.image){ html+='<div class="ch-bub ch-bub-img"'+_mid+_own+'><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="event.stopPropagation();_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+_ed+'</div>':'')+'</div>'; }
+    else { html+='<div class="ch-bub"'+_mid+_own+'>'+_chRenderBody(m.body)+_ed+'</div>'; }
     lastDay=day; prevAuthor=m.author; prevT=t;
   });
   if(prevAuthor!==null) html+='</div></div>';
   el.innerHTML=html;
   if(scroll){ setTimeout(function(){ try{el.scrollTop=el.scrollHeight;}catch(e){} var p=el; while(p&&(!p.className||p.className.indexOf('sb')<0)) p=p.parentElement; if(p){try{p.scrollTop=p.scrollHeight;}catch(e){}} },40); }
 }
-function chatKey(e){ if(e&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); chatSend(); } }
+var CH_EDIT_ID=null,CH_MENT=[];
+function chatMentionCheck(){
+  var ta=document.getElementById('ch-text'), box=document.getElementById('ch-mention'); if(!ta||!box) return;
+  var pos=(ta.selectionStart!=null)?ta.selectionStart:ta.value.length;
+  var m=ta.value.slice(0,pos).match(/@([A-Za-z]{0,20})$/);
+  if(!m){ box.style.display='none'; return; }
+  var q=m[1].toLowerCase(), me=(cu&&cu.name)||'';
+  var list=_roster().filter(function(s){ if(!s||!s.name||s.name===me) return false; var n=s.name.toLowerCase(); return !q||n.indexOf(q)>=0; }).slice(0,6);
+  if(!list.length){ box.style.display='none'; return; }
+  CH_MENT=list;
+  box.innerHTML=list.map(function(s,i){ return '<div class="ch-ment-row" onclick="chatMentionPick('+i+')">'+_chAvatar(s.name,s)+'<span>'+tvEsc(s.name)+'</span></div>'; }).join('');
+  box.style.display='';
+}
+function chatMentionPick(i){
+  var s=CH_MENT[i], ta=document.getElementById('ch-text'), box=document.getElementById('ch-mention'); if(!s||!ta) return;
+  var pos=(ta.selectionStart!=null)?ta.selectionStart:ta.value.length;
+  var before=ta.value.slice(0,pos).replace(/@([A-Za-z]{0,20})$/,'@'+s.name+' ');
+  ta.value=before+ta.value.slice(pos);
+  if(box) box.style.display='none';
+  try{ ta.focus(); ta.selectionStart=ta.selectionEnd=before.length; }catch(e){}
+}
+function chatMsgActions(id){
+  var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m||!cu||m.author!==cu.name) return;
+  var old=document.getElementById('ch-actbar'); if(old){ old.parentNode.removeChild(old); if(old.getAttribute('data-mid')==String(id)) return; }
+  var bub=document.querySelector('#ch-msgs .ch-bub[data-mid=\"'+id+'\"]'); if(!bub) return;
+  var bar=document.createElement('div'); bar.id='ch-actbar'; bar.setAttribute('data-mid',id); bar.className='ch-actbar';
+  bar.innerHTML=(m.image?'':'<button onclick=\"event.stopPropagation();chatEditMsg('+id+')\">\u270e Edit</button>')+'<button class=\"del\" onclick=\"event.stopPropagation();chatDeleteMsg('+id+')\">\ud83d\uddd1 Delete</button>';
+  bub.parentNode.insertBefore(bar,bub.nextSibling);
+}
+function chatEditMsg(id){
+  var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m) return;
+  CH_EDIT_ID=id; var ta=document.getElementById('ch-text'); if(ta){ ta.value=m.body||''; ta.focus(); }
+  var sd=document.querySelector('#ch-thread-view .ch-send'); if(sd) sd.textContent='\u2713';
+  var bar=document.getElementById('ch-actbar'); if(bar) bar.parentNode.removeChild(bar);
+}
+function chatDeleteMsg(id){
+  if(!confirm('Delete this message?')) return;
+  var bar=document.getElementById('ch-actbar'); if(bar) bar.parentNode.removeChild(bar);
+  SBC.from('messages').delete().eq('id',id).then(function(r){
+    if(r&&r.error){ alert('Couldn\u2019t delete \u2014 run messages_edit.sql'); return; }
+    for(var i=CH_MSGS.length-1;i>=0;i--){ if(CH_MSGS[i].id===id) CH_MSGS.splice(i,1); }
+    chatRenderMsgs('ch-msgs',CH_MSGS,false); chatLoadList();
+  },function(){});
+}
+function chatKey(e){
+  if(e&&e.key==='Enter'&&!e.shiftKey){
+    var box=document.getElementById('ch-mention');
+    if(box&&box.style.display!=='none'&&CH_MENT.length){ e.preventDefault(); chatMentionPick(0); return; }
+    e.preventDefault(); chatSend();
+  }
+  if(e&&e.key==='Escape'){ var b2=document.getElementById('ch-mention'); if(b2) b2.style.display='none'; }
+}
 function _chSbMode(on){ var sb=document.querySelector('#s-chats .sb'); if(sb) sb.classList[on?'add':'remove']('thread-mode'); }
 function _chPush(ch,other,body){
   if(!cu) return; var me=cu.name, isGrp=(ch.indexOf('group:')===0), rec={};
@@ -9417,6 +9508,17 @@ function chatUploadImage(inp){
 function chatSend(){
   var ta=document.getElementById('ch-text'),txt=(ta&&ta.value||'').trim();
   if(!txt||!CH_CHANNEL||!cu||typeof SBC==='undefined'||!SBC) return;
+  var _mb=document.getElementById('ch-mention'); if(_mb) _mb.style.display='none';
+  if(CH_EDIT_ID!=null){
+    var eid=CH_EDIT_ID; CH_EDIT_ID=null; ta.value='';
+    var sd=document.querySelector('#ch-thread-view .ch-send'); if(sd) sd.textContent='\u27a4';
+    SBC.from('messages').update({body:txt.slice(0,2000),edited:true}).eq('id',eid).then(function(r){
+      if(r&&r.error){ alert('Couldn\u2019t save the edit \u2014 run messages_edit.sql'); return; }
+      for(var i=0;i<CH_MSGS.length;i++){ if(CH_MSGS[i].id===eid){ CH_MSGS[i].body=txt.slice(0,2000); CH_MSGS[i].edited=true; } }
+      chatRenderMsgs('ch-msgs',CH_MSGS,false); chatLoadList();
+    },function(){});
+    return;
+  }
   ta.value='';
   var ch=CH_CHANNEL,other=CH_OTHER,me=cu.name;
   SBC.from('messages').insert({channel:ch,site:currentSite||'sydney',author:me,body:txt.slice(0,2000)}).then(function(r){
@@ -9504,7 +9606,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-T \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-V \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

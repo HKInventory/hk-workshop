@@ -1373,11 +1373,12 @@
     .tv-lbhdr .tv-ct3>span{font-size:1.3vmin;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
     .tv-lbrow .tv-ct3>b{font-size:2.7vmin;font-weight:800;color:var(--dim)}
     .tv-lbrow .tv-ct3>b.hi{color:var(--tvac)}
-    .tv-ct4{flex:0 0 auto;display:flex;gap:1vmin}
-    .tv-ct4>span,.tv-ct4>b{display:block;width:5.6vmin;text-align:center;font-variant-numeric:tabular-nums}
-    .tv-lbhdr .tv-ct4>span{font-size:1.15vmin;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
-    .tv-lbrow .tv-ct4>b{font-size:2.5vmin;font-weight:800;color:var(--dim)}
-    .tv-lbrow .tv-ct4>b.hi{color:var(--tvac)}
+    .tv-ct4{flex:0 0 auto;display:flex;gap:.6vmin;align-items:baseline}
+    .tv-ct4>span,.tv-ct4>b{flex:none;display:block;width:6.2vmin;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible}
+    .tv-ct4>span:last-child,.tv-ct4>b:last-child{width:8.4vmin}
+    .tv-lbhdr .tv-ct4>span{font-size:1.1vmin;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--mut)}
+    .tv-lbrow .tv-ct4>b{font-size:2.1vmin;font-weight:800;color:var(--dim)}
+    .tv-lbrow .tv-ct4>b.hi{font-size:2.7vmin;color:var(--tvac)}
     .tv-ct1{flex:0 0 auto}
     .tv-ct1>b{display:block;min-width:8vmin;text-align:right;font-size:3.1vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--tvac)}
     /* low stock */
@@ -1879,7 +1880,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-S · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-T · ZXing raw</div>
       </div>
     </div>
 
@@ -6876,7 +6877,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-S \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-T \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9503,7 +9504,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-S \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-T \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

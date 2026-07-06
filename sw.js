@@ -28,4 +28,17 @@ self.addEventListener('notificationclick', function(e){
   }));
 });
 
-self.addEventListener('fetch', function(e){ /* network passthrough — no caching by design */ });
+/* Images: cache-first with background refresh — product photos load instantly after the
+   first view instead of re-downloading from RIMO/storage every scan. Everything else stays
+   network-only so app updates land the moment GitHub Pages serves them. */
+var IMG_CACHE='hk-img-v1';
+self.addEventListener('fetch', function(e){
+  var req=e.request;
+  if(req.method!=='GET'||req.destination!=='image') return;   // passthrough for everything else
+  e.respondWith(caches.open(IMG_CACHE).then(function(c){
+    return c.match(req).then(function(hit){
+      var net=fetch(req).then(function(res){ if(res&&res.ok){ try{c.put(req,res.clone());}catch(err){} } return res; }).catch(function(){ return hit; });
+      return hit||net;
+    });
+  }));
+});

@@ -413,7 +413,7 @@
     @keyframes rampPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
     .notif-cta{display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(0,207,255,0.08);border-bottom:1px solid rgba(0,207,255,0.2);color:var(--t1);font-size:12.5px;font-weight:600;padding:8px 14px}
     .notif-cta button{background:var(--ac,#00CFFF);color:#04222b;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:6px 14px}
-    .tv-ramp{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:22px;background:linear-gradient(90deg,#B45309,#F59E0B);color:#fff;font-weight:900;padding:14px 20px;font-size:26px;letter-spacing:.4px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+    .tv-ramp{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:22px;background:linear-gradient(90deg,#B91C1C,#DC2626);color:#fff;font-weight:900;padding:14px 20px;font-size:26px;letter-spacing:.4px;box-shadow:0 6px 28px rgba(220,38,38,.5)}
     .tv-ramp .tvr-timer{font-variant-numeric:tabular-nums;background:rgba(0,0,0,.25);border-radius:12px;padding:4px 14px}
     #ki-karts-sub{margin-top:8px}
     .ki-back{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--kacc);font-size:14px;font-weight:700;cursor:pointer;padding:6px 0 12px;font-family:inherit}
@@ -1208,8 +1208,9 @@
     .bcnlt{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--red);letter-spacing:.1em}
     .bcnlt .d{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 7px 2px rgba(255,59,48,.7);animation:bcnpulse 2.6s ease-in-out infinite}
   
-    /* Scan QR — distinct emerald so it never blends with Intelligence/Finance */
-    .tile.tc{background:linear-gradient(150deg,#10B981,#059669 55%,#047857)!important;border:1.5px solid rgba(52,211,153,0.92)!important;box-shadow:0 0 0 1px rgba(16,185,129,0.35),0 8px 26px rgba(16,185,129,0.32)!important}
+    /* Scan QR — distinct bright cyan so it stands out from the green/teal tiles */
+    .tile.tc{background:linear-gradient(150deg,#22D3EE,#06B6D4 55%,#0E7490)!important;border:1.5px solid rgba(103,232,249,0.95)!important;box-shadow:0 0 0 1px rgba(34,211,238,0.4),0 8px 28px rgba(34,211,238,0.42)!important}
+    .tile.tc .ti{filter:drop-shadow(0 0 9px rgba(103,232,249,.75))}
     .tile.tc .ti{filter:drop-shadow(0 0 9px rgba(52,211,153,.75))}
     .tile.tc .tl{font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.4)}
     /* TV Display — distinct violet vs Kart Info/Sessions */
@@ -1372,6 +1373,11 @@
     .tv-lbhdr .tv-ct3>span{font-size:1.3vmin;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
     .tv-lbrow .tv-ct3>b{font-size:2.7vmin;font-weight:800;color:var(--dim)}
     .tv-lbrow .tv-ct3>b.hi{color:var(--tvac)}
+    .tv-ct4{flex:0 0 auto;display:flex;gap:1vmin}
+    .tv-ct4>span,.tv-ct4>b{display:block;width:5.6vmin;text-align:center;font-variant-numeric:tabular-nums}
+    .tv-lbhdr .tv-ct4>span{font-size:1.15vmin;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+    .tv-lbrow .tv-ct4>b{font-size:2.5vmin;font-weight:800;color:var(--dim)}
+    .tv-lbrow .tv-ct4>b.hi{color:var(--tvac)}
     .tv-ct1{flex:0 0 auto}
     .tv-ct1>b{display:block;min-width:8vmin;text-align:right;font-size:3.1vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--tvac)}
     /* low stock */
@@ -1616,9 +1622,9 @@
     .acct-slider{width:100%;accent-color:#1A73E8;margin-top:14px}
     .acct-slider-labels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--t2);font-weight:700;margin-top:4px}
     .ch-attach{font-size:22px;font-weight:600;color:#D5D9DE;line-height:1}
-    @media(max-width:899px){ .ch-grp.me .ch-hd b{display:none} }
+    .ch-grp.me .ch-hd b{display:none}
     @media(min-width:900px){
-      #s-chats .sb{display:grid;grid-template-columns:minmax(320px,400px) minmax(0,1fr);padding:0;overflow:hidden}
+      #s-chats .sb{display:grid;grid-template-columns:minmax(340px,410px) minmax(0,1fr);padding:0 max(24px,calc((100% - 1680px)/2)) !important;overflow:hidden}
       #s-chats .sb.thread-mode{padding:0}
       #ch-list-view{grid-column:1;grid-row:1;height:100%;overflow-y:auto;padding:18px 16px calc(max(env(safe-area-inset-bottom),0px) + 24px);border-right:1px solid #26292E}
       #ch-thread-view,#ch-group-view,#ch-info-view{grid-column:2;grid-row:1;height:100%;overflow-y:auto;padding:14px 18px}
@@ -1628,20 +1634,11 @@
       #ch-thread-view .ch-msgs{padding:8px 22px 14px}
       #ch-thread-view .ch-input{margin:0 16px;border-top:1px solid #2A2E33;background:transparent;padding:10px 0 16px;gap:10px}
       .ch-input textarea{background:#282B30}
-      /* flat, left-aligned messages — like Google Chat desktop */
-      .ch-grp{align-items:flex-start;gap:11px;margin-top:18px}
-      .ch-grp.me{flex-direction:row}
-      .ch-grp.me .ch-av{display:flex}
-      .ch-grp .ch-av{width:34px;height:34px;font-size:16px;margin-bottom:0}
-      .ch-col{max-width:100%;flex:1;min-width:0}
-      .ch-grp.me .ch-col{align-items:flex-start}
-      .ch-hd{margin:0 0 2px;font-size:13.5px;color:#E8EAED;font-weight:700}
-      .ch-grp.me .ch-hd{text-align:left}
-      .ch-hd b{color:#E8EAED}
-      .ch-hd .ch-tm{font-size:11.5px;color:#9AA0A6;margin-left:8px}
-      .ch-bub{background:none !important;border-radius:0;padding:0 0 2px;color:#E8EAED !important;max-width:100%}
-      .ch-grp .ch-bub+.ch-bub{margin-top:7px}
-      .ch-bub.ch-bub-img{padding:4px 0 0 !important}
+      /* desktop keeps the phone bubbles: you right (blue), others left (grey) */
+      .ch-grp{gap:9px;margin-top:14px}
+      .ch-grp .ch-av{width:32px;height:32px;font-size:15px}
+      .ch-col{max-width:66%}
+      .ch-bub{font-size:15px}
       /* list pane */
       .ck-hdrow .ck-hd{font-size:20px}
       .ck-row2{padding:10px 12px;border-radius:12px;margin:1px 0}
@@ -1652,6 +1649,11 @@
       .ck-sub2{-webkit-line-clamp:1}
       .gc-search input{background:#282B30}
     }
+    .sb,#ch-list-view,#ch-thread-view,#ch-thread-view .ch-msgs,#ch-group-view,#ch-info-view{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.10) transparent}
+    .sb::-webkit-scrollbar,#ch-list-view::-webkit-scrollbar,#ch-thread-view::-webkit-scrollbar,#ch-thread-view .ch-msgs::-webkit-scrollbar,#ch-group-view::-webkit-scrollbar,#ch-info-view::-webkit-scrollbar{width:7px;height:7px}
+    .sb::-webkit-scrollbar-track,#ch-list-view::-webkit-scrollbar-track,#ch-thread-view::-webkit-scrollbar-track,#ch-thread-view .ch-msgs::-webkit-scrollbar-track,#ch-group-view::-webkit-scrollbar-track,#ch-info-view::-webkit-scrollbar-track{background:transparent}
+    .sb::-webkit-scrollbar-thumb,#ch-list-view::-webkit-scrollbar-thumb,#ch-thread-view::-webkit-scrollbar-thumb,#ch-thread-view .ch-msgs::-webkit-scrollbar-thumb,#ch-group-view::-webkit-scrollbar-thumb,#ch-info-view::-webkit-scrollbar-thumb{background:rgba(255,255,255,.09);border-radius:10px}
+    .sb:hover::-webkit-scrollbar-thumb,#ch-list-view:hover::-webkit-scrollbar-thumb,#ch-thread-view .ch-msgs:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16)}
     .ch-input{position:sticky;bottom:0;display:flex;gap:9px;align-items:flex-end;padding:10px 0 calc(max(env(safe-area-inset-bottom),0px) + 6px);background:var(--bg)}
     .ch-input textarea{flex:1;min-height:46px;max-height:120px;resize:none;background:var(--card);border:1.5px solid var(--b2);border-radius:23px;color:var(--t1);padding:12px 16px;font-size:14.5px;font-family:inherit;box-sizing:border-box}
     .ch-input textarea:focus{outline:none;border-color:#1A73E8}
@@ -1865,7 +1867,7 @@
         <p class="shint" id="sst">Starting camera...</p>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-O · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.55;margin-top:8px">build 05Jul-R · ZXing raw</div>
       </div>
     </div>
 
@@ -6862,7 +6864,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-O \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-R \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -7439,7 +7441,6 @@ function tvMergeState(row){
   if(scenes.items===undefined) scenes.items=true;
   if(scenes.tasks===undefined) scenes.tasks=true;
   if(scenes.leaderboard===undefined) scenes.leaderboard=true;
-  if(scenes.alltime===undefined) scenes.alltime=true;
   var al=(row.alert&&typeof row.alert==='object')?row.alert:{};
   var to=(row.takeover&&typeof row.takeover==='object')?row.takeover:{};
   return {
@@ -7537,12 +7538,14 @@ function tvDayWindows(){
 }
 function tvRepairTallies(){
   var w=tvDayWindows(), by={};
+  var at=RF_ALLTIME||{};
+  Object.keys(at).forEach(function(raw){ if(!raw||raw==='\u2014'||raw==='-') return; var u=_repairName(raw); var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0}); rec.all+=(at[raw]||0); });
   Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(id){
     (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
       if(!r||r.status!=='fixed') return;
-      var u=(r.user||'').trim(); if(!u||u==='\u2014'||u==='-') return;
-      var iso=(r.isoRepaired||'').slice(0,10); if(!iso) return;
-      var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0});
+      var raw=(r.user||'').trim(); if(!raw||raw==='\u2014'||raw==='-') return;
+      var u=_repairName(raw); var iso=(r.isoRepaired||'').slice(0,10); if(!iso) return;
+      var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0});
       if(iso===w.today) rec.day++;
       if(iso>=w.weekStart&&iso<=w.today) rec.week++;
       if(iso.slice(0,7)===w.month) rec.month++;
@@ -7550,18 +7553,18 @@ function tvRepairTallies(){
   });
   return Object.keys(by).map(function(u){return by[u];});
 }
-function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.month>0;}); }
+function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.all>0;}); }
 function tvSceneLeaderboard(){
   var lb=tvLeaderboard();
-  if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs this month yet.</div>';
-  lb.sort(function(a,b){ return (b.day-a.day)||(b.week-a.week)||(b.month-a.month); });
+  if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs recorded yet.</div>';
+  lb.sort(function(a,b){ return (b.all-a.all)||(b.month-a.month)||(b.week-a.week)||(b.day-a.day); });
   var medal=['#FFD45E','#CBD5E1','#E8995A'];
   var rows=lb.slice(0,7).map(function(o,i){
     var rc=i<3?medal[i]:'var(--tvac)';
-    return '<div class="tv-lbrow"><span class="rk" style="color:'+rc+'">'+(i+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct3"><b class="hi">'+o.day+'</b><b>'+o.week+'</b><b>'+o.month+'</b></span></div>';
+    return '<div class="tv-lbrow"><span class="rk" style="color:'+rc+'">'+(i+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct4"><b>'+o.day+'</b><b>'+o.week+'</b><b>'+o.month+'</b><b class="hi">'+o.all+'</b></span></div>';
   }).join('');
-  return tvEyebrow('Repair Leaderboard','Completed repairs')+
-    '<div class="tv-lb"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct3"><span>Today</span><span>Week</span><span>Month</span></span></div>'+rows+'</div>';
+  return tvEyebrow('Repair Leaderboard','Ranked by all-time repairs')+
+    '<div class="tv-lb"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct4"><span>Today</span><span>Week</span><span>Month</span><span>All-time</span></span></div>'+rows+'</div>';
 }
 function _repairName(u){
   u=String(u||'').trim(); if(!u) return '';
@@ -7678,7 +7681,6 @@ function tvScenes(){
   var list=[{key:'morning',render:tvSceneMorning}];
   tvTypesPresent().forEach(function(t){ list.push({key:'type:'+t,render:(function(tt){return function(){return tvSceneType(tt);};})(t)}); });
   list.push({key:'leaderboard',render:tvSceneLeaderboard});
-  list.push({key:'alltime',render:tvSceneAllTime});
   list.push({key:'tasks',render:tvSceneTasks});
   list.push({key:'items',render:tvSceneItems});
   return list;
@@ -7690,7 +7692,6 @@ function tvEnabledScenes(){
     if(s.key==='items') return tvLiveItems().length>0;
     if(s.key==='tasks') return tvShiftTasks().length>0;
     if(s.key==='leaderboard') return tvLeaderboard().length>0;
-    if(s.key==='alltime') return tvRepairAllTime().length>0;
     return true;
   });
 }
@@ -7781,8 +7782,16 @@ function tvSyncView(){
      • this month/week's COMPLETED repairs only (for the leaderboard)
      • OPEN kart notes only, this site (for the damaged-kart reasons)
    This cuts the 24/7 board's Supabase egress by ~99%. */
+var RF_ALLTIME={};
+function tvLoadAllTime(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('repair_totals_public').select('name,total').then(function(r){
+    var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x&&x.name!=null){ var k=String(x.name); m[k]=(m[k]||0)+(Number(x.total)||0); } }); RF_ALLTIME=m; try{tvRerender();}catch(e){}
+  },function(){});
+}
 function tvLoadFleet(){
   if(typeof SBC==='undefined'||!SBC) return;
+  try{ tvLoadAllTime(); }catch(e){}
   var site=currentSite||'sydney';
   var w=tvDayWindows(), ms=w.month+'-01';
   var from=(w.weekStart<ms)?w.weekStart:ms;     // earliest date the leaderboard needs (covers week spanning a month edge)
@@ -8062,8 +8071,7 @@ function tvcRender(){
       '<div class="tvc-sublbl">Fleet \u2014 one slide per kart type</div>'+
       tvcTypeRows()+
       '<div class="tvc-sublbl" style="margin-top:14px">Other panels</div>'+
-      tvcSceneRow('leaderboard','Repair leaderboard','Mechanics ranked by completed repairs')+
-      '<div style="height:8px"></div>'+tvcSceneRow('alltime','All-time repairs','Total repairs per mechanic, all time')+
+      tvcSceneRow('leaderboard','Repair leaderboard','Ranked by all-time repairs \u00b7 today / week / month columns')+
       '<div style="height:8px"></div>'+tvcSceneRow('tasks','Today\u2019s jobs','Open tasks for the crew on shift')+
       '<div style="height:8px"></div>'+tvcSceneRow('items','Notices','Cards you send (below)')+'</div>'+
     '<div class="tvc-card"><h3>Rotation speed</h3><p class="hint">Seconds each panel stays on screen.</p>'+
@@ -9483,7 +9491,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-O \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-R \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

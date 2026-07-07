@@ -1680,6 +1680,14 @@
     .rfq-total{margin-top:8px;font-size:13px;color:var(--t2);text-align:right}.rfq-total b{color:var(--t1);font-size:15px}
     .rfq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .rfq-cancel{background:transparent!important;border:1px dashed var(--b2)!important;color:var(--t2)!important}
+    .kn-act{width:1%;white-space:nowrap;text-align:right}
+    .kn-newrep{background:#1A73E8;border:none;border-radius:9px;color:#fff;font-size:11.5px;font-weight:800;padding:8px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+    .kn-newrep:active{transform:scale(.96)}
+    .kn-sync{font-size:10.5px;color:var(--t2);font-style:italic}
+    .rfq-fornote{margin-top:5px;font-size:12.5px;color:#FFD600;font-weight:600}
+    .rfq-seg button.s-ok.on{background:#16A34A;border-color:#16A34A;color:#fff}
+    .rfq-seg button.s-fm.on{background:#F59E0B;border-color:#F59E0B;color:#0b0f17}
+    .rfq-seg button.s-dmg.on{background:#DC2626;border-color:#DC2626;color:#fff}
     .ch-mini{display:flex;gap:16px;justify-content:flex-end;margin:3px 4px 0;opacity:.45}
     .ch-mini button{background:none;border:none;color:#9AA0A6;font-size:12.5px;line-height:1;padding:2px 3px;cursor:pointer;font-family:inherit}
     .ch-mini .x{font-size:11px}
@@ -1978,7 +1986,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AE · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AF · ZXing raw</div>
       </div>
     </div>
 
@@ -3297,7 +3305,7 @@ function startRealtime(){
     try{
       var n=(p&&p.new)||null; if(!n||n.rf_kart_id==null) return;
       if(typeof RF_NOTES_BY_ID==='undefined'||!RF_NOTES_BY_ID) return;
-      var rec={ note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
+      var rec={ id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
         archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active };
       var arr=RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[];
       var found=false; for(var i=0;i<arr.length;i++){ if(arr[i].createdIso===rec.createdIso && arr[i].note===rec.note){ arr[i]=rec; found=true; break; } }
@@ -5551,7 +5559,7 @@ function loadRfKarts(cb,force){
     RF_NOTES_BY_ID={};
     nrows.forEach(function(n){
       (RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[]).push({
-        note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
+        id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
         archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active
       });
     });
@@ -6317,17 +6325,34 @@ function selectKart(rfId){
 // Single-page kart detail — mirrors the RaceFacer garage page:
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
-var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok';
+var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null;
+function rfqRepairForNote(noteId){
+  var k=KD_KART||{}; var notes=(k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
+  var n=notes.filter(function(x){return x.id===noteId;})[0]; if(!n) return;
+  RFQ_NOTE={id:noteId,note:n.note||''};
+  rfqToggle('repair');
+}
+function loadRfWarehouse(){
+  if(RF_WH!==null||typeof SBC==='undefined'||!SBC) return;
+  RF_WH=[];   // mark as loading so we only fetch once
+  SBC.from('rf_warehouse').select('part_id,rf_id,name,price,max_qty').order('name').then(function(r){
+    if(r&&r.data&&r.data.length){ RF_WH=r.data; if(RFQ_MODE==='repair') rfqRenderParts(); }
+  },function(){});
+}
 function _rfqSpec(l,v){ return '<div class="rfq-spec"><span>'+l+'</span><b>'+kEsc(String(v))+'</b></div>'; }
 function _rfqSeg(){
-  var opts=[['ok','OK'],['for_maintenance','FOR MAINTENANCE'],['damaged','DAMAGED']];
+  var opts=[['ok','OK','s-ok'],['for_maintenance','FOR MAINTENANCE','s-fm'],['damaged','DAMAGED','s-dmg']];
   return '<div class="rfq-seg" id="rfq-seg">'+opts.map(function(o){
-    return '<button type="button" class="'+(RFQ_STATUS===o[0]?'on':'')+'" onclick="rfqSetStatus(\''+o[0]+'\')">'+o[1]+'</button>';
+    return '<button type="button" class="'+o[2]+(RFQ_STATUS===o[0]?' on':'')+'" onclick="rfqSetStatus(\''+o[0]+'\')">'+o[1]+'</button>';
   }).join('')+'</div>';
 }
-function rfqSetStatus(s){ RFQ_STATUS=s; var seg=document.getElementById('rfq-seg'); if(seg){ var bs=seg.querySelectorAll('button'); var m={ok:0,for_maintenance:1,damaged:2}; for(var i=0;i<bs.length;i++){ bs[i].className=(i===m[s]?'on':''); } } }
+function rfqSetStatus(s){ RFQ_STATUS=s; var seg=document.getElementById('rfq-seg'); if(seg){ var bs=seg.querySelectorAll('button'); var m={ok:0,for_maintenance:1,damaged:2}; for(var i=0;i<bs.length;i++){ bs[i].classList.toggle('on',i===m[s]); } } }
 function _rfqPartOpts(sel){
   var o='<option value="">Please select…</option>';
+  if(RF_WH&&RF_WH.length){
+    RF_WH.forEach(function(p){ var v='rf:'+p.part_id; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+kEsc(p.name)+(p.price?(' \u00b7 $'+Number(p.price).toFixed(2)):'')+'</option>'; });
+    return o;   // real RaceFacer warehouse (synced by the runner)
+  }
   (parts||[]).slice().sort(function(a,b){return String(a.desc||a.sku).localeCompare(String(b.desc||b.sku));}).forEach(function(p){
     var lbl=(p.desc||p.sku)+(p.sku?(' · '+p.sku):'');
     o+='<option value="'+kEsc(p.sku)+'"'+(sel===p.sku?' selected':'')+'>'+kEsc(lbl)+'</option>';
@@ -6349,9 +6374,19 @@ function rfqRenderParts(){
 }
 function rfqAddPart(){ RFQ_PARTS.push({sku:'',name:'',qty:1,price:0}); rfqRenderParts(); }
 function rfqDelPart(i){ RFQ_PARTS.splice(i,1); rfqRenderParts(); }
-function rfqPartSel(i,sku){
-  var p=(parts||[]).filter(function(x){return String(x.sku)===String(sku);})[0];
-  if(RFQ_PARTS[i]){ RFQ_PARTS[i].sku=sku; RFQ_PARTS[i].name=p?(p.desc||p.sku):sku; if(p&&(!RFQ_PARTS[i].price)) RFQ_PARTS[i].price=Number(p.price)||0; }
+function rfqPartSel(i,val){
+  if(!RFQ_PARTS[i]) return;
+  if(String(val).indexOf('rf:')===0){
+    var pid=Number(String(val).slice(3));
+    var w=(RF_WH||[]).filter(function(x){return x.part_id===pid;})[0];
+    RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=pid; RFQ_PARTS[i].rf_id=(w&&w.rf_id)||pid;
+    RFQ_PARTS[i].max_qty=(w&&w.max_qty)||99; RFQ_PARTS[i].name=(w&&w.name)||('part '+pid);
+    if(w&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(w.price)||0;
+  } else {
+    var p=(parts||[]).filter(function(x){return String(x.sku)===String(val);})[0];
+    RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=null; RFQ_PARTS[i].rf_id=null; RFQ_PARTS[i].max_qty=null;
+    RFQ_PARTS[i].name=p?(p.desc||p.sku):val; if(p&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(p.price)||0;
+  }
   rfqRenderParts();
 }
 function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)||0); rfqTotal(); }
@@ -6361,9 +6396,9 @@ function rfqCardHtml(){
   var k=KD_KART||{};
   if(!cu||k.rfId==null) return '';
   if(!RFQ_MODE){
-    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px">'
-      +'<button class="m-add" onclick="rfqToggle(\'repair\')">\ud83d\udd27 Log repair</button>'
-      +'<button class="m-add" style="background:transparent;border:1px solid var(--b2);color:var(--t1)" onclick="rfqToggle(\'note\')">\ud83d\udcdd Add note</button>'
+    return '<div style="margin:0 0 12px">'
+      +'<button class="m-add" style="width:100%" onclick="rfqToggle(\'note\')">\ud83d\udcdd Add note</button>'
+      +'<div style="font-size:11.5px;color:var(--t2);margin-top:7px;text-align:center">To log a repair, tap \ud83d\udd25 New repair on one of the kart\u2019s notes above \u2014 same flow as RaceFacer.</div>'
       +'</div>';
   }
   var today=new Date().toISOString().slice(0,10);
@@ -6381,9 +6416,11 @@ function rfqCardHtml(){
       +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Save note</button></div>'
       +'</div>';
   }
+  var _sn=RFQ_NOTE?String(RFQ_NOTE.note||'').slice(0,60):'';
   return '<div class="mc" style="text-align:left;margin:0 0 14px">'
-    +'<div class="mct">\ud83d\udd27 Log repair \u00b7 '+kEsc(k.num||'')+'</div>'
-    +'<div class="m-tool-desc">Adds a damage/repair in RaceFacer as <b>'+kEsc(cu.name)+'</b> \u2014 lands within a minute and is stored here, no re-scan.</div>'+info
+    +'<div class="mct">\ud83d\udd25 New repair \u00b7 '+kEsc(k.num||'')+'</div>'
+    +(RFQ_NOTE?('<div class="rfq-fornote">for note: \u201c'+kEsc(_sn)+(String(RFQ_NOTE.note||'').length>60?'\u2026':'')+'\u201d</div>'):'')
+    +'<div class="m-tool-desc">Adds the repair in RaceFacer as <b>'+kEsc(cu.name)+'</b> \u2014 lands in seconds and is stored here, no re-scan.</div>'+info
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">'
     +'<div class="m-fld"><label>Date discovered</label><input id="rfq-disc" type="date" value="'+today+'"></div>'
     +'<div class="m-fld"><label>Date repaired</label><input id="rfq-date" type="date" value="'+today+'"></div></div>'
@@ -6399,7 +6436,12 @@ function rfqCardHtml(){
     +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Log repair</button></div>'
     +'</div>';
 }
-function rfqToggle(mode){ RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; ktTab('Repairs'); if(mode==='repair'){ rfqRenderParts(); } var t=document.getElementById('rfq-note'); if(t) t.focus(); }
+function rfqToggle(mode){
+  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; if(!mode) RFQ_NOTE=null;
+  ktTab('Repairs');
+  if(mode==='repair'){ rfqRenderParts(); loadRfWarehouse(); }
+  var t=document.getElementById('rfq-note'); if(t){ if(mode==='repair'&&RFQ_NOTE&&!t.value) t.value=RFQ_NOTE.note; t.focus(); }
+}
 function rfqSubmit(){
   var k=KD_KART||{}, msg=document.getElementById('rfq-msg');
   function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
@@ -6422,10 +6464,11 @@ function rfqSubmit(){
   var disc=document.getElementById('rfq-disc').value||new Date().toISOString().slice(0,10);
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
-  var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0};});
+  var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0,part_id:(p.part_id||null),id:(p.rf_id||null),max_qty:(p.max_qty||null)};});
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
             user_name:cu.name, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
-            working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0) };
+            working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
+            notification_id:(RFQ_NOTE&&RFQ_NOTE.id)||null };
   SBC.from('rf_repair_queue').insert(row).then(function(r){
     if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Log repair'); return; }
     var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
@@ -6519,10 +6562,11 @@ function kartOpenNotesHTML(rfId){
   if(!open.length) return '';
   var CAP=6, shown=open.slice(0,CAP), extra=open.length-shown.length;
   var rows=shown.map(function(n){
-    return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td></tr>';
+    var act=(n.id!=null&&cu)?'<button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
+    return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td><td class="kn-act">'+act+'</td></tr>';
   }).join('');
-  if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td>+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
-  return '<div class="kn-open"><table class="kn-opentable"><thead><tr><th>Date</th><th>Title</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td colspan="2">+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
+  return '<div class="kn-open"><table class="kn-opentable"><thead><tr><th>Date</th><th>Title</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 // Kart Notes tab — full history: Note / Created / Archived (open notes show an "Open" tag)
@@ -7165,7 +7209,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9992,7 +10036,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

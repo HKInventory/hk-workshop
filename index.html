@@ -1664,6 +1664,22 @@
     .ch-actbar{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}
     .ch-actbar button{background:var(--card);border:1px solid var(--b2);border-radius:999px;color:var(--t1);font-size:12px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:inherit}
     .ch-actbar button.del{color:#FF6B63;border-color:rgba(255,107,99,.4)}
+    .rfq-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:11px 13px}
+    .rfq-spec{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .rfq-spec span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
+    .rfq-spec b{font-size:13.5px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .rfq-ta{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:14.5px;font-family:inherit;resize:vertical}
+    .rfq-seg{display:flex;gap:6px}
+    .rfq-seg button{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:9px;color:var(--t2);font-size:11px;font-weight:800;letter-spacing:.02em;padding:9px 4px;cursor:pointer;font-family:inherit;text-transform:uppercase}
+    .rfq-seg button.on{background:#1A73E8;border-color:#1A73E8;color:#fff}
+    .rfq-part-row{display:grid;grid-template-columns:1fr 58px 72px 34px;gap:6px;margin-bottom:6px}
+    .rfq-part-row select,.rfq-part-row input{background:var(--card);border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 9px;font-size:13px;font-family:inherit;min-width:0}
+    .rfq-delpart{background:rgba(255,90,82,.12);border:1px solid rgba(255,90,82,.35);border-radius:9px;color:#FF6B63;font-size:14px;cursor:pointer;font-family:inherit}
+    .rfq-nopart{font-size:12.5px;color:var(--t2);padding:2px 2px 6px}
+    .rfq-addpart{background:transparent;border:1px dashed var(--b2);border-radius:9px;color:var(--acc);font-size:13px;font-weight:700;padding:8px 12px;cursor:pointer;font-family:inherit;margin-top:2px}
+    .rfq-total{margin-top:8px;font-size:13px;color:var(--t2);text-align:right}.rfq-total b{color:var(--t1);font-size:15px}
+    .rfq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .rfq-cancel{background:transparent!important;border:1px dashed var(--b2)!important;color:var(--t2)!important}
     .ch-mini{display:flex;gap:16px;justify-content:flex-end;margin:3px 4px 0;opacity:.45}
     .ch-mini button{background:none;border:none;color:#9AA0A6;font-size:12.5px;line-height:1;padding:2px 3px;cursor:pointer;font-family:inherit}
     .ch-mini .x{font-size:11px}
@@ -1962,7 +1978,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AD · ZXing raw</div>
       </div>
     </div>
 
@@ -6301,30 +6317,125 @@ function selectKart(rfId){
 // Single-page kart detail — mirrors the RaceFacer garage page:
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
-
-function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
-
-function kdStatusSeg(status){
-  return [['ok','OK'],['maint','For Maintenance'],['damaged','Damaged']].map(function(d){
-    return '<div class="kd-seg'+(d[0]===status?' on-'+d[0]:'')+'">'+d[1]+'</div>';
+var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok';
+function _rfqSpec(l,v){ return '<div class="rfq-spec"><span>'+l+'</span><b>'+kEsc(String(v))+'</b></div>'; }
+function _rfqSeg(){
+  var opts=[['ok','OK'],['for_maintenance','FOR MAINTENANCE'],['damaged','DAMAGED']];
+  return '<div class="rfq-seg" id="rfq-seg">'+opts.map(function(o){
+    return '<button type="button" class="'+(RFQ_STATUS===o[0]?'on':'')+'" onclick="rfqSetStatus(\''+o[0]+'\')">'+o[1]+'</button>';
+  }).join('')+'</div>';
+}
+function rfqSetStatus(s){ RFQ_STATUS=s; var seg=document.getElementById('rfq-seg'); if(seg){ var bs=seg.querySelectorAll('button'); var m={ok:0,for_maintenance:1,damaged:2}; for(var i=0;i<bs.length;i++){ bs[i].className=(i===m[s]?'on':''); } } }
+function _rfqPartOpts(sel){
+  var o='<option value="">Please select…</option>';
+  (parts||[]).slice().sort(function(a,b){return String(a.desc||a.sku).localeCompare(String(b.desc||b.sku));}).forEach(function(p){
+    var lbl=(p.desc||p.sku)+(p.sku?(' · '+p.sku):'');
+    o+='<option value="'+kEsc(p.sku)+'"'+(sel===p.sku?' selected':'')+'>'+kEsc(lbl)+'</option>';
+  });
+  return o;
+}
+function rfqRenderParts(){
+  var box=document.getElementById('rfq-parts'); if(!box) return;
+  if(!RFQ_PARTS.length){ box.innerHTML='<div class="rfq-nopart">No parts added.</div>'; rfqTotal(); return; }
+  box.innerHTML=RFQ_PARTS.map(function(p,i){
+    return '<div class="rfq-part-row">'
+      +'<select onchange="rfqPartSel('+i+',this.value)">'+_rfqPartOpts(p.sku)+'</select>'
+      +'<input type="number" min="0" step="1" value="'+(p.qty||0)+'" oninput="rfqPartQty('+i+',this.value)" title="Qty">'
+      +'<input type="number" min="0" step="0.01" value="'+(p.price||0)+'" oninput="rfqPartPrice('+i+',this.value)" title="Price">'
+      +'<button class="rfq-delpart" onclick="rfqDelPart('+i+')">\u2715</button>'
+      +'</div>';
   }).join('');
+  rfqTotal();
 }
-function kdStats(k){
-  var fmt=function(n){return Math.round(n||0).toLocaleString();};
-  return specCard('Exploitation start',k.startDate||'-')
-    +specCard('Total mileage',fmt(k.mileage)+' km')
-    +specCard('Total laps',fmt(k.laps))
-    +specCard('Working hours',fmt(k.hours))
-    +specCard('Total cost','$'+(k.cost||0).toFixed(2))
-    +specCard('Kart brand',k.brand||'-')
-    +specCard('Kart model',k.model||'-')
-    +specCard('Engine brand',k.engine||'-')
-    +specCard('Engine model',k.engine||'-')
-    +specCard('Engine cc','0 cc')
-    +specCard('Chassis number','-')
-    +specCard('Engine number','-');
+function rfqAddPart(){ RFQ_PARTS.push({sku:'',name:'',qty:1,price:0}); rfqRenderParts(); }
+function rfqDelPart(i){ RFQ_PARTS.splice(i,1); rfqRenderParts(); }
+function rfqPartSel(i,sku){
+  var p=(parts||[]).filter(function(x){return String(x.sku)===String(sku);})[0];
+  if(RFQ_PARTS[i]){ RFQ_PARTS[i].sku=sku; RFQ_PARTS[i].name=p?(p.desc||p.sku):sku; if(p&&(!RFQ_PARTS[i].price)) RFQ_PARTS[i].price=Number(p.price)||0; }
+  rfqRenderParts();
 }
-
+function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)||0); rfqTotal(); }
+function rfqPartPrice(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].price=Math.max(0,Number(v)||0); rfqTotal(); }
+function rfqTotal(){ var t=0; RFQ_PARTS.forEach(function(p){ t+=(Number(p.qty)||0)*(Number(p.price)||0); }); var el=document.getElementById('rfq-total'); if(el) el.textContent='$'+t.toFixed(2); }
+function rfqCardHtml(){
+  var k=KD_KART||{};
+  if(!cu||k.rfId==null) return '';
+  if(!RFQ_MODE){
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px">'
+      +'<button class="m-add" onclick="rfqToggle(\'repair\')">\ud83d\udd27 Log repair</button>'
+      +'<button class="m-add" style="background:transparent;border:1px solid var(--b2);color:var(--t1)" onclick="rfqToggle(\'note\')">\ud83d\udcdd Add note</button>'
+      +'</div>';
+  }
+  var today=new Date().toISOString().slice(0,10);
+  var info='<div class="rfq-info">'
+    +_rfqSpec('Type',k.type||'-')+_rfqSpec('Kart',k.num||'-')+_rfqSpec('Transponder',(k.transponder&&k.transponder!=='-')?k.transponder:'\u2014')
+    +_rfqSpec('Kart ID',k.kartId||'-')+_rfqSpec('Mileage',(k.mileage?Math.round(k.mileage).toLocaleString()+' km':'-'))+_rfqSpec('Working hrs',(k.hours?Math.round(k.hours).toLocaleString():'-'))
+    +'</div>';
+  if(RFQ_MODE==='note'){
+    return '<div class="mc" style="text-align:left;margin:0 0 14px">'
+      +'<div class="mct">\ud83d\udcdd Add note \u00b7 '+kEsc(k.num||'')+'</div>'
+      +'<div class="m-tool-desc">Posts to RaceFacer as <b>'+kEsc(cu.name)+'</b>.</div>'+info
+      +'<div class="m-fld" style="margin-top:12px"><label>Kart status</label>'+_rfqSeg()+'</div>'
+      +'<div class="m-fld" style="margin-top:12px"><label>Note</label><textarea id="rfq-note" rows="3" class="rfq-ta"></textarea></div>'
+      +'<div class="m-form-msg" id="rfq-msg" style="margin-top:8px"></div>'
+      +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Save note</button></div>'
+      +'</div>';
+  }
+  return '<div class="mc" style="text-align:left;margin:0 0 14px">'
+    +'<div class="mct">\ud83d\udd27 Log repair \u00b7 '+kEsc(k.num||'')+'</div>'
+    +'<div class="m-tool-desc">Adds a damage/repair in RaceFacer as <b>'+kEsc(cu.name)+'</b> \u2014 lands within a minute and is stored here, no re-scan.</div>'+info
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">'
+    +'<div class="m-fld"><label>Date discovered</label><input id="rfq-disc" type="date" value="'+today+'"></div>'
+    +'<div class="m-fld"><label>Date repaired</label><input id="rfq-date" type="date" value="'+today+'"></div></div>'
+    +'<div class="m-fld" style="margin-top:6px"><label>Parts used</label><div id="rfq-parts"></div>'
+    +'<button class="rfq-addpart" onclick="rfqAddPart()">+ Add part</button>'
+    +'<div class="rfq-total">Total: <b id="rfq-total">$0.00</b></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">'
+    +'<div class="m-fld"><label>Working hours</label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="e.g. 4433"></div>'
+    +'<div class="m-fld"><label>Kart status</label>'+_rfqSeg()+'</div></div>'
+    +'<label class="bt-toggle" style="margin-top:10px"><input type="checkbox" id="rfq-fixed" checked><span>Mark as fixed (counts on the leaderboard)</span></label>'
+    +'<div class="m-fld" style="margin-top:8px"><label>Note / what was done</label><textarea id="rfq-note" rows="3" class="rfq-ta"></textarea></div>'
+    +'<div class="m-form-msg" id="rfq-msg" style="margin-top:8px"></div>'
+    +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Log repair</button></div>'
+    +'</div>';
+}
+function rfqToggle(mode){ RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; ktTab('Repairs'); if(mode==='repair'){ rfqRenderParts(); } var t=document.getElementById('rfq-note'); if(t) t.focus(); }
+function rfqSubmit(){
+  var k=KD_KART||{}, msg=document.getElementById('rfq-msg');
+  function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
+  if(!cu||k.rfId==null||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  var note=(document.getElementById('rfq-note').value||'').trim();
+  if(!note){ say('Add a note first'); return; }
+  var btn=document.getElementById('rfq-send'); if(btn){ btn.disabled=true; btn.textContent='Queuing\u2026'; }
+  var okBtn=function(l){ if(btn){ btn.disabled=false; btn.textContent=l; } };
+  if(RFQ_MODE==='note'){
+    var nrow={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
+               user_name:cu.name, note:note.slice(0,1000), rf_status:RFQ_STATUS };
+    SBC.from('rf_note_queue').insert(nrow).then(function(r){
+      if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
+      try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({date:new Date().toISOString().slice(0,10).split('-').reverse().join('.'), status:RFQ_STATUS, note:note, user:cu.name, _pending:true}); }catch(e){}
+      RFQ_MODE=null; ktTab('Repairs'); var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
+    },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
+    return;
+  }
+  var fixed=!!document.getElementById('rfq-fixed').checked;
+  var disc=document.getElementById('rfq-disc').value||new Date().toISOString().slice(0,10);
+  var dt=document.getElementById('rfq-date').value||disc;
+  var hrs=(document.getElementById('rfq-hours').value||'').trim();
+  var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0};});
+  var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
+            user_name:cu.name, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
+            working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0) };
+  SBC.from('rf_repair_queue').insert(row).then(function(r){
+    if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Log repair'); return; }
+    var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
+    arr.unshift({ id:Date.now(), iso:disc, date:disc.split('-').reverse().join('.'), status:(fixed?'fixed':'open'),
+      isoRepaired:(fixed?dt:''), cost:useParts.reduce(function(a,p){return a+p.qty*p.price;},0), issue:note, repairNotes:'',
+      parts:useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};}), mileage:0, user:cu.name,
+      dateRepaired:(fixed?dt.split('-').reverse().join('.'):''), kartName:String(k.num||''), kartType:String(k.type||''), kartGarageId:'', typeColor:'', _pending:true });
+    KD_REPAIRS=arr; RFQ_MODE=null; ktTab('Repairs');
+  },function(){ say('Connection error'); okBtn('\u2713 Log repair'); });
+}
 function renderKartDetail(k){
   if(!k) return;
   KD_KART=k;
@@ -6354,7 +6465,7 @@ function renderKdTabs(){
 function ktTab(name){
   KD_TAB=name; renderKdTabs();
   var body=document.getElementById('kt-tabbody'); if(!body) return;
-  if(name==='Repairs') body.innerHTML=repTableHTML();
+  if(name==='Repairs') body.innerHTML=rfqCardHtml()+repTableHTML();
   else if(name==='Parts') body.innerHTML=partsTabHTML();
   else if(name==='Cost') body.innerHTML=costTabHTML();
   else if(name==='Kart Notes') body.innerHTML=notesTabHTML();
@@ -7031,7 +7142,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9858,7 +9969,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

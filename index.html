@@ -1989,7 +1989,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AL · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AM · ZXing raw</div>
       </div>
     </div>
 
@@ -2689,6 +2689,11 @@
               <div class="qre-f"><label>SKU weight</label><select id="qe-sku-fw" onchange="qeTextSet('sku','fw',this.value)"><option value="400">Regular</option><option value="700">Bold</option><option value="900">Black — heaviest</option></select></div>
               <div class="qre-f"><label>SKU thicken (mm)</label><input id="qe-sku-st" type="number" min="0" max="0.6" step="0.05" oninput="qeTextSet('sku','st',this.value)"></div>
             </div>
+            <div class="qre-grid2">
+              <div class="qre-f"><label>Max name size (mm)</label><input id="qe-desc-max" type="number" min="0" max="30" step="0.25" oninput="qeTextSet('desc','max',this.value)"></div>
+              <div class="qre-f"><label>Max SKU size (mm)</label><input id="qe-sku-max" type="number" min="0" max="30" step="0.25" oninput="qeTextSet('sku','max',this.value)"></div>
+            </div>
+            <div class="qre-stl-note">Short names like <b>CAGE</b> would otherwise be scaled up until they filled their box, printing far bigger than a long name that wraps onto three lines. These ceilings keep every label consistent. 0 = no limit.</div>
             <div class="qre-sec-h">3D print (STL)</div>
             <div class="qre-grid2">
               <div class="qre-f"><label>Depth — base plate (mm)</label><input id="qe-stl-base" type="number" min="0.4" max="10" step="0.2" oninput="qeStlSet('base',this.value)"></div>
@@ -7343,7 +7348,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8820,7 +8825,9 @@ function mRemove(sku){
 var QR_LAY_DEFAULTS={ wmm:30, hmm:30, fg:'#000000', bg:'#ffffff', ec:'M', quiet:4, img:'none', grid:true, payload:'link',
   safe:{ left:7, right:7, top:0, bottom:7 },              // editable no-go buffer (mm) per edge — holder clearance
   stl:{ base:1.6, raise:0.8, mode:'raised', pxmm:4 },   // 3D print: plate mm, emboss mm, raised|engraved, detail px/mm
-  el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7,fw:'700',st:0}, sku:{on:true,x:1,y:25.9,w:28,h:1.9,fw:'400',st:0} } };
+  // max: ceiling on the rendered font size in mm. Without it, text is scaled up until it
+  // fills its box, so a short name ("CAGE") prints far larger than a long one that wraps.
+  el:{ qr:{on:true,x:5.5,y:2,w:19,h:19}, img:{on:false,x:11,y:9.5,w:8,h:8}, desc:{on:true,x:1,y:22.4,w:28,h:2.7,fw:'700',st:0,max:4.5}, sku:{on:true,x:1,y:25.9,w:28,h:1.9,fw:'400',st:0,max:4} } };
 // No-go buffer: nothing can sit within this many mm of each label edge (holder clearance).
 // Editable in the editor per edge and stored in the shared design, so every device enforces
 // the same buffer. qrSafe() always returns sane clamped values even on old stored designs.
@@ -8905,9 +8912,12 @@ function _fitText(ctx,s,maxW){ s=String(s); if(ctx.measureText(s).width<=maxW) r
    proportionally smaller sizes, wrapping on words and shrinking further if a single word is
    still too wide. Ellipsis only as a last resort. Lines are centred in the box, so long part
    names wrap and shrink to fit instead of running off the label. */
-function _drawFitText(ctx,text,bx,by,bw,bh,weight,color,strokeW){ strokeW=+strokeW||0;
+function _drawFitText(ctx,text,bx,by,bw,bh,weight,color,strokeW,maxPx){ strokeW=+strokeW||0;
   text=String(text||''); if(!text||bw<4||bh<4) return;
   var words=text.split(/\s+/).filter(Boolean), MIN=6, best=null, n, px;
+  // Ceiling on the font size. A short word would otherwise be blown up to the full box height,
+  // dwarfing the wrapped multi-line names on other labels.
+  var CAP=(+maxPx>0)?Math.max(MIN,Math.floor(+maxPx)):Infinity;
   function wrapAt(px2){
     ctx.font=weight+' '+px2+'px Arial, sans-serif';
     var lines=[], cur='';
@@ -8923,8 +8933,13 @@ function _drawFitText(ctx,text,bx,by,bw,bh,weight,color,strokeW){ strokeW=+strok
   // For each line count, find the largest size that fits (down to a floor so we prefer MORE
   // slightly-smaller lines over ONE massively-shrunk line), then keep the biggest overall.
   for(n=1;n<=3;n++){
-    var start=Math.max(MIN,Math.floor((bh/n)*0.88));
-    var floorN=Math.max(MIN,Math.floor(start*0.55));
+    var start=Math.min(CAP,Math.max(MIN,Math.floor((bh/n)*0.88)));
+    // Floors on the 1- and 2-line passes stop a barely-shrunk single line from beating a
+    // cleanly-wrapped one. The 3-line pass (the last resort) searches all the way to MIN, so a
+    // long name lands at the biggest size that actually fits instead of falling off a cliff to
+    // the 6px emergency fallback below.
+    var floorN=(n===3)?MIN:Math.max(MIN,Math.floor(Math.max(MIN,Math.floor((bh/n)*0.88))*0.55));
+    if(start<floorN) floorN=start;                              // a tight cap must still get one try
     for(px=start;px>=floorN;px--){
       var w2=wrapAt(px);
       if(w2.lines.length<=n && w2.wide<=bw && w2.lines.length*px*1.12<=bh+2){
@@ -8986,8 +9001,10 @@ function _drawLabel(ctx,S,sku,desc,lay,imgs,ph){
     else if(ph){ ctx.fillStyle=lay.bg||'#fff'; ctx.fillRect(ix-kp,iy-kp,iw+kp*2,ih+kp*2); ctx.fillStyle=lay.fg||'#000'; ctx.fillRect(ix,iy,iw,ih); ctx.fillStyle=lay.bg||'#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='700 '+Math.round(Math.min(iw,ih)*0.4)+'px Arial'; ctx.fillText(lay.img==='product'?'IMG':'HK', ix+iw/2, iy+ih/2+1); ctx.textBaseline='alphabetic'; }
   }
   ctx.textAlign='center';
-  if(E.desc.on){ var d=E.desc; _drawFitText(ctx,(desc||sku), d.x*S, d.y*S, d.w*S, d.h*S, (d.fw||'700'), lay.fg||'#000', (+d.st||0)*S); }
-  if(E.sku.on){ var s2=E.sku, sfw=(s2.fw||'400'), sst=(+s2.st||0)*S, spx=Math.max(5,Math.round(s2.h*S*0.92)); ctx.font=sfw+' '+spx+'px Arial, sans-serif';
+  if(E.desc.on){ var d=E.desc; _drawFitText(ctx,(desc||sku), d.x*S, d.y*S, d.w*S, d.h*S, (d.fw||'700'), lay.fg||'#000', (+d.st||0)*S, (+d.max||0)*S); }
+  if(E.sku.on){ var s2=E.sku, sfw=(s2.fw||'400'), sst=(+s2.st||0)*S, spx=Math.max(5,Math.round(s2.h*S*0.92));
+    if((+s2.max||0)>0) spx=Math.max(5,Math.min(spx,Math.floor((+s2.max)*S)));   // same ceiling as the description
+    ctx.font=sfw+' '+spx+'px Arial, sans-serif';
     var sw=ctx.measureText(String(sku)).width; if(sw>s2.w*S){ spx=Math.max(5,Math.floor(spx*(s2.w*S)/sw)); }   // shrink to width, never chop a SKU
     ctx.fillStyle='#666'; ctx.font=sfw+' '+spx+'px Arial, sans-serif'; ctx.fillText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx);
     if(sst>0){ ctx.strokeStyle='#666'; ctx.lineWidth=sst; ctx.lineJoin='round'; ctx.strokeText(String(sku), (s2.x+s2.w/2)*S, s2.y*S+spx); } }
@@ -9072,6 +9089,7 @@ function qeTextSet(el,k,v){
   var e=QR_LAY.el[el]; if(!e) return;
   if(k==='fw') e.fw=({'400':'400','700':'700','900':'900'}[String(v)]||'700');
   else if(k==='st'){ var n=parseFloat(v); e.st=isNaN(n)?0:Math.max(0,Math.min(0.6,n)); }
+  else if(k==='max'){ var m=parseFloat(v); e.max=isNaN(m)?0:Math.max(0,Math.min(30,m)); }
   saveQrLay(); qeRender();
 }
 function qeSafeSet(edge,v){
@@ -9126,6 +9144,7 @@ function qrDesignerInit(){ if(!document.getElementById('qre-cv')) return;
   function sv(id,val){ var e=document.getElementById(id); if(e){ if(e.type==='checkbox') e.checked=!!val; else e.value=val; } }
   sv('qe-qr',QR_LAY.el.qr.on); sv('qe-desc',QR_LAY.el.desc.on); sv('qe-sku',QR_LAY.el.sku.on); sv('qe-img',QR_LAY.img); sv('qe-fg',QR_LAY.fg); sv('qe-bg',QR_LAY.bg); sv('qe-ec',QR_LAY.ec); sv('qe-payload',QR_LAY.payload||'link'); sv('qe-quiet',QR_LAY.quiet); sv('qe-w',QR_LAY.wmm); sv('qe-h',QR_LAY.hmm); sv('qe-grid',QR_LAY.grid);
   sv('qe-desc-fw',QR_LAY.el.desc.fw||'700'); sv('qe-desc-st',QR_LAY.el.desc.st||0); sv('qe-sku-fw',QR_LAY.el.sku.fw||'400'); sv('qe-sku-st',QR_LAY.el.sku.st||0);
+  sv('qe-desc-max',QR_LAY.el.desc.max!=null?QR_LAY.el.desc.max:0); sv('qe-sku-max',QR_LAY.el.sku.max!=null?QR_LAY.el.sku.max:0);
   var _sf=qrSafe(); sv('qe-safe-left',_sf.left); sv('qe-safe-right',_sf.right); sv('qe-safe-top',_sf.top); sv('qe-safe-bottom',_sf.bottom);
   var _sc=_stlCfg(); sv('qe-stl-base',_sc.base); sv('qe-stl-raise',_sc.raise); sv('qe-stl-mode',_sc.mode); sv('qe-stl-pxmm',String(_sc.pxmm)); _qeStlTotal();
   var cv=document.getElementById('qre-cv'); if(cv && !cv._qeBound){ cv._qeBound=true;
@@ -9326,23 +9345,23 @@ function _mfLabelParts(sku,desc,lay,cfg){
   var raised=(cfg.mode!=='engraved');
   var parts3d=[];
   if(raised){
-    var defs=[['qr','QR code'],['desc','Description'],['sku','SKU']];
-    defs.forEach(function(d3){
-      var key=d3[0];
-      if(!lay.el[key]||!lay.el[key].on) return;
-      var v=_labelVoxels(sku,desc,lay,key);
-      if(v.runs.length) parts3d.push({name:d3[1], v:v, pindex:1});
-    });
+    // The QR, name and SKU all print in the SAME filament, so they are rasterised in one pass
+    // into a SINGLE body. The slicer then sees exactly two objects — base plate and raised
+    // layer — instead of one per element. The product photo is excluded here because, when
+    // enabled, it needs its own tone bodies (below) to print in more than one shade.
+    var lo=_clone(lay); lo.img='none'; if(lo.el.img) lo.el.img.on=false;
+    var vArt=_labelVoxels(sku,desc,lo);
+    if(vArt.runs.length) parts3d.push({name:'Raised layer \u00b7 QR, name, SKU', v:vArt, pindex:1});
     // Product image: posterised into TONE BANDS, each its own body, so the photo prints in
     // three shades (base + mid-grey + dark) and actually reads as the part — a single binary
-    // stencil loses most of a photo. Light tones (>=176) stay the base plate.
+    // stencil loses most of a photo. Light tones (>=176) stay the base plate. Off by default,
+    // so a normal label stays at two objects.
     if(lay.el.img&&lay.el.img.on&&lay.img!=='none'){
       var vDark=_labelVoxels(sku,desc,lay,'img',{lo:0,  hi:96 });
       var vMid =_labelVoxels(sku,desc,lay,'img',{lo:96, hi:176});
       if(vDark.runs.length) parts3d.push({name:'Product image \u00b7 dark tones', v:vDark, pindex:1});
       if(vMid.runs.length)  parts3d.push({name:'Product image \u00b7 mid tones',  v:vMid,  pindex:2});
     }
-    if(!parts3d.length){ var vAll=_labelVoxels(sku,desc,lay); if(vAll.runs.length) parts3d.push({name:'Label artwork', v:vAll, pindex:1}); }
   } else {
     var vTop=_labelVoxels(sku,desc,lay);
     parts3d.push({name:'Top surface', v:vTop, pindex:1});
@@ -9358,7 +9377,7 @@ function _mfBaseCols(lay,cfg){
 }
 function _mfMaterials(lay,cfg){
   var c=_mfBaseCols(lay,cfg);
-  return '<basematerials id="1"><base name="Base plate" displaycolor="'+c.base+'"/><base name="Label artwork" displaycolor="'+c.emb+'"/><base name="Photo mid tones" displaycolor="#8E9196"/></basematerials>';
+  return '<basematerials id="1"><base name="Filament 1 \u00b7 base plate" displaycolor="'+c.base+'"/><base name="Filament 2 \u00b7 raised layer" displaycolor="'+c.emb+'"/><base name="Filament 3 \u00b7 photo mid tones" displaycolor="#8E9196"/></basematerials>';
 }
 /* The 3dmodel.model XML for ONE label. Shared by the single-label download and the bulk zip. */
 function _mfLabelModel(sku,desc,lay,cfg){
@@ -10285,7 +10304,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

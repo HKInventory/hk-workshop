@@ -1989,7 +1989,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AM · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AN · ZXing raw</div>
       </div>
     </div>
 
@@ -2640,7 +2640,7 @@
         </div>
       </div>
       <div class="mc"><div class="mct">3D-printed QR tags</div>
-        <div class="m-tool-desc">One zip with a printable <b>.3mf</b> for every ✓ ticked part — named by SKU and internal name, plus a <b>labels.txt</b> index. Drop as many as your bed holds into the slicer and arrange them there. Uses the current label design; each tag keeps its QR, text and photo as separate bodies so you assign filaments once.</div>
+        <div class="m-tool-desc">One zip with a printable <b>.3mf</b> for every ✓ ticked part — named by SKU and internal name, plus a <b>labels.txt</b> index. Drop as many as your bed holds into the slicer and arrange them there. Each tag imports as two parts with the filaments already assigned: <b>base plate → filament 1</b>, <b>raised QR/name/SKU → filament 2</b>.</div>
         <button class="m-add" id="m-3mf-btn" style="width:100%;margin-top:12px" onclick="mExportAll3mf()">⤓ Save ticked QR tags (3MF zip)</button>
         <div id="m-3mf-info" class="m-tool-desc" style="margin-top:8px;text-align:center"></div>
       </div>
@@ -7348,7 +7348,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9309,14 +9309,17 @@ var _MF_CT='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.o
 var _MF_RELS='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>';
 function _mfXmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 /* Wrap a 3dmodel.model string into .3mf bytes, compressing the model part. */
-function _mf3mfBytes(model,cb){
-  var enc=new TextEncoder(), mb=enc.encode(model);
+function _mf3mfBytes(built,cb){
+  var enc=new TextEncoder();
+  var mb=enc.encode(built.model), cfgB=enc.encode(built.cfg||'');
   _deflateRaw(mb,function(cz){
-    cb(_zipStore([
+    var files=[
       {name:'[Content_Types].xml',data:enc.encode(_MF_CT)},
       {name:'_rels/.rels',data:enc.encode(_MF_RELS)},
       {name:'3D/3dmodel.model',data:mb,_c:cz}
-    ]));
+    ];
+    if(built.cfg) files.push({name:'Metadata/model_settings.config',data:cfgB});
+    cb(_zipStore(files));
   });
 }
 function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF vertex/triangle XML (8 verts + 12 tris per box)
@@ -9384,10 +9387,14 @@ function _mfLabelModel(sku,desc,lay,cfg){
   lay=lay||QR_LAY; cfg=cfg||_stlCfg();
   var parts3d=_mfLabelParts(sku,desc,lay,cfg);
   var W=(+lay.wmm||30), H=(+lay.hmm||30), mmv=1/cfg.pxmm;
+  // Parts table for the Bambu sidecar. pindex is the 0-based 3MF material index; Bambu's
+  // extruder is the 1-BASED filament slot, hence +1. Base plate = filament 1, raised = 2.
+  var pTable=[{id:2, name:'Base plate', extruder:1}];
   var objs='', comps='<component objectid="2"/>', oid=3;
   parts3d.forEach(function(p3){
-    objs+='<object id="'+oid+'" type="model" pid="1" pindex="'+(p3.pindex||1)+'" name="'+p3.name+'"><mesh>'+_mfBoxes(p3.v.runs,W,H,p3.v.mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>';
+    objs+='<object id="'+oid+'" type="model" pid="1" pindex="'+(p3.pindex||1)+'" name="'+_mfXmlEsc(p3.name)+'"><mesh>'+_mfBoxes(p3.v.runs,W,H,p3.v.mm,cfg.base,cfg.base+cfg.raise)+'</mesh></object>';
     comps+='<component objectid="'+oid+'"/>';
+    pTable.push({id:oid, name:p3.name, extruder:(p3.pindex||1)+1});
     oid++;
   });
   // All bodies are wrapped in ONE assembly object (3MF components). This matters for slicers:
@@ -9405,15 +9412,39 @@ function _mfLabelModel(sku,desc,lay,cfg){
     +'</resources>'
     +'<build><item objectid="'+oid+'"/></build>'
     +'</model>';
-  return model;
+  return { model:model, cfg:_mfBambuConfig(oid, 'QR label '+sku, pTable) };
 }
-/* Single-label download: same model, packed synchronously (stored) — one label is small. */
+/* ===== Bambu / Orca filament assignment =====================================================
+   Bambu Studio does NOT use the 3MF standard's <basematerials> + pindex to decide which
+   filament prints which body — it reads this sidecar. Each <part> maps to a component object
+   id in 3dmodel.model and carries a 1-BASED extruder slot. Without it, every part imports on
+   filament 1, so a black plate and white lettering both come out black.
+   Bambu's own exports leave the "config" extension undeclared in [Content_Types].xml, and
+   those files still open in lib3mf and Microsoft 3D Viewer, so we match that exactly. */
+function _mfBambuConfig(objectId, objectName, pTable){
+  var parts=pTable.map(function(p){
+    return '<part id="'+p.id+'" subtype="normal_part">'
+      +'<metadata key="name" value="'+_mfXmlEsc(p.name)+'"/>'
+      +'<metadata key="extruder" value="'+p.extruder+'"/>'
+    +'</part>';
+  }).join('');
+  return '<?xml version="1.0" encoding="UTF-8"?>'
+    +'<config>'
+    +'<object id="'+objectId+'">'
+      +'<metadata key="name" value="'+_mfXmlEsc(objectName)+'"/>'
+      +'<metadata key="extruder" value="1"/>'
+      +parts
+    +'</object>'
+    +'</config>';
+}
+/* Single-label download: same model + sidecar, packed synchronously (one label is small). */
 function threeMfFromLabel(sku,desc,lay){
-  var enc=new TextEncoder(), model=_mfLabelModel(sku,desc,lay||QR_LAY,_stlCfg());
+  var enc=new TextEncoder(), b=_mfLabelModel(sku,desc,lay||QR_LAY,_stlCfg());
   return new Blob([_zipStore([
     {name:'[Content_Types].xml',data:enc.encode(_MF_CT)},
     {name:'_rels/.rels',data:enc.encode(_MF_RELS)},
-    {name:'3D/3dmodel.model',data:enc.encode(model)}
+    {name:'3D/3dmodel.model',data:enc.encode(b.model)},
+    {name:'Metadata/model_settings.config',data:enc.encode(b.cfg)}
   ])],{type:'model/3mf'});
 }
 /* Bulk 3MF: ONE zip holding one .3mf per ticked part, plus a labels.txt index. Arrange as
@@ -9452,7 +9483,7 @@ function mExportAll3mf(){
     setTimeout(function(){                       // yield each label so the UI keeps painting
       try{
         var p=list[i], sku=String(p.sku), desc=(p.desc||sku);
-        _mf3mfBytes(_mfLabelModel(sku,desc,lay,cfg),function(bytes){
+        _mf3mfBytes(_mfLabelModel(sku,desc,lay,cfg),function(bytes){   // {model,cfg} -> .3mf bytes
           var nm=_mf3mfName(sku,desc,used);
           files.push({name:nm,data:bytes});
           lines.push(nm);
@@ -10304,7 +10335,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

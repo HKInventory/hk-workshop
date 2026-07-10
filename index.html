@@ -1989,7 +1989,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AJ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AL · ZXing raw</div>
       </div>
     </div>
 
@@ -2638,6 +2638,11 @@
           <button class="m-row-btn" style="flex:1;width:auto" onclick="mQRSetAll(true)">Tick all</button>
           <button class="m-row-btn" style="flex:1;width:auto" onclick="mQRSetAll(false)">Untick all</button>
         </div>
+      </div>
+      <div class="mc"><div class="mct">3D-printed QR tags</div>
+        <div class="m-tool-desc">One zip with a printable <b>.3mf</b> for every ✓ ticked part — named by SKU and internal name, plus a <b>labels.txt</b> index. Drop as many as your bed holds into the slicer and arrange them there. Uses the current label design; each tag keeps its QR, text and photo as separate bodies so you assign filaments once.</div>
+        <button class="m-add" id="m-3mf-btn" style="width:100%;margin-top:12px" onclick="mExportAll3mf()">⤓ Save ticked QR tags (3MF zip)</button>
+        <div id="m-3mf-info" class="m-tool-desc" style="margin-top:8px;text-align:center"></div>
       </div>
       <div class="mc"><div class="mct">QR label editor</div>
         <div class="m-tool-desc">Drag a piece to move it, drag its corner handle to resize. Drag the <b style="color:#F59E0B">amber</b> corner to expand the label. Changes auto-save; <b>Save design</b> confirms. Applies to single labels and the bulk PDF above.</div>
@@ -7338,8 +7343,8 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
-  if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
   if(name==='access') acOpen();
@@ -9250,23 +9255,50 @@ function _crc32(u8){
   var crc=-1; for(var i=0;i<u8.length;i++) crc=(crc>>>8)^t[(crc^u8[i])&0xFF];
   return (crc^-1)>>>0;
 }
-function _zipStore(files){                                  // files: [{name, data:Uint8Array}] -> stored (uncompressed) zip
+function _zipStore(files){
+  // files: [{name, data:Uint8Array, _c?:Uint8Array}] -> zip. An entry with _c is written
+  // DEFLATE-compressed (method 8); without it, stored (method 0). CRC is always of the
+  // ORIGINAL bytes. Compression matters for 3MF: a full plate of labels is tens of MB of XML.
   var enc=new TextEncoder(), total=0, cdSize=0, i, f;
-  for(i=0;i<files.length;i++){ f=files[i]; f._n=enc.encode(f.name); f._crc=_crc32(f.data); f._off=0;
-    total+=30+f._n.length+f.data.length; cdSize+=46+f._n.length; }
+  for(i=0;i<files.length;i++){ f=files[i]; f._n=enc.encode(f.name); f._crc=_crc32(f.data);
+    f._d=f._c||f.data; f._m=f._c?8:0; f._off=0;
+    total+=30+f._n.length+f._d.length; cdSize+=46+f._n.length; }
   var buf=new Uint8Array(total+cdSize+22), dv=new DataView(buf.buffer), p=0;
   function u16(v){ dv.setUint16(p,v,true); p+=2; } function u32(v){ dv.setUint32(p,v,true); p+=4; }
   for(i=0;i<files.length;i++){ f=files[i]; f._off=p;
-    u32(0x04034b50); u16(20); u16(0); u16(0); u16(0); u16(0); u32(f._crc); u32(f.data.length); u32(f.data.length); u16(f._n.length); u16(0);
-    buf.set(f._n,p); p+=f._n.length; buf.set(f.data,p); p+=f.data.length;
+    u32(0x04034b50); u16(20); u16(0); u16(f._m); u16(0); u16(0); u32(f._crc); u32(f._d.length); u32(f.data.length); u16(f._n.length); u16(0);
+    buf.set(f._n,p); p+=f._n.length; buf.set(f._d,p); p+=f._d.length;
   }
   var cdStart=p;
   for(i=0;i<files.length;i++){ f=files[i];
-    u32(0x02014b50); u16(20); u16(20); u16(0); u16(0); u16(0); u16(0); u32(f._crc); u32(f.data.length); u32(f.data.length); u16(f._n.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(f._off);
+    u32(0x02014b50); u16(20); u16(20); u16(0); u16(f._m); u16(0); u16(0); u32(f._crc); u32(f._d.length); u32(f.data.length); u16(f._n.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(f._off);
     buf.set(f._n,p); p+=f._n.length;
   }
   u32(0x06054b50); u16(0); u16(0); u16(files.length); u16(files.length); u32(cdSize); u32(cdStart); u16(0);
   return buf;
+}
+/* Raw-deflate a byte array. Every browser Harvey uses has CompressionStream; anything older
+   silently falls back to a stored (uncompressed) entry, which still opens fine. */
+function _deflateRaw(u8,cb){
+  if(typeof CompressionStream==='undefined'){ cb(null); return; }
+  try{
+    var st=new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    new Response(st).arrayBuffer().then(function(ab){ cb(new Uint8Array(ab)); },function(){ cb(null); });
+  }catch(e){ cb(null); }
+}
+var _MF_CT='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>';
+var _MF_RELS='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>';
+function _mfXmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* Wrap a 3dmodel.model string into .3mf bytes, compressing the model part. */
+function _mf3mfBytes(model,cb){
+  var enc=new TextEncoder(), mb=enc.encode(model);
+  _deflateRaw(mb,function(cz){
+    cb(_zipStore([
+      {name:'[Content_Types].xml',data:enc.encode(_MF_CT)},
+      {name:'_rels/.rels',data:enc.encode(_MF_RELS)},
+      {name:'3D/3dmodel.model',data:mb,_c:cz}
+    ]));
+  });
 }
 function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF vertex/triangle XML (8 verts + 12 tris per box)
   var xml=[], ts=[], vi=0, fz0=z0.toFixed(3), fz1=z1.toFixed(3);
@@ -9286,14 +9318,12 @@ function _mfBoxes(runs,W,H,mm,z0,z1){                       // runs -> 3MF verte
   var tri=ts.map(function(t){return '<triangle v1="'+t[0]+'" v2="'+t[1]+'" v3="'+t[2]+'"/>';}).join('');
   return '<vertices>'+xml.join('')+'</vertices><triangles>'+tri+'</triangles>';
 }
-function threeMfFromLabel(sku,desc,lay){
-  lay=lay||QR_LAY;
-  var cfg=_stlCfg(), raised=(cfg.mode!=='engraved');
-  var baseCol=(raised?(lay.bg||'#FFFFFF'):(lay.fg||'#111111')).toUpperCase();
-  var embCol =(raised?(lay.fg||'#111111'):(lay.bg||'#FFFFFF')).toUpperCase();
-  // Bodies. Raised mode: each label element is voxelised on its own, so the QR, description,
-  // SKU and product image arrive in the slicer as INDEPENDENT bodies — colour or handle each
-  // separately. Engraved mode is inherently one connected top sheet, so it stays one body.
+/* The artwork bodies for ONE label. Shared by the single-label 3MF and the multi-label plate.
+   Raised mode: each element is voxelised on its own, so the QR, description, SKU and product
+   image arrive in the slicer as INDEPENDENT bodies — colour or handle each separately.
+   Engraved mode is inherently one connected top sheet, so it stays one body. */
+function _mfLabelParts(sku,desc,lay,cfg){
+  var raised=(cfg.mode!=='engraved');
   var parts3d=[];
   if(raised){
     var defs=[['qr','QR code'],['desc','Description'],['sku','SKU']];
@@ -9317,6 +9347,23 @@ function threeMfFromLabel(sku,desc,lay){
     var vTop=_labelVoxels(sku,desc,lay);
     parts3d.push({name:'Top surface', v:vTop, pindex:1});
   }
+  return parts3d;
+}
+/* Shared material palette + base-plate object (identical for every label, so the plate export
+   defines it once and every label references it as a component). */
+function _mfBaseCols(lay,cfg){
+  var raised=(cfg.mode!=='engraved');
+  return { base:(raised?(lay.bg||'#FFFFFF'):(lay.fg||'#111111')).toUpperCase(),
+           emb :(raised?(lay.fg||'#111111'):(lay.bg||'#FFFFFF')).toUpperCase() };
+}
+function _mfMaterials(lay,cfg){
+  var c=_mfBaseCols(lay,cfg);
+  return '<basematerials id="1"><base name="Base plate" displaycolor="'+c.base+'"/><base name="Label artwork" displaycolor="'+c.emb+'"/><base name="Photo mid tones" displaycolor="#8E9196"/></basematerials>';
+}
+/* The 3dmodel.model XML for ONE label. Shared by the single-label download and the bulk zip. */
+function _mfLabelModel(sku,desc,lay,cfg){
+  lay=lay||QR_LAY; cfg=cfg||_stlCfg();
+  var parts3d=_mfLabelParts(sku,desc,lay,cfg);
   var W=(+lay.wmm||30), H=(+lay.hmm||30), mmv=1/cfg.pxmm;
   var objs='', comps='<component objectid="2"/>', oid=3;
   parts3d.forEach(function(p3){
@@ -9332,20 +9379,86 @@ function threeMfFromLabel(sku,desc,lay){
   var model='<?xml version="1.0" encoding="UTF-8"?>'
     +'<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
     +'<resources>'
-    +'<basematerials id="1"><base name="Base plate" displaycolor="'+baseCol+'"/><base name="Label artwork" displaycolor="'+embCol+'"/><base name="Photo mid tones" displaycolor="#8E9196"/></basematerials>'
+    +_mfMaterials(lay,cfg)
     +'<object id="2" type="model" pid="1" pindex="0" name="Base plate"><mesh>'+_mfBoxes(null,W,H,mmv,0,cfg.base)+'</mesh></object>'
     +objs
-    +'<object id="'+oid+'" type="model" name="QR label '+String(sku).replace(/[<>&"]/g,'')+'"><components>'+comps+'</components></object>'
+    +'<object id="'+oid+'" type="model" name="QR label '+_mfXmlEsc(sku)+'"><components>'+comps+'</components></object>'
     +'</resources>'
     +'<build><item objectid="'+oid+'"/></build>'
     +'</model>';
-  var enc=new TextEncoder();
-  var zip=_zipStore([
-    {name:'[Content_Types].xml',data:enc.encode('<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>')},
-    {name:'_rels/.rels',data:enc.encode('<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>')},
+  return model;
+}
+/* Single-label download: same model, packed synchronously (stored) — one label is small. */
+function threeMfFromLabel(sku,desc,lay){
+  var enc=new TextEncoder(), model=_mfLabelModel(sku,desc,lay||QR_LAY,_stlCfg());
+  return new Blob([_zipStore([
+    {name:'[Content_Types].xml',data:enc.encode(_MF_CT)},
+    {name:'_rels/.rels',data:enc.encode(_MF_RELS)},
     {name:'3D/3dmodel.model',data:enc.encode(model)}
-  ]);
-  return new Blob([zip],{type:'model/3mf'});
+  ])],{type:'model/3mf'});
+}
+/* Bulk 3MF: ONE zip holding one .3mf per ticked part, plus a labels.txt index. Arrange as
+   many as you like on the bed in the slicer. Same ✓ selection as the bulk PDF, and the
+   same current label design. The model inside each .3mf is deflated — a raw label is
+   hundreds of KB of XML, so 200+ stored uncompressed would not fit in a phone's memory. */
+function m3mfStatus(t,col){ var el=document.getElementById('m-3mf-info'); if(el){ el.innerHTML=t||''; el.style.color=col||''; } }
+function m3mfInfo(){
+  if(!document.getElementById('m-3mf-info')) return;
+  var list=(parts||[]).filter(function(p){return p.qr_print!==false;});
+  if(!list.length){ m3mfStatus('No parts ticked \u2014 tick them in the Parts tab.'); return; }
+  var w=(+QR_LAY.wmm||30), hh=(+QR_LAY.hmm||30);
+  m3mfStatus('<b>'+list.length+'</b> ticked \u2192 '+list.length+' \u00d7 .3mf in one zip \u00b7 '+w+'\u00d7'+hh+'\u00a0mm each');
+}
+/* A safe, human-readable filename: "<sku> <internal name>.3mf", trimmed of anything a
+   filesystem or zip reader would choke on. Duplicate names get a numeric suffix. */
+function _mf3mfName(sku,desc,used){
+  var base=String(sku)+' '+String(desc||'');
+  base=base.replace(/[\\\/:*?"<>|]+/g,' ').replace(/[\x00-\x1f]/g,'').replace(/\s+/g,' ').trim().slice(0,80);
+  if(!base) base=String(sku);
+  var nm=base, i=2; while(used[nm.toLowerCase()]) nm=base+' ('+(i++)+')';
+  used[nm.toLowerCase()]=1; return nm+'.3mf';
+}
+function mExportAll3mf(){
+  var list=(parts||[]).filter(function(p){return p.qr_print!==false;});
+  if(!list.length){ alert('No parts are ticked. Tick the ones you want in the Parts tab, or use \u201cTick all\u201d.'); return; }
+  var btn=document.getElementById('m-3mf-btn'), old=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; }
+  var lay=QR_LAY, cfg=_stlCfg(), used={}, files=[];
+  var lines=['HK Workshop \u2014 QR tags ('+list.length+' labels, '+(+lay.wmm||30)+'\u00d7'+(+lay.hmm||30)+'mm)',''];
+  _ensureHkLogo(function(){ _prodPreload(list.map(function(p){return p.sku;}), function(){ next(0); }); });
+  function next(i){
+    if(i>=list.length){ finish(); return; }
+    if(btn) btn.innerHTML='Building '+(i+1)+' of '+list.length+'\u2026';
+    m3mfStatus('\u2699\ufe0f '+(list[i].desc||list[i].sku));
+    setTimeout(function(){                       // yield each label so the UI keeps painting
+      try{
+        var p=list[i], sku=String(p.sku), desc=(p.desc||sku);
+        _mf3mfBytes(_mfLabelModel(sku,desc,lay,cfg),function(bytes){
+          var nm=_mf3mfName(sku,desc,used);
+          files.push({name:nm,data:bytes});
+          lines.push(nm);
+          next(i+1);
+        });
+      }catch(e){ fail(e); }
+    },0);
+  }
+  function finish(){
+    try{
+      files.push({name:'labels.txt',data:new TextEncoder().encode(lines.join('\n'))});
+      var zip=_zipStore(files), blob=new Blob([zip],{type:'application/zip'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download='HK-QR-tags-3MF.zip';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+      if(btn){ btn.innerHTML=old; btn.disabled=false; }
+      m3mfStatus('\u2713 '+list.length+' tags \u00b7 '+(zip.length/1048576).toFixed(1)+' MB \u2014 saved','#22C55E');
+      setTimeout(m3mfInfo,6000);
+    }catch(e){ fail(e); }
+  }
+  function fail(e){
+    if(btn){ btn.innerHTML=old; btn.disabled=false; }
+    m3mfStatus('Could not build the files: '+(e&&e.message?e.message:e),'#FF5A52');
+  }
 }
 function qrSave3d(sku,fmt){
   var p=(parts||[]).find(function(x){return String(x.sku)===String(sku);});
@@ -9636,6 +9749,7 @@ function mQRCount(){
   var el=document.getElementById('m-qr-count'); if(!el) return;
   var inc=(parts||[]).filter(function(p){return p.qr_print!==false;}).length, tot=(parts||[]).length;
   el.textContent=inc+' of '+tot+' parts ticked for the bulk PDF';
+  if(typeof m3mfInfo==='function') m3mfInfo();
 }
 
 /* Rotating master PIN reveal on the Manager Dashboard */
@@ -10171,7 +10285,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

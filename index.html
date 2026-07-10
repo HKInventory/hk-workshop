@@ -1673,7 +1673,13 @@
     .rfq-seg{display:flex;gap:6px}
     .rfq-seg button{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:9px;color:var(--t2);font-size:11px;font-weight:800;letter-spacing:.02em;padding:9px 4px;cursor:pointer;font-family:inherit;text-transform:uppercase}
     .rfq-seg button.on{background:#1A73E8;border-color:#1A73E8;color:#fff}
-    .rfq-part-row{display:grid;grid-template-columns:1fr 58px 72px 34px;gap:6px;margin-bottom:6px}
+    .rfq-part-row{display:grid;grid-template-columns:1fr 56px 66px 30px 30px;gap:6px;margin-bottom:6px}
+    .rfq-part-head{display:grid;grid-template-columns:1fr 56px 66px 64px;gap:6px;margin-bottom:5px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t2)}
+    .rfq-rowbtn{border-radius:8px;border:1px solid;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;padding:0}
+    .rfq-rowbtn.minus{background:rgba(220,38,38,.12);border-color:#DC2626;color:#DC2626}
+    .rfq-rowbtn.plus{background:rgba(22,163,74,.15);border-color:#16A34A;color:#16A34A}
+    .rfq-avail{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t1);margin-bottom:9px;cursor:pointer}
+    .rfq-whwarn{margin-bottom:9px;padding:8px 10px;border-radius:9px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#F59E0B;font-size:11.5px;line-height:1.45}
     .rfq-part-row select,.rfq-part-row input{background:var(--card);border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 9px;font-size:13px;font-family:inherit;min-width:0}
     .rfq-delpart{background:rgba(255,90,82,.12);border:1px solid rgba(255,90,82,.35);border-radius:9px;color:#FF6B63;font-size:14px;cursor:pointer;font-family:inherit}
     .rfq-nopart{font-size:12.5px;color:var(--t2);padding:2px 2px 6px}
@@ -1989,7 +1995,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AN · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AO · ZXing raw</div>
       </div>
     </div>
 
@@ -5646,7 +5652,7 @@ function kdSetStatus(status){
   var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
   function _revert(msg){ k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(msg) alert(msg); }
   SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).then(function(r){
-    if(r&&r.error){ _revert((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql (adds the status queue) first':('Status change failed: '+(r.error.message||''))); }
+    if(r&&r.error){ _revert((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase \u2014 it creates the status queue':('Status change failed: '+(r.error.message||''))); }
   },function(){ _revert('Connection error'); });
 }
 function loadKartRepairsFresh(rfId,cb){
@@ -6408,7 +6414,7 @@ function selectKart(rfId){
 // Single-page kart detail — mirrors the RaceFacer garage page:
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
-var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null;
+var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false;
 function rfqRepairForNote(noteId){
   var k=KD_KART||{}; var notes=(k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
   var n=notes.filter(function(x){return x.id===noteId;})[0]; if(!n) return;
@@ -6419,10 +6425,27 @@ function loadRfWarehouse(){
   if(RF_WH!==null||typeof SBC==='undefined'||!SBC) return;
   RF_WH=[];   // mark as loading so we only fetch once
   SBC.from('rf_warehouse').select('part_id,rf_id,name,price,max_qty').order('name').then(function(r){
-    if(r&&r.data&&r.data.length){ RF_WH=r.data; if(RFQ_MODE==='repair') rfqRenderParts(); }
+    if(r&&r.data&&r.data.length) RF_WH=r.data;
+    if(RFQ_MODE==='repair'){ rfqRenderParts(); rfqWhBanner(); }
   },function(){});
 }
 function _rfqSpec(l,v){ return '<div class="rfq-spec"><span>'+l+'</span><b>'+kEsc(String(v))+'</b></div>'; }
+/* RaceFacer's Add-damage form uses plain dropdowns for Status and User; match it so the two
+   screens read the same. The User name must resolve against RaceFacer's own user list, which
+   is why it is a name and not an id — the runner maps it. */
+function _rfqStatusSel(){
+  return '<select id="rfq-status" onchange="rfqSetStatus(this.value)">'
+    +[['ok','ok'],['damaged','damaged'],['for_maintenance','for maintenance']].map(function(o){
+      return '<option value="'+o[0]+'"'+(RFQ_STATUS===o[0]?' selected':'')+'>'+o[1]+'</option>';
+    }).join('')+'</select>';
+}
+function _rfqUserSel(){
+  var names=(STAFF||[]).map(function(s){return s.name;});
+  if(cu&&cu.name&&names.indexOf(cu.name)<0) names.unshift(cu.name);
+  return '<select id="rfq-user">'+names.map(function(nm){
+    return '<option value="'+kEsc(nm)+'"'+((cu&&nm===cu.name)?' selected':'')+'>'+kEsc(nm)+'</option>';
+  }).join('')+'</select>';
+}
 function _rfqSeg(){
   var opts=[['ok','OK','s-ok'],['for_maintenance','FOR MAINTENANCE','s-fm'],['damaged','DAMAGED','s-dmg']];
   return '<div class="rfq-seg" id="rfq-seg">'+opts.map(function(o){
@@ -6431,9 +6454,12 @@ function _rfqSeg(){
 }
 function rfqSetStatus(s){ RFQ_STATUS=s; var seg=document.getElementById('rfq-seg'); if(seg){ var bs=seg.querySelectorAll('button'); var m={ok:0,for_maintenance:1,damaged:2}; for(var i=0;i<bs.length;i++){ bs[i].classList.toggle('on',i===m[s]); } } }
 function _rfqPartOpts(sel){
-  var o='<option value="">Please select…</option>';
+  var o='<option value="">Please select\u2026</option>';
   if(RF_WH&&RF_WH.length){
-    RF_WH.forEach(function(p){ var v='rf:'+p.part_id; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+kEsc(p.name)+(p.price?(' \u00b7 $'+Number(p.price).toFixed(2)):'')+'</option>'; });
+    // "Show only available parts" mirrors RaceFacer: hide anything with no stock left,
+    // but never hide the row's own current selection or it would silently reset.
+    RF_WH.filter(function(p){ return !RFQ_AVAIL || Number(p.max_qty)>0 || sel===('rf:'+p.part_id); })
+      .forEach(function(p){ var v='rf:'+p.part_id; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+kEsc(p.name)+(p.price?(' \u00b7 $'+Number(p.price).toFixed(2)):'')+'</option>'; });
     return o;   // real RaceFacer warehouse (synced by the runner)
   }
   (parts||[]).slice().sort(function(a,b){return String(a.desc||a.sku).localeCompare(String(b.desc||b.sku));}).forEach(function(p){
@@ -6444,17 +6470,29 @@ function _rfqPartOpts(sel){
 }
 function rfqRenderParts(){
   var box=document.getElementById('rfq-parts'); if(!box) return;
-  if(!RFQ_PARTS.length){ box.innerHTML='<div class="rfq-nopart">No parts added.</div>'; rfqTotal(); return; }
-  box.innerHTML=RFQ_PARTS.map(function(p,i){
+  if(!RFQ_PARTS.length){
+    box.innerHTML='<div class="rfq-nopart">No parts added \u2014 tap + to add one.</div>'; rfqTotal(); return;
+  }
+  var head='<div class="rfq-part-head"><span>Parts used</span><span>Quantity</span><span>Price</span><span></span></div>';
+  box.innerHTML=head+RFQ_PARTS.map(function(p,i){
+    var mx=(p.max_qty!=null&&Number(p.max_qty)>0)?(' max="'+Number(p.max_qty)+'"'):'';
     return '<div class="rfq-part-row">'
       +'<select onchange="rfqPartSel('+i+',this.value)">'+_rfqPartOpts(p.sku)+'</select>'
-      +'<input type="number" min="0" step="1" value="'+(p.qty||0)+'" oninput="rfqPartQty('+i+',this.value)" title="Qty">'
+      +'<input type="number" min="0" step="1"'+mx+' value="'+(p.qty||0)+'" oninput="rfqPartQty('+i+',this.value)" title="Quantity">'
       +'<input type="number" min="0" step="0.01" value="'+(p.price||0)+'" oninput="rfqPartPrice('+i+',this.value)" title="Price">'
-      +'<button class="rfq-delpart" onclick="rfqDelPart('+i+')">\u2715</button>'
+      +'<button type="button" class="rfq-rowbtn minus" onclick="rfqDelPart('+i+')" title="Remove">\u2212</button>'
+      +'<button type="button" class="rfq-rowbtn plus" onclick="rfqAddPart()" title="Add another">+</button>'
       +'</div>';
   }).join('');
   rfqTotal();
 }
+/* Amber banner when the runner has not managed to sync RaceFacer's warehouse: without it the
+   dropdown silently falls back to the app's own parts and the mismatch is invisible. */
+function rfqWhBanner(){
+  var el=document.getElementById('rfq-whwarn'); if(!el) return;
+  el.style.display=(RF_WH&&RF_WH.length)?'none':'';
+}
+function rfqSetAvail(on){ RFQ_AVAIL=!!on; rfqRenderParts(); }
 function rfqAddPart(){ RFQ_PARTS.push({sku:'',name:'',qty:1,price:0}); rfqRenderParts(); }
 function rfqDelPart(i){ RFQ_PARTS.splice(i,1); rfqRenderParts(); }
 function rfqPartSel(i,val){
@@ -6503,26 +6541,30 @@ function rfqCardHtml(){
   return '<div class="mc" style="text-align:left;margin:0 0 14px">'
     +'<div class="mct">\ud83d\udd25 New repair \u00b7 '+kEsc(k.num||'')+'</div>'
     +(RFQ_NOTE?('<div class="rfq-fornote">for note: \u201c'+kEsc(_sn)+(String(RFQ_NOTE.note||'').length>60?'\u2026':'')+'\u201d</div>'):'')
-    +'<div class="m-tool-desc">Adds the repair in RaceFacer as <b>'+kEsc(cu.name)+'</b> \u2014 lands in seconds and is stored here, no re-scan.</div>'+info
+    +'<div class="m-tool-desc">Adds the damage in RaceFacer \u2014 lands in seconds and is stored here, no re-scan.</div>'+info
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">'
     +'<div class="m-fld"><label>Date discovered</label><input id="rfq-disc" type="date" value="'+today+'"></div>'
     +'<div class="m-fld"><label>Date repaired</label><input id="rfq-date" type="date" value="'+today+'"></div></div>'
-    +'<div class="rfq-partsbox"><div class="rfq-partsbox-h">Parts used</div><div id="rfq-parts"></div>'
-    +'<button class="rfq-addpart" onclick="rfqAddPart()">+ Add part</button>'
-    +'<div class="rfq-total">Total: <b id="rfq-total">$0.00</b></div></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">'
+    +'<div class="rfq-partsbox">'
+    +'<div class="rfq-whwarn" id="rfq-whwarn" style="display:none">RaceFacer\u2019s parts warehouse hasn\u2019t synced \u2014 showing this app\u2019s parts instead. The runner retries every 6h.</div>'
+    +'<label class="rfq-avail"><input type="checkbox" id="rfq-avail"'+(RFQ_AVAIL?' checked':'')+' onchange="rfqSetAvail(this.checked)"><span>Show only available parts</span></label>'
+    +'<div id="rfq-parts"></div>'
+    +'<div class="rfq-total">Total price: <b id="rfq-total">$0.00</b></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px">'
     +'<div class="m-fld"><label>Working hours</label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="e.g. 4433"></div>'
-    +'<div class="m-fld"><label>Kart status</label>'+_rfqSeg()+'</div></div>'
+    +'<div class="m-fld"><label>Status</label>'+_rfqStatusSel()+'</div>'
+    +'<div class="m-fld"><label>User</label>'+_rfqUserSel()+'</div></div>'
     +'<label class="bt-toggle" style="margin-top:10px"><input type="checkbox" id="rfq-fixed" checked><span>Mark as fixed (counts on the leaderboard)</span></label>'
-    +'<div class="m-fld" style="margin-top:8px"><label>What did you do to fix it?</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
+    +'<div class="m-fld" style="margin-top:8px"><label>Note</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
     +'<div class="m-form-msg" id="rfq-msg" style="margin-top:8px"></div>'
-    +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Log repair</button></div>'
+    +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel and close</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">+ Save</button></div>'
     +'</div>';
 }
 function rfqToggle(mode){
   RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; if(!mode) RFQ_NOTE=null;
   ktTab('Repairs');
-  if(mode==='repair'){ rfqRenderParts(); loadRfWarehouse(); }
+  if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
+    rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
   var t=document.getElementById('rfq-note'); if(t){ t.focus(); }
 }
 function rfqSubmit(){
@@ -6537,7 +6579,7 @@ function rfqSubmit(){
     var nrow={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
                user_name:cu.name, note:note.slice(0,1000), rf_status:RFQ_STATUS };
     SBC.from('rf_note_queue').insert(nrow).then(function(r){
-      if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
+      if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
       try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({id:null, note:note, createdIso:new Date().toISOString(), createdBy:cu.name, archivedIso:'', archivedBy:'', open:true, active:true, _pending:true}); }catch(e){}
       RFQ_MODE=null; ktTab('Repairs'); var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
     },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
@@ -6547,18 +6589,21 @@ function rfqSubmit(){
   var disc=document.getElementById('rfq-disc').value||new Date().toISOString().slice(0,10);
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
+  var uEl=document.getElementById('rfq-user'), who=(uEl&&uEl.value)||cu.name;   // RaceFacer's User dropdown
   var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0,part_id:(p.part_id||null),id:(p.rf_id||null),max_qty:(p.max_qty||null)};});
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
-            user_name:cu.name, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
+            user_name:who, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
             working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
             notification_id:(RFQ_NOTE&&RFQ_NOTE.id)||null };
   SBC.from('rf_repair_queue').insert(row).then(function(r){
-    if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Log repair'); return; }
+    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('+ Save'); return; }
     var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
     arr.unshift({ id:Date.now(), iso:disc, date:disc.split('-').reverse().join('.'), status:(fixed?'fixed':'open'),
       isoRepaired:(fixed?dt:''), cost:useParts.reduce(function(a,p){return a+p.qty*p.price;},0), issue:note, repairNotes:'',
       parts:useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};}), mileage:0, user:cu.name,
       dateRepaired:(fixed?dt.split('-').reverse().join('.'):''), kartName:String(k.num||''), kartType:String(k.type||''), kartGarageId:'', typeColor:'', _pending:true });
+    // The RaceFacer note only clears if notification_id carried its real RF id.
+    if(RFQ_NOTE&&RFQ_NOTE.id){ try{ (RF_NOTES_BY_ID[k.rfId]||[]).forEach(function(nn){ if(nn.id===RFQ_NOTE.id){ nn.open=false; nn.active=false; nn._pending=true; } }); }catch(e){} }
     KD_REPAIRS=arr; RFQ_MODE=null; ktTab('Repairs');
   },function(){ say('Connection error'); okBtn('\u2713 Log repair'); });
 }
@@ -7348,7 +7393,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10335,7 +10380,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

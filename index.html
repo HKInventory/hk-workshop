@@ -562,7 +562,8 @@
     .kd-line .kd-k{color:var(--t2);font-weight:600;margin-right:5px}
     .kd-line b{font-weight:800}
     .kd-statusseg{display:inline-flex;border:1px solid var(--b2);border-radius:10px;overflow:hidden;flex-shrink:0}
-    .kd-seg{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:8px 12px;color:var(--t2);background:rgba(255,255,255,.03);border-right:1px solid var(--b1)}
+    .kd-seg{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:8px 12px;color:var(--t2);background:rgba(255,255,255,.03);border-right:1px solid var(--b1);cursor:pointer;user-select:none}
+    .kd-seg:active{opacity:.8}
     .kd-seg:last-child{border-right:0}
     .kd-seg.on-ok{background:#22C55E;color:#04140a}
     .kd-seg.on-maint{background:#FFD600;color:#1a1500}
@@ -992,8 +993,8 @@
     .m-form-title{font-size:18px;font-weight:800;margin-bottom:16px}
     .m-fld{margin-bottom:13px}
     .m-fld label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t2);margin-bottom:5px}
-    .m-fld input{width:100%;background:var(--card2);border:1px solid var(--b2);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:15px;-webkit-appearance:none}
-    .m-fld input:focus{outline:none;border-color:var(--acc)}
+    .m-fld input,.m-fld select{width:100%;background:var(--card2);border:1px solid var(--b2);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:15px;-webkit-appearance:none}
+    .m-fld input:focus,.m-fld select:focus{outline:none;border-color:var(--acc)}
     .m-fld input[readonly]{opacity:.55}
     .m-hint{font-size:11px;color:var(--acc);margin-top:4px;font-weight:600;min-height:13px}
     .m-form-msg{min-height:18px;font-size:13px;color:var(--red);font-weight:600;margin:4px 0}
@@ -1678,6 +1679,8 @@
     .rfq-nopart{font-size:12.5px;color:var(--t2);padding:2px 2px 6px}
     .rfq-addpart{background:transparent;border:1px dashed var(--b2);border-radius:9px;color:var(--acc);font-size:13px;font-weight:700;padding:8px 12px;cursor:pointer;font-family:inherit;margin-top:2px}
     .rfq-total{margin-top:8px;font-size:13px;color:var(--t2);text-align:right}.rfq-total b{color:var(--t1);font-size:15px}
+    .rfq-partsbox{margin-top:10px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.35);border-radius:12px;padding:12px 13px}
+    .rfq-partsbox-h{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4ADE80;margin-bottom:9px}
     .rfq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .rfq-cancel{background:transparent!important;border:1px dashed var(--b2)!important;color:var(--t2)!important}
     .kn-act{width:1%;white-space:nowrap;text-align:right}
@@ -1986,7 +1989,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AJ · ZXing raw</div>
       </div>
     </div>
 
@@ -2549,6 +2552,7 @@
   <div class="m-pane active" id="m-pane-parts">
     <div class="m-tools">
       <input class="m-search-in" id="m-search" placeholder="Search parts..." oninput="mSearch()">
+      <button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" onclick="mSupOpen()">🏷 Suppliers</button>
       <button class="m-add" onclick="mOpenAdd()">+ Add</button>
     </div>
     <div class="m-list" id="m-list"></div>
@@ -2744,7 +2748,7 @@
     <div class="m-fld"><label>SKU (part number \u2014 optional)</label><input id="m-f-sku" inputmode="numeric"><div class="m-hint" id="m-sku-hint">Optional \u2014 leave blank if the part has no SKU (RIMO or not). It's still tracked and scannable.</div></div>
     <label class="m-lock"><input type="checkbox" id="m-f-rimo" checked onchange="mRimoToggle()"><span>\uD83D\uDCE6 RIMO part \u2014 include in the generated RIMO order</span></label>
     <div class="m-two">
-      <div class="m-fld"><label>Brand</label><input id="m-f-brand" placeholder="e.g. RIMO, Dunlop"></div>
+      <div class="m-fld" id="m-sup-fld"><label>Supplier</label><select id="m-f-brand"><option value="">— none —</option></select></div>
       <div class="m-fld" id="m-lead-fld" style="display:none"><label>Delivery lead (days)</label><input id="m-f-lead" inputmode="numeric" placeholder="e.g. 14"></div>
     </div>
     <div class="m-fld"><label>Description (full name)</label><input id="m-f-desc"></div>
@@ -2757,6 +2761,10 @@
       <div class="m-fld"><label>Min Stock</label><input id="m-f-min" inputmode="numeric"></div>
       <div class="m-fld"><label>Qty</label><input id="m-f-qty" inputmode="numeric"></div>
     </div>
+    <div class="m-two">
+      <div class="m-fld"><label>Yield rate</label><input id="m-f-yield" inputmode="numeric" placeholder="6"><div class="m-hint">Scans before the smart minimum takes over</div></div>
+      <div class="m-fld"><label>Category</label><input id="m-f-cat" placeholder="e.g. gas, brake, BCPS"></div>
+    </div>
     <label class="m-lock"><input type="checkbox" id="m-f-lock"><span>🔒 Lock this minimum — don't auto-adjust from usage</span></label>
     <div class="m-lockhint" id="m-f-lockhint"></div>
     <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Row</label><input id="m-f-row" placeholder="e.g. 3"></div><div><label>Shelf</label><input id="m-f-shelf" placeholder="e.g. B"></div></div>
@@ -2767,6 +2775,16 @@
       <button class="m-form-btn m-cancel" onclick="mCloseForm()">Cancel</button>
       <button class="m-form-btn m-save" onclick="mSave()">Save</button>
     </div>
+  </div>
+</div>
+<div class="m-form" id="m-sup">
+  <div class="m-form-box">
+    <div class="m-form-title">Suppliers</div>
+    <div class="m-hint" style="margin-bottom:8px">These appear in the part form's Supplier dropdown. RIMO parts are tagged automatically.</div>
+    <div id="m-sup-list" style="max-height:300px;overflow-y:auto;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px"><input id="m-sup-new" placeholder="New supplier — e.g. Dunlop" style="flex:1;background:var(--card2);border:1px solid var(--b2);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:15px" onkeydown="if(event.key==='Enter')mSupAdd()"><button class="m-form-btn m-save" style="flex:0 0 auto" onclick="mSupAdd()">Add</button></div>
+    <div class="m-form-msg" id="m-sup-msg"></div>
+    <div class="m-form-row"><button class="m-form-btn m-cancel" onclick="mSupClose()">Done</button></div>
   </div>
 </div>
 <div class="m-qr" id="m-qr">
@@ -2936,7 +2954,7 @@ function buildTrainData(){
   ];
   return raw.map(function(r){
     var u=r.u||0, rate=u/90, dl=(u>0)?(rate>0?Math.floor(r.qty/rate):null):null;
-    return {sku:r.sku,description:r.d,internal_description:r.d,desc:r.d,qty:r.qty,min_stock:r.min,reorder:r.min,loc:r.loc,price:(r.eur*EURAUD),price_eur:r.eur,price_aud:null,auto_min:true,qr_print:true,scans90:(u>0?Math.max(3,Math.round(u/3)):0),used90:u,daysLeft:dl,recommendedReorder:(u>0?Math.ceil(u*1.3):null),orderQuantity:(u>0?Math.ceil(u*2):null)};
+    return {sku:r.sku,description:r.d,internal_description:r.d,desc:r.d,qty:r.qty,min_stock:r.min,reorder:r.min,loc:r.loc,price:(r.eur*EURAUD),price_eur:r.eur,price_aud:null,auto_min:true,qr_print:true,scans90:(u>0?Math.max(3,Math.round(u/3)):0),scansAll:(u>0?Math.max(3,Math.round(u/3)):0),used90:u,daysLeft:dl,recommendedReorder:(u>0?Math.ceil(u*1.3):null),orderQuantity:(u>0?Math.ceil(u*2):null)};
   }).sort(function(a,b){return a.desc.localeCompare(b.desc);});
 }
 function showTrainingBanner(b){ var el=document.getElementById('trainBanner'); if(el){ el.style.display=b?'flex':'none'; if(typeof sz==='function') setTimeout(sz,0); } }
@@ -3132,6 +3150,9 @@ refreshRate();
 
 /* map a Supabase parts row to the shape the UI expects */
 function _rimoVal(v){ if(v===false||v===0) return false; if(v==null) return true; var s=String(v).trim().toLowerCase(); if(s===''||s==='n'||s==='no'||s==='false'||s==='0') return false; return true; }
+/* Yield rate: how many LIFETIME scans a part needs before its minimum starts auto-tuning
+   from usage. Default 6; high-use items (silent blocks etc) are set higher in the sheet. */
+function pYield(p){ var y=(p&&p.yield_rate!=null)?Number(p.yield_rate):0; return (y>0)?y:6; }
 function mapPart(r){
   var aud=(r.price_eur!=null)?(Number(r.price_eur)*EURAUD):(r.price_aud!=null?Number(r.price_aud):0);
   return {
@@ -3147,8 +3168,9 @@ function mapPart(r){
     price_eur:(r.price_eur!=null?Number(r.price_eur):null),
     price_aud:(r.price_aud!=null?Number(r.price_aud):null),
     auto_min:(r.auto_min!==undefined&&r.auto_min!==null?!!r.auto_min:true), qr_print:(r.qr_print===false?false:true), scans90:0,
-    image_url:(r.image_url||''), is_rimo:(r.is_rimo!==false), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
+    image_url:(r.image_url||''),
     is_rimo:_rimoVal(r.is_rimo), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
+    yield_rate:(r.yield_rate!=null?Number(r.yield_rate):null), category:(r.category||''),
     used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
   };
 }
@@ -3166,17 +3188,22 @@ function loadParts(cb){
          min to always carry (reorder point) = ceil(90d usage x 1.3)   (covers the 3-month lead + 30% buffer)
          order quantity                      = ceil(90d usage x 2)      (6-month supply between deliveries)
        daysLeft = current stock / daily usage rate. */
-    var ninety=Date.now()-90*864e5, usage90={}, scans90={};
+    var ninety=Date.now()-90*864e5, usage90={}, scans90={}, scansAll={};
     ((lres&&lres.data)||[]).forEach(function(l){
       if(String(l.action||'')!=='TAKEN') return;
+      var sk=String(l.sku||''); scansAll[sk]=(scansAll[sk]||0)+1;   // lifetime count — gates the yield rate
       var t=new Date(l.ts).getTime(); if(isNaN(t)||t<ninety) return;
-      var sk=String(l.sku||''); usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0); scans90[sk]=(scans90[sk]||0)+1;
+      usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0); scans90[sk]=(scans90[sk]||0)+1;
     });
     var arr=pres.data.map(function(r){
       if(sres){ var sm=smap[String(r.sku)]||{qty:0,min_stock:null,location:''}; r.qty=sm.qty; r.min_stock=sm.min_stock; r.location=sm.location; }
       var pt=mapPart(r), u=usage90[pt.sku]||0;
-      pt.scans90=scans90[pt.sku]||0;
+      pt.scans90=scans90[pt.sku]||0; pt.scansAll=scansAll[pt.sku]||0;
       if(u>0){ pt.used90=u; var rate=u/90; pt.daysLeft=rate>0?Math.floor(pt.qty/rate):null; pt.recommendedReorder=Math.ceil(u*1.3); pt.orderQuantity=Math.ceil(u*2); }
+      /* Yield gate: the set minimum holds until the part has been scanned pYield(pt) times ever
+         (default 6, e.g. 75 for high-use items) — then the smart minimum from 90-day usage takes
+         over as the effective low-stock threshold. 🔒 locked parts never auto-tune. */
+      if(pt.auto_min!==false && pt.recommendedReorder!=null && pt.scansAll>=pYield(pt)) pt.reorder=pt.recommendedReorder;
       return pt;
     }).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
     if(cb)cb(arr);
@@ -5582,9 +5609,55 @@ var LT_TYPE='Long Term', LT_COLOR='#94A3B8';   // long-term-damage pile: karts k
 /* ---- live status auto-refresh: keeps OK / Damaged current without a manual reload ---- */
 var KART_AUTO=null;
 function _curKartScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
+function loadKartNotesFresh(rfId,cb){
+  if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
+  SBC.from('rf_kart_notes').select('*').eq('rf_kart_id',rfId).then(function(r){
+    var nrows=(r&&r.data)||[];
+    var arr=nrows.map(function(n){ return { id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'', archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active }; });
+    arr.sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));});
+    var prev=RF_NOTES_BY_ID[rfId]||[];
+    prev.forEach(function(n){ if(n._pending && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
+    RF_NOTES_BY_ID[rfId]=arr;
+    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){
+      var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(rfId);
+      if(KD_TAB==='Kart Notes'){ var body=document.getElementById('kt-tabbody'); if(body) body.innerHTML=notesTabHTML(); }
+    }
+    if(cb) cb();
+  },function(){ if(cb) cb(); });
+}
+function kdSetStatus(status){
+  var k=KD_KART; if(!k||k.rfId==null||!cu||typeof SBC==='undefined'||!SBC) return;
+  if(k.status===status) return;
+  var lbl={ok:'OK',maint:'For Maintenance',damaged:'Damaged'};
+  if(!confirm('Set kart '+(k.num||'')+' to '+lbl[status]+'? This updates RaceFacer.')) return;
+  var map={ok:1,damaged:2,maint:3};   // RaceFacer kart_status_id
+  var prev=k.status; k.status=status;
+  var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.status=status;
+  var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
+  function _revert(msg){ k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(msg) alert(msg); }
+  SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).then(function(r){
+    if(r&&r.error){ _revert((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql (adds the status queue) first':('Status change failed: '+(r.error.message||''))); }
+  },function(){ _revert('Connection error'); });
+}
+function loadKartRepairsFresh(rfId,cb){
+  if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
+  SBC.from('rf_repairs').select('id,date_discovered,date_repaired,cost,description,notes,mileage,mechanic,kart_name,kart_type,kart_garage_id,type_color').eq('rf_kart_id',rfId).then(function(r){
+    var rows=(r&&r.data)||[]; var existing={}; (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x.id) existing[x.id]=x; });
+    var arr=rows.map(function(rr){ var iso=rr.date_discovered||rr.date_repaired||''; var prev=existing[Number(rr.id)];
+      return { id:Number(rr.id)||0, iso:iso, date:iso?iso.split('-').reverse().join('.'):'', status:rr.date_repaired?'fixed':'open', isoRepaired:rr.date_repaired||'',
+        cost:(parseFloat(String(rr.cost||'').replace(/[^0-9.]/g,''))||0), issue:rr.description||'Repair', repairNotes:rr.notes||'', parts:(prev?prev.parts:[]), mileage:Number(rr.mileage)||0, user:rr.mechanic||'\u2014',
+        dateRepaired:rr.date_repaired?rr.date_repaired.split('-').reverse().join('.'):'', kartName:(rr.kart_name!=null?String(rr.kart_name):''), kartType:rr.kart_type||'', kartGarageId:rr.kart_garage_id||'', typeColor:rr.type_color||'' }; });
+    (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x._pending && !arr.some(function(y){return y.issue===x.issue && y.iso===x.iso;})) arr.push(x); });
+    arr.sort(function(a,b){return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||'');});
+    RF_REPAIRS_BY_ID[rfId]=arr;
+    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; if(KD_TAB==='Repairs'&&!RFQ_MODE){ ktTab('Repairs'); } }
+    if(cb) cb();
+  },function(){ if(cb) cb(); });
+}
 function kartRefreshSilent(){
   var scr=_curKartScr();
   if(!cu || typeof loadRfKarts!=='function' || (scr!=='kartlist'&&scr!=='kartdetail')) return;
+  if(_curKartScr()==='kartdetail'&&SELECTED_KART){ try{ loadKartNotesFresh(SELECTED_KART.rfId); loadKartRepairsFresh(SELECTED_KART.rfId); }catch(e){} }
   loadRfKarts(function(){
     var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
     var ssub=document.getElementById('ki-site-sub'); if(ssub) ssub.innerText=kiSubText();
@@ -6424,14 +6497,14 @@ function rfqCardHtml(){
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">'
     +'<div class="m-fld"><label>Date discovered</label><input id="rfq-disc" type="date" value="'+today+'"></div>'
     +'<div class="m-fld"><label>Date repaired</label><input id="rfq-date" type="date" value="'+today+'"></div></div>'
-    +'<div class="m-fld" style="margin-top:6px"><label>Parts used</label><div id="rfq-parts"></div>'
+    +'<div class="rfq-partsbox"><div class="rfq-partsbox-h">Parts used</div><div id="rfq-parts"></div>'
     +'<button class="rfq-addpart" onclick="rfqAddPart()">+ Add part</button>'
     +'<div class="rfq-total">Total: <b id="rfq-total">$0.00</b></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">'
     +'<div class="m-fld"><label>Working hours</label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="e.g. 4433"></div>'
     +'<div class="m-fld"><label>Kart status</label>'+_rfqSeg()+'</div></div>'
     +'<label class="bt-toggle" style="margin-top:10px"><input type="checkbox" id="rfq-fixed" checked><span>Mark as fixed (counts on the leaderboard)</span></label>'
-    +'<div class="m-fld" style="margin-top:8px"><label>Note / what was done</label><textarea id="rfq-note" rows="3" class="rfq-ta"></textarea></div>'
+    +'<div class="m-fld" style="margin-top:8px"><label>What did you do to fix it?</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
     +'<div class="m-form-msg" id="rfq-msg" style="margin-top:8px"></div>'
     +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">\u2713 Log repair</button></div>'
     +'</div>';
@@ -6440,7 +6513,7 @@ function rfqToggle(mode){
   RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; if(!mode) RFQ_NOTE=null;
   ktTab('Repairs');
   if(mode==='repair'){ rfqRenderParts(); loadRfWarehouse(); }
-  var t=document.getElementById('rfq-note'); if(t){ if(mode==='repair'&&RFQ_NOTE&&!t.value) t.value=RFQ_NOTE.note; t.focus(); }
+  var t=document.getElementById('rfq-note'); if(t){ t.focus(); }
 }
 function rfqSubmit(){
   var k=KD_KART||{}, msg=document.getElementById('rfq-msg');
@@ -6455,7 +6528,7 @@ function rfqSubmit(){
                user_name:cu.name, note:note.slice(0,1000), rf_status:RFQ_STATUS };
     SBC.from('rf_note_queue').insert(nrow).then(function(r){
       if(r&&r.error){ say((/relation|does not exist/i.test(r.error.message||''))?'Run rf_queue.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
-      try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({date:new Date().toISOString().slice(0,10).split('-').reverse().join('.'), status:RFQ_STATUS, note:note, user:cu.name, _pending:true}); }catch(e){}
+      try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({id:null, note:note, createdIso:new Date().toISOString(), createdBy:cu.name, archivedIso:'', archivedBy:'', open:true, active:true, _pending:true}); }catch(e){}
       RFQ_MODE=null; ktTab('Repairs'); var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
     },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
     return;
@@ -6483,7 +6556,7 @@ function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">
 
 function kdStatusSeg(status){
   return [['ok','OK'],['maint','For Maintenance'],['damaged','Damaged']].map(function(d){
-    return '<div class="kd-seg'+(d[0]===status?' on-'+d[0]:'')+'">'+d[1]+'</div>';
+    return '<div class="kd-seg'+(d[0]===status?' on-'+d[0]:'')+'" onclick="kdSetStatus(\''+d[0]+'\')">'+d[1]+'</div>';
   }).join('');
 }
 function kdStats(k){
@@ -6518,6 +6591,7 @@ function renderKartDetail(k){
   var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
   renderKdTabs();
   ktTab('Repairs');
+  try{ loadKartNotesFresh(k.rfId); loadKartRepairsFresh(k.rfId); }catch(e){}
 }
 
 function renderKdTabs(){
@@ -7138,11 +7212,66 @@ function submitMasterGate(){
 }
 function openMasterFromMD(code){ masterPin=code; openMaster(); }
 
+/* ===== Suppliers — feeds the part form's Supplier dropdown. The list lives in
+   ui_config (key 'suppliers'); managed from Master Access -> Parts -> 🏷 Suppliers.
+   RIMO is built in — the RIMO tick on a part always wins. ===== */
+var SUPPLIERS=['RIMO'];
+function loadSuppliers(cb){
+  SBC.from('ui_config').select('value').eq('key','suppliers').maybeSingle().then(function(r){
+    var l=(r&&r.data&&r.data.value&&Array.isArray(r.data.value.list))?r.data.value.list:null;
+    if(l) SUPPLIERS=l;
+    if(SUPPLIERS.indexOf('RIMO')<0) SUPPLIERS.unshift('RIMO');
+    if(cb)cb();
+  },function(){ if(cb)cb(); });
+}
+function saveSuppliers(cb){
+  SBC.from('ui_config').upsert({key:'suppliers',value:{list:SUPPLIERS},updated_at:new Date().toISOString()},{onConflict:'key'})
+    .then(function(){if(cb)cb(true);},function(){if(cb)cb(false);});
+}
+function mSupplierFill(cur){
+  var sel=document.getElementById('m-f-brand'); if(!sel) return;
+  cur=String(cur||'');
+  var opts=SUPPLIERS.filter(function(s){return s&&s!=='RIMO';});
+  if(cur&&cur!=='RIMO'&&opts.indexOf(cur)<0) opts.push(cur);   // a legacy free-text brand stays selectable
+  sel.innerHTML='<option value="">\u2014 none \u2014</option>'+opts.map(function(s){
+    var e=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    return '<option value="'+e+'"'+(s===cur?' selected':'')+'>'+e+'</option>';
+  }).join('');
+}
+function mSupOpen(){ loadSuppliers(function(){ mSupRender(); document.getElementById('m-sup').classList.add('show'); }); }
+function mSupClose(){ document.getElementById('m-sup').classList.remove('show'); var b=document.getElementById('m-f-brand'); mSupplierFill(b?b.value:''); }
+function mSupRender(){
+  var el=document.getElementById('m-sup-list'); if(!el) return;
+  el.innerHTML=SUPPLIERS.map(function(s,i){
+    var e=s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    var del=(s==='RIMO')?'<span style="font-size:11px;color:var(--t2)">built-in</span>'
+      :'<button class="m-row-btn m-row-del" onclick="mSupDel('+i+')" title="Remove">&#128465;</button>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--b1)"><span style="font-weight:600">'+e+'</span>'+del+'</div>';
+  }).join('')||'<div class="m-empty">No suppliers yet</div>';
+}
+function mSupAdd(){
+  var inp=document.getElementById('m-sup-new'), v=(inp.value||'').trim();
+  var msg=document.getElementById('m-sup-msg'); if(msg) msg.textContent='';
+  if(!v) return;
+  if(v.length>40){ if(msg) msg.textContent='Keep it under 40 characters'; return; }
+  if(SUPPLIERS.some(function(s){return s.toLowerCase()===v.toLowerCase();})){ if(msg) msg.textContent='Already in the list'; return; }
+  SUPPLIERS.push(v); SUPPLIERS=['RIMO'].concat(SUPPLIERS.filter(function(s){return s!=='RIMO';}).sort(function(a,b){return a.localeCompare(b);}));
+  inp.value=''; mSupRender();
+  saveSuppliers(function(ok){ if(!ok&&msg) msg.textContent='Save failed — check connection'; });
+}
+function mSupDel(i){
+  var s=SUPPLIERS[i]; if(!s||s==='RIMO') return;
+  if(!confirm('Remove supplier "'+s+'"? Parts already tagged with it keep their tag.')) return;
+  SUPPLIERS.splice(i,1); mSupRender();
+  saveSuppliers(function(ok){ var msg=document.getElementById('m-sup-msg'); if(!ok&&msg) msg.textContent='Save failed — check connection'; });
+}
+
 function openMaster(){
   document.getElementById('master').classList.add('show');
   var ob=document.getElementById('m-owner-btn'); if(ob) ob.style.display=(cu&&cu.name===MASTER_OWNER)?'':'none';
   document.getElementById('m-search').value='';
   mStaffLoaded=false; mTab('parts');
+  loadSuppliers();
   mRenderList();
   loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} mRenderList(); mToolsStats(); });
 }
@@ -7150,20 +7279,20 @@ function closeMaster(){ document.getElementById('master').classList.remove('show
 
 function mMinStatus(p){
   if(p.auto_min===false) return ' &middot; <span style="color:#FFD600;font-weight:700">🔒 locked</span>';
-  if((p.scans90||0)>=6)  return ' &middot; <span style="color:#00CFFF;font-weight:700">⚡ auto</span>';
-  return ' &middot; <span style="color:var(--t2)">📊 learning '+(p.scans90||0)+'/6</span>';
+  if((p.scansAll||0)>=pYield(p))  return ' &middot; <span style="color:#00CFFF;font-weight:700">⚡ auto</span>';
+  return ' &middot; <span style="color:var(--t2)">📊 learning '+(p.scansAll||0)+'/'+pYield(p)+'</span>';
 }
 function mLockHintText(p){
   if(p&&p.auto_min===false) return 'Locked — this minimum stays fixed.';
-  if(p&&(p.scans90||0)>=6)  return 'Auto-tuning from usage ('+p.scans90+' scans in 90 days).';
-  return 'Learning '+((p&&p.scans90)||0)+'/6 — keeps your set minimum until it has been scanned 6 times, then auto-tunes.';
+  if(p&&(p.scansAll||0)>=pYield(p))  return 'Auto-tuning from usage ('+p.scansAll+' lifetime scans — yield of '+pYield(p)+' met).';
+  return 'Learning '+((p&&p.scansAll)||0)+'/'+pYield(p)+' — keeps your set minimum until it has been scanned '+pYield(p)+' times, then auto-tunes.';
 }
 function mStockCol(p){ return p.qty===0?'#FF3B30':(p.qty<=p.reorder?'#FFD600':'#00C853'); }
 function mPill(txt,col){ return '<span style="display:inline-block;font-size:10px;line-height:1.45;color:'+col+';font-weight:700;background:'+col+'14;padding:2px 8px;border-radius:6px;border:1px solid '+col+'33;white-space:nowrap">'+txt+'</span>'; }
 function mStatusPill(p){
   if(p.auto_min===false) return mPill('\uD83D\uDD12 Locked','#FFD600');
-  if((p.scans90||0)>=6)  return mPill('\u26A1 Auto','#00CFFF');
-  return mPill('\uD83D\uDCCA '+(p.scans90||0)+'/6','#7C8597');
+  if((p.scansAll||0)>=pYield(p))  return mPill('\u26A1 Auto','#00CFFF');
+  return mPill('\uD83D\uDCCA '+(p.scansAll||0)+'/'+pYield(p),'#7C8597');
 }
 function mRowPills(p){
   var price=p.price?('$'+Number(p.price).toFixed(2)):null;
@@ -7209,7 +7338,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8592,6 +8721,8 @@ function mFillForm(p){
   document.getElementById('m-f-eur').value=(p&&p.price_eur!=null)?p.price_eur:'';
   document.getElementById('m-f-aud').value=(p&&p.price_aud!=null)?p.price_aud:'';
   document.getElementById('m-f-min').value=(p&&p.min_stock!=null)?p.min_stock:'';
+  var _yf=document.getElementById('m-f-yield'); if(_yf) _yf.value=(p&&p.yield_rate!=null)?p.yield_rate:'';
+  var _cf=document.getElementById('m-f-cat'); if(_cf) _cf.value=p?(p.category||''):'';
   document.getElementById('m-f-qty').value=p?p.qty:'';
   (function(){ var loc=p?(p.loc||''):'', row='', shelf='';
     var rm=loc.match(/Row:\s*([^\u00b7]+?)(?:\s*\u00b7|$)/i); if(rm){ row=rm[1].trim(); loc=loc.replace(rm[0],''); }
@@ -8602,7 +8733,7 @@ function mFillForm(p){
   })();
   var imEl=document.getElementById('m-f-img'); if(imEl) imEl.value=p?(p.image_url||''):'';
   document.getElementById('m-f-rimo').checked = p ? (p.is_rimo!==false) : true;
-  document.getElementById('m-f-brand').value=p?(p.brand||''):'';
+  mSupplierFill(p?(p.brand||''):'');
   document.getElementById('m-f-lead').value=(p&&p.lead_days!=null)?p.lead_days:'';
   document.getElementById('m-f-lock').checked = p ? (p.auto_min===false) : false;
   var lh=document.getElementById('m-f-lockhint'); if(lh) lh.textContent=mLockHintText(p);
@@ -8611,7 +8742,7 @@ function mFillForm(p){
 function mRimoToggle(){
   var rimo=document.getElementById('m-f-rimo').checked;
   var lf=document.getElementById('m-lead-fld'); if(lf) lf.style.display=rimo?'none':'';
-  var bf=document.getElementById('m-f-brand'); if(bf&&rimo&&!bf.value.trim()) bf.placeholder='RIMO';
+  var sf=document.getElementById('m-sup-fld'); if(sf) sf.style.display=rimo?'none':'';   // RIMO parts are always supplier RIMO
 }
 function mOpenAdd(){
   mEditSku=null; mFillForm(null);
@@ -8644,9 +8775,11 @@ function mSave(){
     sku=skuIn;
   }
   var isRimo=document.getElementById('m-f-rimo').checked;
-  var brand=document.getElementById('m-f-brand').value.trim(); if(isRimo&&!brand) brand='RIMO';
+  var brand=isRimo?'RIMO':(document.getElementById('m-f-brand').value||'').trim();
   var leadRaw=document.getElementById('m-f-lead').value.trim();
   if(!isRimo && leadRaw!=='' && !/^\d+$/.test(leadRaw)){ mFormMsg('Delivery lead must be a whole number of days'); return; }
+  var yRaw=(document.getElementById('m-f-yield')?document.getElementById('m-f-yield').value.trim():'');
+  if(yRaw!=='' && !/^\d+$/.test(yRaw)){ mFormMsg('Yield rate must be a whole number of scans'); return; }
   var part={ sku:sku,
     description:desc,
     internal_description:document.getElementById('m-f-int').value.trim(),
@@ -8654,6 +8787,8 @@ function mSave(){
     price_aud:document.getElementById('m-f-aud').value.trim(),
     min_stock:document.getElementById('m-f-min').value.trim(),
     qty:document.getElementById('m-f-qty').value.trim(),
+    yield_rate:yRaw,
+    category:(document.getElementById('m-f-cat')?document.getElementById('m-f-cat').value.trim():''),
     location:(function(){ var b=[], r=document.getElementById('m-f-row').value.trim(), sh=document.getElementById('m-f-shelf').value.trim(), o=document.getElementById('m-f-loc').value.trim();
       if(r) b.push('Row: '+r); if(sh) b.push('Shelf: '+sh); if(o) b.push(o); return b.join(' \u00b7 '); })(),
     image_url:(document.getElementById('m-f-img')?document.getElementById('m-f-img').value.trim():''),
@@ -10036,7 +10171,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

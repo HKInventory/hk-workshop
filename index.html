@@ -1995,7 +1995,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AO · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AQ · ZXing raw</div>
       </div>
     </div>
 
@@ -3346,12 +3346,30 @@ function startRealtime(){
   }
   function _rtNoteMerge(p){
     try{
-      var n=(p&&p.new)||null; if(!n||n.rf_kart_id==null) return;
       if(typeof RF_NOTES_BY_ID==='undefined'||!RF_NOTES_BY_ID) return;
-      var rec={ id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
+      // DELETE: RaceFacer note removed -> drop it from the app the instant it happens.
+      // p.old carries the row because rf_kart_notes is REPLICA IDENTITY FULL (rf_debug.sql).
+      if(p && (p.eventType==='DELETE' || (!p.new && p.old))){
+        var o=p.old||{}; var okid=(o.id!=null?Number(o.id):null);
+        Object.keys(RF_NOTES_BY_ID).forEach(function(kid){
+          var a=RF_NOTES_BY_ID[kid]; if(!a) return;
+          for(var j=a.length-1;j>=0;j--){
+            var hit = (okid!=null && a[j].id===okid) ||
+                      (okid==null && a[j].createdIso===(o.created_at||'') && a[j].note===(o.note||''));
+            if(hit) a.splice(j,1);
+          }
+        });
+        return;
+      }
+      var n=(p&&p.new)||null; if(!n||n.rf_kart_id==null) return;
+      var rec={ id:(n.id!=null?Number(n.id):null), notifId:(n.rf_notification_id!=null?Number(n.rf_notification_id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
         archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active };
       var arr=RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[];
-      var found=false; for(var i=0;i<arr.length;i++){ if(arr[i].createdIso===rec.createdIso && arr[i].note===rec.note){ arr[i]=rec; found=true; break; } }
+      // Prefer matching by id (survives edits); fall back to created_at+note for legacy rows.
+      var found=false; for(var i=0;i<arr.length;i++){
+        var same=(rec.id!=null && arr[i].id===rec.id) || (rec.id==null && arr[i].createdIso===rec.createdIso && arr[i].note===rec.note);
+        if(same){ arr[i]=rec; found=true; break; }
+      }
       if(!found) arr.push(rec);
       arr.sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));});
     }catch(e){}
@@ -3380,7 +3398,9 @@ function startRealtime(){
     // DOM-rebuild storm — the strobing kart counts. One redraw ~1.2s after the burst settles.
     var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 1200, 6000);
     SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); }).subscribe();
-    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); kartRerenderSoon(); }).subscribe();
+    // Notes: MERGE instantly (incl. DELETE), then redraw. A delete is a single event, not a
+    // sync burst, so redraw promptly rather than on the debounce that smooths mass updates.
+    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
     SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
     SBC.channel('msg-rt').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
@@ -5602,7 +5622,7 @@ function loadRfKarts(cb,force){
     RF_NOTES_BY_ID={};
     nrows.forEach(function(n){
       (RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[]).push({
-        id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
+        id:(n.id!=null?Number(n.id):null), notifId:(n.rf_notification_id!=null?Number(n.rf_notification_id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
         archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active
       });
     });
@@ -5629,7 +5649,7 @@ function loadKartNotesFresh(rfId,cb){
   if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
   SBC.from('rf_kart_notes').select('*').eq('rf_kart_id',rfId).then(function(r){
     var nrows=(r&&r.data)||[];
-    var arr=nrows.map(function(n){ return { id:(n.id!=null?Number(n.id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'', archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active }; });
+    var arr=nrows.map(function(n){ return { id:(n.id!=null?Number(n.id):null), notifId:(n.rf_notification_id!=null?Number(n.rf_notification_id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'', archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active }; });
     arr.sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));});
     var prev=RF_NOTES_BY_ID[rfId]||[];
     prev.forEach(function(n){ if(n._pending && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
@@ -5651,9 +5671,35 @@ function kdSetStatus(status){
   var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.status=status;
   var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
   function _revert(msg){ k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(msg) alert(msg); }
-  SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).then(function(r){
-    if(r&&r.error){ _revert((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase \u2014 it creates the status queue':('Status change failed: '+(r.error.message||''))); }
+  // Queuing always succeeds. What can fail is the runner's push to RaceFacer a second or two
+  // later — most often "back to OK" while the kart still has an open damage. Watch the row.
+  SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).select('id').then(function(r){
+    if(r&&r.error){ _revert((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase \u2014 it creates the status queue':('Status change failed: '+(r.error.message||''))); return; }
+    var qid=(r&&r.data&&r.data[0]&&r.data[0].id)||null;
+    // ->OK is the status RaceFacer gates: it won't clear a kart that still has an open
+    // damage/note. Give that exact reason instead of a generic refusal.
+    if(qid){ var _hint=(status==='ok')?'RaceFacer won\u2019t set this kart to OK while it still has an open damage or note. Log the repair (or resolve the note) first, which clears it automatically.':'RaceFacer refused the status change'; _watchRfQueueRow('rf_status_queue', qid, _revert, _hint); }
   },function(){ _revert('Connection error'); });
+}
+/* Poll one queue row until the runner marks it sent or error. RaceFacer answers its /ajax
+   routes with HTTP 200 even when refusing, so the runner reads the body and writes the real
+   reason into `error` — this surfaces it instead of leaving a status the kart never took. */
+function _watchRfQueueRow(table, id, onError, fallbackMsg){
+  if(typeof SBC==='undefined'||!SBC||!id) return;
+  var tries=0, MAX=13;                    // ~20s at 1.5s — covers a cold Render worker
+  (function poll(){
+    if(++tries>MAX) return;               // give up quietly; the next sync is the source of truth
+    SBC.from(table).select('status,error').eq('id',id).maybeSingle().then(function(r){
+      var row=r&&r.data; if(!row){ setTimeout(poll,1500); return; }
+      if(row.status==='sent') return;                       // confirmed in RaceFacer
+      if(row.status==='error'){
+        var why=String(row.error||'').replace(/^[a-z/_]+\s*\d*:\s*/i,'').trim();
+        if(typeof onError==='function') onError((fallbackMsg||'RaceFacer rejected this')+(why?(':\n\n'+why):''));
+        return;
+      }
+      setTimeout(poll,1500);                               // still pending
+    },function(){ setTimeout(poll,1500); });
+  })();
 }
 function loadKartRepairsFresh(rfId,cb){
   if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
@@ -6418,7 +6464,9 @@ var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ
 function rfqRepairForNote(noteId){
   var k=KD_KART||{}; var notes=(k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
   var n=notes.filter(function(x){return x.id===noteId;})[0]; if(!n) return;
-  RFQ_NOTE={id:noteId,note:n.note||''};
+  // notifId is RaceFacer's notification id (?note_id=), which is what CLEARS the note. Fall back
+  // to the local id only until the sync populates rf_notification_id.
+  RFQ_NOTE={id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''};
   rfqToggle('repair');
 }
 function loadRfWarehouse(){
@@ -6594,7 +6642,7 @@ function rfqSubmit(){
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
             user_name:who, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
             working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
-            notification_id:(RFQ_NOTE&&RFQ_NOTE.id)||null };
+            notification_id:(RFQ_NOTE&&(RFQ_NOTE.notifId!=null?RFQ_NOTE.notifId:RFQ_NOTE.id))||null };
   SBC.from('rf_repair_queue').insert(row).then(function(r){
     if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('+ Save'); return; }
     var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
@@ -7393,7 +7441,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10380,7 +10428,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

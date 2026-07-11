@@ -1670,7 +1670,22 @@
     .rfq-spec{display:flex;flex-direction:column;gap:2px;min-width:0}
     .rfq-spec span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
     .rfq-spec b{font-size:13.5px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .rfq-ta{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:14.5px;font-family:inherit;resize:vertical}
+    .rfq-ta{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:16px;font-family:inherit;resize:vertical}
+    /* ---- feel: quiet, deliberate, native-app-like ---------------------------------------
+       Safe additive polish only: no layout or behaviour changes.
+       - no grey tap flash on iOS, no double-tap-zoom delay on buttons
+       - inputs never below 16px on touch devices (sub-16px is what makes mobile Safari
+         auto-zoom the page when a field is focused — the "whole page shifts" effect)
+       - subtle press-down on primary buttons so taps feel acknowledged
+       - no rubber-band overscroll behind the app chrome */
+    *{-webkit-tap-highlight-color:transparent}
+    button,select,a,label{touch-action:manipulation}
+    body{overscroll-behavior-y:none}
+    @media (pointer:coarse){
+      .m-fld input,.m-fld select,.rfq-part-row select,.rfq-part-row input,#m-sup-new{font-size:16px}
+    }
+    .m-add,.kn-newrep,.m-form-btn,.rfq-rowbtn{transition:transform .08s ease,filter .12s ease}
+    .m-add:active,.kn-newrep:active,.m-form-btn:active,.rfq-rowbtn:active{transform:scale(.965);filter:brightness(1.12)}
     .rfq-seg{display:flex;gap:6px}
     .rfq-seg button{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:9px;color:var(--t2);font-size:11px;font-weight:800;letter-spacing:.02em;padding:9px 4px;cursor:pointer;font-family:inherit;text-transform:uppercase}
     .rfq-seg button.on{background:#1A73E8;border-color:#1A73E8;color:#fff}
@@ -2010,7 +2025,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AT · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AV · ZXing raw</div>
       </div>
     </div>
 
@@ -3380,9 +3395,14 @@ function startRealtime(){
       var rec={ id:(n.id!=null?Number(n.id):null), notifId:(n.rf_notification_id!=null?Number(n.rf_notification_id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'',
         archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active };
       var arr=RF_NOTES_BY_ID[n.rf_kart_id]=RF_NOTES_BY_ID[n.rf_kart_id]||[];
-      // Prefer matching by id (survives edits); fall back to created_at+note for legacy rows.
+      // Match order: (1) same id, (2) a locally-added PENDING note with the same text — this is the
+      // note the user just typed, whose optimistic timestamp won't equal RaceFacer's, so match on
+      // text so the real row REPLACES the "syncing…" placeholder instead of duplicating it,
+      // (3) legacy created_at+note. Without (2) the placeholder lingers and the note shows twice.
       var found=false; for(var i=0;i<arr.length;i++){
-        var same=(rec.id!=null && arr[i].id===rec.id) || (rec.id==null && arr[i].createdIso===rec.createdIso && arr[i].note===rec.note);
+        var same=(rec.id!=null && arr[i].id===rec.id)
+              || (arr[i]._pending && arr[i].note===rec.note)
+              || (rec.id==null && arr[i].createdIso===rec.createdIso && arr[i].note===rec.note);
         if(same){ arr[i]=rec; found=true; break; }
       }
       if(!found) arr.push(rec);
@@ -5667,6 +5687,9 @@ function loadKartNotesFresh(rfId,cb){
     var arr=nrows.map(function(n){ return { id:(n.id!=null?Number(n.id):null), notifId:(n.rf_notification_id!=null?Number(n.rf_notification_id):null), note:n.note||'', createdIso:n.created_at||'', createdBy:n.created_by||'', archivedIso:n.archived_at||'', archivedBy:n.archived_by||'', open:!n.archived_at, active:!!n.active }; });
     arr.sort(function(a,b){return String(b.createdIso).localeCompare(String(a.createdIso));});
     var prev=RF_NOTES_BY_ID[rfId]||[];
+    // Carry over a still-PENDING local note only if its real counterpart hasn't synced back yet.
+    // Once a real (id-bearing) note with the same text exists, the placeholder is dropped so it
+    // doesn't linger in "syncing…" or show alongside the real one.
     prev.forEach(function(n){ if(n._pending && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
     RF_NOTES_BY_ID[rfId]=arr;
     if(SELECTED_KART&&SELECTED_KART.rfId===rfId){
@@ -6629,7 +6652,11 @@ function rfqToggle(mode){
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
-  var t=document.getElementById('rfq-note'); if(t){ t.focus(); }
+  // Focus WITHOUT the jump: focus() alone makes iOS slam the keyboard open and scroll-snap to
+  // the field, shifting the whole page. preventScroll + a smooth glide reads far cleaner.
+  var t=document.getElementById('rfq-note');
+  if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); }
+    setTimeout(function(){ try{ t.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }, 60); }
 }
 function rfqSubmit(){
   var k=KD_KART||{}, msg=document.getElementById('rfq-msg');
@@ -7463,7 +7490,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10450,7 +10477,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

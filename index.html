@@ -1690,6 +1690,20 @@
     .rfq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .rfq-cancel{background:transparent!important;border:1px dashed var(--b2)!important;color:var(--t2)!important}
     .kn-act{width:1%;white-space:nowrap;text-align:right}
+    /* Phones: three columns crush the note text into one-word-per-line. Stack each row so the
+       date sits on its own line, the note gets the full width, and the button drops below it. */
+    @media (max-width:560px){
+      .kn-opentable thead{display:none}
+      .kn-opentable, .kn-opentable tbody, .kn-opentable tr, .kn-opentable td{display:block;width:auto}
+      .kn-opentable tr{padding:12px 14px;border-bottom:1px solid var(--b1)}
+      .kn-opentable tr:last-child{border-bottom:none}
+      .kn-opentable td{padding:0;border:none}
+      .kn-date{color:var(--t2);font-size:11.5px;margin-bottom:4px}
+      .kn-title{font-size:14.5px;line-height:1.5;word-break:normal;overflow-wrap:anywhere}
+      .kn-act{text-align:left;margin-top:9px}
+      .kn-act:empty{margin-top:0}
+      .kn-more td[colspan]{padding-top:4px}
+    }
     .kn-newrep{background:#1A73E8;border:none;border-radius:9px;color:#fff;font-size:11.5px;font-weight:800;padding:8px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
     .kn-newrep:active{transform:scale(.96)}
     .kn-sync{font-size:10.5px;color:var(--t2);font-style:italic}
@@ -1995,7 +2009,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AQ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AR · ZXing raw</div>
       </div>
     </div>
 
@@ -7441,7 +7455,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10428,7 +10442,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

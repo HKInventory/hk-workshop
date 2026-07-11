@@ -2025,7 +2025,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AV · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AX · ZXing raw</div>
       </div>
     </div>
 
@@ -3347,7 +3347,9 @@ function startRealtime(){
   // writes the fleet row-by-row, and refreshing mid-sweep shows half-written counts that flicker.
   // So rf_karts refreshes fire ~1.6s after the LAST event (with a long maxWait safety), giving one
   // clean render per sweep instead of a strobing status bar. Other views keep tight timings.
-  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 5000, 30000);
+  // Status changes push instantly from the DB now, so react fast — a short debounce only to batch
+  // a burst (e.g. several karts flipping at once), not the old 5s wait that made status feel laggy.
+  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} }, 300, 2000);
   var _rtMech  = _debounce(function(){ if(_curScr()==='manager'&&typeof renderMechToday==='function'){try{renderMechToday();}catch(e){}} }, 200, 1200);
   var _rtMgr   = _debounce(function(){ if(_curScr()==='manager'&&typeof loadMgr==='function'){try{loadMgr();}catch(e){}} }, 220, 1400);
   var _rtBadge = _debounce(function(){ if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }, 220, 1400);
@@ -3413,6 +3415,12 @@ function startRealtime(){
     try{
       var scr=(typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null;
       if(scr==='kartdetail'&&typeof SELECTED_KART!=='undefined'&&SELECTED_KART){
+        // DON'T rebuild the detail screen while the user is typing a note/repair — the fast status
+        // poller + notes sweep fire realtime events every ~2s, and a full re-render would destroy
+        // and recreate the textarea under their fingers (cursor jump, keyboard flicker). The
+        // in-memory caches are already updated by the merge fns; the screen redraws when the form
+        // closes. Just keep the open-notes strip fresh, which doesn't touch the input.
+        if(typeof kartInputLocked==='function' && kartInputLocked()) return;   // typing — leave the DOM entirely alone
         var live=(typeof KART_LIST!=='undefined'&&KART_LIST.find)?KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;}):null;
         if(live) SELECTED_KART=live;
         if(typeof renderKartDetail==='function') renderKartDetail(SELECTED_KART);
@@ -5692,7 +5700,8 @@ function loadKartNotesFresh(rfId,cb){
     // doesn't linger in "syncing…" or show alongside the real one.
     prev.forEach(function(n){ if(n._pending && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
     RF_NOTES_BY_ID[rfId]=arr;
-    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){
+    // Cache is updated; only touch the DOM if the user isn't mid-input (else we'd rebuild under them).
+    if(SELECTED_KART&&SELECTED_KART.rfId===rfId&&!(typeof kartInputLocked==='function'&&kartInputLocked())){
       var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(rfId);
       if(KD_TAB==='Kart Notes'){ var body=document.getElementById('kt-tabbody'); if(body) body.innerHTML=notesTabHTML(); }
     }
@@ -5751,25 +5760,29 @@ function loadKartRepairsFresh(rfId,cb){
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x._pending && !arr.some(function(y){return y.issue===x.issue && y.iso===x.iso;})) arr.push(x); });
     arr.sort(function(a,b){return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||'');});
     RF_REPAIRS_BY_ID[rfId]=arr;
-    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; if(KD_TAB==='Repairs'&&!RFQ_MODE){ ktTab('Repairs'); } }
+    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; if(KD_TAB==='Repairs'&&!RFQ_MODE&&!(typeof kartInputLocked==='function'&&kartInputLocked())){ ktTab('Repairs'); } }
     if(cb) cb();
   },function(){ if(cb) cb(); });
 }
 function kartRefreshSilent(){
   var scr=_curKartScr();
   if(!cu || typeof loadRfKarts!=='function' || (scr!=='kartlist'&&scr!=='kartdetail')) return;
+  if(typeof kartInputLocked==='function' && kartInputLocked()) return;   // typing — don't rebuild the form under the user
   if(_curKartScr()==='kartdetail'&&SELECTED_KART){ try{ loadKartNotesFresh(SELECTED_KART.rfId); loadKartRepairsFresh(SELECTED_KART.rfId); }catch(e){} }
   loadRfKarts(function(){
     var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
     var ssub=document.getElementById('ki-site-sub'); if(ssub) ssub.innerText=kiSubText();
+    if(typeof kartInputLocked==='function' && kartInputLocked()) return;   // typing — skip the redraw
     if(scr==='kartdetail'&&SELECTED_KART){
       var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;});
       if(live){ SELECTED_KART=live; KD_KART=live;
         var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(live.status);
         var det=document.getElementById('kiv-detail'); if(det) det.style.setProperty('--kacc',(KART_TYPE_COLOR[live.type]||'#22D3EE'));
         var st=document.getElementById('kd-stats'); if(st) st.innerHTML=kdStats(live);
-        var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(live.rfId);
-        if(KD_TAB==='Kart Notes'){ var tb=document.getElementById('kt-tabbody'); if(tb) tb.innerHTML=notesTabHTML(); }
+        if(!(typeof kartInputLocked==='function'&&kartInputLocked())){
+          var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(live.rfId);
+          if(KD_TAB==='Kart Notes'){ var tb=document.getElementById('kt-tabbody'); if(tb) tb.innerHTML=notesTabHTML(); }
+        }
       }
     } else if(scr==='kartlist'){ renderTypeTabs(); renderKartChips(); }
   });
@@ -6500,6 +6513,41 @@ function selectKart(rfId){
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
 var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false;
+
+/* ===== TYPING LOCK ==========================================================================
+   The fast status poller (~2s) and notes sweep fire realtime events constantly, and several code
+   paths respond by re-rendering the kart-detail screen or its notes/repairs strips. If that
+   happens while the user is typing in the Note / Working hours / part fields, the input node gets
+   destroyed and recreated mid-keystroke — cursor jumps, typed text is lost, the keyboard leaps
+   around. This flag is TRUE whenever any kart-detail form field is focused; every background
+   rebuild checks kartInputLocked() and defers until the field is blurred. Data still merges into
+   the in-memory caches meanwhile; the screen simply doesn't redraw under the user's fingers. */
+var KART_INPUT_LOCK=false, _kartLockT=null;
+function kartInputLocked(){
+  // Locked if: an explicit focus flag is set, a form is open, OR — the failsafe — an input/textarea/
+  // select is focused RIGHT NOW anywhere on the page. The failsafe covers any rebuild path or
+  // container selector we might have missed: if the user's cursor is in a field, nothing redraws.
+  if(KART_INPUT_LOCK) return true;
+  if(typeof RFQ_MODE!=='undefined' && RFQ_MODE) return true;
+  try{ var a=document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName||'')) return true; }catch(e){}
+  return false;
+}
+(function(){
+  // Any focus inside the kart detail view locks; blur unlocks after a short grace period (so a tap
+  // from one field to the next, or a re-render we allow on close, doesn't flip it off mid-interaction).
+  function isFormField(el){
+    if(!el || !el.closest) return false;
+    // Any text-entry element inside the kart detail view or its forms. Broad on purpose — a missed
+    // container here means the field gets rebuilt mid-type, which is the whole bug we're killing.
+    return /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName||'') &&
+           !!el.closest('#kiv-detail, .rfq-card, #kd-opennotes, .kt-tabwrap, .kt-tabbody, #kt-tabbody, .m-fld, .rfq-part-row');
+  }
+  document.addEventListener('focusin', function(e){ if(isFormField(e.target)){ KART_INPUT_LOCK=true; if(_kartLockT){clearTimeout(_kartLockT);_kartLockT=null;} } }, true);
+  document.addEventListener('focusout', function(e){ if(isFormField(e.target)){ if(_kartLockT)clearTimeout(_kartLockT); _kartLockT=setTimeout(function(){ KART_INPUT_LOCK=false;
+    // Catch up on anything that changed while locked — but only if no form is open and nothing's refocused.
+    try{ if(!kartInputLocked() && typeof kartRefreshSilent==='function') kartRefreshSilent(); }catch(e){}
+  },400); } }, true);
+})();
 function rfqRepairForNote(noteId){
   var k=KD_KART||{}; var notes=(k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
   var n=notes.filter(function(x){return x.id===noteId;})[0]; if(!n) return;
@@ -7490,7 +7538,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10477,7 +10525,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

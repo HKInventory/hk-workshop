@@ -128,6 +128,9 @@
     /* ── Nav ── */
     #nav{flex:1;position:relative;overflow:hidden;min-height:0}
     .scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translate3d(100%,0,0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;contain:layout style paint;transform-origin:0 0;isolation:isolate;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;pointer-events:none}
+    /* During an interactive swipe, drop paint containment on the moving screen so its left-edge
+       drop shadow can render OVER the screen behind it (contain:paint would clip it). */
+    .scr.swiping{contain:layout style;z-index:5}
     .scr.active{pointer-events:auto}
     .scr.behind{pointer-events:none}
     .scr.active{transform:translate3d(0,0,0)}
@@ -466,6 +469,28 @@
     @media (min-width:600px){.kart-chip-grid{gap:10px;grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}}
     @media (min-width:1000px){.kart-chip-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}}
     .kart-chip{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px 6px;cursor:pointer;text-align:center;position:relative;transition:transform .12s,background .12s,border-color .12s;user-select:none;min-width:0;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
+    /* Fleet loading state — a calm centered spinner instead of flashing placeholder karts. */
+    .fleet-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:64px 0;min-height:40vh}
+    /* Two-tab fleet notes view (Notifications | Kart Notes), mirroring RaceFacer. */
+    .kn-tabbar{display:flex;gap:8px;margin-bottom:16px}
+    .kn-tabbtn{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:11px;color:var(--t2);font-weight:800;font-size:13px;padding:11px 8px;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:background .18s,color .18s,border-color .18s}
+    .kn-tabbtn.on{background:var(--grad);color:#fff;border-color:transparent}
+    .kn-count{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+    .kn-list{display:flex;flex-direction:column;gap:10px}
+    .kn-card{background:linear-gradient(180deg,var(--card2,#171b24),var(--card));border:1px solid var(--b1);border-radius:14px;padding:13px 15px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+    .kn-card-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
+    .kn-kart{font-size:13.5px;font-weight:800}
+    .kn-typ{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
+    .kn-status{font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:6px;letter-spacing:.04em}
+    .kn-when{font-size:11px;color:var(--t2);margin-left:auto;white-space:nowrap}
+    .kn-note{font-size:14px;color:var(--t1);line-height:1.5;word-break:normal;overflow-wrap:anywhere}
+    .kn-by{font-size:11.5px;color:var(--t2);margin-top:5px}
+    .kn-card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+    .kn-newrep{background:#1A73E8;color:#fff;border:none;border-radius:9px;font-size:12.5px;font-weight:800;padding:8px 14px;cursor:pointer;font-family:inherit;transition:transform .08s,filter .12s;white-space:nowrap}
+    .kn-newrep:active{transform:scale(.96);filter:brightness(1.1)}
+    .fleet-spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--acc,#22D3EE);animation:fleetspin .7s linear infinite}
+    .fleet-loading-t{font-size:13.5px;font-weight:700;letter-spacing:.03em;color:var(--t2);text-transform:uppercase}
+    @keyframes fleetspin{to{transform:rotate(360deg)}}
     .kart-chip:active{transform:scale(0.95)}
     .kart-chip .kc-num{font-size:clamp(16px,4.5vw,22px);font-weight:800;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.5)}
     /* Tile colour = kart status (OK / maintenance / damaged) */
@@ -781,6 +806,17 @@
     .rpt-none{font-size:12px;color:var(--t2);padding:7px 2px;line-height:1.5}
     .rpt-load{font-size:12.5px;color:var(--t2);padding:16px 2px;text-align:center}
     .mc{background:var(--card);border:1px solid var(--b1);border-radius:16px;padding:16px;margin-bottom:10px;overflow:hidden}
+    /* Note/repair form: lift it off the page so it reads as a proper sheet, not a bare block.
+       Subtle gradient, stronger border, soft shadow, and a roomier textarea. */
+    .rfq-card, .mc:has(#rfq-note){
+      background:linear-gradient(180deg, var(--card2, #171b24) 0%, var(--card) 100%);
+      border:1px solid var(--b2);
+      border-radius:18px;
+      box-shadow:0 12px 34px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    #rfq-note{min-height:96px;line-height:1.5}
+    .rfq-btns{display:flex;gap:10px;margin-top:14px}
+    .rfq-btns .m-add{flex:1;padding:13px 10px;border-radius:12px;font-weight:800}
     .mc:first-of-type{margin-top:6px}
     .mct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--t2);margin-bottom:12px}
     .mr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--b1);font-size:13px;gap:8px;min-width:0}
@@ -876,8 +912,14 @@
     .m-row-del{color:var(--red)}
     .m-tabs{display:flex;gap:6px;padding:10px 18px 2px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
     .m-tabs::-webkit-scrollbar{display:none}
-    .m-tab{flex:1;min-width:62px;white-space:normal;line-height:1.15;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:11.5px;padding:9px 5px;min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}
+    .m-tab{flex:1;min-width:62px;white-space:normal;line-height:1.15;background:var(--card);border:1px solid var(--b2);border-radius:10px;color:var(--t2);font-weight:700;font-size:11.5px;padding:9px 5px;min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .08s ease}
+    .m-tab:active{transform:scale(.97)}
     .m-tab.active{background:var(--grad);color:#fff;border-color:transparent}
+    /* Content fades/rises in when a tab's body is (re)rendered — makes switching feel intentional
+       rather than a hard cut. Applied to the kart tab body and the note/repair card. */
+    @keyframes hkFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    #kt-tabbody>*, .kt-tabbody>*{animation:hkFadeUp .22s ease both}
+    .rfq-card, .mc:has(#rfq-note){animation:hkFadeUp .24s ease both}
     .m-pane{display:none;flex:1;flex-direction:column;min-height:0}
     .m-pane.active{display:flex}
     .m-pane-title{flex:1;font-size:15px;font-weight:800;align-self:center}
@@ -2025,7 +2067,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-AX · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BA · ZXing raw</div>
       </div>
     </div>
 
@@ -3665,6 +3707,9 @@ function back(){
 
 // ── Swipe back (lazy setup — only activates on real movement) ──
 var sx=0,sy=0,swiping=false,swipeStarted=false,swipeCur=null,swipePrev=null,_chatSwipeConsumed=false;
+// Velocity tracking so a fast FLICK completes the back even if it didn't travel far — this is the
+// single biggest thing that makes iOS's gesture feel alive rather than distance-gated.
+var swVelX=0,swLastX=0,swLastT=0;
 var nav=document.getElementById('nav');
 var navW=0;
 
@@ -3686,11 +3731,16 @@ function applySwipeFrame(){
   if(!swipeCur||!swipePrev) return;
   // Pixel-snap to whole numbers — sub-pixel transforms cause GPU jank on older iOS devices
   var dxSnap=Math.round(pendingDx);
-  var pct=dxSnap/navW;
+  var pct=dxSnap/navW;   // 0 (fully covering) → 1 (fully swiped away)
   swipeCur.style.transform='translate3d('+dxSnap+'px,0,0)';
+  // Live left-edge shadow on the moving screen — the depth cue iOS uses. Fades in as it lifts off.
+  swipeCur.style.boxShadow='-14px 0 34px rgba(0,0,0,'+(0.34*(1-pct)).toFixed(3)+')';
   // For the parallax background page, also pixel-snap by converting percentage to pixels
   var prevPx=Math.round((-0.28+pct*0.28)*navW);
   swipePrev.style.transform='translate3d('+prevPx+'px,0,0)';
+  // Dim the screen behind while it's held back, brightening to full as it slides forward — the
+  // subtle darkening under the top screen that gives iOS its sense of stacked depth.
+  swipePrev.style.filter='brightness('+(0.72+0.28*pct).toFixed(3)+')';
 }
 
 nav.addEventListener('touchmove',function(e){
@@ -3702,7 +3752,9 @@ nav.addEventListener('touchmove',function(e){
     if(_chatSwipeConsumed) return;
     if(dx<8) return;
     if(dy>Math.abs(dx)+10) return;
-    if(sx>55||stk.length<=1) return;
+    // Start zone tightened to ~32px from the left edge — iOS reserves just the edge for the back
+    // gesture so mid-screen horizontal drags (sliders, carousels, scrolling) are never hijacked.
+    if(sx>32||stk.length<=1) return;
     var curId=stk[stk.length-1],prevId=stk[stk.length-2];
     if(!curId||!prevId) return;
     if(curId==='welcome'||curId==='pin'||prevId==='pin') return;
@@ -3717,7 +3769,9 @@ nav.addEventListener('touchmove',function(e){
     swipePrev.classList.add('behind');
     swipeStarted=true;
     swiping=true;
+    swipeCur.classList.add('swiping');   // lift paint-containment so the edge shadow can show
     navW=nav.offsetWidth;
+    swVelX=0; swLastX=e.touches[0].clientX; swLastT=(e.timeStamp||Date.now());   // begin velocity tracking
     // Lock body to prevent Safari's bottom bar/scroll interference during the swipe
     document.body.style.overflow='hidden';
     document.body.style.touchAction='none';
@@ -3726,6 +3780,9 @@ nav.addEventListener('touchmove',function(e){
   if(dy>Math.abs(dx)+10){swiping=false;cancelSwipe();return;}
   if(dx<0)dx=0;
   if(!navW) navW=nav.offsetWidth;
+  // Track instantaneous horizontal velocity (px/ms) with light smoothing, for flick detection.
+  var nowT=(e.timeStamp||Date.now()), nowX=e.touches[0].clientX, dt=nowT-swLastT;
+  if(dt>0){ var v=(nowX-swLastX)/dt; swVelX=swVelX*0.4+v*0.6; swLastX=nowX; swLastT=nowT; }
   // Batch the update — rAF fires at the next paint, so we never update more than 60x/sec
   pendingDx=dx;
   if(!rafPending){
@@ -3745,12 +3802,23 @@ nav.addEventListener('touchend',function(e){
   var dx=e.changedTouches[0].clientX-sx;
   var W=nav.offsetWidth;
   var ease='cubic-bezier(0.32,0.72,0,1)';
-  if(dx>W*0.3||dx>140){
-    var remaining=W-dx,dur=Math.max(180,Math.min(260,Math.round(remaining/W*320)));
-    swipeCur.style.transition='transform '+dur+'ms '+ease;
-    swipePrev.style.transition='transform '+dur+'ms '+ease;
+  // Complete the back if EITHER dragged past ~40% OR flicked fast enough (velocity in px/ms).
+  // Velocity is what makes it feel native: a quick flick from the edge completes even if your
+  // thumb only travelled a short way, exactly like iOS.
+  var flick = swVelX>0.45;                    // ~fast rightward flick
+  var dragged = dx>W*0.4 || dx>150;
+  if(flick||dragged){
+    // Finishing speed scales with how fast you flicked — a hard flick snaps shut quickly, a slow
+    // drag past threshold glides. Feels connected to your hand rather than a fixed animation.
+    var remaining=W-dx;
+    var velDur = swVelX>0.1 ? (remaining/(swVelX*1000))*1000 : 300;   // remaining px ÷ px/ms
+    var dur=Math.max(150,Math.min(340,Math.round(velDur||300)));
+    swipeCur.style.transition='transform '+dur+'ms '+ease+',box-shadow '+dur+'ms '+ease;
+    swipePrev.style.transition='transform '+dur+'ms '+ease+',filter '+dur+'ms '+ease;
     swipeCur.style.transform='translate3d(100%,0,0)';
+    swipeCur.style.boxShadow='-14px 0 34px rgba(0,0,0,0)';
     swipePrev.style.transform='translate3d(0,0,0)';
+    swipePrev.style.filter='brightness(1)';
     var sC=swipeCur,sP=swipePrev;
     setTimeout(function(){
       var cid=stk.pop();
@@ -3758,11 +3826,14 @@ nav.addEventListener('touchend',function(e){
       sP.classList.remove('behind');
       sP.classList.add('active');
       sC.classList.remove('active','behind');
-      // Then inline styles
+      // Then inline styles — and clear the transient shadow/filter so nothing lingers.
       sP.style.transition='none';
       sP.style.transform='translate3d(0,0,0)';
+      sP.style.filter='';
       sC.style.transition='none';
       sC.style.transform='translate3d(100%,0,0)';
+      sC.style.boxShadow='';
+      sC.classList.remove('swiping');
       if(cid==='scan'&&typeof stopScan==='function') stopScan();
       if(navigator.vibrate){try{navigator.vibrate(8);}catch(e){}}
       requestAnimationFrame(function(){updateUI(stk[stk.length-1]);});
@@ -3788,12 +3859,14 @@ function cancelSwipe(){
   var sC=swipeCur,sP=swipePrev;
   var ease='cubic-bezier(0.32,0.72,0,1)';
   if(sC){
-    sC.style.transition='transform 200ms '+ease;
+    sC.style.transition='transform 200ms '+ease+',box-shadow 200ms '+ease;
     sC.style.transform='translate3d(0,0,0)';
+    sC.style.boxShadow='-14px 0 34px rgba(0,0,0,0)';   // fade the edge shadow back out
   }
   if(sP){
-    sP.style.transition='transform 200ms '+ease;
+    sP.style.transition='transform 200ms '+ease+',filter 200ms '+ease;
     sP.style.transform='translate3d(-28%,0,0)';
+    sP.style.filter='brightness(0.72)';                 // settle back to the dimmed "behind" state
   }
   setTimeout(function(){
     // Align cascade FIRST (same pattern as go/back cleanup)
@@ -3802,12 +3875,15 @@ function cancelSwipe(){
       sP.classList.remove('active');
       sP.style.transition='none';
       sP.style.transform='translate3d(-28%,0,0)';
+      sP.style.filter='';                    // clear transient dim — CSS handles the resting state
     }
     if(sC){
       sC.classList.add('active');
       sC.classList.remove('behind');
       sC.style.transition='none';
       sC.style.transform='translate3d(0,0,0)';
+      sC.style.boxShadow='';                 // clear transient shadow
+      sC.classList.remove('swiping');
     }
   },200);
   swipeCur=null;swipePrev=null;
@@ -5488,6 +5564,9 @@ var staffEditMode=false;
 // ── Kart Info ─────────────────────────────────────────────────────────────────
 // Sample data — when Racefacer API is integrated, replace KART_LIST with API fetch.
 // Status: "ok" / "maint" (for maintenance) / "damaged"
+// FLEET_LOADED is false until the REAL fleet arrives from Supabase, so we can show a loading
+// spinner instead of flashing the placeholder karts below.
+var FLEET_LOADED=false;
 var KART_LIST=[
   // ── ADULT karts ──
   {type:'Adult',num:4, status:'maint',   kartId:'FR-13',transponder:'104942',brand:'RiMO',model:'SiNUS iON',     engine:'Electric',mileage:118402,laps:301245,hours:4892,cost:8420.50,startDate:'08.11.2021'},
@@ -5631,6 +5710,7 @@ function loadRfKarts(cb,force){
     }
     if(krows.length){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
+      FLEET_LOADED=true;   // real fleet is in — safe to render chips instead of the loading spinner
       // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
       KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
       KARTS_AT=Date.now(); KARTS_SITE=site;
@@ -6471,6 +6551,12 @@ function renderStatusBar(){
 
 function renderKartChips(filter){
   renderStatusBar();
+  // Until the real fleet arrives, show a loading state — never flash the placeholder karts.
+  if(!FLEET_LOADED){
+    var g0=document.getElementById('kart-chips');
+    if(g0) g0.innerHTML='<div class="fleet-loading" style="grid-column:1/-1"><div class="fleet-spinner"></div><div class="fleet-loading-t">Loading fleet\u2026</div></div>';
+    return;
+  }
   var q=(filter||(document.getElementById('kart-search')?document.getElementById('kart-search').value:'')||'').trim().toLowerCase();
   var grid=document.getElementById('kart-chips');
   if(SELECTED_KART_TYPE===LT_TYPE){
@@ -6584,7 +6670,9 @@ function _rfqUserSel(){
 function _rfqSeg(){
   var opts=[['ok','OK','s-ok'],['for_maintenance','FOR MAINTENANCE','s-fm'],['damaged','DAMAGED','s-dmg']];
   return '<div class="rfq-seg" id="rfq-seg">'+opts.map(function(o){
-    return '<button type="button" class="'+o[2]+(RFQ_STATUS===o[0]?' on':'')+'" onclick="rfqSetStatus(\''+o[0]+'\')">'+o[1]+'</button>';
+    // onmousedown preventDefault keeps focus in the textarea when you tap a status button, so
+    // your cursor and typing aren't lost. Also captures the note text first as a safety net.
+    return '<button type="button" class="'+o[2]+(RFQ_STATUS===o[0]?' on':'')+'" onmousedown="event.preventDefault()" onclick="rfqSetStatus(\''+o[0]+'\')">'+o[1]+'</button>';
   }).join('')+'</div>';
 }
 function rfqSetStatus(s){ RFQ_STATUS=s; var seg=document.getElementById('rfq-seg'); if(seg){ var bs=seg.querySelectorAll('button'); var m={ok:0,for_maintenance:1,damaged:2}; for(var i=0;i<bs.length;i++){ bs[i].classList.toggle('on',i===m[s]); } } }
@@ -6663,7 +6751,7 @@ function rfqCardHtml(){
     +_rfqSpec('Kart ID',k.kartId||'-')+_rfqSpec('Mileage',(k.mileage?Math.round(k.mileage).toLocaleString()+' km':'-'))+_rfqSpec('Working hrs',(k.hours?Math.round(k.hours).toLocaleString():'-'))
     +'</div>';
   if(RFQ_MODE==='note'){
-    return '<div class="mc" style="text-align:left;margin:0 0 14px">'
+    return '<div class="mc rfq-card" style="text-align:left;margin:0 0 14px">'
       +'<div class="mct">\ud83d\udcdd Add note \u00b7 '+kEsc(k.num||'')+'</div>'
       +'<div class="m-tool-desc">Posts to RaceFacer as <b>'+kEsc(cu.name)+'</b>.</div>'+info
       +'<div class="m-fld" style="margin-top:12px"><label>Kart status</label>'+_rfqSeg()+'</div>'
@@ -6673,7 +6761,7 @@ function rfqCardHtml(){
       +'</div>';
   }
   var _sn=RFQ_NOTE?String(RFQ_NOTE.note||'').slice(0,60):'';
-  return '<div class="mc" style="text-align:left;margin:0 0 14px">'
+  return '<div class="mc rfq-card" style="text-align:left;margin:0 0 14px">'
     +'<div class="mct">\ud83d\udd25 New repair \u00b7 '+kEsc(k.num||'')+'</div>'
     +(RFQ_NOTE?('<div class="rfq-fornote">for note: \u201c'+kEsc(_sn)+(String(RFQ_NOTE.note||'').length>60?'\u2026':'')+'\u201d</div>'):'')
     +'<div class="m-tool-desc">Adds the damage in RaceFacer \u2014 lands in seconds and is stored here, no re-scan.</div>'+info
@@ -6696,7 +6784,10 @@ function rfqCardHtml(){
     +'</div>';
 }
 function rfqToggle(mode){
-  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS='ok'; if(!mode) RFQ_NOTE=null;
+  // Default the status buttons to the kart's CURRENT status (so a note on a For-Maintenance kart
+  // keeps it For-Maintenance unless you deliberately change it), not always OK.
+  var curStatus=(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.status)?KD_KART.status:'ok';
+  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null;
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
@@ -6919,32 +7010,69 @@ function costTabHTML(){
 
 
 // ── Fleet-wide reference sections (no longer per-kart) ──────────────────────
-// Global kart-notes feed — every kart's notes for this site, newest first (mirrors RaceFacer's Notifications list)
-var KI_NKMAP=null;
+// Two-tab notes view mirroring RaceFacer: "Notifications" (actionable, with a New repair button
+// per note) and "Kart Notes" (the note + current kart status + when + who). Both read the same
+// active notes; the tabs differ in what they emphasise and let you do.
+var KI_NKMAP=null, KI_NOTES_TAB='notifications';
 function kiFmtDate(iso){ var m=String(iso||'').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/); if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5]; try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
+function kiNotesSetTab(t){ KI_NOTES_TAB=t; renderKartNotesFeed(); }
 function renderKartNotesFeed(){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
-  body.innerHTML='<div style="font-size:13px;color:var(--t2)">Loading notes…</div>';
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Not connected.</div>'; return; }
   var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney';
   function withMap(cb){
     if(KI_NKMAP){ cb(KI_NKMAP); return; }
-    SBC.from('rf_karts').select('rf_id,name,type').limit(5000).then(function(res){ var m={}; ((res&&res.data)||[]).forEach(function(k){ m[k.rf_id]={name:k.name,type:k.type}; }); KI_NKMAP=m; cb(m); }, function(){ cb({}); });
+    SBC.from('rf_karts').select('rf_id,name,type,status').limit(5000).then(function(res){ var m={}; ((res&&res.data)||[]).forEach(function(k){ m[k.rf_id]={name:k.name,type:k.type,status:k.status}; }); KI_NKMAP=m; cb(m); }, function(){ cb({}); });
   }
+  // Tab bar (built once; body fills below)
+  var tabBar='<div class="kn-tabbar">'
+    +'<button class="kn-tabbtn'+(KI_NOTES_TAB==='notifications'?' on':'')+'" onclick="kiNotesSetTab(\'notifications\')">Notifications</button>'
+    +'<button class="kn-tabbtn'+(KI_NOTES_TAB==='notes'?' on':'')+'" onclick="kiNotesSetTab(\'notes\')">Kart Notes</button>'
+    +'</div>';
+  body.innerHTML=tabBar+'<div id="kn-tabinner"><div style="font-size:13px;color:var(--t2);padding:8px 2px">Loading notes\u2026</div></div>';
   withMap(function(km){
-    SBC.from('rf_kart_notes').select('rf_kart_id,note,created_at,created_by').eq('site',site).eq('active',true).order('created_at',{ascending:false}).limit(250).then(function(res){
+    SBC.from('rf_kart_notes').select('id,rf_kart_id,note,created_at,created_by,rf_notification_id').eq('site',site).eq('active',true).order('created_at',{ascending:false}).limit(250).then(function(res){
       var rows=(res&&res.data)||[];
-      if(!rows.length){ body.innerHTML='<div style="font-size:14px;color:var(--t2)">No active kart notes.</div>'; return; }
-      var h='<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">'+rows.length+' active note'+(rows.length===1?'':'s')+' · newest first</div><div style="display:flex;flex-direction:column;gap:8px">';
+      var inner=document.getElementById('kn-tabinner'); if(!inner) return;
+      if(!rows.length){ inner.innerHTML='<div style="font-size:14px;color:var(--t2);padding:8px 2px">No active kart notes.</div>'; return; }
+      var statusMeta={ok:['OK','#16A34A'],maint:['FOR MAINTENANCE','#F59E0B'],damaged:['DAMAGED','#DC2626']};
+      var h='<div class="kn-count">'+rows.length+' active note'+(rows.length===1?'':'s')+' \u00b7 newest first</div><div class="kn-list">';
       rows.forEach(function(r){
         var k=km[r.rf_kart_id]||{}; var num=raceEsc(k.name||r.rf_kart_id||'?'); var typ=k.type?raceEsc(k.type):'';
-        var col=KART_TYPE_COLOR[rfTypeShort(k.type||'')]||'#2DD4BF';   // exact same hex the Karts tab + Repairs badges use
+        var col=KART_TYPE_COLOR[rfTypeShort(k.type||'')]||'#2DD4BF';
         var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
-        h+='<div class="mc" style="margin-bottom:0;padding:12px 14px;border:1.5px solid '+col+'"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:800;color:var(--acc)">Kart '+num+'</span>'+(typ?('<span style="font-size:11.5px;font-weight:700;color:'+col+'">'+typ+'</span>'):'')+'<span style="font-size:11px;color:var(--t2);margin-left:auto">'+when+'</span></div><div style="font-size:13.5px;color:var(--t1);line-height:1.5">'+note+'</div>'+(by?('<div style="font-size:11.5px;color:var(--t2);margin-top:3px">'+by+'</div>'):'')+'</div>';
+        var sm=statusMeta[k.status||'ok']||statusMeta.ok;
+        if(KI_NOTES_TAB==='notifications'){
+          // Actionable card: kart + note + a New repair button (like RaceFacer's Notifications tab)
+          h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
+            +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')+'<span class="kn-when">'+when+'</span></div>'
+            +'<div class="kn-note">\u2605 '+note+'</div>'
+            +'<div class="kn-card-foot">'+(by?('<span class="kn-by">'+by+'</span>'):'<span></span>')
+            +'<button class="kn-newrep" onclick="notifNewRepair('+r.rf_kart_id+','+(r.id||'null')+')">\ud83d\udd25 New repair</button></div>'
+            +'</div>';
+        } else {
+          // Kart Notes card: note + current status pill + when + who
+          h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
+            +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')
+            +'<span class="kn-status" style="background:'+sm[1]+'">'+sm[0]+'</span>'
+            +'<span class="kn-when">'+when+'</span></div>'
+            +'<div class="kn-note">'+note+'</div>'
+            +(by?('<div class="kn-by">Added by '+by+'</div>'):'')
+            +'</div>';
+        }
       });
-      h+='</div>'; body.innerHTML=h;
-    }, function(){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
+      h+='</div>'; inner.innerHTML=h;
+    }, function(){ var inner=document.getElementById('kn-tabinner'); if(inner) inner.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
   });
+}
+// From a notification, jump straight into logging a repair on that kart (opens the kart, then the
+// repair form pre-linked to this note so it clears on save).
+function notifNewRepair(rfId, noteId){
+  try{
+    if(typeof selectKart==='function'){ selectKart(rfId);
+      setTimeout(function(){ try{ if(noteId!=null && typeof rfqRepairForNote==='function'){ rfqRepairForNote(noteId); } else if(typeof rfqToggle==='function'){ rfqToggle('repair'); } }catch(e){} }, 350);
+    }
+  }catch(e){}
 }
 // ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────
 // Flattens every kart's synced repairs into one filterable/searchable table.
@@ -7538,7 +7666,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-AX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10525,7 +10653,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-AX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

@@ -470,7 +470,7 @@
     @media (min-width:1000px){.kart-chip-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}}
     .kart-chip{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:14px 6px;cursor:pointer;text-align:center;position:relative;transition:transform .12s,background .12s,border-color .12s;user-select:none;min-width:0;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
     /* Fleet loading state — a calm centered spinner instead of flashing placeholder karts. */
-    .fleet-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:64px 0;min-height:40vh}
+    .fleet-loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:2;pointer-events:none}
     /* Two-tab fleet notes view (Notifications | Kart Notes), mirroring RaceFacer. */
     .kn-tabbar{display:flex;gap:8px;margin-bottom:16px}
     .kn-tabbtn{flex:1;background:var(--card);border:1px solid var(--b2);border-radius:11px;color:var(--t2);font-weight:800;font-size:13px;padding:11px 8px;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:background .18s,color .18s,border-color .18s}
@@ -2067,7 +2067,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BE · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BG · ZXing raw</div>
       </div>
     </div>
 
@@ -4376,7 +4376,7 @@ function goBuild(offsetDays){
   return items;
 }
 function loadGenOrder(){
-  var di=document.getElementById('go-date'); var _td=new Date().toISOString().slice(0,10); if(di&&(!di.value||di.value<_td)) di.value=_td;
+  var di=document.getElementById('go-date'); var _td=(typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10); if(di&&(!di.value||di.value<_td)) di.value=_td;
   document.getElementById('go-list').innerHTML='<div class="emp"><span class="empic">📦</span>Loading…</div>';
   function go(){ goScope=goScope||currentSite||'sydney'; if(!siteById(goScope)&&goScope!=='combined') goScope=currentSite||'sydney'; goLoadData(function(){ goRenderScopeTabs(); goRecalc(); }); }
   if(!allSites.length) loadSites(go); else go();
@@ -4430,7 +4430,7 @@ function goExportCSV(){
 function goExportPDF(){
   try{
     var JP=window.jspdf.jsPDF, doc=new JP({unit:'mm',format:'a4'});
-    var date=document.getElementById('go-date').value||new Date().toISOString().slice(0,10);
+    var date=document.getElementById('go-date').value||((typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10));
     var W=210, M=14, y=18;
     doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text('Hyper Karting — RIMO Order',M,y); y+=7;
     doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90);
@@ -5639,12 +5639,14 @@ var ACTIVE_KART_TAB='overview';
 // ── Live RaceFacer data ────────────────────────────────────────────────────
 // rf_karts/rf_repairs are written by the sync. We map them into the SAME shapes
 // the existing render functions already expect, so nothing downstream changes.
-var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={};
+var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={}, PENDING_KART_STATUS={};
 function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Adult'; }
 function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
 function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
 function mapRfKart(r){
-  return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:rfStatusClass(r.status_code,r.status),
+  var _st=rfStatusClass(r.status_code,r.status), _pend=PENDING_KART_STATUS[r.rf_id];
+  if(_pend!=null){ if(_pend===_st) delete PENDING_KART_STATUS[r.rf_id]; else _st=_pend; }   // hold the optimistic status until RaceFacer echoes it back
+  return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:_st,
     kartId:r.kart_id_label||'-', transponder:'-', brand:r.brand||'RiMO', model:r.model||'-', engine:'Electric',
     mileage:Number(r.total_km)||0, laps:Number(r.total_laps)||0, hours:Number(r.total_hours)||0,
     cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-', longTerm:(r.long_term===true), typeColor:(r.type_color||null) };
@@ -5782,6 +5784,19 @@ var LT_TYPE='Long Term', LT_COLOR='#94A3B8';   // long-term-damage pile: karts k
 /* ---- live status auto-refresh: keeps OK / Damaged current without a manual reload ---- */
 var KART_AUTO=null;
 function _curKartScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
+// Rebuild the current kart-detail tab body ONLY when its data actually changed, and never over an
+// open form. Every background refresh (fresh-load callbacks, realtime, tab return) routes through
+// this so an idle re-fetch of identical data doesn't tear down and flash "Add note … repairs".
+function kdRefreshBodyIfChanged(){
+  if(typeof RFQ_MODE!=='undefined' && RFQ_MODE) return;
+  if(typeof kartInputLocked==='function' && kartInputLocked()) return;
+  var k=KD_KART; if(!k||k.rfId==null) return;
+  var tb=document.getElementById('kt-tabbody'); if(!tb) return;
+  var sig=null, html=null;
+  if(KD_TAB==='Repairs'){ KD_REPAIRS=(RF_REPAIRS_BY_ID[k.rfId])||[]; sig='R'+k.rfId+':'+KD_REPAIRS.length+':'+KD_REPAIRS.map(function(r){return (r.id||'')+'~'+(r.status||'');}).join('|'); if(sig!==_kdBodySig) html=rfqCardHtml()+repTableHTML(); }
+  else if(KD_TAB==='Kart Notes'){ var nn=(RF_NOTES_BY_ID[k.rfId])||[]; sig='N'+k.rfId+':'+nn.length+':'+nn.map(function(n){return (n.id||'')+'~'+(n.open?'o':'c');}).join('|'); if(sig!==_kdBodySig) html=notesTabHTML(); }
+  if(html!=null){ _kdBodySig=sig; tb.innerHTML=html; }
+}
 function loadKartNotesFresh(rfId,cb){
   if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
   SBC.from('rf_kart_notes').select('*').eq('rf_kart_id',rfId).then(function(r){
@@ -5797,7 +5812,7 @@ function loadKartNotesFresh(rfId,cb){
     // Cache is updated; only touch the DOM if the user isn't mid-input (else we'd rebuild under them).
     if(SELECTED_KART&&SELECTED_KART.rfId===rfId&&!(typeof kartInputLocked==='function'&&kartInputLocked())){
       var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(rfId);
-      if(KD_TAB==='Kart Notes'){ var body=document.getElementById('kt-tabbody'); if(body) body.innerHTML=notesTabHTML(); }
+      kdRefreshBodyIfChanged();
     }
     if(cb) cb();
   },function(){ if(cb) cb(); });
@@ -5811,8 +5826,11 @@ function kdSetStatus(status){
   var map={ok:1,damaged:2,maint:3};   // RaceFacer kart_status_id
   var prev=k.status; k.status=status;
   var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.status=status;
+  PENDING_KART_STATUS[k.rfId]=status;   // survive fleet rebuilds (2s status poll) until RaceFacer echoes it back
   var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
-  function _revert(msg){ k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(msg) alert(msg); }
+  // Instantly recolour this kart on the fleet grid too — don't wait for the RaceFacer round-trip.
+  if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
+  function _revert(msg){ delete PENDING_KART_STATUS[k.rfId]; k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } if(msg) alert(msg); }
   // Queuing always succeeds. What can fail is the runner's push to RaceFacer a second or two
   // later — most often "back to OK" while the kart still has an open damage. Watch the row.
   SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).select('id').then(function(r){
@@ -5854,7 +5872,7 @@ function loadKartRepairsFresh(rfId,cb){
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x._pending && !arr.some(function(y){return y.issue===x.issue && y.iso===x.iso;})) arr.push(x); });
     arr.sort(function(a,b){return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||'');});
     RF_REPAIRS_BY_ID[rfId]=arr;
-    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; if(KD_TAB==='Repairs'&&!RFQ_MODE&&!(typeof kartInputLocked==='function'&&kartInputLocked())){ ktTab('Repairs'); } }
+    if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; kdRefreshBodyIfChanged(); }
     if(cb) cb();
   },function(){ if(cb) cb(); });
 }
@@ -6762,7 +6780,7 @@ function rfqCardHtml(){
       +'<div style="font-size:11.5px;color:var(--t2);margin-top:7px;text-align:center">To log a repair, tap \ud83d\udd25 New repair on one of the kart\u2019s notes above \u2014 same flow as RaceFacer.</div>'
       +'</div>';
   }
-  var today=new Date().toISOString().slice(0,10);
+  var today=(typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10);
   var info='<div class="rfq-info">'
     +_rfqSpec('Type',k.type||'-')+_rfqSpec('Kart',k.num||'-')+_rfqSpec('Transponder',(k.transponder&&k.transponder!=='-')?k.transponder:'\u2014')
     +_rfqSpec('Kart ID',k.kartId||'-')+_rfqSpec('Mileage',(k.mileage?Math.round(k.mileage).toLocaleString()+' km':'-'))+_rfqSpec('Working hrs',(k.hours?Math.round(k.hours).toLocaleString():'-'))
@@ -6833,7 +6851,7 @@ function rfqSubmit(){
     return;
   }
   var fixed=!!document.getElementById('rfq-fixed').checked;
-  var disc=document.getElementById('rfq-disc').value||new Date().toISOString().slice(0,10);
+  var disc=document.getElementById('rfq-disc').value||((typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10));
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
   var uEl=document.getElementById('rfq-user'), who=(uEl&&uEl.value)||cu.name;   // RaceFacer's User dropdown
@@ -6915,47 +6933,115 @@ function ktTab(name){
   else body.innerHTML='<div class="rep-empty">Maintenance schedule isn\u2019t synced from RaceFacer yet.</div>';
 }
 
-/* ===== ADMIN TAB — change a kart's RaceFacer settings (track type / safety server) ==========
-   The dropdowns default to "keep current"; only fields you set are sent. The runner reads the kart's
-   current RaceFacer record, overlays your change, and re-submits the rest, then it syncs back. */
+/* ===== ADMIN TAB — edit EVERY RaceFacer kart field (transponder, tyre, chassis, price, …) =====
+   The runner mirrors each kart's full record into rf_kart_admin; the app pre-fills the form from it,
+   you edit, and Save sends the COMPLETE record (payload) so the runner just posts it — no fragile
+   per-save read. If the record hasn't synced yet it falls back to a type/safety-server-only form
+   (legacy read-modify-write on the runner). _admWatch surfaces RaceFacer's real verdict on the row. */
 var RF_KART_TYPES=[[1,'Adult Track'],[22,'Intermediate Track'],[7,'Junior Track'],[6,'Mini Track'],[17,'Twin'],[18,'Lane'],[21,'BattleKart'],[23,'Melbourne Fleet'],[11,'Wangan'],[12,'Super Bikes'],[13,'Mario Kart'],[8,'VR Headsets'],[9,'Asphalt 9'],[10,'TVs'],[14,'Red Remotes'],[15,'iPads']];
 var RF_SAFETY_SERVERS=[[1,'Main Track']];   // add more [id,'Name'] here once their names are known
 function _admTypeId(name){ for(var i=0;i<RF_KART_TYPES.length;i++){ if(RF_KART_TYPES[i][1]===name) return RF_KART_TYPES[i][0]; } return null; }
-function _admSel(id,cur,opts){
-  var o='<option value="">\u2014 keep current \u2014</option>';
-  opts.forEach(function(p){ o+='<option value="'+p[0]+'"'+(cur!=null&&p[0]===cur?' selected':'')+'>'+kEsc(p[1])+'</option>'; });
-  return '<select id="'+id+'">'+o+'</select>';
+var RF_KART_REC={};   // rfId -> full current record (from rf_kart_admin): object, or null once fetched-but-absent
+function loadKartRecord(rfId, cb){
+  if(rfId==null||typeof SBC==='undefined'||!SBC){ RF_KART_REC[rfId]=null; if(cb) cb(null); return; }
+  SBC.from('rf_kart_admin').select('fields').eq('rf_kart_id',rfId).then(function(r){
+    var rec=(r&&r.data&&r.data[0]&&r.data[0].fields)?r.data[0].fields:null;
+    RF_KART_REC[rfId]=rec; if(cb) cb(rec);
+  },function(){ RF_KART_REC[rfId]=null; if(cb) cb(null); });
 }
+function _admReloadRec(){ var k=KD_KART||{}; if(k.rfId==null) return; delete RF_KART_REC[k.rfId]; var tb=document.getElementById('kt-tabbody'); if(tb) tb.innerHTML=adminTabHTML(); }
+function _admOpts(opts,cur){ var o=''; (opts||[]).forEach(function(p){ o+='<option value="'+p[0]+'"'+((cur!=null&&String(p[0])===String(cur))?' selected':'')+'>'+kEsc(p[1])+'</option>'; }); return o; }
+function _admServerOpts(cur){ var list=(RF_SAFETY_SERVERS||[]).slice(); if(cur!=null&&!list.some(function(p){return String(p[0])===String(cur);})) list.unshift([cur,'Server '+cur]); return _admOpts(list,cur); }
+function _admTypeOpts(cur){ var list=(RF_KART_TYPES||[]).slice(); if(cur!=null&&!list.some(function(p){return String(p[0])===String(cur);})) list.unshift([cur,'Type '+cur]); return _admOpts(list,cur); }
+function _admSel(id,optsHtml){ return '<select id="'+id+'">'+optsHtml+'</select>'; }
+function _admInput(id,val,ph,type){ return '<input id="'+id+'" type="'+(type||'text')+'" value="'+kEsc(val==null?'':String(val))+'"'+(ph?(' placeholder="'+kEsc(ph)+'"'):'')+'>'; }
+function _admFld(label,inner){ return '<div class="m-fld" style="margin-top:10px"><label>'+kEsc(label)+'</label>'+inner+'</div>'; }
+function _admBtns(){ return '<div class="m-form-msg" id="adm-msg" style="margin-top:8px"></div><div class="rfq-btns"><button class="m-add" id="adm-save" onclick="adminSave()">\u2713 Save to RaceFacer</button> <button class="m-add" style="background:transparent;border:1px solid var(--line);color:var(--t2)" onclick="_admReloadRec()">\u21bb Refresh</button></div>'; }
+function _admShell(k,inner){ return '<div class="mc rfq-card" style="text-align:left;margin:0 0 14px"><div class="mct">\u2699\ufe0f Admin \u00b7 '+kEsc(k.num||'')+'</div>'+inner+'</div>'; }
 function adminTabHTML(){
   var k=KD_KART||{};
   if(!cu||k.rfId==null) return '<div class="rep-empty">No kart selected.</div>';
-  var curTypeId=_admTypeId(k.type);
-  return '<div class="mc rfq-card" style="text-align:left;margin:0 0 14px">'
-    +'<div class="mct">\u2699\ufe0f Admin \u00b7 '+kEsc(k.num||'')+'</div>'
-    +'<div class="m-tool-desc">Writes to RaceFacer and syncs back in a couple of seconds. Only changed fields are sent.</div>'
-    +'<div class="m-fld" style="margin-top:12px"><label>Track type</label>'+_admSel('adm-type',curTypeId,RF_KART_TYPES)+(curTypeId==null&&k.type?('<div style="font-size:11px;color:var(--t2);margin-top:4px">Currently: '+kEsc(k.type)+'</div>'):'')+'</div>'
-    +'<div class="m-fld" style="margin-top:12px"><label>Safety server</label>'+_admSel('adm-server',null,RF_SAFETY_SERVERS)+'</div>'
-    +'<div class="m-form-msg" id="adm-msg" style="margin-top:8px"></div>'
-    +'<div class="rfq-btns"><button class="m-add" id="adm-save" onclick="adminSave()">\u2713 Save to RaceFacer</button></div>'
-    +'</div>';
+  var rec=RF_KART_REC[k.rfId];
+  if(rec===undefined){   // not fetched yet — load, then re-render this tab
+    loadKartRecord(k.rfId, function(){ if(KD_TAB==='Admin'&&!(typeof kartInputLocked==='function'&&kartInputLocked())){ var tb=document.getElementById('kt-tabbody'); if(tb) tb.innerHTML=adminTabHTML(); } });
+    return _admShell(k,'<div style="padding:22px 0;text-align:center;color:var(--t2);font-size:13px"><div class="fleet-spinner" style="margin:0 auto 10px"></div>Loading current values from RaceFacer\u2026</div>');
+  }
+  if(rec===null){   // record store empty (runner hasn't mirrored it yet) — degrade to type + server only
+    return _admShell(k,
+       '<div class="m-tool-desc" style="color:#F59E0B">Full kart details haven\u2019t synced yet, so only track type &amp; safety server can be changed here. They appear once the runner mirrors kart records (a minute after deploying) \u2014 or tap \u21bb Refresh.</div>'
+      +_admFld('Track type', _admSel('adm-type', '<option value="">\u2014 keep current \u2014</option>'+_admOpts(RF_KART_TYPES,_admTypeId(k.type)))+(_admTypeId(k.type)==null&&k.type?('<div style="font-size:11px;color:var(--t2);margin-top:4px">Currently: '+kEsc(k.type)+'</div>'):''))
+      +_admFld('Safety server', _admSel('adm-server', '<option value="">\u2014 keep current \u2014</option>'+_admServerOpts(null)))
+      +_admBtns());
+  }
+  var typeCur=(rec.kart_type_id!=null)?rec.kart_type_id:_admTypeId(k.type);
+  return _admShell(k,
+     '<div class="m-tool-desc">Every field from RaceFacer\u2019s kart editor \u2014 change what you need and save. It writes back and re-syncs within a couple of seconds.</div>'
+    +_admFld('Name / number', _admInput('adm-name', rec.name))
+    +_admFld('Transponder', _admInput('adm-transponder', rec.transponder))
+    +_admFld('Track type', _admSel('adm-type', _admTypeOpts(typeCur)))
+    +_admFld('Safety server', _admSel('adm-server', _admServerOpts(rec.safety_server_id)))
+    +_admFld('Active', _admSel('adm-active', _admOpts([[1,'Active'],[0,'Inactive']], (Number(rec.is_active)?1:0))))
+    +_admFld('Safety device #', _admInput('adm-fleet', rec.fleet_management_id))
+    +_admFld('Tyre size', _admInput('adm-tyre', rec.tyre_size, '0'))
+    +_admFld('DeHaart #', _admInput('adm-dehaart', rec.dehaart_kart_number))
+    +_admFld('Chassis #', _admInput('adm-chassis', rec.chassis_number))
+    +_admFld('Engine #', _admInput('adm-engine', rec.engine_number))
+    +_admFld('Price', _admInput('adm-price', rec.price, '0'))
+    +_admFld('In-service date', _admInput('adm-date', String(rec.start_exploitation_date||'').slice(0,10), '', 'date'))
+    +_admFld('Start km', _admInput('adm-km', rec.start_exploitation_km, '0'))
+    +_admFld('Start laps', _admInput('adm-laps', rec.start_exploitation_laps, '0'))
+    +_admFld('Start hours', _admInput('adm-hours', rec.start_exploitation_hours, '0'))
+    +_admBtns());
 }
+function _admVal(id){ var el=document.getElementById(id); return el?el.value:''; }
 function adminSave(){
   var k=KD_KART||{}, msg=document.getElementById('adm-msg');
   function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
   if(k.rfId==null||typeof SBC==='undefined'||!SBC){ say('Not connected'); return; }
-  var tEl=document.getElementById('adm-type'), sEl=document.getElementById('adm-server');
-  var typeId=(tEl&&tEl.value)?Number(tEl.value):null;
-  var serverId=(sEl&&sEl.value)?Number(sEl.value):null;
-  if(typeId==null&&serverId==null){ say('Nothing changed \u2014 pick a value first'); return; }
-  var btn=document.getElementById('adm-save'); if(btn){ btn.disabled=true; btn.textContent='Saving\u2026'; }
-  var row={ rf_kart_id:k.rfId, kart_name:String(k.num||''), user_name:(cu&&cu.name)||'', status:'pending',
-            kart_type_id:typeId, safety_server_id:serverId, kart_status_id:null, is_active:null };
-  SBC.from('rf_kart_edit_queue').insert(row).then(function(r){
-    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Create the rf_kart_edit_queue table in Supabase first':(r.error.message||'Failed')); if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} return; }
-    if(typeId!=null){ for(var i=0;i<RF_KART_TYPES.length;i++){ if(RF_KART_TYPES[i][0]===typeId){ k.type=RF_KART_TYPES[i][1]; break; } } var _kt=document.getElementById('kd-type'); if(_kt) _kt.textContent=k.type||''; }
-    say('Saved \u2014 syncing to RaceFacer\u2026','#22C55E');
-    if(btn){ btn.textContent='\u2713 Saved'; setTimeout(function(){ if(btn){ btn.disabled=false; btn.textContent='\u2713 Save to RaceFacer'; } },1500); }
+  var btn=document.getElementById('adm-save');
+  var rec=RF_KART_REC[k.rfId];
+  var typeId=_admVal('adm-type')!==''?Number(_admVal('adm-type')):null;
+  var serverId=_admVal('adm-server')!==''?Number(_admVal('adm-server')):null;
+  var row, payload=null;
+  if(!rec){   // legacy minimal mode — queue only the two fields; the runner reads + preserves the rest
+    if(typeId==null&&serverId==null){ say('Pick a value first'); return; }
+    row={ rf_kart_id:k.rfId, kart_name:String(k.num||''), user_name:(cu&&cu.name)||'', status:'pending', kart_type_id:typeId, safety_server_id:serverId, kart_status_id:null, is_active:null };
+  } else {    // full mode — send the COMPLETE record with edits applied
+    payload={ name:_admVal('adm-name'), kart_type_id:(typeId!=null?typeId:rec.kart_type_id), transponder:_admVal('adm-transponder'),
+      is_active:(Number(_admVal('adm-active'))?1:0), fleet_management_id:_admVal('adm-fleet'), tyre_size:_admVal('adm-tyre'),
+      safety_server_id:(serverId!=null?serverId:rec.safety_server_id), dehaart_kart_number:_admVal('adm-dehaart'),
+      start_exploitation_date:String(_admVal('adm-date')||'').slice(0,10), start_exploitation_km:_admVal('adm-km'),
+      start_exploitation_laps:_admVal('adm-laps'), start_exploitation_hours:_admVal('adm-hours'), chassis_number:_admVal('adm-chassis'),
+      engine_number:_admVal('adm-engine'), price:_admVal('adm-price'),
+      kart_acquire_condition_id:(rec.kart_acquire_condition_id!=null?rec.kart_acquire_condition_id:1),
+      kart_status_id:(rec.kart_status_id!=null?rec.kart_status_id:1) };
+    row={ rf_kart_id:k.rfId, kart_name:String(_admVal('adm-name')||k.num||''), user_name:(cu&&cu.name)||'', status:'pending', kart_type_id:(typeId!=null?typeId:null), safety_server_id:(serverId!=null?serverId:null), kart_status_id:null, is_active:null, payload:payload };
+  }
+  if(btn){ btn.disabled=true; btn.textContent='Saving\u2026'; }
+  SBC.from('rf_kart_edit_queue').insert(row).select('id').then(function(r){
+    if(r&&r.error){ var m=r.error.message||'';
+      if(/payload/i.test(m)&&/column|schema cache/i.test(m)) say('Run rf_kart_admin.sql in Supabase first (adds the payload column)');
+      else if(/relation|does not exist|schema cache/i.test(m)) say('Create the rf_kart_edit_queue table in Supabase first');
+      else say(m||'Failed');
+      if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} return; }
+    if(typeId!=null){ for(var i=0;i<RF_KART_TYPES.length;i++){ if(RF_KART_TYPES[i][0]===typeId){ k.type=RF_KART_TYPES[i][1]; break; } } var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.type=k.type; var _kt=document.getElementById('kd-type'); if(_kt) _kt.textContent=k.type||''; if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } }
+    if(payload) RF_KART_REC[k.rfId]=payload;   // cache now reflects what we sent
+    say('Saved \u2014 syncing to RaceFacer\u2026','#F59E0B');
+    var qid=(r&&r.data&&r.data[0]&&r.data[0].id)||null;
+    if(qid) _admWatch(qid, say, btn); else if(btn){ btn.disabled=false; btn.textContent='\u2713 Save to RaceFacer'; }
   },function(){ say('Connection error'); if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} });
+}
+// Poll the queue row until the runner marks it sent/error, so the user sees RaceFacer's real verdict.
+function _admWatch(id, say, btn){
+  var tries=0;
+  (function poll(){ tries++;
+    SBC.from('rf_kart_edit_queue').select('status,error').eq('id',id).then(function(r){
+      var row=(r&&r.data&&r.data[0])||null;
+      if(row&&row.status==='sent'){ say('\u2713 Saved to RaceFacer','#22C55E'); if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} return; }
+      if(row&&row.status==='error'){ say('RaceFacer: '+(row.error||'rejected'),'#FF5A52'); if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} return; }
+      if(tries<30){ setTimeout(poll,1000); } else { say('Still syncing\u2026 give it a moment','#F59E0B'); if(btn){btn.disabled=false;btn.textContent='\u2713 Save to RaceFacer';} }
+    },function(){ if(tries<30){ setTimeout(poll,1000); } else if(btn){ btn.disabled=false; btn.textContent='\u2713 Save to RaceFacer'; } });
+  })();
 }
 
 // dd.mm.yyyy hh:mm from an ISO timestamp (falls back to the raw string)
@@ -7742,7 +7828,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10729,7 +10815,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

@@ -247,6 +247,8 @@
     .tile.gord    {background:linear-gradient(145deg,#4F46E5,#312E81);border:1px solid rgba(129,140,248,0.48)}
     .tile.sessions{background:linear-gradient(145deg,#0EA5E9,#075985);border:1px solid rgba(56,189,248,0.50)}
     .tile.maccess {background:linear-gradient(145deg,#D97706,#78350F);border:1px solid rgba(251,191,36,0.55)}
+    .tile.kcheck  {background:linear-gradient(145deg,#06B6D4,#0E7490);border:1px solid rgba(103,232,249,0.55)}
+    .tile.hand    {background:linear-gradient(145deg,#F59E0B,#B45309);border:1px solid rgba(251,191,36,0.55)}
     .tile.tvc     {background:linear-gradient(145deg,#0891B2,#0E3A4C);border:1px solid rgba(34,211,238,0.50)}
     /* Bright amber/lime tiles need darker text for contrast */
     .tile.tlo .tl,.tile.tlo .ts,.tile.beacon .tl,.tile.beacon .ts{text-shadow:0 1px 3px rgba(0,0,0,0.55)}
@@ -566,13 +568,18 @@
     .kt-sec-lbl{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:18px 0 10px}
     .kt-sec-lbl:first-child{margin-top:4px}
     /* Kart Info landing — tile dashboard (mirrors the home grid) */
-    .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,2.4vw,14px);margin-top:14px;max-width:760px;margin-left:auto;margin-right:auto}
-    .ki-tiles .tile{aspect-ratio:1.15/1;min-height:112px}
-    .ki-tiles .ki-hero{grid-column:1/-1;aspect-ratio:auto;min-height:96px}
+    .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(11px,2.4vw,16px);margin-top:18px;max-width:820px;margin-left:auto;margin-right:auto}
+    .ki-tiles .tile{aspect-ratio:1.15/1;min-height:116px}
+    .ki-tiles .ki-hero{grid-column:1/-1;aspect-ratio:auto;min-height:104px}
     @media (min-width:720px){
-      .ki-tiles{grid-template-columns:repeat(3,1fr);max-width:900px;gap:14px}
-      .ki-tiles .tile{aspect-ratio:auto;min-height:124px;max-height:150px}
-      .ki-tiles .ki-hero{grid-column:1/-1;min-height:100px;max-height:120px}
+      .ki-tiles{grid-template-columns:repeat(3,1fr);max-width:1040px;gap:16px}
+      .ki-tiles .tile{aspect-ratio:auto;min-height:150px;max-height:none}
+      .ki-tiles .ki-hero{grid-column:1/-1;min-height:118px;max-height:140px}
+    }
+    @media (min-width:1100px){
+      .ki-tiles{max-width:1180px;gap:18px}
+      .ki-tiles .tile{min-height:168px}
+      .ki-tiles .ki-hero{min-height:128px;max-height:150px}
     }
     /* Colour-coded kart type tabs (Adult / Inter / Junior / Mini) */
     .ktype-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
@@ -2037,8 +2044,8 @@
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
             <div class="tile tor"      id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
-            <div class="tile race"     id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
-            <div class="tile chats"    id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
+            <div class="tile kcheck"     id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
+            <div class="tile hand"    id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
             <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
             <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
@@ -2076,7 +2083,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BJ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BK · ZXing raw</div>
       </div>
     </div>
 
@@ -7337,26 +7344,28 @@ function renderKartNotesFeed(silent){
 // repair form pre-linked to this note so it clears on save).
 function notifNewRepair(rfId, noteId){
   try{
-    if(typeof selectKart!=='function') return;
-    selectKart(rfId);   // slides to the kart screen; go() holds navLock until the ~480ms slide ends
-    // Open the repair form only AFTER the slide settles. The old fixed 350ms fired mid-slide, so the
-    // full form rendered + focused its textarea + scrollIntoView'd while the screen was still being
-    // transformed — which wedges the layout (dramatically on wide desktop, where the outgoing screen's
-    // parallax shift is large). Poll navLock so the form opens on a settled screen instead.
+    var k=(KART_LIST||[]).find(function(x){return x.rfId===rfId;}); if(!k) return;
+    SELECTED_KART=k;
+    // KEY FIX: set the repair-form state BEFORE navigating, so the form is rendered as PART of the
+    // incoming screen (renderKartDetail -> ktTab('Repairs') -> rfqCardHtml, which shows the form when
+    // RFQ_MODE==='repair'). The old flow slid to the kart FIRST, then rebuilt the tab body + focused +
+    // scrolled once it arrived — that post-arrival mutation of a composited/transformed screen is what
+    // wedged the layout on wide desktop. Rendering it up front means the slide carries a finished screen.
+    var notes=(rfId!=null&&RF_NOTES_BY_ID[rfId])||[];
+    var n=(noteId!=null)?notes.filter(function(x){return x.id===noteId;})[0]:null;
+    RFQ_NOTE=n?{id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''}:null;
+    RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=(k.status||'ok'); RFQ_AVAIL=false;
+    renderKartDetail(k);   // detail renders with the repair form already open
+    go('kartdetail');      // slides in a finished screen — nothing mutates after it lands
+    // After the slide settles, only do small in-place updates (parts list + warehouse) and a gentle
+    // focus — no tab rebuild, no scrollIntoView. A resting-transform re-assert stays as cheap insurance.
     var _nr=0;
     (function whenSettled(){
-      if(typeof navLock!=='undefined' && navLock && _nr++<60){ setTimeout(whenSettled,25); return; }
-      try{
-        if(noteId!=null && typeof rfqRepairForNote==='function') rfqRepairForNote(noteId);
-        else if(typeof rfqToggle==='function') rfqToggle('repair');
-      }catch(e){}
-      // The heavy form render lands inside the just-settled screen, which is composited + transformed.
-      // On wide desktop Chrome can leave that layer painted at its mid-slide offset — the screen behind
-      // shows through and the form is clipped to the edge. Re-assert the resting transform on the next
-      // frame and once more after the scroll to force a clean recomposite.
+      if(typeof navLock!=='undefined' && navLock && _nr++<80){ setTimeout(whenSettled,25); return; }
+      try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
+      try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
       var _kd=document.getElementById('s-kartdetail');
-      function _repin(){ if(_kd){ _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; } }
-      try{ requestAnimationFrame(_repin); setTimeout(_repin,180); }catch(e){ _repin(); }
+      if(_kd){ _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; }
     })();
   }catch(e){}
 }
@@ -7952,7 +7961,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10947,7 +10956,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

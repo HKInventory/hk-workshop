@@ -3391,7 +3391,7 @@ function startRealtime(){
   // clean render per sweep instead of a strobing status bar. Other views keep tight timings.
   // Status changes push instantly from the DB now, so react fast — a short debounce only to batch
   // a burst (e.g. several karts flipping at once), not the old 5s wait that made status feel laggy.
-  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='notes'&&typeof renderKartNotesFeed==='function'){try{KI_NKMAP=null;renderKartNotesFeed();}catch(e){}} }, 300, 2000);
+  var _rtKarts = _debounce(function(){ if(typeof kartRefreshSilent==='function'){try{kartRefreshSilent();}catch(e){}} if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='notes'&&typeof renderKartNotesFeed==='function'){try{KI_NKMAP=null;renderKartNotesFeed(true);}catch(e){}} }, 300, 2000);
   var _rtMech  = _debounce(function(){ if(_curScr()==='manager'&&typeof renderMechToday==='function'){try{renderMechToday();}catch(e){}} }, 200, 1200);
   var _rtMgr   = _debounce(function(){ if(_curScr()==='manager'&&typeof loadMgr==='function'){try{loadMgr();}catch(e){}} }, 220, 1400);
   var _rtBadge = _debounce(function(){ if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}} }, 220, 1400);
@@ -6590,6 +6590,7 @@ function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function selectKart(rfId){
   var k=KART_LIST.find(function(x){return x.rfId===rfId;});
   if(!k) return;
+  RFQ_MODE=null; RFQ_PARTS=[]; RFQ_NOTE=null;   // open the kart clean — never with a stale New-repair/Note form still up
   SELECTED_KART=k;
   renderKartDetail(k);
   go('kartdetail');
@@ -7016,9 +7017,9 @@ function costTabHTML(){
 var KI_NKMAP=null, KI_NOTES_TAB='notifications';
 function kiFmtDate(iso){ var m=String(iso||'').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/); if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5]; try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
 function kiNotesSetTab(t){ KI_NOTES_TAB=t; renderKartNotesFeed(); }
-function renderKartNotesFeed(){
+function renderKartNotesFeed(silent){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
-  if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div style="font-size:13px;color:var(--t2)">Not connected.</div>'; return; }
+  if(typeof SBC==='undefined'||!SBC){ if(!silent) body.innerHTML='<div style="font-size:13px;color:var(--t2)">Not connected.</div>'; return; }
   var site=(typeof currentSite!=='undefined'&&currentSite)||'sydney';
   function withMap(cb){
     if(KI_NKMAP){ cb(KI_NKMAP); return; }
@@ -7029,12 +7030,16 @@ function renderKartNotesFeed(){
     +'<button class="kn-tabbtn'+(KI_NOTES_TAB==='notifications'?' on':'')+'" onclick="kiNotesSetTab(\'notifications\')">Notifications</button>'
     +'<button class="kn-tabbtn'+(KI_NOTES_TAB==='notes'?' on':'')+'" onclick="kiNotesSetTab(\'notes\')">Kart Notes</button>'
     +'</div>';
-  body.innerHTML=tabBar+'<div id="kn-tabinner"><div style="font-size:13px;color:var(--t2);padding:8px 2px">Loading notes\u2026</div></div>';
+  // On a silent background refresh (a realtime status tick) don't tear the list down to a "Loading…"
+  // placeholder — that collapses the list height and yanks the scroll to the top while the user is
+  // scrolling. Keep the current list visible; new data swaps in below with scroll preserved.
+  if(!silent || !document.getElementById('kn-tabinner')){ body.innerHTML=tabBar+'<div id="kn-tabinner"><div style="font-size:13px;color:var(--t2);padding:8px 2px">Loading notes\u2026</div></div>'; }
   withMap(function(km){
     SBC.from('rf_kart_notes').select('id,rf_kart_id,note,created_at,created_by,rf_notification_id').eq('site',site).eq('active',true).order('created_at',{ascending:false}).limit(250).then(function(res){
       var rows=(res&&res.data)||[];
       var inner=document.getElementById('kn-tabinner'); if(!inner) return;
-      if(!rows.length){ inner.innerHTML='<div style="font-size:14px;color:var(--t2);padding:8px 2px">No active kart notes.</div>'; return; }
+      var _sc=body.closest('.sb'), _top=_sc?_sc.scrollTop:0;   // preserve scroll across a background refresh
+      if(!rows.length){ inner.innerHTML='<div style="font-size:14px;color:var(--t2);padding:8px 2px">No active kart notes.</div>'; if(silent&&_sc)_sc.scrollTop=_top; return; }
       var statusMeta={ok:['OK','#16A34A'],maint:['FOR MAINTENANCE','#F59E0B'],damaged:['DAMAGED','#DC2626']};
       var h='<div class="kn-count">'+rows.length+' active note'+(rows.length===1?'':'s')+' \u00b7 newest first</div><div class="kn-list">';
       rows.forEach(function(r){
@@ -7061,8 +7066,8 @@ function renderKartNotesFeed(){
             +'</div>';
         }
       });
-      h+='</div>'; inner.innerHTML=h;
-    }, function(){ var inner=document.getElementById('kn-tabinner'); if(inner) inner.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
+      h+='</div>'; inner.innerHTML=h; if(silent&&_sc)_sc.scrollTop=_top;
+    }, function(){ if(silent) return; var inner=document.getElementById('kn-tabinner'); if(inner) inner.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
   });
 }
 // From a notification, jump straight into logging a repair on that kart (opens the kart, then the

@@ -477,7 +477,12 @@
     .kn-tabbtn.on{background:var(--grad);color:#fff;border-color:transparent}
     .kn-count{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
     .kn-list{display:flex;flex-direction:column;gap:10px}
-    .kn-card{background:linear-gradient(180deg,var(--card2,#171b24),var(--card));border:1px solid var(--b1);border-radius:14px;padding:13px 15px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+    .kn-card{background:linear-gradient(180deg,var(--card2,#171b24),var(--card));border:1px solid var(--b1);border-radius:14px;padding:13px 15px;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .16s cubic-bezier(.32,.72,0,1),box-shadow .16s ease,border-color .16s ease}
+    @media(hover:hover){.kn-card:hover{transform:translateY(-2px) scale(1.006);box-shadow:0 10px 26px rgba(0,0,0,.34);border-color:var(--b2)}}
+    @keyframes knInR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes knInL{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+    #kn-tabinner.kn-slide-r{animation:knInR .26s cubic-bezier(.32,.72,0,1)}
+    #kn-tabinner.kn-slide-l{animation:knInL .26s cubic-bezier(.32,.72,0,1)}
     .kn-card-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
     .kn-kart{font-size:13.5px;font-weight:800}
     .kn-typ{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
@@ -498,6 +503,7 @@
     .kart-chip[data-status="maint"]{background:rgba(255,214,0,.15);border-color:rgba(255,214,0,.55)}
     .kart-chip[data-status="damaged"]{background:rgba(255,59,48,.15);border-color:rgba(255,59,48,.55)}
     .kart-chip:hover{filter:brightness(1.12)}
+    @media(hover:hover){.kart-chip:hover{transform:scale(1.05);z-index:2}}
     .kart-chip.selected{outline:2px solid #fff;outline-offset:1px}
     /* Fleet status bar (OK / maintenance / damaged) shown above the chips for the selected type */
     .ksb-wrap{margin:2px 0 16px}
@@ -3018,6 +3024,7 @@ function playEnterAnim(label, sub, ac, after){
   setTimeout(function(){ ov.classList.add('out'); setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); },420); },1080);
 }
 function playSiteSwitch(after){ playEnterAnim(siteLabel(currentSite), 'Switching site\u2026', siteAccent(currentSite), after); }
+function playSiteLoad(after){ playEnterAnim(siteLabel(currentSite), 'Loading site\u2026', siteAccent(currentSite), after); }
 function playTrainingAnim(after){ playEnterAnim('Training', 'Practice mode \u00b7 no real stock', '#FFD600', after); }
 function openSiteChooser(reopen,done){
   function build(){
@@ -4240,7 +4247,7 @@ function onLoginOk(m,entered){
     },function(){ if(!parts.length){ parts=buildTrainData(); TRAIN_PARTS=parts; } });
     setTimeout(function(){ playTrainingAnim(function(){ _welcomeToHome(); setTimeout(maybeOfferTrainingTour,1300); }); }, 1000);
   } else {
-    loadSites(function(){ setTimeout(function(){ openSiteChooser(false,function(){ playSiteSwitch(function(){ _welcomeToHome(); setTimeout(maybeOfferTutorial,1300); }); }); }, 1150); });
+    loadSites(function(){ setTimeout(function(){ openSiteChooser(false,function(){ playSiteLoad(function(){ _welcomeToHome(); setTimeout(maybeOfferTutorial,1300); }); }); }, 1150); });
   }
 }
 function goHome(){
@@ -7252,9 +7259,54 @@ function costTabHTML(){
 // Two-tab notes view mirroring RaceFacer: "Notifications" (actionable, with a New repair button
 // per note) and "Kart Notes" (the note + current kart status + when + who). Both read the same
 // active notes; the tabs differ in what they emphasise and let you do.
-var KI_NKMAP=null, KI_NOTES_TAB='notifications';
+var KI_NKMAP=null, KI_NOTES_TAB='notifications', KI_NOTES_ROWS=null;
 function kiFmtDate(iso){ var m=String(iso||'').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/); if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5]; try{ var d=new Date(iso); if(isNaN(d.getTime())) return ''; var p=function(n){return String(n).padStart(2,'0');}; return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
-function kiNotesSetTab(t){ KI_NOTES_TAB=t; renderKartNotesFeed(); }
+function kiNotesSetTab(t){
+  if(t===KI_NOTES_TAB) return;
+  var dir=(t==='notes')?1:-1;   // notifications is the left tab, Kart Notes the right — slide accordingly
+  KI_NOTES_TAB=t;
+  var btns=document.querySelectorAll('#ki-ref-body .kn-tabbtn');
+  if(btns[0]) btns[0].classList.toggle('on', t==='notifications');
+  if(btns[1]) btns[1].classList.toggle('on', t==='notes');
+  var inner=document.getElementById('kn-tabinner');
+  if(inner && KI_NOTES_ROWS!==null && KI_NKMAP){    // both tabs read the same data — swap instantly, no refetch/flash
+    inner.innerHTML=kiNotesListHTML(KI_NOTES_ROWS, KI_NKMAP);
+    inner.classList.remove('kn-slide-l','kn-slide-r'); void inner.offsetWidth;
+    inner.classList.add(dir>0?'kn-slide-r':'kn-slide-l');
+  } else {
+    renderKartNotesFeed();
+  }
+}
+// Build the note-list HTML for the current tab from already-fetched rows (shared by the first render
+// and the instant tab switch). Notifications = actionable cards (New repair); Kart Notes = status cards.
+function kiNotesListHTML(rows, km){
+  if(!rows||!rows.length) return '<div style="font-size:14px;color:var(--t2);padding:8px 2px">No active kart notes.</div>';
+  var statusMeta={ok:['OK','#16A34A'],maint:['FOR MAINTENANCE','#F59E0B'],damaged:['DAMAGED','#DC2626']};
+  var h='<div class="kn-count">'+rows.length+' active note'+(rows.length===1?'':'s')+' \u00b7 newest first</div><div class="kn-list">';
+  rows.forEach(function(r){
+    var k=km[r.rf_kart_id]||{}; var num=raceEsc(k.name||r.rf_kart_id||'?'); var typ=k.type?raceEsc(k.type):'';
+    var tc=k.type_color||''; if(tc&&tc.charAt(0)!=='#')tc='#'+tc; var col=(/^#[0-9a-fA-F]{3,8}$/.test(tc))?readableColor(tc):(KART_TYPE_COLOR[rfTypeShort(k.type||'')]||'#2DD4BF');
+    var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
+    var sm=statusMeta[rfStatusClass(k.status_code,k.status)]||statusMeta.ok;
+    if(KI_NOTES_TAB==='notifications'){
+      h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
+        +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')+'<span class="kn-when">'+when+'</span></div>'
+        +'<div class="kn-note">\u2605 '+note+'</div>'
+        +'<div class="kn-card-foot">'+(by?('<span class="kn-by">'+by+'</span>'):'<span></span>')
+        +'<button class="kn-newrep" onclick="notifNewRepair('+r.rf_kart_id+','+(r.id||'null')+')">\ud83d\udd25 New repair</button></div>'
+        +'</div>';
+    } else {
+      h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
+        +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')
+        +'<span class="kn-status" style="background:'+sm[1]+'">'+sm[0]+'</span>'
+        +'<span class="kn-when">'+when+'</span></div>'
+        +'<div class="kn-note">'+note+'</div>'
+        +(by?('<div class="kn-by">Added by '+by+'</div>'):'')
+        +'</div>';
+    }
+  });
+  return h+'</div>';
+}
 function renderKartNotesFeed(silent){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
   if(typeof SBC==='undefined'||!SBC){ if(!silent) body.innerHTML='<div style="font-size:13px;color:var(--t2)">Not connected.</div>'; return; }
@@ -7274,37 +7326,10 @@ function renderKartNotesFeed(silent){
   if(!silent || !document.getElementById('kn-tabinner')){ body.innerHTML=tabBar+'<div id="kn-tabinner"><div style="font-size:13px;color:var(--t2);padding:8px 2px">Loading notes\u2026</div></div>'; }
   withMap(function(km){
     SBC.from('rf_kart_notes').select('id,rf_kart_id,note,created_at,created_by,rf_notification_id').eq('site',site).eq('active',true).order('created_at',{ascending:false}).limit(250).then(function(res){
-      var rows=(res&&res.data)||[];
+      var rows=(res&&res.data)||[]; KI_NOTES_ROWS=rows;
       var inner=document.getElementById('kn-tabinner'); if(!inner) return;
       var _sc=body.closest('.sb'), _top=_sc?_sc.scrollTop:0;   // preserve scroll across a background refresh
-      if(!rows.length){ inner.innerHTML='<div style="font-size:14px;color:var(--t2);padding:8px 2px">No active kart notes.</div>'; if(silent&&_sc)_sc.scrollTop=_top; return; }
-      var statusMeta={ok:['OK','#16A34A'],maint:['FOR MAINTENANCE','#F59E0B'],damaged:['DAMAGED','#DC2626']};
-      var h='<div class="kn-count">'+rows.length+' active note'+(rows.length===1?'':'s')+' \u00b7 newest first</div><div class="kn-list">';
-      rows.forEach(function(r){
-        var k=km[r.rf_kart_id]||{}; var num=raceEsc(k.name||r.rf_kart_id||'?'); var typ=k.type?raceEsc(k.type):'';
-        var tc=k.type_color||''; if(tc&&tc.charAt(0)!=='#')tc='#'+tc; var col=(/^#[0-9a-fA-F]{3,8}$/.test(tc))?readableColor(tc):(KART_TYPE_COLOR[rfTypeShort(k.type||'')]||'#2DD4BF');
-        var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
-        var sm=statusMeta[rfStatusClass(k.status_code,k.status)]||statusMeta.ok;
-        if(KI_NOTES_TAB==='notifications'){
-          // Actionable card: kart + note + a New repair button (like RaceFacer's Notifications tab)
-          h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
-            +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')+'<span class="kn-when">'+when+'</span></div>'
-            +'<div class="kn-note">\u2605 '+note+'</div>'
-            +'<div class="kn-card-foot">'+(by?('<span class="kn-by">'+by+'</span>'):'<span></span>')
-            +'<button class="kn-newrep" onclick="notifNewRepair('+r.rf_kart_id+','+(r.id||'null')+')">\ud83d\udd25 New repair</button></div>'
-            +'</div>';
-        } else {
-          // Kart Notes card: note + current status pill + when + who
-          h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
-            +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')
-            +'<span class="kn-status" style="background:'+sm[1]+'">'+sm[0]+'</span>'
-            +'<span class="kn-when">'+when+'</span></div>'
-            +'<div class="kn-note">'+note+'</div>'
-            +(by?('<div class="kn-by">Added by '+by+'</div>'):'')
-            +'</div>';
-        }
-      });
-      h+='</div>'; inner.innerHTML=h; if(silent&&_sc)_sc.scrollTop=_top;
+      inner.innerHTML=kiNotesListHTML(rows, km); if(silent&&_sc)_sc.scrollTop=_top;
     }, function(){ if(silent) return; var inner=document.getElementById('kn-tabinner'); if(inner) inner.innerHTML='<div style="font-size:13px;color:var(--t2)">Couldn\'t load notes.</div>'; });
   });
 }

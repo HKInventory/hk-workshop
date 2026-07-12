@@ -2067,7 +2067,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BH · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BI · ZXing raw</div>
       </div>
     </div>
 
@@ -6831,7 +6831,17 @@ function rfqToggle(mode){
   // the field, shifting the whole page. preventScroll + a smooth glide reads far cleaner.
   var t=document.getElementById('rfq-note');
   if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); }
-    setTimeout(function(){ try{ t.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }, 60); }
+    // Scroll ONLY the tab's own scroll container (.sb) — NOT scrollIntoView, which can scroll ancestors
+    // and, on wide desktop, disturb the transformed/composited screen (screen behind bleeds through,
+    // form clipped to the edge). Centering the field inside .sb is deterministic and side-effect-free.
+    setTimeout(function(){ try{
+      var sb=(t.closest&&t.closest('.sb'))||null;
+      if(sb){ var rt=t.getBoundingClientRect(), rs=sb.getBoundingClientRect();
+        var top=sb.scrollTop+(rt.top-rs.top)-(sb.clientHeight/2)+(rt.height/2);
+        top=Math.max(0,top);
+        if(sb.scrollTo) sb.scrollTo({top:top,behavior:'smooth'}); else sb.scrollTop=top;
+      } else { t.scrollIntoView({block:'center'}); }
+    }catch(e){} }, 60); }
 }
 function rfqSubmit(){
   var k=KD_KART||{}, msg=document.getElementById('rfq-msg');
@@ -7245,6 +7255,13 @@ function notifNewRepair(rfId, noteId){
         if(noteId!=null && typeof rfqRepairForNote==='function') rfqRepairForNote(noteId);
         else if(typeof rfqToggle==='function') rfqToggle('repair');
       }catch(e){}
+      // The heavy form render lands inside the just-settled screen, which is composited + transformed.
+      // On wide desktop Chrome can leave that layer painted at its mid-slide offset — the screen behind
+      // shows through and the form is clipped to the edge. Re-assert the resting transform on the next
+      // frame and once more after the scroll to force a clean recomposite.
+      var _kd=document.getElementById('s-kartdetail');
+      function _repin(){ if(_kd){ _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; } }
+      try{ requestAnimationFrame(_repin); setTimeout(_repin,180); }catch(e){ _repin(); }
     })();
   }catch(e){}
 }
@@ -7840,7 +7857,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10827,7 +10844,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

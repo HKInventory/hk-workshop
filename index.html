@@ -2030,6 +2030,9 @@
             <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beacons')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Live layout</div></div>
+            <div class="tile tor"      id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
+            <div class="tile race"     id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
+            <div class="tile chats"    id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
             <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
             <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
             <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
@@ -2067,7 +2070,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BI · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BJ · ZXing raw</div>
       </div>
     </div>
 
@@ -2315,6 +2318,7 @@
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile kidh" id="kit-dehaardt" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
+            <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">🏎️</div><div class="tl">RIMO</div><div class="ts">Coming soon</div></div>
           </div>
         </div>
       </div>
@@ -2411,6 +2415,51 @@
           <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">💬&nbsp; Ask anything about the workshop<br>📊&nbsp; Answers pulled live from every tab<br>🔒&nbsp; Role-aware — managers see staff &amp; finance, mechanics see operations<br>🧠&nbsp; Teach it — anyone can add knowledge<br>✅&nbsp; New knowledge approved by Ross &amp; Harvey before it goes live</div>
         </div>
         <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Your workshop's own assistant<br><span style="color:#A78BFA;font-weight:600">Coming soon</span></div></div>
+      </div>
+    </div>
+
+    <!-- TOOLS -->
+    <div class="scr" id="s-tools">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Tools</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">🧰</div>
+          <div style="font-size:18px;font-weight:800;color:#38BDF8;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:1.9">Handy workshop tools, all in one place.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KART CHECK -->
+    <div class="scr" id="s-kartcheck">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Kart Check</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">🩺</div>
+          <div style="font-size:18px;font-weight:800;color:#22C55E;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:1.9">Run and log pre-session checks across the fleet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HANDOVERS -->
+    <div class="scr" id="s-handovers">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="pgtitle">Handovers</div>
+        <div class="rcard">
+          <div style="font-size:56px;margin-bottom:16px">🤝</div>
+          <div style="font-size:18px;font-weight:800;color:#A78BFA;margin-bottom:10px">Coming Soon</div>
+          <div style="font-size:14px;color:var(--t2);line-height:1.9">Pass on what the next shift needs to know.</div>
+        </div>
       </div>
     </div>
 
@@ -3929,13 +3978,20 @@ var TAB_DEFS=[
   {key:'race',     id:'wrace',   label:'Intelligence'},
   {key:'kartinfo', id:'wkart',   label:'Kart Info'},
   {key:'beacons',  id:'wbeacon', label:'Beacons'},
+  {key:'tools',    id:'wtools',    label:'Tools'},
+  {key:'kartcheck',id:'wkcheck',   label:'Kart Check'},
+  {key:'handovers',id:'whandover', label:'Handovers'},
   {key:'genorder', id:'wgord',   label:'Generate Order'},
   {key:'sessions', id:'wsess',   label:'Sessions'},
   {key:'tvcast',   id:'wtv',     label:'TV Display'},
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
-var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons'];   // mirrors pre-access behaviour for non-managers
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers
+// Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
+// they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
+// This gives "seen by default, removable per role/staff" without a config migration.
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers'];
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
@@ -3957,6 +4013,10 @@ function effectiveTabs(user){
   var keys;
   if(user.name===MASTER_OWNER){ keys=ALL_TAB_KEYS.slice(); }   // the owner always sees every tab — can't self-lock-out
   else { keys=_cfgTabsFor(user) || (_isMgrRole(user.role)?ALL_TAB_KEYS.slice():DEFAULT_NONMGR_TABS.slice()); }
+  // New default-on tabs: visible unless Master Access stored an explicit 'hide:<key>' for this user/role.
+  // (Grandfathers them in for configs saved before these tabs existed.) Then strip the hide tokens.
+  NEW_DEFAULT_TABS.forEach(function(k){ if(keys.indexOf('hide:'+k)<0 && keys.indexOf(k)<0) keys.push(k); });
+  keys=keys.filter(function(k){ return String(k).indexOf('hide:')!==0; });
   // Master Access is never granted by role/override — only by the owner-controlled master_admins list.
   keys=keys.filter(function(k){return k!=='masteraccess';});
   if((MASTER_ADMINS||[]).indexOf(user.name)>=0) keys.push('masteraccess');
@@ -3987,7 +4047,8 @@ var KI_SECTION_DEFS=[
   {key:'ki:wiring',   label:'Wiring',     tile:'kit-wiring'},
   {key:'ki:cpu',      label:'CPU / WiFi', tile:'kit-cpu'},
   {key:'ki:dehaardt', label:'Dehaardt',   tile:'kit-dehaardt'},
-  {key:'ki:help',     label:'Help',       tile:'kit-help'}
+  {key:'ki:help',     label:'Help',       tile:'kit-help'},
+  {key:'ki:rimo',     label:'RIMO',       tile:'kit-rimo'}
 ];
 var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 function kiAllowedSections(user){
@@ -5941,7 +6002,7 @@ function kartListLoading(on){
 var KI_REF_WHICH='';
 function kiOpenRef(which){
   KI_REF_WHICH=which;
-  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes',repairs:'Repairs'};
+  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes',repairs:'Repairs',rimo:'RIMO'};
   var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
   // Refresh only matters on the live-data sections; static reference pages don't get the button.
   var rb=document.getElementById('rb-kref'); if(rb) rb.style.display=(which==='repairs'||which==='notes'||which==='beacons')?'':'none';
@@ -5951,8 +6012,17 @@ function kiOpenRef(which){
   else if(which==='beacons') renderBeaconsSection();
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
+  else if(which==='rimo') renderRimoSection();
   else renderHelpSection();
   go('kartref');
+}
+function renderRimoSection(){
+  var b=document.getElementById('ki-ref-body'); if(!b) return;
+  b.innerHTML='<div class="rcard" style="text-align:center">'
+    +'<div style="font-size:56px;margin-bottom:16px">\ud83c\udfce\ufe0f</div>'
+    +'<div style="font-size:18px;font-weight:800;color:#38BDF8;margin-bottom:10px">Coming Soon</div>'
+    +'<div style="font-size:14px;color:var(--t2);line-height:1.9">RiMO reference &amp; tooling for the fleet.</div>'
+    +'</div>';
 }
 function kiRefRefresh(){
   var which=KI_REF_WHICH||'';
@@ -7857,7 +7927,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8341,7 +8411,8 @@ function acChips(sel, fnName, idx){
   // Master Access is never a role/override toggle — it's granted only in Owner controls (email code).
   sel=sel||[];
   var home='<div class="ac-chips">'+TAB_DEFS.filter(function(t){return t.key!=='masteraccess';}).map(function(t){
-    var on=sel.indexOf(t.key)>=0;
+    var isNew=NEW_DEFAULT_TABS.indexOf(t.key)>=0;
+    var on=isNew?(sel.indexOf('hide:'+t.key)<0):(sel.indexOf(t.key)>=0);   // new tabs: on unless explicitly hidden
     return '<button type="button" class="ac-chip'+(on?' on':'')+'" onclick="'+fnName+'('+idx+',\''+t.key+'\')">'+acEsc(t.label)+'</button>';
   }).join('')+'</div>';
   // Kart Info sub-sections (separate amber group). Default = all visible (no ki:* keys stored); once any
@@ -8392,12 +8463,19 @@ function acRoleEmoji(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].emoji
 function userEmoji(u){ u=u||cu; if(!u) return '🔧';
   try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var r=rs.find(function(x){return x.name===u.role;}); if(r&&r.emoji) return r.emoji; }catch(e){}
   return u.emoji||'🔧'; }
-function acRoleTab(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; var k=r.tabs.indexOf(key); if(k>=0)r.tabs.splice(k,1); else r.tabs.push(key); acRender(); }
+function _acHomeToggle(arr,key){
+  if(NEW_DEFAULT_TABS.indexOf(key)>=0){   // default-on tab: toggle a 'hide:<key>' token instead of the positive key
+    var tok='hide:'+key, ti=arr.indexOf(tok);
+    if(ti>=0){ arr.splice(ti,1); }                                              // was hidden -> show
+    else { arr.push(tok); var pi=arr.indexOf(key); if(pi>=0) arr.splice(pi,1); }  // was shown -> hide
+  } else { var k=arr.indexOf(key); if(k>=0)arr.splice(k,1); else arr.push(key); }  // normal allow-list toggle
+}
+function acRoleTab(i,key){ var r=mAccessDraft.roles[i]; if(!r) return; r.tabs=r.tabs||[]; _acHomeToggle(r.tabs,key); acRender(); }
 function acAddRole(){ if(!mAccessLoaded){ acLoad(); return; } mAccessDraft.roles.push({name:'', tabs:DEFAULT_NONMGR_TABS.slice()}); acRender(); var ins=document.querySelectorAll('#m-access-list .ac-role-input'); if(ins.length){ ins[ins.length-1].focus(); } }
 function acDelRole(i){ var r=mAccessDraft.roles[i]; if(!r||_isMgrRole(r.name)) return; if(!confirm('Delete role "'+(r.name||'this role')+'"? Staff with this role fall back to default access until reassigned.')) return; mAccessDraft.roles.splice(i,1); acRender(); }
 function acCustomise(idx){ var s=mAccessStaff[idx]; if(!s) return; var role=(mAccessDraft.roles.find(function(r){return r.name===s.role;})||{}); mAccessDraft.overrides[s.name]=Array.isArray(role.tabs)?role.tabs.slice():DEFAULT_NONMGR_TABS.slice(); acRender(); }
 function acResetOv(idx){ var s=mAccessStaff[idx]; if(!s) return; delete mAccessDraft.overrides[s.name]; acRender(); }
-function acOvTab(idx,key){ var s=mAccessStaff[idx]; if(!s) return; var arr=mAccessDraft.overrides[s.name]; if(!Array.isArray(arr)){ arr=[]; mAccessDraft.overrides[s.name]=arr; } var k=arr.indexOf(key); if(k>=0)arr.splice(k,1); else arr.push(key); acRender(); }
+function acOvTab(idx,key){ var s=mAccessStaff[idx]; if(!s) return; var arr=mAccessDraft.overrides[s.name]; if(!Array.isArray(arr)){ arr=[]; mAccessDraft.overrides[s.name]=arr; } _acHomeToggle(arr,key); acRender(); }
 // Kart Info section toggles. The array stores ki:* keys ONLY when sections are restricted; "all on"
 // is represented by storing none. Turning a section off from the all-on state writes every OTHER
 // ki key (flips to an explicit allow-list); turning the last-missing one back on collapses to none.
@@ -10844,7 +10922,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

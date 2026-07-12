@@ -2083,7 +2083,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BK · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BL · ZXing raw</div>
       </div>
     </div>
 
@@ -5803,6 +5803,7 @@ function loadRfKarts(cb,force){
       KART_LIST=krows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
       FLEET_LOADED=true;   // real fleet is in — safe to render chips instead of the loading spinner
       try{ loadKartLookups(); }catch(e){}   // one-time: fetch the labelled safety-server / type lists
+      try{ startRimoLive(); }catch(e){}      // RiMO live online/SOC dots (refreshes on site change too)
       // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
       KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
       KARTS_AT=Date.now(); KARTS_SITE=site;
@@ -6696,11 +6697,34 @@ function renderKartChips(filter){
     .filter(function(k){return !q||String(k.num).indexOf(q)>=0;})
     .sort(function(a,b){return a.num-b.num;});
   var html=list.map(function(k){
-    return '<div class="kart-chip" data-status="'+k.status+'" data-online="0" onclick="selectKart('+k.rfId+')"><span class="kc-badge" title="Offline"></span><div class="kc-num">'+k.num+'</div></div>';
+    var _ri=RIMO_BY_NUM[k.num], _ron=(_ri&&_ri.online)?1:0;
+    var _tip=_ron?('Online'+(_ri&&_ri.soc!=null?(' \u00b7 '+_ri.soc+'%'):'')):'Offline';
+    return '<div class="kart-chip" data-status="'+k.status+'" data-online="'+_ron+'" onclick="selectKart('+k.rfId+')"><span class="kc-badge" title="'+_tip+'"></span><div class="kc-num">'+k.num+'</div></div>';
   }).join('');
   if(grid) grid.innerHTML=html||'<div class="emp" style="grid-column:1/-1;padding:14px 0;text-align:center;color:var(--t2);font-size:13px">No karts match that number</div>';
 }
 function filterKarts(v){renderKartChips(v);}
+// ── RiMO WFM live status → the green/red dot on each kart chip ──────────────
+// The runner mirrors wfm.rimo-germany.com into rimo_karts; we read it and key by kart number
+// for the site's RiMO group (Sydney = Moore Park). Duplicate numbers (active + retired/ex-super)
+// resolve to the online one, so a chip is green whenever its live kart reports online.
+var RIMO_BY_NUM={}, RIMO_SITE_GROUP={sydney:'Moore Park'}, _rimoPollT=null;
+function rimoGroupForSite(){ return RIMO_SITE_GROUP[(currentSite||'sydney')]||null; }
+function loadRimo(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var grp=rimoGroupForSite(); if(!grp){ RIMO_BY_NUM={}; return; }
+  SBC.from('rimo_karts').select('kart_no,online,soc,bms_ok').eq('group_name',grp).then(function(r){
+    if(r&&r.error) return;   // table not created yet — dots just stay red
+    var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x.kart_no==null) return; var e=m[x.kart_no]; if(!e||x.online) m[x.kart_no]={online:!!x.online,soc:x.soc,bms:!!x.bms_ok}; });
+    RIMO_BY_NUM=m;
+    try{ var scr=(typeof _curKartScr==='function')?_curKartScr():''; if(scr==='kartlist'&&typeof renderKartChips==='function') renderKartChips(); }catch(e){}
+  },function(){});
+}
+function startRimoLive(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  loadRimo();                                         // refresh now (also picks up a site change)
+  if(!_rimoPollT) _rimoPollT=setInterval(loadRimo, 5000);   // and every 5s while the app is open
+}
 
 // Small HTML escaper for RaceFacer-sourced free text (repair notes etc.)
 function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -7961,7 +7985,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10956,7 +10980,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

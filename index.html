@@ -2207,7 +2207,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BY · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BZ · ZXing raw</div>
       </div>
     </div>
 
@@ -6247,19 +6247,23 @@ function rimoOpenKart(sn){
 function _rdSect(title,cells){ if(!cells) return ''; return '<div class="rd-card"><div class="mct">'+kEsc(title)+'</div><div class="rd-grid">'+cells+'</div></div>'; }
 function rimoDetailHtml(d){
   if(!d||typeof d!=='object') return '';
-  // Render whatever the runner captured from RiMO's per-kart feed. Known fields get grouped; anything
-  // else falls into a generic list so nothing is lost.
-  var g=function(k){ return d[k]!=null&&d[k]!==''?String(d[k]):null; };
-  var cell=function(l,v){ return v!=null?_rdCell(l,v):''; };
-  var live=cell('Driving mode',g('driving_mode'))+cell('Speed',g('speed'))+cell('Current',g('current'))+cell('Engine temp L',g('engine_temp_l'))+cell('Engine temp R',g('engine_temp_r'))+cell('Hours L',g('hours_l'))+cell('Hours R',g('hours_r'));
-  var bms=cell('SOC',g('soc'))+cell('Avg voltage',g('avg_voltage'))+cell('Total voltage',g('total_voltage'))+cell('Current',g('bms_current'));
-  var cells='';
-  for(var i=1;i<=8;i++){ var v=g('cell_'+i), t=g('cell_temp_'+i); if(v!=null||t!=null) cells+=_rdCell('Cell '+i, (v||'\u2014')+(t!=null?(' · '+t+'\u00b0'):'')); }
-  var faults=Array.isArray(d.faults)?d.faults:[];
-  var out=_rdSect('Livedata',live)+_rdSect('BMS',bms)+_rdSect('Cells',cells);
-  if(faults.length) out+='<div class="rd-card"><div class="mct" style="color:#FF3B30">Faults</div><div style="font-size:13px;color:#FF6B6B">'+faults.map(kEsc).join(', ')+'</div></div>';
-  // fallback: if none of the known fields matched, dump everything as key/value
-  if(!live&&!bms&&!cells&&!faults.length){ var kv=Object.keys(d).map(function(key){ return _rdCell(key, String(d[key])); }).join(''); out=_rdSect('Live data',kv); }
+  var g=function(k){ return (d[k]!=null&&d[k]!=='')?String(d[k]):null; };
+  var yn=function(k){ var v=g(k); return v==='1'?'Yes':(v==='0'?'No':null); };
+  var c=function(l,v){ return v!=null?_rdCell(l,v):''; };
+  var t=function(k){ var v=g(k); return v!=null?(v+'\u00b0'):null; };
+  var live=c('Driving mode',g('actualMode'))+c('RPM',g('actualRpm'))+c('Current',g('actualCurrent')!=null?(g('actualCurrent')+' A'):null)
+    +c('Engine temp L',t('engineTempLeft'))+c('Engine temp R',t('engineTempRight'))
+    +c('Hours L',g('totalTimeLeft'))+c('Hours R',g('totalTimeRight'));
+  var hw=c('Software',g('softwareVersion'))+c('Board',g('boardVersion'))+c('Model',g('modell'))
+    +c('Sound',yn('soundModule')!=null?(yn('soundModule')+(g('soundVersion')?(' · v'+g('soundVersion')):'')):null)
+    +c('Boost',yn('boostModule'))+c('Wireless',yn('wirelessModule'))+c('Reverse blockable',yn('reverseBlockable'))
+    +c('Controller L',g('controllerSerialLeft'))+c('Controller R',g('controllerSerialRight'))
+    +c('Gearbox L',g('gearboxSerialLeft'))+c('Gearbox R',g('gearboxSerialRight'))
+    +c('Engine L',g('engineSerialLeft'))+c('Engine R',g('engineSerialRight'))
+    +c('BMS serial',g('bmsSerial0')||g('bmsMasterSerial'))+c('DeHaardt serial',g('deHaardtSerial'))
+    +c('Last reboot',g('timestampReboot'))+c('Engine start',g('timestampEnginestart'))+c('Reported',g('timestamp'));
+  var out=_rdSect('Livedata',live)+_rdSect('Hardware & settings',hw);
+  if(!live&&!hw){ var kv=Object.keys(d).map(function(key){ return _rdCell(key, String(d[key])); }).join(''); out=_rdSect('Live data',kv); }
   return out||'';
 }
 function loadRimoDetail(sn){
@@ -8273,7 +8277,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11279,7 +11283,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

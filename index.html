@@ -2098,9 +2098,9 @@
         <div class="pgtitle">Beacons</div>
         <div class="ki-sub">Track layouts &amp; damage intelligence</div>
         <div class="ki-tiles">
-          <div class="tile beacon"   onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
+          <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div></div>
-          <div class="tile kidh"     onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile kidh"     id="bcndeh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
         </div>
       </div>
     </div>
@@ -2133,7 +2133,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BO · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BP · ZXing raw</div>
       </div>
     </div>
 
@@ -4056,7 +4056,7 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
-var NEW_DEFAULT_TABS=['tools','kartcheck','handovers'];
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt'];
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
@@ -4117,6 +4117,14 @@ var KI_SECTION_DEFS=[
   {key:'ki:rimoctl',  label:'RIMO Control', tile:'kit-rimoctl'}
 ];
 var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
+// Hub section groups for the Access editor — one group per hub, mirroring the Kart Info sections.
+// The moved child tabs keep their ORIGINAL keys (search/lowstock/order, manager/finance/genorder,
+// race) so existing configs + gating are unchanged; they're just shown grouped under their hub here
+// and pulled out of the top home-tab row. Beacons' Layouts & Dehaardt Functions are new default-on keys.
+var PARTS_SECTION_DEFS=[{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
+var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'}];
+var HOME_HIDE_KEYS=['search','lowstock','order','manager','finance','genorder','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -4155,14 +4163,15 @@ function applyRoleVisibility(){
     if(t.key==='scan') show=show&&!hideScan;   // scan still hides on desktop / no camera
     vis(t.id,show);
   });
-  // Hub tiles: a hub shows on the home grid when ANY of its child features is permitted. The child
-  // tiles live INSIDE the hub screens with their original ids, so the per-feature gating above keeps
-  // controlling them wherever they sit — this just lifts that up to the hub's own home tile.
+  // Beacons' new sub-tiles (Layouts / Dehaardt Functions) are gated by their own default-on keys.
+  [['bcnlayouts','bcn:layouts'],['bcndeh','bcn:dehaardt']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
+  // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is — so a
+  // mechanic with no Dashboard sections never sees an empty Dashboard hub). This drives Parts,
+  // Dashboard and Beacons straight from their section chips, matching the Access editor grouping.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord']));
-  var _bh=document.getElementById('wbeacon');   // Beacons hub also hosts Intelligence — show it if either is allowed
-  if(_bh && _bh.style.display==='none' && anyVis(['wrace'])) _bh.style.display='flex';
+  vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -8062,7 +8071,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8543,15 +8552,23 @@ function acLoad(){
   });
 }
 function acChips(sel, fnName, idx){
-  // Master Access is never a role/override toggle — it's granted only in Owner controls (email code).
   sel=sel||[];
-  var home='<div class="ac-chips">'+TAB_DEFS.filter(function(t){return t.key!=='masteraccess';}).map(function(t){
-    var isNew=NEW_DEFAULT_TABS.indexOf(t.key)>=0;
-    var on=isNew?(sel.indexOf('hide:'+t.key)<0):(sel.indexOf(t.key)>=0);   // new tabs: on unless explicitly hidden
-    return '<button type="button" class="ac-chip'+(on?' on':'')+'" onclick="'+fnName+'('+idx+',\''+t.key+'\')">'+acEsc(t.label)+'</button>';
-  }).join('')+'</div>';
-  // Kart Info sub-sections (separate amber group). Default = all visible (no ki:* keys stored); once any
-  // is configured it becomes an allow-list. Toggling routes to the ki-specific handler for that owner type.
+  function chipRow(defs, fn, cls){
+    return '<div class="ac-chips">'+defs.map(function(d){
+      var isNew=NEW_DEFAULT_TABS.indexOf(d.key)>=0;
+      var on=isNew?(sel.indexOf('hide:'+d.key)<0):(sel.indexOf(d.key)>=0);   // new keys: on unless explicitly hidden
+      return '<button type="button" class="ac-chip'+(cls?(' '+cls):'')+(on?' on':'')+'" onclick="'+fn+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
+    }).join('')+'</div>';
+  }
+  // top home tabs — hub children are shown under their hub group below, not here
+  var homeDefs=TAB_DEFS.filter(function(t){return t.key!=='masteraccess' && HOME_HIDE_KEYS.indexOf(t.key)<0;});
+  var home=chipRow(homeDefs, fnName);
+  // hub section groups (same amber look as the Kart Info sections). A hub auto-shows on the home grid
+  // when ANY of its sections is on, so there's no separate hub toggle to keep in sync.
+  var parts='<div class="ac-ki-h">Parts sections</div>'+chipRow(PARTS_SECTION_DEFS, fnName, 'ki');
+  var dash='<div class="ac-ki-h">Dashboard sections</div>'+chipRow(DASH_SECTION_DEFS, fnName, 'ki');
+  var bcn='<div class="ac-ki-h">Beacons sections</div>'+chipRow(BCN_SECTION_DEFS, fnName, 'ki');
+  // Kart Info sub-sections (allow-list with a Karts-only option) — unchanged.
   var kiFn=(fnName==='acRoleTab')?'acRoleKi':'acOvKi';
   var kiNone=(sel.indexOf('ki:none')>=0);
   var kiCur=KI_SECTION_KEYS.filter(function(k){return sel.indexOf(k)>=0;});
@@ -8560,12 +8577,10 @@ function acChips(sel, fnName, idx){
     var on=allOn||kiCur.indexOf(d.key)>=0;
     return '<button type="button" class="ac-chip ki'+(on?' on':'')+'" onclick="'+kiFn+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
   }).join('')+'</div>';
-  // Capabilities (separate group). Reuses the same per-role / per-account key toggler — a "cap:*"
-  // key just lives alongside the tab + ki:* keys. "Can set tasks" lets a chosen non-manager create
-  // jobs once the Tasks screen ships (managers + owner always can).
+  // Capabilities.
   var capOn=sel.indexOf('cap:settask')>=0;
   var cap='<div class="ac-ki-h">Permissions</div><div class="ac-chips"><button type="button" class="ac-chip cap'+(capOn?' on':'')+'" onclick="'+fnName+'('+idx+',\'cap:settask\')">\u2705 Can set tasks</button></div>';
-  return home+ki+cap;
+  return home+parts+dash+bcn+ki+cap;
 }
 function acRender(){
   var el=document.getElementById('m-access-list'); if(!el) return;
@@ -11057,7 +11072,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

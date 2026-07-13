@@ -2194,7 +2194,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BV · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BW · ZXing raw</div>
       </div>
     </div>
 
@@ -3670,7 +3670,7 @@ function startRealtime(){
     // Repair/note events MERGE instantly (cheap, in-memory) but the kart-screen REDRAW is
     // debounced: during a sync sweep thousands of these arrive, and redrawing per event is a
     // DOM-rebuild storm — the strobing kart counts. One redraw ~1.2s after the burst settles.
-    var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 1200, 6000);
+    var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 500, 2200);
     SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); }).subscribe();
     // Notes: MERGE instantly (incl. DELETE), then redraw. A delete is a single event, not a
     // sync burst, so redraw promptly rather than on the debounce that smooths mass updates.
@@ -6016,7 +6016,7 @@ function loadKartNotesFresh(rfId,cb){
     // Carry over a still-PENDING local note only if its real counterpart hasn't synced back yet.
     // Once a real (id-bearing) note with the same text exists, the placeholder is dropped so it
     // doesn't linger in "syncing…" or show alongside the real one.
-    prev.forEach(function(n){ if(n._pending && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
+    prev.forEach(function(n){ if(n._pending && (Date.now()-(n._pendingAt||0) < 45000) && !arr.some(function(x){return x.note===n.note;})) arr.unshift(n); });
     RF_NOTES_BY_ID[rfId]=arr;
     // Cache is updated; only touch the DOM if the user isn't mid-input (else we'd rebuild under them).
     if(SELECTED_KART&&SELECTED_KART.rfId===rfId&&!(typeof kartInputLocked==='function'&&kartInputLocked())){
@@ -7194,7 +7194,7 @@ function rfqSubmit(){
                user_name:cu.name, note:note.slice(0,1000), rf_status:RFQ_STATUS };
     SBC.from('rf_note_queue').insert(nrow).then(function(r){
       if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
-      try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({id:null, note:note, createdIso:noteNowIso(), createdBy:cu.name, archivedIso:'', archivedBy:'', open:true, active:true, _pending:true}); }catch(e){}
+      try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({id:null, note:note, createdIso:noteNowIso(), createdBy:cu.name, archivedIso:'', archivedBy:'', open:true, active:true, _pending:true, _pendingAt:Date.now()}); }catch(e){}
       RFQ_MODE=null; ktTab('Repairs'); var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
     },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
     return;
@@ -8228,7 +8228,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11234,7 +11234,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

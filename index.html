@@ -87,6 +87,17 @@
     .rd-cell{display:flex;flex-direction:column;gap:1px;min-width:0}
     .rd-cl{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--t2)}
     .rd-cv{font-size:13.5px;color:var(--t1);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .rd-search{margin:0 0 10px}
+    .rd-search input{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--b2);background:var(--bg);color:var(--t1);font-size:15px}
+    .rd-tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--b1);border-radius:12px}
+    .rd-table{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap;min-width:560px}
+    .rd-table th{position:sticky;top:0;background:var(--card);color:var(--t2);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:9px 10px;border-bottom:1px solid var(--b2)}
+    .rd-table td{padding:9px 10px;border-bottom:1px solid var(--b1);color:var(--t1)}
+    .rd-table tbody tr{cursor:pointer;transition:background .1s}
+    .rd-table tbody tr:active{background:var(--bg)}
+    @media (hover:hover){.rd-table tbody tr:hover{background:var(--bg)}}
+    .rd-table .rd-k{font-weight:800;font-size:14px}
+    .rd-backlist{background:none;border:none;color:var(--acc,#38BDF8);font-size:14px;font-weight:700;cursor:pointer;padding:4px 0;margin-bottom:12px}
     /* Forge-style ambient frame: a thin brand-gradient ring hugging the PHYSICAL screen edges
        (viewport-fit=cover lets fixed elements reach into the notch / home-indicator areas), so the
        app visibly uses the whole phone. Touch devices only — pointless around a desktop window. */
@@ -105,8 +116,8 @@
     .hlogo{display:flex;align-items:center;gap:11px}
     .hk-icon{width:38px;height:38px;border-radius:8px;flex-shrink:0;object-fit:contain}
     /* HK splash — real Hyper Karting logo, built from parts (kart fade-in, HYPER slam, KARTING slam) */
-    #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 44%,#0c161c 0%,#06090c 56%,#000 100%);opacity:1;transition:opacity .6s ease;overflow:hidden}
-    #splash.gone{opacity:0;pointer-events:none;transition:opacity .6s ease .22s}
+    #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 44%,#0c161c 0%,#06090c 56%,#000 100%);opacity:1;transition:opacity .5s ease;overflow:hidden}
+    #splash.gone{opacity:0;pointer-events:none;transition:opacity .5s ease .1s}
     /* animated background */
     #splash .sp-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;contain:layout paint}
     #splash .sp-grid{position:absolute;left:-25%;right:-25%;bottom:-10%;height:70%;background-image:linear-gradient(rgba(0,207,255,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(224,64,251,.08) 1px,transparent 1px);background-size:44px 44px;transform:perspective(420px) rotateX(62deg);transform-origin:bottom center;opacity:0;mask-image:linear-gradient(to top,#000,transparent 78%);-webkit-mask-image:linear-gradient(to top,#000,transparent 78%)}
@@ -126,10 +137,10 @@
     #splash .sp-mark{width:100%;height:auto;display:block;overflow:visible;transform:scale(.92);filter:drop-shadow(0 0 15px rgba(0,207,255,.32)) drop-shadow(0 0 28px rgba(224,64,251,.18));will-change:transform}
     #splash .sp-letters{opacity:0}
     #splash .sp-ring-stroke{stroke-dashoffset:1276}
-    #splash.play.full .sp-logo-stage::before{animation:spGlow 2.2s ease .1s forwards}
-    #splash.play.full .sp-mark{animation:spMarkIn .75s cubic-bezier(.2,.8,.3,1) .12s forwards}
-    #splash.play.full .sp-letters{animation:spLettersIn .65s ease .2s forwards}
-    #splash.play.full .sp-ring-stroke{animation:spRingDraw 1.4s cubic-bezier(.45,.05,.2,1) .8s forwards}
+    #splash.play.full .sp-logo-stage::before{animation:spGlow 1.5s ease .1s forwards}
+    #splash.play.full .sp-mark{animation:spMarkIn .6s cubic-bezier(.2,.8,.3,1) .1s forwards}
+    #splash.play.full .sp-letters{animation:spLettersIn .5s ease .16s forwards}
+    #splash.play.full .sp-ring-stroke{animation:spRingDraw .85s cubic-bezier(.45,.05,.2,1) .45s forwards}
     @keyframes spMarkIn{to{transform:scale(1)}}
     @keyframes spLettersIn{0%{opacity:0}100%{opacity:1}}
     @keyframes spGlow{0%{opacity:0}55%{opacity:1}100%{opacity:.82}}
@@ -138,7 +149,7 @@
     #splash.gone .sp-lockup{transform:scale(1.35);transition:transform .75s cubic-bezier(.22,.65,.3,1)}
     /* WORKSHOP tagline */
     #splash .sp-tag{position:relative;z-index:2;font-family:'Inter',sans-serif;font-weight:700;font-size:clamp(10px,2.6vw,13px);letter-spacing:.5em;text-indent:.5em;text-transform:uppercase;background:linear-gradient(90deg,#00CFFF,#E040FB);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:0}
-    #splash.play.full .sp-tag{animation:spRise .7s ease 1.45s backwards;opacity:.95}
+    #splash.play.full .sp-tag{animation:spRise .6s ease .95s backwards;opacity:.95}
     /* quick path (returning user): show assembled instantly */
     #splash.play:not(.full) .sp-letters{opacity:1}
     #splash.play:not(.full) .sp-ring-stroke{stroke-dashoffset:0}
@@ -2082,32 +2093,27 @@
       <div class="sf">
         <div class="home-inner" id="home-inner">
           <div class="home-grid" id="home-grid">
-            <div class="tile tc"       id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
-            <div class="tile tse"      id="thubparts" onclick="go('parts')"><div class="ti">🔩</div><div class="tl">Parts</div><div class="ts">Search · stock · orders</div></div>
-            <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Live data · finance · orders</div></div>
+            <div class="tile tse"      id="thubparts" onclick="go('parts')"><div class="ti">📦</div><div class="tl">Inventory</div><div class="ts">Scan · search · stock</div></div>
+            <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
+            <div class="tile chats"    id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
-            <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
-            <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div><span class="tile-badge" id="wchats-badge" style="display:none"></span></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Layouts · intelligence</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile tor"      id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
-            <div class="tile kcheck"     id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
-            <div class="tile hand"    id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
             <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
-            <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
-            <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- PARTS hub: search / low stock / request order -->
+    <!-- INVENTORY hub: scan / search / low stock / request order -->
     <div class="scr" id="s-parts">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="pgtitle">Parts</div>
-        <div class="ki-sub">Find, count &amp; order stock</div>
+        <div class="pgtitle">Inventory</div>
+        <div class="ki-sub">Scan, find, count &amp; order stock</div>
         <div class="ki-tiles">
+          <div class="tile tc"       id="tscan" onclick="go('scan');setTimeout(startScan,420)"><div class="ti">📷</div><div class="tl">Scan QR</div><div class="ts">Take or restock</div></div>
           <div class="tile tse"      id="tsearch" onclick="go('search');lp('search')"><div class="ti">🔍</div><div class="tl">Search</div><div class="ts">Find any part</div></div>
           <div class="tile tlo"      id="tlow" onclick="go('lowstock');lp('lowstock')"><div class="ti">⚠️</div><div class="tl">Low Stock</div><div class="ts">Needs attention</div></div>
           <div class="tile tor"      id="tord" onclick="go('order');iord()"><div class="ti">📋</div><div class="tl">Request Order</div><div class="ts">Flag for ordering</div></div>
@@ -2115,21 +2121,37 @@
       </div>
     </div>
 
-    <!-- DASHBOARD hub: manager dashboard / finance / generate order -->
+    <!-- DASHBOARD hub: manager / finance / generate order / tv display / master access -->
     <div class="scr" id="s-dash">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
         <div class="pgtitle">Dashboard</div>
-        <div class="ki-sub">Live data, money &amp; ordering</div>
+        <div class="ki-sub">Data, money, ordering &amp; admin</div>
         <div class="ki-tiles">
           <div class="tile mgr"      id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="ti">⭐</div><div class="tl">Manager Dashboard</div><div class="ts">Live data &amp; staff</div></div>
           <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
           <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
+          <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
+          <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
         </div>
       </div>
     </div>
 
-    <!-- BEACONS hub: intelligence / layouts / dehaardt functions -->
+    <!-- COMMS hub: tasks / chats / handovers -->
+    <div class="scr" id="s-comms">
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
+      <div class="sb">
+        <div class="pgtitle">Comms</div>
+        <div class="ki-sub">Team tasks, chats &amp; handovers</div>
+        <div class="ki-tiles">
+          <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
+          <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div><span class="tile-badge" id="wchats-badge" style="display:none"></span></div>
+          <div class="tile hand"     id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BEACONS hub: layouts / intelligence / dehaardt functions / dehaardt pickups -->
     <div class="scr" id="s-beaconhub">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
@@ -2139,6 +2161,7 @@
           <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div></div>
           <div class="tile kidh"     id="bcndeh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile kidh"     id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
         </div>
       </div>
     </div>
@@ -2171,7 +2194,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BS · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BU · ZXing raw</div>
       </div>
     </div>
 
@@ -2417,10 +2440,10 @@
             <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile kiwire" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
-            <div class="tile kidh" id="kit-dehaardt" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt</div><div class="ts">Timing &amp; track</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
             <div class="tile kicpu" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
+            <div class="tile kcheck" id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
           </div>
         </div>
       </div>
@@ -3753,7 +3776,7 @@ function playSplash(full){
   sp.classList.remove('play','gone','full');
   void sp.offsetWidth;                 // reflow so every keyframe restarts from 0
   sp.classList.add('play'); if(full) sp.classList.add('full');
-  var hold=full?2650:900;
+  var hold=full?1650:800;
   if(sp._spt) clearTimeout(sp._spt);
   sp._spt=setTimeout(function(){
     sp.classList.add('gone');
@@ -4094,7 +4117,7 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
-var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt'];
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
@@ -4159,10 +4182,12 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 // The moved child tabs keep their ORIGINAL keys (search/lowstock/order, manager/finance/genorder,
 // race) so existing configs + gating are unchanged; they're just shown grouped under their hub here
 // and pulled out of the top home-tab row. Beacons' Layouts & Dehaardt Functions are new default-on keys.
-var PARTS_SECTION_DEFS=[{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
-var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'}];
-var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'}];
-var HOME_HIDE_KEYS=['search','lowstock','order','manager','finance','genorder','race','beacons'];   // shown under a hub group, not the home row
+var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
+var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
+var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'}];
+var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
+var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','tasks','chats','handovers','kartcheck','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -4201,15 +4226,15 @@ function applyRoleVisibility(){
     if(t.key==='scan') show=show&&!hideScan;   // scan still hides on desktop / no camera
     vis(t.id,show);
   });
-  // Beacons' new sub-tiles (Layouts / Dehaardt Functions) are gated by their own default-on keys.
-  [['bcnlayouts','bcn:layouts'],['bcndeh','bcn:dehaardt']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
-  // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is — so a
-  // mechanic with no Dashboard sections never sees an empty Dashboard hub). This drives Parts,
-  // Dashboard and Beacons straight from their section chips, matching the Access editor grouping.
+  // Beacons' section sub-tiles are gated by their own default-on keys.
+  [['bcnlayouts','bcn:layouts'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
+  // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is). Drives
+  // Inventory, Dashboard, Comms and Beacons straight from their section tiles.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
-  vis('thubparts', anyVis(['tsearch','tlow','tord']));
-  vis('thubdash',  anyVis(['mgrt','wfin','wgord']));
-  vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh']));
+  vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
+  vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','wmaccess']));
+  vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
+  vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh','bcnpickups']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -6124,14 +6149,15 @@ function kartListLoading(on){
 var KI_REF_WHICH='';
 function kiOpenRef(which){
   KI_REF_WHICH=which;
-  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',help:'Help',notes:'Kart Notes',repairs:'Repairs',rimo:'RIMO Data',rimoctl:'RIMO Control'};
+  var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',dehaardt:'Dehaardt Pickups',help:'Help',notes:'Kart Notes',repairs:'Repairs',rimo:'RIMO Data',rimoctl:'RIMO Control'};
   var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
   // Refresh only matters on the live-data sections; static reference pages don't get the button.
-  var rb=document.getElementById('rb-kref'); if(rb) rb.style.display=(which==='repairs'||which==='notes'||which==='beacons')?'':'none';
+  var rb=document.getElementById('rb-kref'); if(rb) rb.style.display=(which==='repairs'||which==='notes'||which==='beacons'||which==='dehaardt')?'':'none';
   var rl=document.getElementById('rt-kref'); if(rl) rl.innerText='Refresh';
   if(which==='wiring') renderWiringSection();
   else if(which==='cpu') renderCpuSection();
   else if(which==='beacons') renderBeaconsSection();
+  else if(which==='dehaardt') renderBeaconsSection();
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
@@ -6147,10 +6173,12 @@ function renderRimoCtlSection(){
     +'<div style="font-size:14px;color:var(--t2);line-height:1.9">Change kart presets, speedsets &amp; settings in RiMO from here.</div>'
     +'</div>';
 }
-var _rimoDataT=null;
+var _rimoDataT=null, RIMO_DATA_ROWS=[], RIMO_DATA_Q='';
 function renderRimoSection(){
   var b=document.getElementById('ki-ref-body'); if(!b) return;
-  b.innerHTML='<div id="rimo-data-wrap"><div class="m-empty">Loading RiMO data\u2026</div></div>';
+  b.innerHTML='<div class="rd-search"><input id="rd-q" type="text" placeholder="🔍 Search kart no. or serial…" autocomplete="off" oninput="rimoDataFilter(this.value)" value="'+kEsc(RIMO_DATA_Q)+'"></div>'
+    +'<div id="rd-head" class="rd-head"></div>'
+    +'<div id="rimo-data-wrap"><div class="m-empty">Loading RiMO data…</div></div>';
   loadRimoData();
   clearInterval(_rimoDataT);
   _rimoDataT=setInterval(function(){
@@ -6162,31 +6190,44 @@ function loadRimoData(){
   if(typeof SBC==='undefined'||!SBC) return;
   var grp=(RIMO_SITE_GROUP[currentSite||'sydney']||'Moore Park');
   SBC.from('rimo_karts').select('kart_no,serial_no,karttrack,group_name,preset,speedset,hours,online,bms_ok,soc,last_online').eq('group_name',grp).order('kart_no').then(function(r){
-    var wrap=document.getElementById('rimo-data-wrap'); if(!wrap) return;
-    wrap.innerHTML=rimoDataHtml((r&&r.data)||[]);
+    RIMO_DATA_ROWS=(r&&r.data)||[]; renderRimoTable();
   },function(){});
 }
-function _rdCell(l,v){ return '<div class="rd-cell"><span class="rd-cl">'+l+'</span><span class="rd-cv">'+kEsc(String(v))+'</span></div>'; }
+function rimoDataFilter(q){ RIMO_DATA_Q=q||''; renderRimoTable(); }
 function _rimoTime(t){ if(!t) return '\u2014'; try{ return new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return String(t); } }
-function rimoDataHtml(rows){
-  if(!rows.length) return '<div class="m-empty">No Moore Park karts reporting yet \u2014 the runner syncs RiMO every few seconds.</div>';
-  var on=rows.filter(function(x){return x.online;}).length;
-  var h='<div class="rd-head"><b>'+rows.length+'</b> Moore Park karts \u00b7 '+on+' online \u00b7 <span class="rd-live">live</span></div>';
+function renderRimoTable(){
+  var wrap=document.getElementById('rimo-data-wrap'), head=document.getElementById('rd-head'); if(!wrap) return;
+  var q=String(RIMO_DATA_Q||'').toLowerCase().trim();
+  var rows=RIMO_DATA_ROWS.filter(function(k){ if(!q) return true; return String(k.kart_no||'').indexOf(q)>=0 || String(k.serial_no||'').toLowerCase().indexOf(q)>=0; });
+  var on=RIMO_DATA_ROWS.filter(function(x){return x.online;}).length;
+  if(head) head.innerHTML='<b>'+RIMO_DATA_ROWS.length+'</b> Moore Park karts \u00b7 '+on+' online \u00b7 <span class="rd-live">live</span>'+(q?(' \u00b7 '+rows.length+' match'):'');
+  if(!rows.length){ wrap.innerHTML='<div class="m-empty">'+(q?('No karts match \u201c'+kEsc(q)+'\u201d'):'No Moore Park karts reporting yet.')+'</div>'; return; }
+  var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
+  var h='<div class="rd-tablewrap"><table class="rd-table"><thead><tr><th>Kart</th><th>Serial</th><th>Track</th><th>Preset</th><th>Speedset</th><th>Hours</th><th>On</th><th>BMS</th><th>SOC</th></tr></thead><tbody>';
   h+=rows.map(function(k){
     var soc=(k.soc!=null?k.soc:null);
     var socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
-    var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
-    return '<div class="rd-card">'
-      +'<div class="rd-top"><span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span>'
-        +'<span class="rd-badges">'+dot(k.online)+'<span class="rd-lbl">Online</span>'+dot(k.bms_ok)+'<span class="rd-lbl">BMS</span>'
-        +(soc!=null?'<span class="rd-soc" style="color:'+socCol+'">'+soc+'%</span>':'')+'</span></div>'
-      +'<div class="rd-grid">'
-        +_rdCell('Preset',k.preset||'\u2014')+_rdCell('Speedset',k.speedset||'\u2014')
-        +_rdCell('Hours',k.hours||'\u2014')+_rdCell('Last online',_rimoTime(k.last_online))
-        +_rdCell('Serial',k.serial_no||'\u2014')+_rdCell('Track',k.karttrack||'\u2014')
-      +'</div></div>';
-  }).join('');
-  return h;
+    return '<tr data-sn="'+kEsc(String(k.serial_no||''))+'" onclick="rimoOpenKart(this.getAttribute(\'data-sn\'))">'
+      +'<td class="rd-k">'+kEsc(k.kart_no!=null?k.kart_no:'?')+'</td>'
+      +'<td>'+kEsc(k.serial_no||'\u2014')+'</td>'
+      +'<td>'+kEsc(k.karttrack||'\u2014')+'</td>'
+      +'<td>'+kEsc(k.preset||'\u2014')+'</td>'
+      +'<td>'+kEsc(k.speedset||'\u2014')+'</td>'
+      +'<td>'+kEsc(k.hours||'\u2014')+'</td>'
+      +'<td>'+dot(k.online)+'</td><td>'+dot(k.bms_ok)+'</td>'
+      +'<td style="color:'+socCol+';font-weight:800">'+(soc!=null?soc+'%':'\u2014')+'</td>'
+      +'</tr>';
+  }).join('')+'</tbody></table></div>';
+  wrap.innerHTML=h;
+}
+function rimoOpenKart(sn){
+  var b=document.getElementById('ki-ref-body'); if(!b) return;
+  clearInterval(_rimoDataT); _rimoDataT=null;
+  var k=RIMO_DATA_ROWS.filter(function(x){return String(x.serial_no)===String(sn);})[0]||{};
+  b.innerHTML='<button class="rd-backlist" onclick="renderRimoSection()">\u2190 All karts</button>'
+    +'<div class="rd-card"><div class="rd-top"><span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span>'
+    +'<span class="rd-badges"><span class="rd-dot" style="background:'+((k.online)?'#22C55E':'#FF3B30')+'"></span><span class="rd-lbl">Online</span><span class="rd-dot" style="background:'+((k.bms_ok)?'#22C55E':'#FF3B30')+'"></span><span class="rd-lbl">BMS</span>'+((k.soc!=null)?('<span class="rd-soc">'+k.soc+'%</span>'):'')+'</span></div>'
+    +'<div class="m-empty" style="text-align:left;line-height:1.9">Full <b>Livedata</b>, <b>BMS</b>, cell voltages/temps &amp; fault detail for this kart is coming — it needs the RiMO per-kart feed (kartdata.php) wired into the runner.<br><br>Serial '+kEsc(sn)+' · Preset '+kEsc(k.preset||'\u2014')+' · Speedset '+kEsc(k.speedset||'\u2014')+'</div></div>';
 }
 function kiRefRefresh(){
   var which=KI_REF_WHICH||'';
@@ -8174,7 +8215,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8668,10 +8709,12 @@ function acChips(sel, fnName, idx){
   var home=chipRow(homeDefs, fnName);
   // hub section groups (same amber look as the Kart Info sections). A hub auto-shows on the home grid
   // when ANY of its sections is on, so there's no separate hub toggle to keep in sync.
-  var parts='<div class="ac-ki-h">Parts sections</div>'+chipRow(PARTS_SECTION_DEFS, fnName, 'ki');
+  var inv='<div class="ac-ki-h">Inventory sections</div>'+chipRow(INV_SECTION_DEFS, fnName, 'ki');
+  var comms='<div class="ac-ki-h">Comms sections</div>'+chipRow(COMMS_SECTION_DEFS, fnName, 'ki');
   var dash='<div class="ac-ki-h">Dashboard sections</div>'+chipRow(DASH_SECTION_DEFS, fnName, 'ki');
   var bcn='<div class="ac-ki-h">Beacons sections</div>'+chipRow(BCN_SECTION_DEFS, fnName, 'ki');
-  // Kart Info sub-sections (allow-list with a Karts-only option) — unchanged.
+  // Kart Info sub-sections (allow-list with a Karts-only option) — plus Kart Check, which uses the
+  // regular toggle and rides along in the same group.
   var kiFn=(fnName==='acRoleTab')?'acRoleKi':'acOvKi';
   var kiNone=(sel.indexOf('ki:none')>=0);
   var kiCur=KI_SECTION_KEYS.filter(function(k){return sel.indexOf(k)>=0;});
@@ -8679,11 +8722,14 @@ function acChips(sel, fnName, idx){
   var ki='<div class="ac-ki-h">Kart Info sections'+(allOn?' \u00b7 all visible':(kiNone?' \u00b7 Karts only':''))+'</div><div class="ac-chips">'+KI_SECTION_DEFS.map(function(d){
     var on=allOn||kiCur.indexOf(d.key)>=0;
     return '<button type="button" class="ac-chip ki'+(on?' on':'')+'" onclick="'+kiFn+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
+  }).join('')+KICHK_SECTION_DEFS.map(function(d){
+    var on=(sel.indexOf('hide:'+d.key)<0);   // kartcheck is a default-on key
+    return '<button type="button" class="ac-chip ki'+(on?' on':'')+'" onclick="'+fnName+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
   }).join('')+'</div>';
   // Capabilities.
   var capOn=sel.indexOf('cap:settask')>=0;
   var cap='<div class="ac-ki-h">Permissions</div><div class="ac-chips"><button type="button" class="ac-chip cap'+(capOn?' on':'')+'" onclick="'+fnName+'('+idx+',\'cap:settask\')">\u2705 Can set tasks</button></div>';
-  return home+parts+dash+bcn+ki+cap;
+  return home+inv+comms+dash+bcn+ki+cap;
 }
 function acRender(){
   var el=document.getElementById('m-access-list'); if(!el) return;
@@ -11175,7 +11221,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

@@ -614,6 +614,10 @@
     .kart-chip .kc-badge{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#FF3B30;box-shadow:0 0 6px rgba(255,59,48,.6)}
     .kart-chip[data-online="1"] .kc-badge{background:#22C55E;box-shadow:0 0 6px rgba(34,197,94,.7)}
     .kart-chip[data-online="0"] .kc-badge{background:#FF3B30;box-shadow:0 0 6px rgba(255,59,48,.6)}
+/* Outer ring = online (green) / offline (red); the box fill still shows kart status. These come after the
+   status rules so they override just the border-colour, leaving the status-tinted background intact. */
+.kart-chip[data-online="1"]{border:2px solid #22C55E;box-shadow:0 0 9px -3px rgba(34,197,94,.55)}
+.kart-chip[data-online="0"]{border:2px solid #FF3B30;box-shadow:0 0 9px -3px rgba(255,59,48,.5)}
     /* Selected kart header — flexes to fit any width, wraps on tight screens */
     .kart-detail-header{display:flex;align-items:center;gap:clamp(12px,3vw,20px);padding:clamp(14px,3vw,20px);background:var(--card);border:1px solid var(--b1);border-radius:16px;margin-bottom:14px;flex-wrap:wrap}
     .kart-num-big{font-size:clamp(32px,8vw,52px);font-weight:800;color:#F59E0B;line-height:1;letter-spacing:-1px;flex-shrink:0;min-width:50px;text-align:center}
@@ -2226,7 +2230,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CB · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CD · ZXing raw</div>
       </div>
     </div>
 
@@ -6245,19 +6249,22 @@ function renderRimoTable(){
       +'</div>';
   }).join('')+'</div>';
 }
-var RIMO_DET_SN=null, RIMO_DET_K={}, RIMO_DET_D=null, RIMO_DET_TAB='Livedata', _rimoDetT=null;
+var RIMO_DET_SN=null, RIMO_DET_K={}, RIMO_DET_D=null, RIMO_DET_TAB='Livedata', _rimoDetT=null, _rimoFocusT=null, _rmkSig=null;
+function rimoFocusPing(){ if(typeof SBC==='undefined'||!SBC||!RIMO_DET_SN) return; try{ SBC.from('rimo_focus').upsert({serial_no:RIMO_DET_SN, updated_at:new Date().toISOString()},{onConflict:'serial_no'}).then(function(){},function(){}); }catch(e){} }
+function rimoDetStop(){ clearInterval(_rimoDetT); _rimoDetT=null; clearInterval(_rimoFocusT); _rimoFocusT=null; }
 function rimoOpenKart(sn){
   clearInterval(_rimoDataT); _rimoDataT=null;
-  RIMO_DET_SN=sn; RIMO_DET_TAB='Livedata';
+  RIMO_DET_SN=sn; RIMO_DET_TAB='Livedata'; _rmkSig=null;
   RIMO_DET_K=RIMO_DATA_ROWS.filter(function(x){return String(x.serial_no)===String(sn);})[0]||{};
   RIMO_DET_D=null;
   rimoDetShell();
-  rimoDetLoad();
-  clearInterval(_rimoDetT);
+  rimoFocusPing(); rimoDetLoad();
+  rimoDetStop();
+  _rimoFocusT=setInterval(function(){ if(!document.getElementById('rmk-body')){ rimoDetStop(); return; } rimoFocusPing(); }, 6000);   // hold this kart in focus so the runner fast-refreshes it
   _rimoDetT=setInterval(function(){
-    if(KI_REF_WHICH!=='rimo'||!document.getElementById('rmk-body')){ clearInterval(_rimoDetT); _rimoDetT=null; return; }
+    if(KI_REF_WHICH!=='rimo'||!document.getElementById('rmk-body')){ rimoDetStop(); return; }
     rimoDetLoad();
-  },7000);   // live refresh while viewing (runner sweeps kartdata every ~12s)
+  },1500);                                                 // pull the live feed ~1.5s, like RiMO's own page
 }
 function rimoDetLoad(){
   if(typeof SBC==='undefined'||!SBC) return;
@@ -6266,64 +6273,80 @@ function rimoDetLoad(){
 }
 function rimoDetShell(){
   var b=document.getElementById('ki-ref-body'); if(!b) return;
-  b.innerHTML='<button class="rd-backlist" onclick="renderRimoSection()">\u2190 All karts</button>'
+  b.innerHTML='<button class="rd-backlist" onclick="rimoDetStop();renderRimoSection()">\u2190 All karts</button>'
     +'<div class="rmk-head" id="rmk-head"></div>'
     +'<div class="rmk-tabs">'+['Livedata','BMS','Group','Settings'].map(function(t){return '<button class="rmk-tab'+(t===RIMO_DET_TAB?' on':'')+'" onclick="rimoDetTab(\''+t+'\')">'+t+'</button>';}).join('')+'</div>'
     +'<div class="rmk-body" id="rmk-body"></div>';
-  rimoDetRenderHead(); rimoDetRenderBody();
+  _rmkSig=null; rimoDetRenderHead(); rimoDetRenderBody();
 }
-function rimoDetTab(t){ RIMO_DET_TAB=t; var tabs=document.querySelectorAll('.rmk-tab'); Array.prototype.forEach.call(tabs,function(el){ el.classList.toggle('on', el.textContent===t); }); rimoDetRenderBody(); }
+function rimoDetTab(t){ RIMO_DET_TAB=t; _rmkSig=null; var tabs=document.querySelectorAll('.rmk-tab'); Array.prototype.forEach.call(tabs,function(el){ el.classList.toggle('on', el.textContent===t); }); rimoDetRenderBody(); }
 function rimoDetRenderHead(){
   var h=document.getElementById('rmk-head'); if(!h) return;
   var k=RIMO_DET_K, soc=(k.soc!=null?k.soc:null), socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
   var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
   h.innerHTML='<span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span><span class="rd-badges">'+dot(k.online)+'<span class="rd-lbl">Online</span>'+dot(k.bms_ok)+'<span class="rd-lbl">BMS</span>'+((soc!=null)?('<span class="rd-soc" style="color:'+socCol+'">'+soc+'%</span>'):'')+'</span>';
 }
+function _rmkG(d){ return function(key){ return (d&&d[key]!=null&&d[key]!=='')?String(d[key]):null; }; }
+function _rmkV(v){ return (v!=null&&v!=='')?kEsc(String(v)):'\u2014'; }
+function _rmkVt(v){ return (v!=null&&v!=='')?String(v):'\u2014'; }
+// One structured description of the active tab. The SAME spec drives the initial build AND the in-place
+// value patch, so a live refresh only changes the numbers in place — no rebuild, no flicker.
+function rimoDetSpec(){
+  var k=RIMO_DET_K, d=RIMO_DET_D, g=_rmkG(d), tab=RIMO_DET_TAB;
+  var t=function(key){ var v=g(key); return v!=null?(v+'\u00b0'):null; };
+  var yn=function(key){ var v=g(key); return v==='1'?'Yes':(v==='0'?'No':null); };
+  if(tab==='Livedata'){
+    if(!d) return {wait:1};
+    return {sections:[
+      {t:'Kart', f:[{k:'kartno',l:'Kart number',v:k.kart_no},{k:'lo',l:'Last online',v:g('timestamp')||_rimoTime(k.last_online)}]},
+      {t:'Engine data', f:[{k:'mode',l:'Actual driving mode',v:g('actualMode')},{k:'rpm',l:'Actual speed',v:g('actualRpm')},{k:'cur',l:'Actual current',v:g('actualCurrent')}]},
+      {t:'Temperature data', f:[{k:'et',l:'Engine temperature',lr:[t('engineTempLeft'),t('engineTempRight')]}]},
+      {t:'Hours of operation', f:[{k:'hrs',l:'Hours of operation',lr:[g('totalTimeLeft'),g('totalTimeRight')]}]}
+    ], foot:'Only the last measured values before the motor was switched off are shown.'};
+  }
+  if(tab==='Group') return {sections:[{t:'Group', f:[{k:'grp',l:'Group',v:k.group_name},{k:'pre',l:'Preset',v:k.preset},{k:'spd',l:'Speedset',v:k.speedset},{k:'dif',l:'Preset different from group',v:g('differentParset')==='1'?'Yes':(g('differentParset')==='0'?'No':null)},{k:'trk',l:'Track',v:k.karttrack}]}]};
+  if(tab==='Settings') return {sections:[
+    {t:'Kart data', f:[{k:'ser',l:'Serial number',v:k.serial_no},{k:'kartno',l:'Kart number',v:k.kart_no},{k:'wifi',l:'Wi-Fi available',v:yn('wirelessModule')},{k:'snd',l:'Sound module',v:(yn('soundModule')||'\u2014')+(g('soundVersion')?(' \u00b7 v'+g('soundVersion')):'')},{k:'bst',l:'Boost button',v:yn('boostModule')},{k:'rev',l:'Reverse blockable',v:yn('reverseBlockable')}]},
+    {t:'Hardware', f:[{k:'sw',l:'Software',v:g('softwareVersion')},{k:'brd',l:'Board',v:g('boardVersion')},{k:'mdl',l:'Model',v:g('modell')},{k:'cl',l:'Controller L',v:g('controllerSerialLeft')},{k:'cr',l:'Controller R',v:g('controllerSerialRight')},{k:'gl',l:'Gearbox L',v:g('gearboxSerialLeft')},{k:'gr',l:'Gearbox R',v:g('gearboxSerialRight')},{k:'el',l:'Engine L',v:g('engineSerialLeft')},{k:'er',l:'Engine R',v:g('engineSerialRight')},{k:'bms',l:'BMS serial',v:g('bmsSerial0')||g('bmsMasterSerial')},{k:'deh',l:'DeHaardt serial',v:g('deHaardtSerial')}]},
+    {t:'Preset', f:[{k:'pre',l:'Preset',v:k.preset},{k:'spd',l:'Speedset',v:k.speedset}]}
+  ]};
+  // BMS — pack + cells + faults come from kartbmsdata.php (stored under _bms by the runner).
+  var b=(d&&d._bms)||null, bg=_rmkG(b), soc=(k.soc!=null?k.soc:null);
+  var sections=[
+    {t:'Kart', f:[{k:'kartno',l:'Kart number',v:k.kart_no},{k:'lo',l:'Last online',v:g('timestamp')||_rimoTime(k.last_online)}]},
+    {t:'Status', f:[{k:'as',l:'Actual current',v:bg('current')||g('actualCurrent')}]},
+    {t:'BMS', f:[{k:'soc',l:'SOC (%)',v:bg('soc')||soc},{k:'avg',l:'Average voltage (V)',v:bg('avgVoltage')||bg('averageVoltage')},{k:'tot',l:'Total voltage (V)',v:bg('totalVoltage')||bg('sumVoltage')}]}
+  ];
+  var cf=[]; for(var i=1;i<=16;i++){ var cv=bg('cellVoltage'+i)||bg('voltageCell'+i)||bg('cell'+i)||bg('cell_'+i), ct=bg('cellTemp'+i)||bg('tempCell'+i)||bg('temp'+i); if(cv!=null||ct!=null) cf.push({k:'c'+i,l:'Cell '+i,v:(cv||'\u2014')+(ct!=null?(' \u00b7 '+ct+'\u00b0'):'')}); }
+  if(cf.length) sections.push({t:'Cells', f:cf});
+  if(b){ var seen={soc:1,current:1,avgVoltage:1,averageVoltage:1,totalVoltage:1,sumVoltage:1}; for(var j=1;j<=16;j++){seen['cellVoltage'+j]=1;seen['voltageCell'+j]=1;seen['cell'+j]=1;seen['cell_'+j]=1;seen['cellTemp'+j]=1;seen['tempCell'+j]=1;seen['temp'+j]=1;} var extra=Object.keys(b).filter(function(kk){return !seen[kk]&&b[kk]!=null&&b[kk]!=='';}); if(extra.length) sections.push({t:'BMS feed', f:extra.map(function(kk){return {k:'x'+kk,l:kk,v:b[kk]};})}); }
+  var spec={sections:sections};
+  if(!b) spec.note='Cell voltages, per-cell temps &amp; faults come from RiMO\u2019s BMS feed \u2014 they appear once the runner refreshes this kart (a second after opening). SOC &amp; current above are live.';
+  return spec;
+}
+function _rmkFieldHtml(f){
+  if(f.lr) return '<div class="rmk-fld2"><span class="rmk-lbl">'+kEsc(f.l)+'</span><span class="rmk-lr"><span class="rmk-lrb"><em>L</em><span id="rmkv-'+f.k+'-l">'+_rmkV(f.lr[0])+'</span></span><span class="rmk-lrb"><em>R</em><span id="rmkv-'+f.k+'-r">'+_rmkV(f.lr[1])+'</span></span></span></div>';
+  return '<div class="rmk-fld"><span class="rmk-lbl">'+kEsc(f.l)+'</span><span class="rmk-val" id="rmkv-'+f.k+'">'+_rmkV(f.v)+'</span></div>';
+}
+function _rmkBuild(spec){
+  if(spec.wait) return '<div class="rmk-sect"><div class="rmk-note">Waiting for this kart\u2019s live feed \u2014 it reports once the runner refreshes it (about a second after opening). If it stays empty, run rimo_detail.sql + rimo_focus.sql and deploy the runner.</div></div>';
+  var h=(spec.sections||[]).map(function(s){ return '<div class="rmk-sect"><div class="rmk-sect-h">'+kEsc(s.t)+'</div>'+s.f.map(_rmkFieldHtml).join('')+'</div>'; }).join('');
+  if(spec.foot) h+='<div class="rmk-foot">'+spec.foot+'</div>';
+  if(spec.note) h+='<div class="rmk-sect"><div class="rmk-note">'+spec.note+'</div></div>';
+  return h;
+}
+function _rmkPatch(spec){
+  (spec.sections||[]).forEach(function(s){ s.f.forEach(function(f){
+    if(f.lr){ var el=document.getElementById('rmkv-'+f.k+'-l'), er=document.getElementById('rmkv-'+f.k+'-r'); if(el) el.textContent=_rmkVt(f.lr[0]); if(er) er.textContent=_rmkVt(f.lr[1]); }
+    else { var e=document.getElementById('rmkv-'+f.k); if(e) e.textContent=_rmkVt(f.v); }
+  }); });
+}
 function rimoDetRenderBody(){
   var b=document.getElementById('rmk-body'); if(!b) return;
-  var k=RIMO_DET_K, d=RIMO_DET_D;
-  if(RIMO_DET_TAB==='Livedata') b.innerHTML=rimoDetLivedata(k,d);
-  else if(RIMO_DET_TAB==='BMS') b.innerHTML=rimoDetBms(k,d);
-  else if(RIMO_DET_TAB==='Group') b.innerHTML=rimoDetGroup(k,d);
-  else b.innerHTML=rimoDetSettings(k,d);
-}
-function _rmkV(v){ return (v!=null&&v!=='')?kEsc(String(v)):'\u2014'; }
-function _rmkSect(title,inner){ return '<div class="rmk-sect"><div class="rmk-sect-h">'+kEsc(title)+'</div>'+inner+'</div>'; }
-function _rmkFld(label,val){ return '<div class="rmk-fld"><span class="rmk-lbl">'+kEsc(label)+'</span><span class="rmk-val">'+_rmkV(val)+'</span></div>'; }
-function _rmkFld2(label,l,r){ return '<div class="rmk-fld2"><span class="rmk-lbl">'+kEsc(label)+'</span><span class="rmk-lr"><span class="rmk-lrb"><em>L</em>'+_rmkV(l)+'</span><span class="rmk-lrb"><em>R</em>'+_rmkV(r)+'</span></span></div>'; }
-function _rmkG(d){ return function(key){ return (d&&d[key]!=null&&d[key]!=='')?String(d[key]):null; }; }
-function _rmkWait(){ return '<div class="rmk-sect"><div class="rmk-note">Waiting for this kart\u2019s live feed \u2014 it reports when the kart is online. Deploy the runner + run rimo_detail.sql if this stays empty.</div></div>'; }
-function rimoDetLivedata(k,d){
-  var g=_rmkG(d), t=function(key){ var v=g(key); return v!=null?(v+'\u00b0'):null; };
-  if(!d) return _rmkWait();
-  return _rmkSect('Kart', _rmkFld('Kart number', k.kart_no)+_rmkFld('Last online', g('timestamp')||_rimoTime(k.last_online)))
-    +_rmkSect('Engine data', _rmkFld('Actual driving mode', g('actualMode'))+_rmkFld('Actual speed', g('actualRpm'))+_rmkFld('Actual current', g('actualCurrent')))
-    +_rmkSect('Temperature data', _rmkFld2('Engine temperature', t('engineTempLeft'), t('engineTempRight')))
-    +_rmkSect('Hours of operation', _rmkFld2('Hours of operation', g('totalTimeLeft'), g('totalTimeRight')))
-    +'<div class="rmk-foot">Only the last measured values before the motor was switched off are shown.</div>';
-}
-function rimoDetBms(k,d){
-  var g=_rmkG(d), soc=(k.soc!=null?k.soc:null);
-  var kartSect=_rmkSect('Kart', _rmkFld('Kart number', k.kart_no)+_rmkFld('Last online', g('timestamp')||_rimoTime(k.last_online)));
-  // Cells / per-cell temps / faults / pack voltages come from RiMO's BMS feed (a separate endpoint).
-  var cells='';
-  for(var i=1;i<=8;i++){ var v=g('cellVoltage'+i)||g('cell_'+i), tp=g('cellTemp'+i)||g('cell_temp_'+i); if(v!=null||tp!=null) cells+=_rmkFld('Cell '+i, (v||'\u2014')+(tp!=null?(' \u00b7 '+tp+'\u00b0'):'')); }
-  var hasBms=(g('soc')||g('avgVoltage')||g('totalVoltage')||cells);
-  return kartSect
-    +_rmkSect('Status', _rmkFld('Actual current', g('actualCurrent')))
-    +_rmkSect('BMS', _rmkFld('SOC (%)', g('soc')||soc)+_rmkFld('Average voltage (V)', g('avgVoltage'))+_rmkFld('Total voltage (V)', g('totalVoltage')))
-    +(cells?_rmkSect('Cells', cells):'')
-    +(hasBms?'':'<div class="rmk-sect"><div class="rmk-note">Cell voltages, per-cell temps, pack voltages &amp; the fault list live on RiMO\u2019s <b>BMS</b> feed, which isn\u2019t wired yet. SOC &amp; current above are live. Send me the BMS-tab request (e.g. <code>bmsdata.php?id=\u2026</code>) and this fills in.</div></div>');
-}
-function rimoDetGroup(k,d){
-  var g=_rmkG(d);
-  return _rmkSect('Group', _rmkFld('Group', k.group_name)+_rmkFld('Preset', k.preset)+_rmkFld('Speedset', k.speedset)+_rmkFld('Preset different from group', g('differentParset')==='1'?'Yes':(g('differentParset')==='0'?'No':null))+_rmkFld('Track', k.karttrack));
-}
-function rimoDetSettings(k,d){
-  var g=_rmkG(d), yn=function(key){ var v=g(key); return v==='1'?'Yes':(v==='0'?'No':null); };
-  return _rmkSect('Kart data', _rmkFld('Serial number', k.serial_no)+_rmkFld('Kart number', k.kart_no)+_rmkFld('Wi-Fi available', yn('wirelessModule'))+_rmkFld('Sound module', (yn('soundModule')||'\u2014')+(g('soundVersion')?(' \u00b7 v'+g('soundVersion')):''))+_rmkFld('Boost button', yn('boostModule'))+_rmkFld('Reverse blockable', yn('reverseBlockable')))
-    +_rmkSect('Hardware', _rmkFld('Software', g('softwareVersion'))+_rmkFld('Board', g('boardVersion'))+_rmkFld('Model', g('modell'))+_rmkFld('Controller L', g('controllerSerialLeft'))+_rmkFld('Controller R', g('controllerSerialRight'))+_rmkFld('Gearbox L', g('gearboxSerialLeft'))+_rmkFld('Gearbox R', g('gearboxSerialRight'))+_rmkFld('Engine L', g('engineSerialLeft'))+_rmkFld('Engine R', g('engineSerialRight'))+_rmkFld('BMS serial', g('bmsSerial0')||g('bmsMasterSerial'))+_rmkFld('DeHaardt serial', g('deHaardtSerial')))
-    +_rmkSect('Preset', _rmkFld('Preset', k.preset)+_rmkFld('Speedset', k.speedset));
+  var spec=rimoDetSpec();
+  var sig=RIMO_DET_TAB+'|'+(spec.wait?'w':'')+'|'+(spec.note?'n':'')+'|'+(spec.sections||[]).map(function(s){return s.t+':'+s.f.map(function(f){return f.k;}).join(',');}).join(';');
+  if(_rmkSig!==sig){ _rmkSig=sig; b.innerHTML=_rmkBuild(spec); }   // structure changed (tab switch / data appeared) -> rebuild once
+  else _rmkPatch(spec);                                             // same structure -> patch values in place (smooth, no flicker)
 }
 function kiRefRefresh(){
   var which=KI_REF_WHICH||'';
@@ -8326,7 +8349,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11332,7 +11355,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

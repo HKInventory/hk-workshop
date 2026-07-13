@@ -98,13 +98,26 @@
     @media (hover:hover){.rd-table tbody tr:hover{background:var(--bg)}}
     .rd-table .rd-k{font-weight:800;font-size:14px}
     .rd-backlist{background:none;border:none;color:var(--acc,#38BDF8);font-size:14px;font-weight:700;cursor:pointer;padding:4px 0;margin-bottom:12px}
+    .rd-list{border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+    .rd-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s}
+    .rd-row:last-child{border-bottom:none}
+    .rd-row:active{background:var(--card)}
+    @media (hover:hover){.rd-row:hover{background:var(--card)}}
+    .rd-rk{flex:0 0 auto;min-width:34px;font-size:19px;font-weight:800;color:var(--t1)}
+    .rd-rmid{flex:1 1 auto;min-width:0}
+    .rd-rsp{font-size:14px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .rd-rsub{font-size:11.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+    .rd-rright{flex:0 0 auto;display:flex;align-items:center;gap:10px}
+    .rd-cd{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)}
+    .rd-rsoc{font-size:15px;font-weight:800;min-width:40px;text-align:right}
+    .rd-chev{color:var(--t2);font-size:20px;font-weight:700;margin-left:-2px}
     /* Forge-style ambient frame: a thin brand-gradient ring hugging the PHYSICAL screen edges
        (viewport-fit=cover lets fixed elements reach into the notch / home-indicator areas), so the
        app visibly uses the whole phone. Touch devices only — pointless around a desktop window. */
     #edge-frame{display:none}
     @media (pointer:coarse){
       #edge-frame{display:block;position:fixed;inset:0;pointer-events:none;z-index:2147482000;
-        border:2.5px solid transparent;
+        border:2.5px solid transparent;border-radius:48px;
         background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
         -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
         -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);mask-composite:exclude;
@@ -2095,12 +2108,11 @@
           <div class="home-grid" id="home-grid">
             <div class="tile tse"      id="thubparts" onclick="go('parts')"><div class="ti">📦</div><div class="tl">Inventory</div><div class="ts">Scan · search · stock</div></div>
             <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
-            <div class="tile chats"    id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
+            <div class="tile fin"      id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
-            <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">📡</div><div class="tl">Beacons</div><div class="ts">Layouts · intelligence</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
-            <div class="tile tor"      id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
-            <div class="tile sessions" id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
+            <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">🏭</div><div class="tl">Facility</div><div class="ts">Layouts · tools</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
+            <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
           </div>
         </div>
       </div>
@@ -2151,17 +2163,18 @@
       </div>
     </div>
 
-    <!-- BEACONS hub: layouts / intelligence / dehaardt functions / dehaardt pickups -->
+    <!-- FACILITY hub: layouts / intelligence / dehaardt functions / dehaardt pickups / tools -->
     <div class="scr" id="s-beaconhub">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="pgtitle">Beacons</div>
-        <div class="ki-sub">Track layouts &amp; damage intelligence</div>
+        <div class="pgtitle">Facility</div>
+        <div class="ki-sub">Track layouts, damage intelligence &amp; tools</div>
         <div class="ki-tiles">
           <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div></div>
-          <div class="tile kidh"     id="bcndeh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
-          <div class="tile kidh"     id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
+          <div class="tile gord"     id="bcndeh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
+          <div class="tile kcheck"   id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
         </div>
       </div>
     </div>
@@ -2194,7 +2207,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BW · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BY · ZXing raw</div>
       </div>
     </div>
 
@@ -2442,8 +2455,8 @@
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
-            <div class="tile kicpu" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
-            <div class="tile kcheck" id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
+            <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
+            <div class="tile gord" id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
           </div>
         </div>
       </div>
@@ -4185,9 +4198,9 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
 var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
-var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
-var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','tasks','chats','handovers','kartcheck','race','beacons'];   // shown under a hub group, not the home row
+var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -4234,7 +4247,7 @@ function applyRoleVisibility(){
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','wmaccess']));
   vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
-  vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh','bcnpickups']));
+  vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh','bcnpickups','wtools']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -6195,6 +6208,7 @@ function loadRimoData(){
 }
 function rimoDataFilter(q){ RIMO_DATA_Q=q||''; renderRimoTable(); }
 function _rimoTime(t){ if(!t) return '\u2014'; try{ return new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return String(t); } }
+function _rdCell(l,v){ return '<div class="rd-cell"><span class="rd-cl">'+l+'</span><span class="rd-cv">'+kEsc(String(v))+'</span></div>'; }
 function renderRimoTable(){
   var wrap=document.getElementById('rimo-data-wrap'), head=document.getElementById('rd-head'); if(!wrap) return;
   var q=String(RIMO_DATA_Q||'').toLowerCase().trim();
@@ -6202,32 +6216,60 @@ function renderRimoTable(){
   var on=RIMO_DATA_ROWS.filter(function(x){return x.online;}).length;
   if(head) head.innerHTML='<b>'+RIMO_DATA_ROWS.length+'</b> Moore Park karts \u00b7 '+on+' online \u00b7 <span class="rd-live">live</span>'+(q?(' \u00b7 '+rows.length+' match'):'');
   if(!rows.length){ wrap.innerHTML='<div class="m-empty">'+(q?('No karts match \u201c'+kEsc(q)+'\u201d'):'No Moore Park karts reporting yet.')+'</div>'; return; }
-  var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
-  var h='<div class="rd-tablewrap"><table class="rd-table"><thead><tr><th>Kart</th><th>Serial</th><th>Track</th><th>Preset</th><th>Speedset</th><th>Hours</th><th>On</th><th>BMS</th><th>SOC</th></tr></thead><tbody>';
-  h+=rows.map(function(k){
-    var soc=(k.soc!=null?k.soc:null);
-    var socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
-    return '<tr data-sn="'+kEsc(String(k.serial_no||''))+'" onclick="rimoOpenKart(this.getAttribute(\'data-sn\'))">'
-      +'<td class="rd-k">'+kEsc(k.kart_no!=null?k.kart_no:'?')+'</td>'
-      +'<td>'+kEsc(k.serial_no||'\u2014')+'</td>'
-      +'<td>'+kEsc(k.karttrack||'\u2014')+'</td>'
-      +'<td>'+kEsc(k.preset||'\u2014')+'</td>'
-      +'<td>'+kEsc(k.speedset||'\u2014')+'</td>'
-      +'<td>'+kEsc(k.hours||'\u2014')+'</td>'
-      +'<td>'+dot(k.online)+'</td><td>'+dot(k.bms_ok)+'</td>'
-      +'<td style="color:'+socCol+';font-weight:800">'+(soc!=null?soc+'%':'\u2014')+'</td>'
-      +'</tr>';
-  }).join('')+'</tbody></table></div>';
-  wrap.innerHTML=h;
+  wrap.innerHTML='<div class="rd-list">'+rows.map(function(k){
+    var soc=(k.soc!=null?k.soc:null), socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
+    var dot=function(ok,lbl){ return '<span class="rd-cd"><span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'+lbl+'</span>'; };
+    return '<div class="rd-row" data-sn="'+kEsc(String(k.serial_no||''))+'" onclick="rimoOpenKart(this.getAttribute(\'data-sn\'))">'
+      +'<div class="rd-rk">'+kEsc(k.kart_no!=null?k.kart_no:'?')+'</div>'
+      +'<div class="rd-rmid"><div class="rd-rsp">'+kEsc(k.speedset||'\u2014')+'</div>'+(k.preset?('<div class="rd-rsub">'+kEsc(k.preset)+'</div>'):'')+'</div>'
+      +'<div class="rd-rright">'+dot(k.online,'On')+dot(k.bms_ok,'BMS')+'<span class="rd-rsoc" style="color:'+socCol+'">'+(soc!=null?soc+'%':'\u2014')+'</span><span class="rd-chev">\u203a</span></div>'
+      +'</div>';
+  }).join('')+'</div>';
 }
 function rimoOpenKart(sn){
   var b=document.getElementById('ki-ref-body'); if(!b) return;
   clearInterval(_rimoDataT); _rimoDataT=null;
   var k=RIMO_DATA_ROWS.filter(function(x){return String(x.serial_no)===String(sn);})[0]||{};
+  var soc=(k.soc!=null?k.soc:null), socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
+  var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
   b.innerHTML='<button class="rd-backlist" onclick="renderRimoSection()">\u2190 All karts</button>'
     +'<div class="rd-card"><div class="rd-top"><span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span>'
-    +'<span class="rd-badges"><span class="rd-dot" style="background:'+((k.online)?'#22C55E':'#FF3B30')+'"></span><span class="rd-lbl">Online</span><span class="rd-dot" style="background:'+((k.bms_ok)?'#22C55E':'#FF3B30')+'"></span><span class="rd-lbl">BMS</span>'+((k.soc!=null)?('<span class="rd-soc">'+k.soc+'%</span>'):'')+'</span></div>'
-    +'<div class="m-empty" style="text-align:left;line-height:1.9">Full <b>Livedata</b>, <b>BMS</b>, cell voltages/temps &amp; fault detail for this kart is coming — it needs the RiMO per-kart feed (kartdata.php) wired into the runner.<br><br>Serial '+kEsc(sn)+' · Preset '+kEsc(k.preset||'\u2014')+' · Speedset '+kEsc(k.speedset||'\u2014')+'</div></div>';
+    +'<span class="rd-badges">'+dot(k.online)+'<span class="rd-lbl">Online</span>'+dot(k.bms_ok)+'<span class="rd-lbl">BMS</span>'+((soc!=null)?('<span class="rd-soc" style="color:'+socCol+'">'+soc+'%</span>'):'')+'</span></div>'
+    +'<div class="rd-grid">'
+      +_rdCell('Speedset',k.speedset||'\u2014')+_rdCell('Preset',k.preset||'\u2014')
+      +_rdCell('SOC',(soc!=null?soc+'%':'\u2014'))+_rdCell('Hours',k.hours||'\u2014')
+      +_rdCell('Last online',_rimoTime(k.last_online))+_rdCell('Track',k.karttrack||'\u2014')
+      +_rdCell('Group',k.group_name||'\u2014')+_rdCell('Serial',k.serial_no||'\u2014')
+    +'</div></div>'
+    +'<div id="rd-livewrap"><div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Loading live telemetry\u2026</div></div></div>';
+  loadRimoDetail(sn);
+}
+function _rdSect(title,cells){ if(!cells) return ''; return '<div class="rd-card"><div class="mct">'+kEsc(title)+'</div><div class="rd-grid">'+cells+'</div></div>'; }
+function rimoDetailHtml(d){
+  if(!d||typeof d!=='object') return '';
+  // Render whatever the runner captured from RiMO's per-kart feed. Known fields get grouped; anything
+  // else falls into a generic list so nothing is lost.
+  var g=function(k){ return d[k]!=null&&d[k]!==''?String(d[k]):null; };
+  var cell=function(l,v){ return v!=null?_rdCell(l,v):''; };
+  var live=cell('Driving mode',g('driving_mode'))+cell('Speed',g('speed'))+cell('Current',g('current'))+cell('Engine temp L',g('engine_temp_l'))+cell('Engine temp R',g('engine_temp_r'))+cell('Hours L',g('hours_l'))+cell('Hours R',g('hours_r'));
+  var bms=cell('SOC',g('soc'))+cell('Avg voltage',g('avg_voltage'))+cell('Total voltage',g('total_voltage'))+cell('Current',g('bms_current'));
+  var cells='';
+  for(var i=1;i<=8;i++){ var v=g('cell_'+i), t=g('cell_temp_'+i); if(v!=null||t!=null) cells+=_rdCell('Cell '+i, (v||'\u2014')+(t!=null?(' · '+t+'\u00b0'):'')); }
+  var faults=Array.isArray(d.faults)?d.faults:[];
+  var out=_rdSect('Livedata',live)+_rdSect('BMS',bms)+_rdSect('Cells',cells);
+  if(faults.length) out+='<div class="rd-card"><div class="mct" style="color:#FF3B30">Faults</div><div style="font-size:13px;color:#FF6B6B">'+faults.map(kEsc).join(', ')+'</div></div>';
+  // fallback: if none of the known fields matched, dump everything as key/value
+  if(!live&&!bms&&!cells&&!faults.length){ var kv=Object.keys(d).map(function(key){ return _rdCell(key, String(d[key])); }).join(''); out=_rdSect('Live data',kv); }
+  return out||'';
+}
+function loadRimoDetail(sn){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('rimo_detail').select('data').eq('serial_no',sn).maybeSingle().then(function(r){
+    var w=document.getElementById('rd-livewrap'); if(!w) return;
+    var d=(r&&r.data&&r.data.data)?r.data.data:null;
+    var html=d?rimoDetailHtml(d):'';
+    w.innerHTML=html||'<div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Live cell / BMS / fault detail is being wired up from RiMO\u2019s per-kart feed. The summary above is live now.</div></div>';
+  },function(){ var w=document.getElementById('rd-livewrap'); if(w) w.innerHTML='<div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Live cell / BMS / fault detail is being wired up. The summary above is live now.</div></div>'; });
 }
 function kiRefRefresh(){
   var which=KI_REF_WHICH||'';
@@ -7289,7 +7331,10 @@ function ktTab(name){
    (legacy read-modify-write on the runner). _admWatch surfaces RaceFacer's real verdict on the row. */
 var RF_KART_TYPES=[[1,'Adult Track'],[22,'Intermediate Track'],[7,'Junior Track'],[6,'Mini Track'],[17,'Twin'],[18,'Lane'],[21,'BattleKart'],[23,'Melbourne Fleet'],[11,'Wangan'],[12,'Super Bikes'],[13,'Mario Kart'],[8,'VR Headsets'],[9,'Asphalt 9'],[10,'TVs'],[14,'Red Remotes'],[15,'iPads']];
 var RF_SAFETY_SERVERS=[[1,'Main Track']];   // add more [id,'Name'] here once their names are known
-function _admTypeId(name){ for(var i=0;i<RF_KART_TYPES.length;i++){ if(RF_KART_TYPES[i][1]===name) return RF_KART_TYPES[i][0]; } return null; }
+function _admTypeId(name){ if(name==null) return null; var n=String(name).toLowerCase().trim();
+  for(var i=0;i<RF_KART_TYPES.length;i++){ if(String(RF_KART_TYPES[i][1]).toLowerCase().trim()===n) return RF_KART_TYPES[i][0]; }
+  for(var j=0;j<RF_KART_TYPES.length;j++){ var t=String(RF_KART_TYPES[j][1]).toLowerCase().trim(); if(t&&(t.indexOf(n)>=0||n.indexOf(t)>=0)) return RF_KART_TYPES[j][0]; }
+  return null; }
 var RF_KART_REC={};   // rfId -> full current record (from rf_kart_admin): object, or null once fetched-but-absent
 function loadKartRecord(rfId, cb){
   if(rfId==null||typeof SBC==='undefined'||!SBC){ RF_KART_REC[rfId]=null; if(cb) cb(null); return; }
@@ -8228,7 +8273,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -8725,7 +8770,7 @@ function acChips(sel, fnName, idx){
   var inv='<div class="ac-ki-h">Inventory sections</div>'+chipRow(INV_SECTION_DEFS, fnName, 'ki');
   var comms='<div class="ac-ki-h">Comms sections</div>'+chipRow(COMMS_SECTION_DEFS, fnName, 'ki');
   var dash='<div class="ac-ki-h">Dashboard sections</div>'+chipRow(DASH_SECTION_DEFS, fnName, 'ki');
-  var bcn='<div class="ac-ki-h">Beacons sections</div>'+chipRow(BCN_SECTION_DEFS, fnName, 'ki');
+  var bcn='<div class="ac-ki-h">Facility sections</div>'+chipRow(BCN_SECTION_DEFS, fnName, 'ki');
   // Kart Info sub-sections (allow-list with a Karts-only option) — plus Kart Check, which uses the
   // regular toggle and rides along in the same group.
   var kiFn=(fnName==='acRoleTab')?'acRoleKi':'acOvKi';
@@ -11234,7 +11279,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

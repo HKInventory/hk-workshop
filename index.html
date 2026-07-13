@@ -98,6 +98,25 @@
     @media (hover:hover){.rd-table tbody tr:hover{background:var(--bg)}}
     .rd-table .rd-k{font-weight:800;font-size:14px}
     .rd-backlist{background:none;border:none;color:var(--acc,#38BDF8);font-size:14px;font-weight:700;cursor:pointer;padding:4px 0;margin-bottom:12px}
+    .rmk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .rmk-tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--b2)}
+    .rmk-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--t2);font-size:13.5px;font-weight:700;padding:9px 6px;cursor:pointer;transition:color .12s}
+    .rmk-tab.on{color:var(--t1);border-bottom-color:#38BDF8}
+    .rmk-sect{border:1px solid var(--b2);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--card)}
+    .rmk-sect-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);font-weight:800;margin-bottom:8px}
+    .rmk-fld{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--b1)}
+    .rmk-fld:last-child{border-bottom:none}
+    .rmk-lbl{font-size:13px;color:var(--t2)}
+    .rmk-val{font-size:14px;font-weight:700;color:var(--t1);background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:4px 12px;min-width:64px;text-align:right;white-space:nowrap}
+    .rmk-fld2{padding:7px 0;border-bottom:1px solid var(--b1)}
+    .rmk-fld2:last-child{border-bottom:none}
+    .rmk-fld2 .rmk-lbl{display:block;margin-bottom:7px}
+    .rmk-lr{display:flex;gap:8px}
+    .rmk-lrb{flex:1;display:flex;align-items:center;gap:8px;justify-content:space-between;background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:5px 12px;font-size:14px;font-weight:700;color:var(--t1)}
+    .rmk-lrb em{font-style:normal;color:var(--t2);font-size:11px;font-weight:800}
+    .rmk-foot{font-size:11.5px;color:var(--t2);margin:-4px 2px 4px;line-height:1.5}
+    .rmk-note{font-size:12.5px;color:var(--t2);line-height:1.7}
+    .rmk-note code{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:1px 5px;font-size:11.5px}
     .rd-list{border:1px solid var(--b1);border-radius:14px;overflow:hidden}
     .rd-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s}
     .rd-row:last-child{border-bottom:none}
@@ -2207,7 +2226,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-BZ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CB · ZXing raw</div>
       </div>
     </div>
 
@@ -6226,54 +6245,85 @@ function renderRimoTable(){
       +'</div>';
   }).join('')+'</div>';
 }
+var RIMO_DET_SN=null, RIMO_DET_K={}, RIMO_DET_D=null, RIMO_DET_TAB='Livedata', _rimoDetT=null;
 function rimoOpenKart(sn){
-  var b=document.getElementById('ki-ref-body'); if(!b) return;
   clearInterval(_rimoDataT); _rimoDataT=null;
-  var k=RIMO_DATA_ROWS.filter(function(x){return String(x.serial_no)===String(sn);})[0]||{};
-  var soc=(k.soc!=null?k.soc:null), socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
-  var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
-  b.innerHTML='<button class="rd-backlist" onclick="renderRimoSection()">\u2190 All karts</button>'
-    +'<div class="rd-card"><div class="rd-top"><span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span>'
-    +'<span class="rd-badges">'+dot(k.online)+'<span class="rd-lbl">Online</span>'+dot(k.bms_ok)+'<span class="rd-lbl">BMS</span>'+((soc!=null)?('<span class="rd-soc" style="color:'+socCol+'">'+soc+'%</span>'):'')+'</span></div>'
-    +'<div class="rd-grid">'
-      +_rdCell('Speedset',k.speedset||'\u2014')+_rdCell('Preset',k.preset||'\u2014')
-      +_rdCell('SOC',(soc!=null?soc+'%':'\u2014'))+_rdCell('Hours',k.hours||'\u2014')
-      +_rdCell('Last online',_rimoTime(k.last_online))+_rdCell('Track',k.karttrack||'\u2014')
-      +_rdCell('Group',k.group_name||'\u2014')+_rdCell('Serial',k.serial_no||'\u2014')
-    +'</div></div>'
-    +'<div id="rd-livewrap"><div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Loading live telemetry\u2026</div></div></div>';
-  loadRimoDetail(sn);
+  RIMO_DET_SN=sn; RIMO_DET_TAB='Livedata';
+  RIMO_DET_K=RIMO_DATA_ROWS.filter(function(x){return String(x.serial_no)===String(sn);})[0]||{};
+  RIMO_DET_D=null;
+  rimoDetShell();
+  rimoDetLoad();
+  clearInterval(_rimoDetT);
+  _rimoDetT=setInterval(function(){
+    if(KI_REF_WHICH!=='rimo'||!document.getElementById('rmk-body')){ clearInterval(_rimoDetT); _rimoDetT=null; return; }
+    rimoDetLoad();
+  },7000);   // live refresh while viewing (runner sweeps kartdata every ~12s)
 }
-function _rdSect(title,cells){ if(!cells) return ''; return '<div class="rd-card"><div class="mct">'+kEsc(title)+'</div><div class="rd-grid">'+cells+'</div></div>'; }
-function rimoDetailHtml(d){
-  if(!d||typeof d!=='object') return '';
-  var g=function(k){ return (d[k]!=null&&d[k]!=='')?String(d[k]):null; };
-  var yn=function(k){ var v=g(k); return v==='1'?'Yes':(v==='0'?'No':null); };
-  var c=function(l,v){ return v!=null?_rdCell(l,v):''; };
-  var t=function(k){ var v=g(k); return v!=null?(v+'\u00b0'):null; };
-  var live=c('Driving mode',g('actualMode'))+c('RPM',g('actualRpm'))+c('Current',g('actualCurrent')!=null?(g('actualCurrent')+' A'):null)
-    +c('Engine temp L',t('engineTempLeft'))+c('Engine temp R',t('engineTempRight'))
-    +c('Hours L',g('totalTimeLeft'))+c('Hours R',g('totalTimeRight'));
-  var hw=c('Software',g('softwareVersion'))+c('Board',g('boardVersion'))+c('Model',g('modell'))
-    +c('Sound',yn('soundModule')!=null?(yn('soundModule')+(g('soundVersion')?(' · v'+g('soundVersion')):'')):null)
-    +c('Boost',yn('boostModule'))+c('Wireless',yn('wirelessModule'))+c('Reverse blockable',yn('reverseBlockable'))
-    +c('Controller L',g('controllerSerialLeft'))+c('Controller R',g('controllerSerialRight'))
-    +c('Gearbox L',g('gearboxSerialLeft'))+c('Gearbox R',g('gearboxSerialRight'))
-    +c('Engine L',g('engineSerialLeft'))+c('Engine R',g('engineSerialRight'))
-    +c('BMS serial',g('bmsSerial0')||g('bmsMasterSerial'))+c('DeHaardt serial',g('deHaardtSerial'))
-    +c('Last reboot',g('timestampReboot'))+c('Engine start',g('timestampEnginestart'))+c('Reported',g('timestamp'));
-  var out=_rdSect('Livedata',live)+_rdSect('Hardware & settings',hw);
-  if(!live&&!hw){ var kv=Object.keys(d).map(function(key){ return _rdCell(key, String(d[key])); }).join(''); out=_rdSect('Live data',kv); }
-  return out||'';
-}
-function loadRimoDetail(sn){
+function rimoDetLoad(){
   if(typeof SBC==='undefined'||!SBC) return;
-  SBC.from('rimo_detail').select('data').eq('serial_no',sn).maybeSingle().then(function(r){
-    var w=document.getElementById('rd-livewrap'); if(!w) return;
-    var d=(r&&r.data&&r.data.data)?r.data.data:null;
-    var html=d?rimoDetailHtml(d):'';
-    w.innerHTML=html||'<div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Live cell / BMS / fault detail is being wired up from RiMO\u2019s per-kart feed. The summary above is live now.</div></div>';
-  },function(){ var w=document.getElementById('rd-livewrap'); if(w) w.innerHTML='<div class="rd-card"><div class="m-empty" style="text-align:left;font-size:12.5px">Live cell / BMS / fault detail is being wired up. The summary above is live now.</div></div>'; });
+  SBC.from('rimo_karts').select('kart_no,serial_no,karttrack,group_name,preset,speedset,hours,online,bms_ok,soc,last_online').eq('serial_no',RIMO_DET_SN).maybeSingle().then(function(r){ if(r&&r.data){ RIMO_DET_K=r.data; rimoDetRenderHead(); rimoDetRenderBody(); } },function(){});
+  SBC.from('rimo_detail').select('data').eq('serial_no',RIMO_DET_SN).maybeSingle().then(function(r){ RIMO_DET_D=(r&&r.data&&r.data.data)?r.data.data:null; rimoDetRenderBody(); },function(){ rimoDetRenderBody(); });
+}
+function rimoDetShell(){
+  var b=document.getElementById('ki-ref-body'); if(!b) return;
+  b.innerHTML='<button class="rd-backlist" onclick="renderRimoSection()">\u2190 All karts</button>'
+    +'<div class="rmk-head" id="rmk-head"></div>'
+    +'<div class="rmk-tabs">'+['Livedata','BMS','Group','Settings'].map(function(t){return '<button class="rmk-tab'+(t===RIMO_DET_TAB?' on':'')+'" onclick="rimoDetTab(\''+t+'\')">'+t+'</button>';}).join('')+'</div>'
+    +'<div class="rmk-body" id="rmk-body"></div>';
+  rimoDetRenderHead(); rimoDetRenderBody();
+}
+function rimoDetTab(t){ RIMO_DET_TAB=t; var tabs=document.querySelectorAll('.rmk-tab'); Array.prototype.forEach.call(tabs,function(el){ el.classList.toggle('on', el.textContent===t); }); rimoDetRenderBody(); }
+function rimoDetRenderHead(){
+  var h=document.getElementById('rmk-head'); if(!h) return;
+  var k=RIMO_DET_K, soc=(k.soc!=null?k.soc:null), socCol=soc==null?'var(--t2)':(soc>=60?'#22C55E':soc>=30?'#F59E0B':'#FF3B30');
+  var dot=function(ok){ return '<span class="rd-dot" style="background:'+(ok?'#22C55E':'#FF3B30')+'"></span>'; };
+  h.innerHTML='<span class="rd-kn">Kart '+kEsc(k.kart_no!=null?k.kart_no:'?')+'</span><span class="rd-badges">'+dot(k.online)+'<span class="rd-lbl">Online</span>'+dot(k.bms_ok)+'<span class="rd-lbl">BMS</span>'+((soc!=null)?('<span class="rd-soc" style="color:'+socCol+'">'+soc+'%</span>'):'')+'</span>';
+}
+function rimoDetRenderBody(){
+  var b=document.getElementById('rmk-body'); if(!b) return;
+  var k=RIMO_DET_K, d=RIMO_DET_D;
+  if(RIMO_DET_TAB==='Livedata') b.innerHTML=rimoDetLivedata(k,d);
+  else if(RIMO_DET_TAB==='BMS') b.innerHTML=rimoDetBms(k,d);
+  else if(RIMO_DET_TAB==='Group') b.innerHTML=rimoDetGroup(k,d);
+  else b.innerHTML=rimoDetSettings(k,d);
+}
+function _rmkV(v){ return (v!=null&&v!=='')?kEsc(String(v)):'\u2014'; }
+function _rmkSect(title,inner){ return '<div class="rmk-sect"><div class="rmk-sect-h">'+kEsc(title)+'</div>'+inner+'</div>'; }
+function _rmkFld(label,val){ return '<div class="rmk-fld"><span class="rmk-lbl">'+kEsc(label)+'</span><span class="rmk-val">'+_rmkV(val)+'</span></div>'; }
+function _rmkFld2(label,l,r){ return '<div class="rmk-fld2"><span class="rmk-lbl">'+kEsc(label)+'</span><span class="rmk-lr"><span class="rmk-lrb"><em>L</em>'+_rmkV(l)+'</span><span class="rmk-lrb"><em>R</em>'+_rmkV(r)+'</span></span></div>'; }
+function _rmkG(d){ return function(key){ return (d&&d[key]!=null&&d[key]!=='')?String(d[key]):null; }; }
+function _rmkWait(){ return '<div class="rmk-sect"><div class="rmk-note">Waiting for this kart\u2019s live feed \u2014 it reports when the kart is online. Deploy the runner + run rimo_detail.sql if this stays empty.</div></div>'; }
+function rimoDetLivedata(k,d){
+  var g=_rmkG(d), t=function(key){ var v=g(key); return v!=null?(v+'\u00b0'):null; };
+  if(!d) return _rmkWait();
+  return _rmkSect('Kart', _rmkFld('Kart number', k.kart_no)+_rmkFld('Last online', g('timestamp')||_rimoTime(k.last_online)))
+    +_rmkSect('Engine data', _rmkFld('Actual driving mode', g('actualMode'))+_rmkFld('Actual speed', g('actualRpm'))+_rmkFld('Actual current', g('actualCurrent')))
+    +_rmkSect('Temperature data', _rmkFld2('Engine temperature', t('engineTempLeft'), t('engineTempRight')))
+    +_rmkSect('Hours of operation', _rmkFld2('Hours of operation', g('totalTimeLeft'), g('totalTimeRight')))
+    +'<div class="rmk-foot">Only the last measured values before the motor was switched off are shown.</div>';
+}
+function rimoDetBms(k,d){
+  var g=_rmkG(d), soc=(k.soc!=null?k.soc:null);
+  var kartSect=_rmkSect('Kart', _rmkFld('Kart number', k.kart_no)+_rmkFld('Last online', g('timestamp')||_rimoTime(k.last_online)));
+  // Cells / per-cell temps / faults / pack voltages come from RiMO's BMS feed (a separate endpoint).
+  var cells='';
+  for(var i=1;i<=8;i++){ var v=g('cellVoltage'+i)||g('cell_'+i), tp=g('cellTemp'+i)||g('cell_temp_'+i); if(v!=null||tp!=null) cells+=_rmkFld('Cell '+i, (v||'\u2014')+(tp!=null?(' \u00b7 '+tp+'\u00b0'):'')); }
+  var hasBms=(g('soc')||g('avgVoltage')||g('totalVoltage')||cells);
+  return kartSect
+    +_rmkSect('Status', _rmkFld('Actual current', g('actualCurrent')))
+    +_rmkSect('BMS', _rmkFld('SOC (%)', g('soc')||soc)+_rmkFld('Average voltage (V)', g('avgVoltage'))+_rmkFld('Total voltage (V)', g('totalVoltage')))
+    +(cells?_rmkSect('Cells', cells):'')
+    +(hasBms?'':'<div class="rmk-sect"><div class="rmk-note">Cell voltages, per-cell temps, pack voltages &amp; the fault list live on RiMO\u2019s <b>BMS</b> feed, which isn\u2019t wired yet. SOC &amp; current above are live. Send me the BMS-tab request (e.g. <code>bmsdata.php?id=\u2026</code>) and this fills in.</div></div>');
+}
+function rimoDetGroup(k,d){
+  var g=_rmkG(d);
+  return _rmkSect('Group', _rmkFld('Group', k.group_name)+_rmkFld('Preset', k.preset)+_rmkFld('Speedset', k.speedset)+_rmkFld('Preset different from group', g('differentParset')==='1'?'Yes':(g('differentParset')==='0'?'No':null))+_rmkFld('Track', k.karttrack));
+}
+function rimoDetSettings(k,d){
+  var g=_rmkG(d), yn=function(key){ var v=g(key); return v==='1'?'Yes':(v==='0'?'No':null); };
+  return _rmkSect('Kart data', _rmkFld('Serial number', k.serial_no)+_rmkFld('Kart number', k.kart_no)+_rmkFld('Wi-Fi available', yn('wirelessModule'))+_rmkFld('Sound module', (yn('soundModule')||'\u2014')+(g('soundVersion')?(' \u00b7 v'+g('soundVersion')):''))+_rmkFld('Boost button', yn('boostModule'))+_rmkFld('Reverse blockable', yn('reverseBlockable')))
+    +_rmkSect('Hardware', _rmkFld('Software', g('softwareVersion'))+_rmkFld('Board', g('boardVersion'))+_rmkFld('Model', g('modell'))+_rmkFld('Controller L', g('controllerSerialLeft'))+_rmkFld('Controller R', g('controllerSerialRight'))+_rmkFld('Gearbox L', g('gearboxSerialLeft'))+_rmkFld('Gearbox R', g('gearboxSerialRight'))+_rmkFld('Engine L', g('engineSerialLeft'))+_rmkFld('Engine R', g('engineSerialRight'))+_rmkFld('BMS serial', g('bmsSerial0')||g('bmsMasterSerial'))+_rmkFld('DeHaardt serial', g('deHaardtSerial')))
+    +_rmkSect('Preset', _rmkFld('Preset', k.preset)+_rmkFld('Speedset', k.speedset));
 }
 function kiRefRefresh(){
   var which=KI_REF_WHICH||'';
@@ -7517,9 +7567,9 @@ function repTableHTML(){
     var costTxt=r.cost?'<span class="rep-cost">$'+r.cost.toFixed(2)+'</span>':'<span class="rep-mono">\u2014</span>';
     var noteLines=(r.repairNotes||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
     var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
-    var hasDetail=noteLines.length>0||parts.length>0||!!r.issue;   // always expandable so the original issue shows, even with no note/parts
+    var hasDetail=noteLines.length>0||parts.length>0;   // the row already shows the note; the expand adds the repair note + parts (no re-printing it)
     var head='<tr class="rep-row'+(hasDetail?'':' rep-nodetail')+'" id="reprow-'+i+'"'+(hasDetail?(' onclick="toggleRep('+i+')"'):'')+'>'
-      +'<td class="rep-desc">'+kEsc(r.issue)+'</td>'
+      +'<td class="rep-desc">'+kEsc(r.damageNote||r.issue)+'</td>'
       +'<td class="rep-mono">'+(r.date||'\u2014')+'</td>'
       +'<td class="rep-mono">'+(r.dateRepaired||'\u2014')+'</td>'
       +'<td class="rep-mono">'+(r.mileage?r.mileage.toLocaleString():'\u2014')+'</td>'
@@ -7529,10 +7579,9 @@ function repTableHTML(){
       +'</tr>';
     if(!hasDetail) return head;
     var inner='';
-    // The original issue this repair was logged against (RaceFacer's starred note text). Shown
-    // first, the way RaceFacer does: what was wrong -> what was done -> parts used.
-    if(r.issue) inner+='<div class="rep-note-h">Issue reported</div><div class="rep-issue-b">\u2605 '+kEsc(r.issue)+'</div>';
-    if(noteLines.length) inner+='<div class="rep-note-h">Repair note</div><div class="rep-note-b">'+kEsc(noteLines.join('\n'))+'</div>';
+    // Row shows the issue; the expand shows what was done + parts (RaceFacer's order).
+    var repairText=r.damageNote?r.issue:noteLines.join('\n');   // if we have the separate damage note, the annotation IS the repair note
+    if(repairText) inner+='<div class="rep-note-h">Repair note</div><div class="rep-note-b">'+kEsc(repairText)+'</div>';
     if(parts.length){
       inner+='<div class="rep-pu-h">Parts used</div><table class="rep-pu"><thead><tr><th>Part</th><th class="rp-r">Quantity</th><th class="rp-r">Price</th></tr></thead><tbody>'
         +parts.map(function(p){return '<tr><td>'+kEsc(p.name)+'</td><td class="rp-r">'+(p.qty||1)+'</td><td class="rp-r">'+kEsc(_money(p.price))+'</td></tr>';}).join('')
@@ -8277,7 +8326,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-BZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11283,7 +11332,7 @@ function accountRender(){
   var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-BZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

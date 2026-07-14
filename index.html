@@ -586,6 +586,20 @@
     #kn-tabinner.kn-slide-r{animation:knInR .26s cubic-bezier(.32,.72,0,1)}
     #kn-tabinner.kn-slide-l{animation:knInL .26s cubic-bezier(.32,.72,0,1)}
     .kn-card-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
+    /* small round ✕ to delete/archive a note (kart notes, notifications, kart pages) */
+    .kn-x{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:var(--t2);font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+    .kn-x:hover{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.55);color:#FF6B61}
+    .kn-opentable .kn-x,.rep-table .kn-x{width:20px;height:20px;font-size:11px}
+    /* profile photo avatars — fill the round avatar chip */
+    .ch-av.ch-avimg{padding:0;overflow:hidden}
+    .ch-av.ch-avimg img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+    .acct-av.ch-avimg{overflow:hidden;padding:0}
+    .acct-av.ch-avimg img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+    /* finance indicator chart */
+    .fin-ind-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .fin-ind-row select{flex:1;background:var(--card2,#1a1a1a);border:1px solid var(--b2);color:var(--t1);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:600}
+    .fin-chart-wrap{width:100%;overflow:hidden}
+    .fin-chart-wrap svg{width:100%;height:auto;display:block}
     .kn-kart{font-size:13.5px;font-weight:800}
     .kn-typ{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
     .kn-status{font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:6px;letter-spacing:.04em}
@@ -687,6 +701,7 @@
     .ktype-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
     .ktype-tab{flex:1 1 auto;min-width:72px;background:transparent;border:1.5px solid var(--b1);color:var(--t2);padding:10px 12px;border-radius:14px;font-weight:800;font-size:clamp(12px,3.2vw,15px);cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
     .ktype-tab:active{transform:scale(0.96)}
+    @media(hover:hover){.ktype-tab:hover{transform:scale(1.06);border-color:var(--b2);z-index:2}}
     .ktype-tab .ktt-n{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.3px}
     /* Parts used inside a repair */
     .repair-parts{margin-top:8px;border-top:1px dashed var(--b2);padding-top:8px}
@@ -1555,6 +1570,14 @@
     .tv-lbrow.hero .nm{font-size:var(--lb-hnm,4.4vmin);font-weight:800;color:#fff}
     .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-hnum,2.4vmin)}
     .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-hnumon,4vmin)}
+    /* fleet online scene — one row per kart type, green pills = online karts */
+    .tv-onl{display:flex;flex-direction:column;gap:2.2vmin;margin-top:1vmin}
+    .tv-onl-row{display:flex;align-items:flex-start;gap:2vmin}
+    .tv-onl-type{flex:0 0 20vmin;font-size:2.6vmin;font-weight:800;color:var(--ink);padding-top:.5vmin}
+    .tv-onl-type small{display:block;font-size:1.7vmin;font-weight:700;color:var(--mut);margin-top:.4vmin}
+    .tv-onl-karts{flex:1;display:flex;flex-wrap:wrap;gap:1.2vmin}
+    .tv-onl-pill{min-width:5.2vmin;padding:.9vmin 1.4vmin;border-radius:1.4vmin;background:linear-gradient(180deg,rgba(34,197,94,.30),rgba(34,197,94,.16));border:1px solid rgba(34,197,94,.65);color:#7CFCA9;font-size:2.6vmin;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 0 1.6vmin rgba(34,197,94,.25)}
+    .tv-onl-none{font-size:2.1vmin;font-weight:700;color:var(--dim);padding-top:.7vmin}
     .tv-ct1{flex:0 0 auto}
     .tv-ct1>b{display:block;min-width:8vmin;text-align:right;font-size:3.1vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--tvac)}
     /* low stock */
@@ -2244,7 +2267,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CJ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CK · ZXing raw</div>
       </div>
     </div>
 
@@ -2404,6 +2427,16 @@
           <div class="stat-card stat-finB"><div class="stat-num" id="fst-month">—</div><div class="stat-lbl">Spend · Month</div></div>
           <div class="stat-card stat-finC"><div class="stat-num" id="fst-ytd">—</div><div class="stat-lbl">Spend · YTD</div></div>
           <div class="stat-card stat-finD"><div class="stat-num" id="fst-daily">—</div><div class="stat-lbl">Daily Avg (90d)</div></div>
+        </div>
+        <div class="mc"><div class="mct">📊 Indicator Charts</div>
+          <div class="fin-ind-row"><select id="fin-ind" onchange="finRenderChart()">
+            <option value="monthly">Monthly spend — last 12 months</option>
+            <option value="cum">Cumulative spend — last 12 months</option>
+            <option value="daily">Daily spend — last 90 days</option>
+            <option value="topparts">Top parts spend — this month</option>
+            <option value="stock">Stock value breakdown</option>
+          </select></div>
+          <div class="fin-chart-wrap" id="fin-chart"><div class="emp" style="padding:4px 0">Loading...</div></div>
         </div>
         <div class="mc"><div class="mct">📈 Monthly Spend · Last 12 Months</div><div id="fin-monthly"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
         <div class="mc"><div class="mct">📉 vs Last Year</div><div id="fin-yoy"><div class="emp" style="padding:4px 0">Loading...</div></div></div>
@@ -2705,7 +2738,14 @@
           <div class="acct-role" id="acct-role">Role</div>
         </div>
         <div class="mc" style="text-align:left"><div class="mct">🎨 Your avatar</div>
-          <div class="m-tool-desc">Your emoji and colour show next to your name across chats and tasks.</div>
+          <div class="m-tool-desc">Your emoji and colour show next to your name across chats and tasks — or upload a photo to use instead.</div>
+          <div class="acct-lbl" style="margin-top:2px">Profile photo</div>
+          <div style="display:flex;gap:10px;margin:8px 0 14px">
+            <button class="m-add" style="flex:1" onclick="document.getElementById('acct-avfile').click()">📷 Upload photo</button>
+            <button class="m-add" id="acct-avremove" style="flex:1;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="acctRemoveAvatar()">Remove photo</button>
+            <input type="file" id="acct-avfile" accept="image/*" style="display:none" onchange="acctSetAvatar(this)">
+          </div>
+          <div class="m-form-msg" id="acct-av-msg"></div>
           <div class="acct-lbl" style="margin-top:2px">Colour</div>
           <div class="acct-swatches" id="acct-swatches"></div>
           <div class="acct-row2" style="margin-top:13px"><span class="acct-lbl">Custom</span><input id="acct-hex" class="acct-hex-in" maxlength="7" placeholder="#3B82F6"><button class="acct-hex-btn" onclick="acctSetColorHex()">Apply</button></div>
@@ -3572,16 +3612,17 @@ function sbFinanceData(cb){
   exp.sort(function(a,b){return b.value-a.value;}); exp=exp.slice(0,10);
   SBC.from('logs').select('*').eq('site',(currentSite||'sydney')).then(function(res){
     var logs=(res&&res.data)||[];
-    var spendMonth=0,spendYTD=0,spendLastYr=0,spend90=0,monthly={},spendSku={},lastTaken={},usage90={};
+    var spendMonth=0,spendYTD=0,spendLastYr=0,spend90=0,monthly={},spendSku={},lastTaken={},usage90={},daily={};
     logs.forEach(function(l){
       var d=new Date(l.ts); if(isNaN(d)||String(l.action||'')!=='TAKEN')return;
       var sku=String(l.sku||''),q=Number(l.qty)||0,price=(pMap[sku]&&pMap[sku].price)||0,cost=q*price,y=d.getFullYear();
       if(y===thisYr)spendYTD+=cost; if(y===lastYr)spendLastYr+=cost;
       if(y===thisYr&&d.getMonth()===thisMo){spendMonth+=cost; spendSku[sku]=(spendSku[sku]||0)+cost;}
-      if(d>=ninety){spend90+=cost; usage90[sku]=(usage90[sku]||0)+q;}
+      if(d>=ninety){spend90+=cost; usage90[sku]=(usage90[sku]||0)+q; var dk=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); daily[dk]=(daily[dk]||0)+cost;}
       lastTaken[sku]=d;
       var mk=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); monthly[mk]=(monthly[mk]||0)+cost;
     });
+    var daily90=[]; for(var dd90=89;dd90>=0;dd90--){var dD=new Date(now.getTime()-dd90*864e5),dk2=dD.getFullYear()+'-'+('0'+(dD.getMonth()+1)).slice(-2)+'-'+('0'+dD.getDate()).slice(-2); daily90.push({day:dD.getDate()+'/'+(dD.getMonth()+1),total:Math.round(daily[dk2]||0)});}
     var monthly12=[]; for(var m=11;m>=0;m--){var dd=new Date(now.getFullYear(),now.getMonth()-m,1),k=dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2); monthly12.push({month:dd.toLocaleDateString('en-AU',{month:'short',year:'2-digit'}),total:Math.round(monthly[k]||0)});}
     var topTakenMonth=Object.keys(spendSku).map(function(sk){return {sku:sk,desc:(pMap[sk]&&pMap[sk].desc)||sk,cost:Math.round(spendSku[sk]),price:(pMap[sk]&&pMap[sk].price)||0};}).sort(function(a,b){return b.cost-a.cost;}).slice(0,10);
     var dsv=0, ds=[];
@@ -3591,8 +3632,8 @@ function sbFinanceData(cb){
     Object.keys(pMap).forEach(function(sk){var p=pMap[sk]; if(p.qty>p.reorder)return; var u=usage90[sk]||0,oq=Math.max(1,Math.ceil(u*2)),cost=oq*p.price; if(cost>0){rfc+=cost; rfi.push({sku:sk,desc:p.desc,qty:p.qty,orderQty:oq,price:p.price,cost:cost});}});
     rfi.sort(function(a,b){return b.cost-a.cost;});
     var yoy=spendLastYr>0?((spendYTD-spendLastYr)/spendLastYr*100):null;
-    cb({stockValue:Math.round(sv),spendMonth:Math.round(spendMonth),spendYTD:Math.round(spendYTD),spendLastYr:Math.round(spendLastYr),dailyAvg:Math.round(spend90/90),yoyChange:yoy,monthly12:monthly12,categoryList:[],expensiveInStock:exp,deadStockValue:Math.round(dsv),deadStockItems:ds,reorderForecastCost:Math.round(rfc),reorderForecastItems:rfi,topTakenMonth:topTakenMonth});
-  }).catch(function(){ cb({stockValue:Math.round(sv),spendMonth:0,spendYTD:0,spendLastYr:0,dailyAvg:0,yoyChange:null,monthly12:[],categoryList:[],expensiveInStock:exp,deadStockValue:0,deadStockItems:[],reorderForecastCost:0,reorderForecastItems:[],topTakenMonth:[]}); });
+    cb({stockValue:Math.round(sv),spendMonth:Math.round(spendMonth),spendYTD:Math.round(spendYTD),spendLastYr:Math.round(spendLastYr),dailyAvg:Math.round(spend90/90),yoyChange:yoy,monthly12:monthly12,daily90:daily90,categoryList:[],expensiveInStock:exp,deadStockValue:Math.round(dsv),deadStockItems:ds,reorderForecastCost:Math.round(rfc),reorderForecastItems:rfi,topTakenMonth:topTakenMonth});
+  }).catch(function(){ cb({stockValue:Math.round(sv),spendMonth:0,spendYTD:0,spendLastYr:0,dailyAvg:0,yoyChange:null,monthly12:[],daily90:[],categoryList:[],expensiveInStock:exp,deadStockValue:0,deadStockItems:[],reorderForecastCost:0,reorderForecastItems:[],topTakenMonth:[]}); });
 }
 /* Realtime: keep parts fresh across every device */
 function startRealtime(){
@@ -3842,12 +3883,10 @@ function logoTap(){
   var cur=stk&&stk.length?stk[stk.length-1]:null;
   if(cur==='pin'){ replaySplash(); return; }       // PIN screen: replay the full intro
   if(!cu) return;                                   // not logged in: nothing to reset
-  homeAnimated=false;                               // let the tiles fan in again (updateUI('home') replays animTiles)
-  if(cur==='home'){ showRoot('home'); }             // already home -> hard reset to a fresh home
-  else { goHome(); }                                // elsewhere -> animated slide home (also lands on updateUI('home'))
-  playSplash(false);                                // replay the HK logo animation
-  loadSites(function(){ applySiteAccent('home'); }); // refresh sites + site accent
-  if(typeof loadRfKarts==='function'){ try{ loadRfKarts(function(){}); }catch(e){} } // re-pull the fleet
+  // JUST the animation. The old version also hard-reset home, re-fanned the tiles and re-pulled
+  // sites + the whole fleet — that's what showed as tabs faintly refreshing behind the splash.
+  if(cur!=='home') goHome();                        // elsewhere -> slide home first
+  playSplash(false);                                // replay the HK logo animation, nothing else
 }
 function go(id){
   try{ _resetTabView(id); }catch(e){}
@@ -4169,7 +4208,7 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // This gives "seen by default, removable per role/staff" without a config migration.
 var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
-var MROLES=['Manager','Assistant Manager','Mechanic'];   // role names for the Staff dropdown; refreshed from the config
+var MROLES=['Manager','Assistant Manager','Mechanic','Facility','Office'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
 var MASTER_OWNER='Harvey Betts';         // owner's app account name (also set as OWNER_NAME on the server)
 var MASTER_ADMINS=[MASTER_OWNER];        // accounts that may see the Master Access tab — owner-controlled.
@@ -5721,6 +5760,64 @@ function loadMgr(){
 
 
 // ── Finance page (full implementation) ──
+/* ── Finance indicator charts (dropdown + hand-rolled SVG, no libraries) ── */
+var FIN_LAST=null;
+function _finFmt$(n){ n=Math.round(n||0); return n>=1000000?('$'+(n/1000000).toFixed(1)+'M'):(n>=10000?('$'+Math.round(n/1000)+'k'):('$'+n.toLocaleString())); }
+function _finSvgLine(pts, labels, opts){
+  opts=opts||{}; var W=640,H=260,P={t:16,r:14,b:34,l:52};
+  var iw=W-P.l-P.r, ih=H-P.t-P.b, n=pts.length;
+  var max=Math.max.apply(null,pts.concat([1])), min=0;
+  function X(i){ return P.l+(n>1?(i/(n-1))*iw:iw/2); }
+  function Y(v){ return P.t+ih-((v-min)/(max-min||1))*ih; }
+  var path='',area='M'+X(0)+' '+(P.t+ih);
+  for(var i=0;i<n;i++){ path+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(pts[i]).toFixed(1); area+=' L'+X(i).toFixed(1)+' '+Y(pts[i]).toFixed(1); }
+  area+=' L'+X(n-1).toFixed(1)+' '+(P.t+ih)+' Z';
+  var grid='',gl='';
+  for(var g=0;g<=3;g++){ var gv=min+(max-min)*g/3, gy=Y(gv);
+    grid+='<line x1="'+P.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-P.r)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
+    gl+='<text x="'+(P.l-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8a93a0">'+_finFmt$(gv)+'</text>'; }
+  var xl='', step=Math.max(1,Math.ceil(n/8));
+  for(var j=0;j<n;j+=step){ xl+='<text x="'+X(j).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="#8a93a0">'+tvEsc(labels[j]||'')+'</text>'; }
+  var dots=''; if(n<=14){ for(var q=0;q<n;q++){ dots+='<circle cx="'+X(q).toFixed(1)+'" cy="'+Y(pts[q]).toFixed(1)+'" r="3.4" fill="#EC4899"/>'; } }
+  return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'
+    +'<defs><linearGradient id="finGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EC4899" stop-opacity=".32"/><stop offset="1" stop-color="#EC4899" stop-opacity="0"/></linearGradient></defs>'
+    +grid+gl+'<path d="'+area+'" fill="url(#finGrad)"/><path d="'+path+'" fill="none" stroke="#EC4899" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'+dots+xl+'</svg>';
+}
+function _finSvgBars(rows, colors){
+  var W=640, BH=34, P={t:8,r:70,b:8,l:8}, H=P.t+P.b+rows.length*BH;
+  var max=Math.max.apply(null,rows.map(function(r){return r.v;}).concat([1]));
+  var body=rows.map(function(r,i){
+    var y=P.t+i*BH, bw=Math.max(3,(r.v/max)*(W-P.l-P.r-180)), col=colors?(colors[i%colors.length]):'#EC4899';
+    return '<text x="'+P.l+'" y="'+(y+21)+'" font-size="13" font-weight="700" fill="#e7ecf0">'+tvEsc(String(r.l).slice(0,26))+'</text>'
+      +'<rect x="190" y="'+(y+6)+'" width="'+bw.toFixed(1)+'" height="18" rx="5" fill="'+col+'" opacity=".85"/>'
+      +'<text x="'+(190+bw+8).toFixed(1)+'" y="'+(y+20)+'" font-size="12" font-weight="800" fill="'+col+'">'+_finFmt$(r.v)+'</text>';
+  }).join('');
+  return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+body+'</svg>';
+}
+function finRenderChart(){
+  var box=document.getElementById('fin-chart'); if(!box) return;
+  var d=FIN_LAST; if(!d){ box.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px;color:var(--t2)">Loading...</div>'; return; }
+  var sel=document.getElementById('fin-ind'), which=(sel&&sel.value)||'monthly', html='';
+  if(which==='monthly'){
+    var m=d.monthly12||[]; html=m.length?_finSvgLine(m.map(function(x){return x.total;}), m.map(function(x){return x.month;})):'';
+  } else if(which==='cum'){
+    var c=0, cm=(d.monthly12||[]).map(function(x){ c+=x.total; return {month:x.month,total:c}; });
+    html=cm.length?_finSvgLine(cm.map(function(x){return x.total;}), cm.map(function(x){return x.month;})):'';
+  } else if(which==='daily'){
+    var dy=d.daily90||[]; html=dy.length?_finSvgLine(dy.map(function(x){return x.total;}), dy.map(function(x){return x.day;})):'';
+  } else if(which==='topparts'){
+    var tp=(d.topTakenMonth||[]).slice(0,6).map(function(p){return {l:p.desc,v:p.cost};});
+    html=tp.length?_finSvgBars(tp):'';
+  } else if(which==='stock'){
+    html=_finSvgBars([
+      {l:'Total stock value',v:d.stockValue||0},
+      {l:'Dead stock (90d+ unused)',v:d.deadStockValue||0},
+      {l:'Reorder forecast cost',v:d.reorderForecastCost||0},
+      {l:'Spend this month',v:d.spendMonth||0}
+    ],['#EC4899','#94A3B8','#F59E0B','#22C55E']);
+  }
+  box.innerHTML=html||'<div class="emp" style="padding:8px 0;font-size:13px;color:var(--t2)">No data for this indicator yet</div>';
+}
 function loadFin(){
   var btn=document.getElementById('rb-fin'),lbl=document.getElementById('rt-fin');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
@@ -5736,6 +5833,7 @@ function loadFin(){
       if(btn){btn.classList.remove('spinning');if(lbl)lbl.innerText='Refresh';}
       return;
     }
+    FIN_LAST=d; try{ finRenderChart(); }catch(e){}
     var fmt=function(n){return '$'+Math.round(n).toLocaleString();};
     // Compact $ format for stat cards — keeps very large numbers from blowing out narrow card width
     var fmtCompact=function(n){
@@ -7064,6 +7162,9 @@ function renderKartChips(filter){
     .filter(function(k){return !q||String(k.num).indexOf(q)>=0;})
     .sort(function(a,b){return a.num-b.num;});
   var html=list.map(function(k){
+    // Online/offline (RiMO) applies only to Adult / Intermediate / Twin / Melbourne karts.
+    // Junior & Mini will get session-based online status later (from RaceFacer sessions).
+    if(!rimoTypeHasDot(k.type)) return '<div class="kart-chip" data-status="'+k.status+'" onclick="selectKart('+k.rfId+')"><div class="kc-num">'+k.num+'</div></div>';
     var _ri=RIMO_BY_NUM[k.num], _ron=(_ri&&_ri.online)?1:0;
     var _tip=_ron?('Online'+(_ri&&_ri.soc!=null?(' \u00b7 '+_ri.soc+'%'):'')):'Offline';
     return '<div class="kart-chip" data-status="'+k.status+'" data-online="'+_ron+'" onclick="selectKart('+k.rfId+')"><span class="kc-badge" title="'+_tip+'"></span><div class="kc-num">'+k.num+'</div></div>';
@@ -7076,6 +7177,10 @@ function filterKarts(v){renderKartChips(v);}
 // for the site's RiMO group (Sydney = Moore Park). Duplicate numbers (active + retired/ex-super)
 // resolve to the online one, so a chip is green whenever its live kart reports online.
 var RIMO_BY_NUM={}, RIMO_SITE_GROUP={sydney:'Moore Park'}, _rimoPollT=null, _rimoSub=null, _rimoDeb=null;
+// Which kart types get the RiMO online/offline dot. Junior/Mini/BattleKart share numbers with the
+// main fleet in RiMO's grid, so matching by kart number gives them WRONG dots — hide until the
+// session-based (RaceFacer) online status lands for them.
+function rimoTypeHasDot(type){ return /adult|inter|twin|melbourne/i.test(String(type||'')); }
 function rimoGroupForSite(){ return RIMO_SITE_GROUP[(currentSite||'sydney')]||null; }
 function loadRimo(){
   if(typeof SBC==='undefined'||!SBC) return;
@@ -7085,6 +7190,7 @@ function loadRimo(){
     var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x.kart_no==null) return; var e=m[x.kart_no]; if(!e||x.online) m[x.kart_no]={online:!!x.online,soc:x.soc,bms:!!x.bms_ok}; });
     RIMO_BY_NUM=m;
     try{ var scr=(typeof _curKartScr==='function')?_curKartScr():''; if(scr==='kartlist'&&typeof renderKartChips==='function') renderKartChips(); }catch(e){}
+    try{ if(document.getElementById('tv-stage')&&typeof tvRerender==='function') tvRerender(); }catch(e){}   // "Karts Online" scene stays live
   },function(){});
 }
 function startRimoLive(){
@@ -7328,16 +7434,23 @@ function rfqCardHtml(){
     +'<div class="m-fld"><label>Working hours</label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="e.g. 4433"></div>'
     +'<div class="m-fld"><label>Status</label>'+_rfqStatusSel()+'</div>'
     +'<div class="m-fld"><label>User</label>'+_rfqUserSel()+'</div></div>'
-    +'<label class="bt-toggle" style="margin-top:10px"><input type="checkbox" id="rfq-fixed" checked><span>Mark as fixed (counts on the leaderboard)</span></label>'
     +'<div class="m-fld" style="margin-top:8px"><label>Note</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
     +'<div class="m-form-msg" id="rfq-msg" style="margin-top:8px"></div>'
     +'<div class="rfq-btns"><button class="m-add rfq-cancel" onclick="rfqToggle(null)">Cancel and close</button><button class="m-add" id="rfq-send" onclick="rfqSubmit()">+ Save</button></div>'
     +'</div>';
 }
+function _rfqDefaultStatus(k){
+  // Status AFTER this repair lands: the linked note clears, so if no OTHER active notes remain
+  // the kart becomes OK; any other open note keeps it For Maintenance.
+  var notes=(k&&k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
+  var others=notes.filter(function(n){ return n.active && !(RFQ_NOTE&&RFQ_NOTE.id!=null&&n.id===RFQ_NOTE.id); });
+  return others.length?'maint':'ok';
+}
 function rfqToggle(mode){
-  // Default the status buttons to the kart's CURRENT status (so a note on a For-Maintenance kart
-  // keeps it For-Maintenance unless you deliberately change it), not always OK.
+  // Repair form: default the status to what the kart WILL BE once this note is fixed
+  // (no other notes -> OK, other notes -> For Maintenance). Note form keeps the current status.
   var curStatus=(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.status)?KD_KART.status:'ok';
+  if(mode==='repair') curStatus=_rfqDefaultStatus(KD_KART);
   RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null;
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
@@ -7376,7 +7489,7 @@ function rfqSubmit(){
     },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
     return;
   }
-  var fixed=!!document.getElementById('rfq-fixed').checked;
+  var fixed=true;   // "Mark as fixed" checkbox removed — every repair punched in counts (matches RaceFacer + leaderboard)
   var disc=document.getElementById('rfq-disc').value||((typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10));
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
@@ -7393,8 +7506,26 @@ function rfqSubmit(){
       isoRepaired:(fixed?dt:''), cost:useParts.reduce(function(a,p){return a+p.qty*p.price;},0), issue:note, repairNotes:'',
       parts:useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};}), mileage:0, user:cu.name,
       dateRepaired:(fixed?dt.split('-').reverse().join('.'):''), kartName:String(k.num||''), kartType:String(k.type||''), kartGarageId:'', typeColor:'', _pending:true });
-    // The RaceFacer note only clears if notification_id carried its real RF id.
-    if(RFQ_NOTE&&RFQ_NOTE.id){ try{ (RF_NOTES_BY_ID[k.rfId]||[]).forEach(function(nn){ if(nn.id===RFQ_NOTE.id){ nn.open=false; nn.active=false; nn._pending=true; } }); }catch(e){} }
+    // OPTIMISTIC: the note and status update in-app IMMEDIATELY, before RaceFacer confirms.
+    // 1) Archive the linked note in Supabase -> it vanishes from Notifications / Kart Notes /
+    //    kart page / TV on every device right away. If the push to RaceFacer fails, the next
+    //    sync finds the note still open there and it reappears.
+    if(RFQ_NOTE&&RFQ_NOTE.id){
+      try{ (RF_NOTES_BY_ID[k.rfId]||[]).forEach(function(nn){ if(nn.id===RFQ_NOTE.id){ nn.open=false; nn.active=false; nn._pending=true; } }); }catch(e){}
+      try{ SBC.from('rf_kart_notes').update({active:false,archived_at:new Date().toISOString(),archived_by:cu.name}).eq('id',RFQ_NOTE.id).then(function(){},function(){}); }catch(e){}
+    }
+    // 2) Apply the chosen status locally now (chips recolour instantly); RaceFacer's echo via the
+    //    2s status poll confirms it — or reverts it if RaceFacer refused the change.
+    try{
+      var _st=(RFQ_STATUS==='for_maintenance')?'maint':RFQ_STATUS;
+      if(_st&&k.status!==_st){ k.status=_st; var _kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(_kl) _kl.status=_st;
+        PENDING_KART_STATUS[k.rfId]=_st;
+        // If RaceFacer never echoes it (push failed), stop holding after 30s — the 2s status
+        // poll then repaints the real status ("goes back to old status if it doesn't land in RF").
+        (function(_id,_v){ setTimeout(function(){ if(PENDING_KART_STATUS[_id]===_v){ delete PENDING_KART_STATUS[_id]; if(typeof kartRefreshSilent==='function'){ try{ kartRefreshSilent(); }catch(e){} } } },30000); })(k.rfId,_st);
+        var _seg=document.getElementById('kd-statusseg'); if(_seg) _seg.innerHTML=kdStatusSeg(_st);
+        if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } }
+    }catch(e){}
     KD_REPAIRS=arr; RFQ_MODE=null; ktTab('Repairs');
   },function(){ say('Connection error'); okBtn('\u2713 Log repair'); });
 }
@@ -7621,7 +7752,7 @@ function kartOpenNotesHTML(rfId){
   if(!open.length) return '';
   var CAP=6, shown=open.slice(0,CAP), extra=open.length-shown.length;
   var rows=shown.map(function(n){
-    var act=(n.id!=null&&cu)?'<button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
+    var act=(n.id!=null&&cu)?'<button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button><button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
     return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td><td class="kn-act">'+act+'</td></tr>';
   }).join('');
   if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td colspan="2">+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
@@ -7633,7 +7764,7 @@ function notesTabHTML(){
   var notes=(KD_KART&&KD_KART.rfId!=null&&RF_NOTES_BY_ID[KD_KART.rfId])||[];
   if(!notes.length) return '<div class="rep-empty">No kart notes synced for this kart yet.</div>';
   var rows=notes.map(function(n){
-    var arch=n.archivedIso?fmtNoteWhen(n.archivedIso,n.archivedBy):'<span class="kn-open-tag">Open</span>';
+    var arch=n.archivedIso?fmtNoteWhen(n.archivedIso,n.archivedBy):('<span class="kn-open-tag">Open</span>'+((n.id!=null&&cu)?(' <button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button>'):''));
     return '<tr><td class="kn-note">'+kEsc(n.note)+'</td><td class="rep-mono">'+fmtNoteWhen(n.createdIso,n.createdBy)+'</td><td class="rep-mono">'+arch+'</td></tr>';
   }).join('');
   return '<div class="rep-tablewrap"><table class="rep-table"><thead><tr><th>Note</th><th>Created</th><th>Archived</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
@@ -7741,9 +7872,10 @@ function kiNotesListHTML(rows, km){
     var tc=k.type_color||''; if(tc&&tc.charAt(0)!=='#')tc='#'+tc; var col=(/^#[0-9a-fA-F]{3,8}$/.test(tc))?readableColor(tc):(KART_TYPE_COLOR[rfTypeShort(k.type||'')]||'#2DD4BF');
     var by=r.created_by?raceEsc(r.created_by):''; var when=kiFmtDate(r.created_at); var note=raceEsc(r.note||'');
     var sm=statusMeta[rfStatusClass(k.status_code,k.status)]||statusMeta.ok;
+    var _kx=(r.id!=null)?('<button class="kn-x" title="Delete note" onclick="hkDeleteNote('+r.id+','+r.rf_kart_id+',event)">\u2715</button>'):'';
     if(KI_NOTES_TAB==='notifications'){
       h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
-        +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')+'<span class="kn-when">'+when+'</span></div>'
+        +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')+'<span class="kn-when">'+when+'</span>'+_kx+'</div>'
         +'<div class="kn-note">\u2605 '+note+'</div>'
         +'<div class="kn-card-foot">'+(by?('<span class="kn-by">'+by+'</span>'):'<span></span>')
         +'<button class="kn-newrep" onclick="notifNewRepair('+r.rf_kart_id+','+(r.id||'null')+')">\ud83d\udd25 New repair</button></div>'
@@ -7752,13 +7884,30 @@ function kiNotesListHTML(rows, km){
       h+='<div class="kn-card" style="border-left:4px solid '+col+'">'
         +'<div class="kn-card-top"><span class="kn-kart" style="color:'+col+'">Kart '+num+'</span>'+(typ?('<span class="kn-typ">'+typ+'</span>'):'')
         +'<span class="kn-status" style="background:'+sm[1]+'">'+sm[0]+'</span>'
-        +'<span class="kn-when">'+when+'</span></div>'
+        +'<span class="kn-when">'+when+'</span>'+_kx+'</div>'
         +'<div class="kn-note">'+note+'</div>'
         +(by?('<div class="kn-by">Added by '+by+'</div>'):'')
         +'</div>';
     }
   });
   return h+'</div>';
+}
+// ── Delete (archive) a kart note from anywhere in the app ──────────────────
+// Archives the row in Supabase (active=false) so it vanishes instantly from Notifications,
+// Kart Notes and the kart page on every device. RaceFacer still holds the note; if the next
+// sync finds it still open there, it reappears — same eventual-consistency model as repairs.
+function hkDeleteNote(noteId, rfKartId, ev){
+  try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
+  if(noteId==null||typeof SBC==='undefined'||!SBC||!cu) return;
+  if(!confirm('Delete this note?')) return;
+  var now=new Date().toISOString();
+  // Optimistic local state: mark closed in memory + drop from the feed rows, repaint now.
+  try{ Object.keys(RF_NOTES_BY_ID||{}).forEach(function(id){ (RF_NOTES_BY_ID[id]||[]).forEach(function(n){ if(n.id===noteId){ n.active=false; n.open=false; n.archivedIso=now; n.archivedBy=cu.name; } }); }); }catch(e){}
+  try{ if(KI_NOTES_ROWS) KI_NOTES_ROWS=KI_NOTES_ROWS.filter(function(r){ return r.id!==noteId; }); }catch(e){}
+  try{ var inner=document.getElementById('kn-tabinner'); if(inner&&KI_NOTES_ROWS&&KI_NKMAP) inner.innerHTML=kiNotesListHTML(KI_NOTES_ROWS,KI_NKMAP); }catch(e){}
+  try{ var on=document.getElementById('kd-opennotes'); if(on&&KD_KART) on.innerHTML=kartOpenNotesHTML(KD_KART.rfId); }catch(e){}
+  try{ if(typeof KD_TAB!=='undefined'&&KD_TAB==='Kart Notes'&&typeof ktTab==='function') ktTab('Kart Notes'); }catch(e){}
+  SBC.from('rf_kart_notes').update({active:false,archived_at:now,archived_by:cu.name}).eq('id',noteId).then(function(){},function(){});
 }
 function renderKartNotesFeed(silent){
   var body=document.getElementById('ki-ref-body'); if(!body) return;
@@ -7800,7 +7949,7 @@ function notifNewRepair(rfId, noteId){
     var notes=(rfId!=null&&RF_NOTES_BY_ID[rfId])||[];
     var n=(noteId!=null)?notes.filter(function(x){return x.id===noteId;})[0]:null;
     RFQ_NOTE=n?{id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''}:null;
-    RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=(k.status||'ok'); RFQ_AVAIL=false;
+    RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=_rfqDefaultStatus(k); RFQ_AVAIL=false;
     renderKartDetail(k);   // detail renders with the repair form already open
     go('kartdetail');      // slides in a finished screen — nothing mutates after it lands
     // After the slide settles, only do small in-place updates (parts list + warehouse) and a gentle
@@ -8085,6 +8234,8 @@ function renderStaffPins(){
         +      '<option value="Manager"'+(x.role==='Manager'?' selected':'')+'>Manager</option>'
         +      '<option value="Assistant Manager"'+(x.role==='Assistant Manager'?' selected':'')+'>Assistant Manager</option>'
         +      '<option value="Mechanic"'+(x.role==='Mechanic'?' selected':'')+'>Mechanic</option>'
+        +      '<option value="Facility"'+(x.role==='Facility'?' selected':'')+'>Facility</option>'
+        +      '<option value="Office"'+(x.role==='Office'?' selected':'')+'>Office</option>'
         +    '</select>'
         +  '</div>'
         +'</div>'
@@ -8125,7 +8276,7 @@ function updateStaffField(idx,field,value){
 function updateStaffEmoji(idx){
   if(!STAFF_DRAFT||!STAFF_DRAFT[idx]) return;
   var r=STAFF_DRAFT[idx].role;
-  STAFF_DRAFT[idx].emoji=(r==='Manager'||r==='Assistant Manager')?'⭐':'🔧';
+  STAFF_DRAFT[idx].emoji=(r==='Manager'||r==='Assistant Manager')?'⭐':(r==='Facility'?'🧰':(r==='Office'?'🏢':'🔧'));
 }
 
 function addStaffRow(){
@@ -8407,7 +8558,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9003,6 +9154,7 @@ function tvMergeState(row){
   if(scenes.items===undefined) scenes.items=true;
   if(scenes.tasks===undefined) scenes.tasks=true;
   if(scenes.leaderboard===undefined) scenes.leaderboard=true;
+  if(scenes.online===undefined) scenes.online=true;
   var al=(row.alert&&typeof row.alert==='object')?row.alert:{};
   var to=(row.takeover&&typeof row.takeover==='object')?row.takeover:{};
   return {
@@ -9104,9 +9256,9 @@ function tvRepairTallies(){
   Object.keys(at).forEach(function(raw){ if(!raw||raw==='\u2014'||raw==='-') return; var u=_repairName(raw); var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0,last:''}); rec.all+=(at[raw]||0); var la=atL[raw]; if(la&&(!rec.last||la>rec.last)) rec.last=la; });
   Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(id){
     (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
-      if(!r||r.status!=='fixed') return;
+      if(!r) return;   // EVERY RaceFacer repair counts on the leaderboard (fixed or not)
       var raw=(r.user||'').trim(); if(!raw||raw==='\u2014'||raw==='-') return;
-      var u=_repairName(raw); var iso=(r.isoRepaired||'').slice(0,10); if(!iso) return;
+      var u=_repairName(raw); var iso=((r.isoRepaired||r.iso)||'').slice(0,10); if(!iso) return;
       var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0,last:''});
       if(iso&&(!rec.last||iso>rec.last)) rec.last=iso;
       if(iso===w.today) rec.day++;
@@ -9218,7 +9370,7 @@ function tvRepairAllTime(){
   var by={};
   Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(id){
     (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
-      if(!r||r.status!=='fixed') return;
+      if(!r) return;   // every RaceFacer repair counts
       var raw=(r.user||'').trim(); if(!raw||raw==='\u2014'||raw==='-') return;
       var nm=_repairName(raw); if(!nm) return;
       by[nm]=(by[nm]||0)+1;
@@ -9312,9 +9464,37 @@ function tvMorningActive(){
   if(!tvState||tvState.morning===false) return false;
   var d=new Date(); return (d.getHours()*60+d.getMinutes()) < tvParseTime(tvState.morning_until||'10:30');
 }
+/* Fleet online scene — which karts are currently ONLINE (RiMO), grouped by type.
+   Only the RiMO-tracked types (Adult / Intermediate / Twin / Melbourne); Junior & Mini
+   join once session-based online status lands. */
+function tvOnlineByType(){
+  var out=[], have=false;
+  (KART_TYPE_ORDER||[]).concat(['Melbourne Fleet']).forEach(function(t){
+    if(!rimoTypeHasDot(t)) return;
+    var ks=(KART_LIST||[]).filter(function(k){ return k.type===t && !k.longTerm; });
+    if(!ks.length) return;
+    var on=ks.filter(function(k){ var r=RIMO_BY_NUM[k.num]; return r&&r.online; }).map(function(k){return k.num;}).sort(function(a,b){return a-b;});
+    out.push({type:t,total:ks.length,online:on});
+    if(on.length) have=true;
+  });
+  return {rows:out,any:have};
+}
+function tvSceneOnline(){
+  var d=tvOnlineByType();
+  if(!d.rows.length) return tvEyebrow('Karts Online','')+'<div class="tv-empty">No RiMO-tracked karts in this fleet.</div>';
+  var totOn=d.rows.reduce(function(a,r){return a+r.online.length;},0), tot=d.rows.reduce(function(a,r){return a+r.total;},0);
+  var rows=d.rows.map(function(r){
+    var lbl=(r.type==='Intermediate')?'Inter':tvEsc(r.type);
+    var col=KART_TYPE_COLOR[r.type]||'#2DD4BF';
+    var pills=r.online.length?r.online.map(function(n){ return '<span class="tv-onl-pill">'+n+'</span>'; }).join(''):'<span class="tv-onl-none">none online</span>';
+    return '<div class="tv-onl-row"><div class="tv-onl-type" style="color:'+col+'">'+lbl+'<small>'+r.online.length+' / '+r.total+' online</small></div><div class="tv-onl-karts">'+pills+'</div></div>';
+  }).join('');
+  return tvEyebrow('Karts Online','Live from RiMO \u00b7 '+totOn+' / '+tot+' online')+'<div class="tv-onl">'+rows+'</div>';
+}
 function tvScenes(){
   var list=[{key:'morning',render:tvSceneMorning}];
   tvTypesPresent().forEach(function(t){ list.push({key:'type:'+t,render:(function(tt){return function(){return tvSceneType(tt);};})(t)}); });
+  list.push({key:'online',render:tvSceneOnline});
   list.push({key:'leaderboard',render:tvSceneLeaderboard});
   list.push({key:'tasks',render:tvSceneTasks});
   list.push({key:'items',render:tvSceneItems});
@@ -9325,6 +9505,7 @@ function tvEnabledScenes(){
     if(s.key==='morning') return tvMorningActive();
     if(tvState&&tvState.scenes&&tvState.scenes[s.key]===false) return false;
     if(s.key==='items') return tvLiveItems().length>0;
+    if(s.key==='online') return tvOnlineByType().rows.length>0;
     if(s.key==='tasks') return tvShiftTasks().length>0;
     if(s.key==='leaderboard') return tvLeaderboard().length>0;
     return true;
@@ -9451,14 +9632,16 @@ function tvLoadFleet(){
         KARTS_AT=Date.now(); KARTS_SITE=site;
       }
       tvRerender();
-      // 2) completed repairs since the start of this week/month, this site's karts only
+      // 2) ALL repairs since the start of this week/month (every RaceFacer repair counts on the
+      //    leaderboard — fixed or not; dated by repair date, falling back to discovery date).
       var keep={}; (KART_LIST||[]).forEach(function(k){ if(k.rfId!=null) keep[k.rfId]=true; });
       try{
-        SBC.from('rf_repairs').select('rf_kart_id,date_repaired,mechanic,id').gte('date_repaired',from).then(function(rr){
+        SBC.from('rf_repairs').select('rf_kart_id,date_repaired,date_discovered,mechanic,id').or('date_repaired.gte.'+from+',date_discovered.gte.'+from).then(function(rr){
           var rows2=(rr&&rr.data)||[]; RF_REPAIRS_BY_ID={};
           rows2.forEach(function(x){
-            if(!x.date_repaired||!keep[x.rf_kart_id]) return;
-            (RF_REPAIRS_BY_ID[x.rf_kart_id]=RF_REPAIRS_BY_ID[x.rf_kart_id]||[]).push({ id:Number(x.id)||0, status:'fixed', isoRepaired:x.date_repaired, user:x.mechanic||'\u2014' });
+            var iso=x.date_repaired||x.date_discovered;
+            if(!iso||!keep[x.rf_kart_id]) return;
+            (RF_REPAIRS_BY_ID[x.rf_kart_id]=RF_REPAIRS_BY_ID[x.rf_kart_id]||[]).push({ id:Number(x.id)||0, status:'fixed', isoRepaired:iso, user:x.mechanic||'\u2014' });
           });
           tvRerender();
         },function(){});
@@ -9480,6 +9663,7 @@ function tvLoadFleet(){
 }
 function tvLoadData(){
   try{ tvLoadFleet(); }catch(e){}
+  try{ startRimoLive(); }catch(e){}   // RiMO online per kart — feeds the "Karts Online" scene (sub/poll self-guard, so repeat calls are free)
   try{ tvRampLoad(); }catch(e){}
   try{ tvLoadTasks(); }catch(e){}
 }
@@ -10929,6 +11113,11 @@ function loadRoster(cb){ if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return;
 function _grpAvatar(g){ var e=(g&&g.emoji)||'\ud83d\udc65'; if(g&&g.color) return '<span class="ch-av" style="background:'+g.color+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.2)">'+e+'</span>'; return '<span class="ch-av ch-grpav">'+e+'</span>'; }
 function _staffByName(n){ return _roster().find(function(s){return s.name===n;}); }
 function _chTime(iso){ var t=Date.parse(iso); if(isNaN(t)) return ''; var d=new Date(t),hh=d.getHours()%12||12,mm=d.getMinutes(),ap=d.getHours()<12?'am':'pm'; return hh+':'+(mm<10?'0':'')+mm+ap; }
+/* Full timestamp on every sent message: time for today, "12 Jul, 3:41pm" (+year if not this year) otherwise. */
+function _chWhen(iso){ var t=Date.parse(iso); if(isNaN(t)) return '';
+  var d=new Date(t), now=new Date(), tm=_chTime(iso);
+  if(d.toDateString()===now.toDateString()) return tm;
+  return d.getDate()+' '+_CH_MO[d.getMonth()]+(d.getFullYear()!==now.getFullYear()?' '+d.getFullYear():'')+', '+tm; }
 var _CH_MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function _chDay(iso){ var t=Date.parse(iso); if(isNaN(t)) return ''; var d=new Date(t),now=new Date();
   if(d.toDateString()===now.toDateString()) return 'Today';
@@ -10951,10 +11140,23 @@ function hkNotify(toName,title,body,tag,url){
 function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
 function chatEnter(){ chatShowList(); chatOpenDefault(); }
 var _chDefT=null;
+/* Role chats: Mechanic -> Workshop, Facility -> Facility, Office -> Office. Managers &
+   Assistant Managers are in all three, so they land in their MOST RECENT conversation.
+   Only auto-opens where the chat LIST stays visible beside the thread (wide split view —
+   Mac / iPad landscape). On phones opening a thread hides the list, so we don't. */
+var CH_ROLE_GROUPS=[
+  {name:'Workshop', emoji:'\ud83d\udd27', test:function(r){ return /mechanic/i.test(r); }},
+  {name:'Facility', emoji:'\ud83e\uddf0', test:function(r){ return /facilit/i.test(r); }},
+  {name:'Office',   emoji:'\ud83c\udfe2', test:function(r){ return /office/i.test(r); }}
+];
 function chatOpenDefault(){
-  if(!cu) return; var role=cu.role||'';
-  if(role!=='Mechanic'&&role!=='Manager'&&role!=='Assistant Manager') return;
-  _chWorkshopEnsure(function(gid){
+  if(!cu) return;
+  if(!_gcDesk()) return;                             // phones: never auto-open a thread over the list
+  var role=cu.role||'';
+  if(_isMgr(role)){ _chOpenMostRecent(); return; }   // managers/AMs: most recent conversation
+  var def=null; for(var i=0;i<CH_ROLE_GROUPS.length;i++){ if(CH_ROLE_GROUPS[i].test(role)){ def=CH_ROLE_GROUPS[i]; break; } }
+  if(!def) return;                                   // other roles: stay on the list
+  _chGroupEnsure(def, function(gid){
     if(!gid) return; var tries=0; clearInterval(_chDefT);
     _chDefT=setInterval(function(){
       tries++;
@@ -10965,24 +11167,49 @@ function chatOpenDefault(){
     },250);
   });
 }
-function _chWorkshopEnsure(cb){
-  if(window._wsGid){ cb(window._wsGid); return; }
+/* Open the conversation with the newest message (general / group / DM), once the list has loaded. */
+function _chOpenMostRecent(){
+  var tries=0; clearInterval(_chDefT);
+  _chDefT=setInterval(function(){
+    tries++;
+    if(_hkScr()!=='chats'||CH_CHANNEL){ clearInterval(_chDefT); return; }
+    var keys=Object.keys(CH_LAST||{});
+    if(!keys.length){ if(tries>14) clearInterval(_chDefT); return; }
+    clearInterval(_chDefT);
+    var best=null,bestT=-1;
+    keys.forEach(function(ch){ var t=Date.parse((CH_LAST[ch]||{}).created_at)||0; if(t>bestT){ bestT=t; best=ch; } });
+    if(!best) return;
+    if(best==='general'){ chatOpenGeneral(); return; }
+    if(best.indexOf('group:')===0){ var gid=Number(best.slice(6)); if(gid) chatOpenGroup(gid); return; }
+    if(best.indexOf('dm:')===0){ var me=(cu&&cu.name)||''; var other=best.slice(3).split('|').filter(function(n){return n!==me;})[0];
+      var idx=(CH_DM||[]).findIndex(function(s){return s.name===other;}); if(idx>=0) chatOpenDm(idx); }
+  },250);
+}
+/* Ensure a role group chat exists (create on first use) — members = that role + all managers/AMs. */
+function _chGroupEnsure(def, cb){
+  window._roleGid=window._roleGid||{};
+  if(window._roleGid[def.name]){ cb(window._roleGid[def.name]); return; }
   if(typeof SBC==='undefined'||!SBC){ cb(null); return; }
-  SBC.from('chat_groups').select('id').eq('name','Workshop').limit(1).then(function(r){
+  SBC.from('chat_groups').select('id').eq('name',def.name).limit(1).then(function(r){
     var row=r&&r.data&&r.data[0];
-    if(row){ window._wsGid=row.id; cb(row.id); return; }
-    var mem=_roster().filter(function(s){ var rl=s.role||''; return rl==='Mechanic'||rl==='Manager'||rl==='Assistant Manager'; }).map(function(s){return s.name;});
+    if(row){ window._roleGid[def.name]=row.id; cb(row.id); return; }
+    var mem=_roster().filter(function(s){ var rl=s.role||''; return def.test(rl)||_isMgr(rl); }).map(function(s){return s.name;});
     if(cu&&mem.indexOf(cu.name)<0) mem.push(cu.name);
     if(!mem.length){ cb(null); return; }
-    SBC.from('chat_groups').insert({name:'Workshop',emoji:'\ud83d\udd27',members:mem,created_by:'Harvey Betts'}).select('id').then(function(r2){
-      var id=r2&&r2.data&&r2.data[0]&&r2.data[0].id; window._wsGid=id||null; cb(window._wsGid);
+    SBC.from('chat_groups').insert({name:def.name,emoji:def.emoji,members:mem,created_by:'Harvey Betts'}).select('id').then(function(r2){
+      var id=r2&&r2.data&&r2.data[0]&&r2.data[0].id; window._roleGid[def.name]=id||null; cb(window._roleGid[def.name]);
     },function(){ cb(null); });
   },function(){ cb(null); });
 }
+function _chWorkshopEnsure(cb){ _chGroupEnsure(CH_ROLE_GROUPS[0], cb); }   // kept for any older callers
 function chatGoBack(){ return false; }   // Back always leaves Chats \u2192 home
 function chatBack(){ if(typeof chatGoBack==='function'&&chatGoBack()) return; back(); }
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
-function _chAvatar(name,st){ return '<span class="ch-av" style="background:'+userColor({name:name})+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)">'+userEmoji(st||{name:name})+'</span>'; }
+function _chAvatar(name,st){
+  var av=(typeof USER_AVATARS!=='undefined'&&USER_AVATARS)?USER_AVATARS[name]:null;
+  if(av) return '<span class="ch-av ch-avimg"><img src="'+av+'" alt=""></span>';
+  return '<span class="ch-av" style="background:'+userColor({name:name})+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)">'+userEmoji(st||{name:name})+'</span>';
+}
 function _reEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 
 /* ---- read/unread state (per device, localStorage) ---- */
@@ -11207,7 +11434,7 @@ function chatRenderMsgs(elId,msgs,scroll){
       if(newDay) html+='<div class="ch-day"><span>'+tvEsc(day)+'</span></div>';
       html+='<div class="ch-grp'+(mine?' me':'')+'">';
       html+=_chAvatar(m.author,st);
-      html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chTime(m.created_at)+'</span></div>';
+      html+='<div class="ch-col"><div class="ch-hd"><b>'+tvEsc(mine?'You':(m.author||'').split(' ')[0])+'</b> <span class="ch-tm">'+_chWhen(m.created_at)+'</span></div>';
     }
     var _mid=(m.id!=null)?(' data-mid="'+m.id+'"'):'';
     var _own='';
@@ -11384,11 +11611,18 @@ function hkSound(){}
 var USER_COLORS={};
 var ACCT_SWATCHES=['#EF4444','#F97316','#F59E0B','#EAB308','#84CC16','#22C55E','#10B981','#14B8A6','#06B6D4','#0EA5E9','#3B82F6','#6366F1','#8B5CF6','#A855F7','#D946EF','#EC4899','#F43F5E','#B91C1C','#C2410C','#B45309','#A16207','#4D7C0F','#15803D','#047857','#0F766E','#0E7490','#0369A1','#1D4ED8','#4338CA','#6D28D9','#7E22CE','#A21CAF','#BE185D','#9F1239','#FCA5A5','#FDBA74','#FCD34D','#FDE047','#BEF264','#86EFAC','#6EE7B7','#5EEAD4','#67E8F9','#7DD3FC','#93C5FD','#A5B4FC','#C4B5FD','#F0ABFC','#F9A8D4','#F8FAFC','#94A3B8','#475569','#1F2937','#0B0F14'];
 function userColor(u){ u=u||cu||{}; var c=(typeof USER_COLORS!=='undefined'&&USER_COLORS)?USER_COLORS[u.name]:null; if(c) return c; return 'hsl('+_chAvHue(u.name||'')+',52%,30%)'; }
+var USER_AVATARS={};   // name -> data-url photo (user_prefs.avatar; run user_avatars.sql once)
 function loadUserColors(cb){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
-  SBC.from('user_prefs').select('name,color').then(function(r){
-    var m={}; ((r&&r.data)||[]).forEach(function(x){ if(x&&x.name&&x.color) m[x.name]=x.color; }); USER_COLORS=m; if(cb)cb();
-  },function(){ if(cb)cb(); });
+  SBC.from('user_prefs').select('name,color,avatar').then(function(r){
+    var m={},a={}; ((r&&r.data)||[]).forEach(function(x){ if(!x||!x.name) return; if(x.color) m[x.name]=x.color; if(x.avatar) a[x.name]=x.avatar; });
+    USER_COLORS=m; USER_AVATARS=a; if(cb)cb();
+  },function(){
+    // avatar column missing (user_avatars.sql not run yet) — fall back to colours only
+    SBC.from('user_prefs').select('name,color').then(function(r2){
+      var m={}; ((r2&&r2.data)||[]).forEach(function(x){ if(x&&x.name&&x.color) m[x.name]=x.color; }); USER_COLORS=m; if(cb)cb();
+    },function(){ if(cb)cb(); });
+  });
 }
 function openAccount(){ if(!cu) return; try{accountRender();}catch(e){} go('account'); }
 function setTextSize(v){ v=+v||0; try{ document.body.classList.toggle('bigtext',v===1); document.body.classList.toggle('hugetext',v>=2); localStorage.setItem('hk_txtsz',String(v)); }catch(e){} }
@@ -11410,10 +11644,13 @@ function acctChangePin(){
 }
 function accountRender(){
   if(!cu) return;
-  var av=document.getElementById('acct-av'); if(av){ av.style.background=userColor(cu); av.textContent=userEmoji(cu); }
+  var av=document.getElementById('acct-av');
+  if(av){ var _p=(typeof USER_AVATARS!=='undefined'&&USER_AVATARS)?USER_AVATARS[cu.name]:null;
+    if(_p){ av.classList.add('ch-avimg'); av.style.background='transparent'; av.innerHTML='<img src="'+_p+'" alt="">'; }
+    else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -11426,6 +11663,42 @@ function acctSetColor(c){
   if(!cu) return; USER_COLORS[cu.name]=c;
   if(typeof SBC!=='undefined'&&SBC){ SBC.from('user_prefs').upsert({name:cu.name,color:c,updated_at:new Date().toISOString()},{onConflict:'name'}).then(function(){},function(){}); }
   accountRender();
+}
+/* Profile photo: downscale to a 112px JPEG (~5-10 KB) and store the data-url in user_prefs.avatar.
+   Needs the avatar column — run sql/user_avatars.sql once in Supabase. */
+function acctSetAvatar(input){
+  var msg=document.getElementById('acct-av-msg'); function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
+  var f=input&&input.files&&input.files[0]; if(input) input.value='';
+  if(!f||!cu) return;
+  if(!/^image\//.test(f.type)){ say('Pick an image file'); return; }
+  say('Processing\u2026','var(--t2)');
+  var img=new Image(), url=URL.createObjectURL(f);
+  img.onload=function(){
+    try{
+      var S=112, c=document.createElement('canvas'); c.width=S; c.height=S;
+      var ctx=c.getContext('2d');
+      var side=Math.min(img.width,img.height), sx=(img.width-side)/2, sy=(img.height-side)/2;   // centre-crop square
+      ctx.drawImage(img,sx,sy,side,side,0,0,S,S);
+      var data=c.toDataURL('image/jpeg',0.72);
+      URL.revokeObjectURL(url);
+      if(data.length>60000){ say('Photo too complex \u2014 try another'); return; }
+      USER_AVATARS[cu.name]=data; accountRender();
+      if(typeof SBC!=='undefined'&&SBC){
+        SBC.from('user_prefs').upsert({name:cu.name,avatar:data,updated_at:new Date().toISOString()},{onConflict:'name'}).then(function(r){
+          if(r&&r.error){ say(/column|avatar/i.test(r.error.message||'')?'Run user_avatars.sql in Supabase first':(r.error.message||'Save failed')); delete USER_AVATARS[cu.name]; accountRender(); return; }
+          say('Photo saved \u2713','#22C55E');
+        },function(){ say('Connection error'); });
+      }
+    }catch(e){ say('Couldn\u2019t process that image'); }
+  };
+  img.onerror=function(){ URL.revokeObjectURL(url); say('Couldn\u2019t read that image'); };
+  img.src=url;
+}
+function acctRemoveAvatar(){
+  if(!cu) return;
+  delete USER_AVATARS[cu.name]; accountRender();
+  var msg=document.getElementById('acct-av-msg'); if(msg){ msg.textContent='Photo removed'; msg.style.color='var(--t2)'; }
+  if(typeof SBC!=='undefined'&&SBC){ SBC.from('user_prefs').upsert({name:cu.name,avatar:null,updated_at:new Date().toISOString()},{onConflict:'name'}).then(function(){},function(){}); }
 }
 function acctSetColorHex(){ var el=document.getElementById('acct-hex'); if(!el) return; var v=(el.value||'').trim(); if(v.charAt(0)!=='#') v='#'+v; if(!/^#[0-9a-fA-F]{6}$/.test(v)){ el.style.borderColor='#FF5A52'; return; } el.style.borderColor=''; acctSetColor(v.toLowerCase()); }
 function acctSetEmoji(v){ if(!cu) return; v=(v||'').trim().slice(0,4); if(v) USER_EMOJI[cu.name]=v; else delete USER_EMOJI[cu.name];
@@ -11462,6 +11735,7 @@ function chatVoteDelete(){
       SBC.from('chat_groups').delete().eq('id',g.id).then(function(r){
         if(r&&r.error){ alert('Couldn\u2019t delete \u2014 run chat_admin.sql'); return; }
         window._wsGid=(window._wsGid===g.id?null:window._wsGid);
+        try{ if(window._roleGid){ Object.keys(window._roleGid).forEach(function(k){ if(window._roleGid[k]===g.id) delete window._roleGid[k]; }); } }catch(e){}
         CH_GROUP=null; CH_CHANNEL=null; chatShowList(); chatLoadList();
       },function(){});
     },function(){});

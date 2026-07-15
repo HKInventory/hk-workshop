@@ -339,6 +339,36 @@
     .tile.fin     {background:linear-gradient(145deg,#DB2777,#831843);border:1px solid rgba(244,114,182,0.42)}
     .tile.kidh    {background:linear-gradient(145deg,#E11D48,#5B0A1E);border:1px solid rgba(251,113,133,0.5)}
     .tile.hkai    {background:linear-gradient(145deg,#7C3AED,#5B21B6);border:1px solid rgba(167,139,250,0.50)}
+    /* HK AI chat */
+    #s-hkai .sb{display:flex;flex-direction:column;padding:0}
+    .ai-wrap{display:flex;flex-direction:column;height:100%;min-height:0}
+    .ai-head{padding:14px 16px 10px;border-bottom:1px solid var(--b1)}
+    .ai-head .ai-t{font-size:20px;font-weight:900;color:#A78BFA;display:flex;align-items:center;gap:8px}
+    .ai-head .ai-s{font-size:12px;color:var(--t2);margin-top:2px}
+    .ai-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+    .ai-row{display:flex;gap:9px;max-width:100%}
+    .ai-row.me{flex-direction:row-reverse}
+    .ai-av{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px}
+    .ai-av.bot{background:linear-gradient(145deg,#7C3AED,#5B21B6)}
+    .ai-av.usr{background:var(--b2)}
+    .ai-bub{padding:11px 14px;border-radius:15px;font-size:14px;line-height:1.5;max-width:82%;white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere}
+    .ai-row.bot .ai-bub{background:var(--card2,#171b24);border:1px solid var(--b1);border-top-left-radius:5px;color:var(--t1)}
+    .ai-row.me .ai-bub{background:linear-gradient(145deg,#7C3AED,#6D28D9);color:#fff;border-top-right-radius:5px}
+    .ai-bub b{font-weight:800}
+    .ai-think{display:inline-flex;gap:4px;padding:4px 0}
+    .ai-think span{width:7px;height:7px;border-radius:50%;background:#A78BFA;animation:aiBlink 1.2s infinite both}
+    .ai-think span:nth-child(2){animation-delay:.18s}.ai-think span:nth-child(3){animation-delay:.36s}
+    @keyframes aiBlink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+    .ai-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px}
+    .ai-chip{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4);color:#C4B5FD;border-radius:20px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;transition:all .12s}
+    .ai-chip:hover{background:rgba(167,139,250,.22)}
+    .ai-inbar{display:flex;gap:9px;padding:12px 16px;border-top:1px solid var(--b1);align-items:flex-end;background:var(--bg);padding-bottom:max(12px,env(safe-area-inset-bottom))}
+    .ai-in{flex:1;background:var(--card2,#171b24);border:1px solid var(--b2);color:var(--t1);border-radius:16px;padding:11px 15px;font-family:inherit;font-size:14px;resize:none;max-height:120px;line-height:1.4}
+    .ai-in:focus{outline:none;border-color:#7C3AED}
+    .ai-send{flex:none;width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(145deg,#7C3AED,#6D28D9);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s}
+    .ai-send:active{transform:scale(.92)}
+    .ai-send:disabled{opacity:.4;cursor:default}
+    .ai-note{font-size:11px;color:var(--t2);text-align:center;padding:0 16px 8px}
     .tile.tasks   {background:linear-gradient(145deg,#EA580C,#7C2D12);border:1px solid rgba(251,146,60,0.50)}
     .tile.chats   {background:linear-gradient(145deg,#C026D3,#6B21A8);border:1px solid rgba(232,121,249,0.50)}
     .tile.race    {background:linear-gradient(145deg,#DC2626,#7F1D1D);border:1px solid rgba(248,113,113,0.42)}
@@ -2169,7 +2199,7 @@
             <div class="tile tse"      id="thubparts" onclick="go('parts')"><div class="ti">📦</div><div class="tl">Inventory</div><div class="ts">Scan · search · stock</div></div>
             <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
             <div class="tile fin"      id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
-            <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Coming soon</div></div>
+            <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Ask anything</div></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">🏭</div><div class="tl">Facility</div><div class="ts">Layouts · tools</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
@@ -2267,7 +2297,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CN · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CO · ZXing raw</div>
       </div>
     </div>
 
@@ -2616,13 +2646,19 @@
         <button class="back" onclick="back()"> Back</button>
       </div>
       <div class="sb">
-        <div class="pgtitle">HK AI</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">🤖</div>
-          <div style="font-size:18px;font-weight:800;color:#A78BFA;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:2.3;text-align:left;display:inline-block">💬&nbsp; Ask anything about the workshop<br>📊&nbsp; Answers pulled live from every tab<br>🔒&nbsp; Role-aware — managers see staff &amp; finance, mechanics see operations<br>🧠&nbsp; Teach it — anyone can add knowledge<br>✅&nbsp; New knowledge approved by Ross &amp; Harvey before it goes live</div>
+        <div class="ai-wrap">
+          <div class="ai-head">
+            <div class="ai-t">🤖 HK AI</div>
+            <div class="ai-s">Ask about karts, repairs, sessions, batteries, stock — answered live from the workshop's data. Read-only.</div>
+          </div>
+          <div class="ai-msgs" id="ai-msgs"></div>
+          <div class="ai-chips" id="ai-chips"></div>
+          <div class="ai-note" id="ai-note"></div>
+          <div class="ai-inbar">
+            <textarea class="ai-in" id="ai-in" rows="1" placeholder="Ask HK AI…" oninput="aiGrow(this)" onkeydown="aiKey(event)"></textarea>
+            <button class="ai-send" id="ai-send" onclick="aiSend()" aria-label="Send">➤</button>
+          </div>
         </div>
-        <div class="mc" style="text-align:center"><div style="font-size:13px;color:var(--t2);line-height:1.8">Your workshop's own assistant<br><span style="color:#A78BFA;font-weight:600">Coming soon</span></div></div>
       </div>
     </div>
 
@@ -4357,6 +4393,7 @@ function updateUI(id){
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
+  if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
   if(id==='tasks' && typeof tasksEnter==='function'){ try{tasksEnter();}catch(e){} }
   if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
@@ -8558,7 +8595,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11145,6 +11182,95 @@ function hkNotify(toName,title,body,tag,url){
   }catch(e){}
 }
 
+/* ===================== HK AI — read-only Q&A chat =====================
+   The app inserts a question into ai_queue; the Render runner gathers live workshop
+   data, calls the Anthropic API (key server-side), and writes the answer back. We
+   insert, then poll the row until it's answered. No key ever touches the app. */
+var AI_MSGS=[], AI_CONVO=null, _aiPoll=null, _aiBooted=false;
+var AI_SUGGEST=[
+  'Which karts are offline right now?',
+  'Any karts low on battery?',
+  'What repairs were logged today?',
+  'Which cell died during the 10:00 session Adult Kart 76?',
+  'Who changed the rear-left tyre last on Kart 25?',
+  'What kart notes are open?'
+];
+function aiConvoId(){
+  if(AI_CONVO) return AI_CONVO;
+  try{ AI_CONVO=sessionStorage.getItem('hk_ai_convo')||''; }catch(e){}
+  if(!AI_CONVO){ AI_CONVO='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); try{ sessionStorage.setItem('hk_ai_convo',AI_CONVO); }catch(e){} }
+  return AI_CONVO;
+}
+function aiEnter(){
+  var msgs=document.getElementById('ai-msgs'); if(!msgs) return;
+  if(!_aiBooted){
+    _aiBooted=true;
+    AI_MSGS=[{who:'bot',text:"Hi! I'm HK AI. Ask me anything about the workshop \u2014 karts, repairs, kart notes, sessions, batteries, stock. I read live data and answer, but I can't change anything."}];
+  }
+  aiRender();
+  aiRenderChips();
+  setTimeout(function(){ var i=document.getElementById('ai-in'); if(i&&typeof _gcDesk==='function'&&_gcDesk()) try{i.focus();}catch(e){} },120);
+}
+function _aiEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _aiFmt(s){ return _aiEsc(s).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>'); }   // **bold**; newlines kept (pre-wrap)
+function aiRender(){
+  var box=document.getElementById('ai-msgs'); if(!box) return;
+  var html=AI_MSGS.map(function(m){
+    if(m.who==='think'){
+      return '<div class="ai-row bot"><span class="ai-av bot">\ud83e\udd16</span><div class="ai-bub"><span class="ai-think"><span></span><span></span><span></span></span></div></div>';
+    }
+    var av=m.who==='me'?'<span class="ai-av usr">'+userEmoji(cu||{})+'</span>':'<span class="ai-av bot">\ud83e\udd16</span>';
+    return '<div class="ai-row '+(m.who==='me'?'me':'bot')+'">'+av+'<div class="ai-bub">'+_aiFmt(m.text)+'</div></div>';
+  }).join('');
+  box.innerHTML=html;
+  setTimeout(function(){ try{ box.scrollTop=box.scrollHeight; }catch(e){} },30);
+}
+function aiRenderChips(){
+  var box=document.getElementById('ai-chips'); if(!box) return;
+  if(AI_MSGS.filter(function(m){return m.who==='me';}).length){ box.innerHTML=''; return; }   // hide once chatting
+  box.innerHTML=AI_SUGGEST.map(function(q){ return '<button class="ai-chip" onclick="aiAsk(this.getAttribute(\'data-q\'))" data-q="'+_aiEsc(q).replace(/"/g,'&quot;')+'">'+_aiEsc(q)+'</button>'; }).join('');
+}
+function aiGrow(el){ el.style.height='auto'; el.style.height=Math.min(120,el.scrollHeight)+'px'; }
+function aiKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); aiSend(); } }
+function aiAsk(q){ var i=document.getElementById('ai-in'); if(i){ i.value=q; } aiSend(); }
+function aiSend(){
+  var i=document.getElementById('ai-in'); if(!i) return;
+  var q=(i.value||'').trim(); if(!q) return;
+  i.value=''; aiGrow(i);
+  aiAskQuestion(q);
+}
+function aiAskQuestion(q){
+  if(typeof SBC==='undefined'||!SBC||!cu){ AI_MSGS.push({who:'bot',text:'Not connected \u2014 sign in and check your connection.'}); aiRender(); return; }
+  AI_MSGS.push({who:'me',text:q});
+  AI_MSGS.push({who:'think'});
+  aiRender(); aiRenderChips();
+  var send=document.getElementById('ai-send'); if(send) send.disabled=true;
+  SBC.from('ai_queue').insert({ site:(currentSite||'sydney'), user_name:(cu&&cu.name)||'', convo_id:aiConvoId(), question:q.slice(0,2000) }).select('id').then(function(r){
+    if(r&&r.error){ _aiReplace((/relation|does not exist|schema cache/i.test(r.error.message||''))?'HK AI isn\u2019t set up yet \u2014 run hk_ai.sql in Supabase.':('Couldn\u2019t send: '+(r.error.message||''))); return; }
+    var id=r&&r.data&&r.data[0]&&r.data[0].id; if(id==null){ _aiReplace('Couldn\u2019t send that one \u2014 try again.'); return; }
+    aiPollAnswer(id);
+  },function(){ _aiReplace('Connection error \u2014 try again.'); });
+}
+function _aiReplace(text){
+  for(var i=AI_MSGS.length-1;i>=0;i--){ if(AI_MSGS[i].who==='think'){ AI_MSGS[i]={who:'bot',text:text}; break; } }
+  aiRender();
+  var send=document.getElementById('ai-send'); if(send) send.disabled=false;
+}
+function aiPollAnswer(id){
+  clearInterval(_aiPoll);
+  var tries=0, MAX=50;   // ~60s at 1.2s
+  _aiPoll=setInterval(function(){
+    tries++;
+    if(typeof _hkScr==='function'&&_hkScr()!=='hkai'){ clearInterval(_aiPoll); return; }   // left the screen
+    if(tries>MAX){ clearInterval(_aiPoll); _aiReplace('That\u2019s taking longer than expected \u2014 the runner may be busy or offline. Try again in a moment.'); return; }
+    SBC.from('ai_queue').select('status,answer,error').eq('id',id).limit(1).then(function(r){
+      var row=r&&r.data&&r.data[0]; if(!row) return;
+      if(row.status==='done'){ clearInterval(_aiPoll); _aiReplace(row.answer||'(no answer)'); }
+      else if(row.status==='error'){ clearInterval(_aiPoll); _aiReplace('\u26a0\ufe0f '+(row.error||'Something went wrong answering that.')); }
+    },function(){});
+  },1200);
+}
+
 /* ---------- Chats ---------- */
 function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
 function chatEnter(){ chatShowList(); chatOpenDefault(); }
@@ -11659,7 +11785,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

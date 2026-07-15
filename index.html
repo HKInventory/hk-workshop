@@ -339,6 +339,38 @@
     .tile.fin     {background:linear-gradient(145deg,#DB2777,#831843);border:1px solid rgba(244,114,182,0.42)}
     .tile.kidh    {background:linear-gradient(145deg,#E11D48,#5B0A1E);border:1px solid rgba(251,113,133,0.5)}
     .tile.hkai    {background:linear-gradient(145deg,#7C3AED,#5B21B6);border:1px solid rgba(167,139,250,0.50)}
+    .tile.sessdata{background:linear-gradient(145deg,#0F766E,#134E4A);border:1px solid rgba(45,212,191,0.45)}
+    /* Session Data screen */
+    #s-sessdata .sb{padding-left:16px;padding-right:16px}
+    .sd-h{font-size:20px;font-weight:900;color:#2DD4BF;display:flex;align-items:center;gap:8px;margin:4px 0 3px}
+    .sd-sub{font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.4}
+    .sd-lbl{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--t2);text-transform:uppercase;margin:2px 0 6px}
+    .sd-sel{width:100%;background:var(--card2,#171b24);border:1px solid var(--b2);color:var(--t1);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13.5px;font-weight:600;margin-bottom:12px}
+    .sd-kchips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+    .sd-kchip{padding:7px 12px;border-radius:11px;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t1);font-size:13px;font-weight:700;cursor:pointer}
+    .sd-kchip.on{background:linear-gradient(180deg,rgba(45,212,191,.30),rgba(45,212,191,.15));border-color:rgba(45,212,191,.6);color:#5EEAD4}
+    .sd-card{background:var(--card,#12161d);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-bottom:12px}
+    .sd-card-t{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .sd-verdict{border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.5;border:1px solid var(--b2);background:rgba(255,255,255,.03)}
+    .sd-verdict.bad{background:rgba(226,75,74,.12);border-color:rgba(226,75,74,.4)}
+    .sd-verdict.bad b{color:#F09595}
+    .sd-verdict.ok{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.35)}
+    .sd-legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--t2);margin-top:8px}
+    .sd-lg{display:flex;align-items:center;gap:4px}.sd-lg span{width:9px;height:9px;border-radius:2px}
+    .sd-toolbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+    .sd-bank{display:flex;gap:5px}
+    .sd-bankbtn{padding:7px 12px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer}
+    .sd-bankbtn.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.4);color:#5EEAD4}
+    .sd-tblwrap{max-height:300px;overflow:auto;border:1px solid var(--b1);border-radius:10px}
+    table.sd-tbl{width:100%;border-collapse:collapse;font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .sd-tbl th{position:sticky;top:0;background:var(--card2,#1a1f29);color:var(--t2);font-weight:700;padding:6px 5px;text-align:right;font-size:9.5px;border-bottom:1px solid var(--b2)}
+    .sd-tbl th:first-child{text-align:left;padding-left:8px;position:sticky;left:0;z-index:2}
+    .sd-tbl td{padding:4px 5px;text-align:right;color:var(--t1);border-bottom:1px solid var(--b1)}
+    .sd-tbl td:first-child{text-align:left;padding-left:8px;color:var(--t2);font-weight:600;position:sticky;left:0;background:var(--card,#12161d)}
+    .sd-tbl td.bad{color:#F09595;font-weight:700;background:rgba(226,75,74,.10)}
+    .sd-dl{display:flex;gap:8px;margin:10px 0 4px}
+    .sd-dlbtn{flex:1;text-align:center;padding:10px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#5EEAD4;font-size:12.5px;font-weight:700;cursor:pointer}
+    .sd-empty{text-align:center;color:var(--t2);font-size:13px;padding:36px 16px;line-height:1.6}
     /* HK AI chat — fills the screen; messages scroll, input pinned to the bottom (inside the edge frame) */
     #s-hkai .sb{display:flex;flex-direction:column;padding:0;overflow:hidden;padding-bottom:0}
     .ai-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -2222,6 +2254,7 @@
             <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
             <div class="tile fin"      id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Ask anything</div></div>
+            <div class="tile sessdata" id="wsessdata" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">🏭</div><div class="tl">Facility</div><div class="ts">Layouts · tools</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
@@ -2319,7 +2352,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CP · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CQ · ZXing raw</div>
       </div>
     </div>
 
@@ -2690,6 +2723,20 @@
       <div class="ai-drawer" id="ai-drawer">
         <div class="ai-drawer-hd"><div class="t">💬 Your chats</div><button class="ai-drawer-new" onclick="aiNewChat(true)">✚ New</button></div>
         <div class="ai-clist" id="ai-clist"></div>
+      </div>
+    </div>
+
+    <!-- SESSION DATA -->
+    <div class="scr" id="s-sessdata">
+      <div class="phdr">
+        <button class="back" onclick="back()"> Back</button>
+      </div>
+      <div class="sb">
+        <div class="sd-h">🔋 Session Data</div>
+        <div class="sd-sub">Browse a past session and see every 0.5s cell reading for each kart that was on track. Last 7 days.</div>
+        <div id="sd-body">
+          <div class="sd-empty">Loading sessions…</div>
+        </div>
       </div>
     </div>
 
@@ -4255,6 +4302,7 @@ var TAB_DEFS=[
   {key:'manager',  id:'mgrt',    label:'Manager Dashboard'},
   {key:'finance',  id:'wfin',    label:'Finance'},
   {key:'hkai',     id:'whkai',   label:'HK AI'},
+  {key:'sessdata', id:'wsessdata', label:'Session Data'},
   {key:'tasks',    id:'wtasks',  label:'Tasks'},
   {key:'chats',    id:'wchats',  label:'Chats'},
   {key:'race',     id:'wrace',   label:'Intelligence'},
@@ -4269,7 +4317,7 @@ var TAB_DEFS=[
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
-var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','sessdata','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
@@ -4425,6 +4473,7 @@ function updateUI(id){
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
+  if(id==='sessdata' && typeof sdEnter==='function'){ try{sdEnter();}catch(e){} }
   if(id==='tasks' && typeof tasksEnter==='function'){ try{tasksEnter();}catch(e){} }
   if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
@@ -8626,7 +8675,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11213,6 +11262,194 @@ function hkNotify(toName,title,body,tag,url){
   }catch(e){}
 }
 
+/* ===================== Session Data — raw BMS cell traces =====================
+   Reads real sessions (rf_sessions/rf_session_runs) and the 0.5s cell history
+   (rimo_bms_history) straight from Supabase. Table + CSV keep every 0.5s reading;
+   the graph is down-sampled MIN-PRESERVING (keeps the lowest value in each bucket)
+   so a momentary cell dropout still shows as a spike instead of being averaged away. */
+var SD_SESS=[], SD_RUNS={}, SD_SESSION=null, SD_KART=null, SD_ROWS=[], SD_BANK='R', _sdChart=null;
+var SD_CELL_NAMES=['L1','L2','L3','L4','L5','L6','L7','L8','R1','R2','R3','R4','R5','R6','R7','R8'];
+function _sdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _sdSyd(iso,withDay){ try{ var o={timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}; if(withDay){o.day='2-digit';o.month='short';} return new Date(iso).toLocaleString('en-AU',o); }catch(e){ return ''; } }
+function sdEnter(){
+  var body=document.getElementById('sd-body'); if(!body) return;
+  body.innerHTML='<div class="sd-empty">Loading sessions…</div>';
+  if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
+  var since=new Date(Date.now()-7*86400000).toISOString();
+  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(120).then(function(r){
+    if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ body.innerHTML='<div class="sd-empty">Session data isn\u2019t set up yet.<br>Run hk_ai.sql and deploy the runner, then sessions will appear here after they run.</div>'; return; }
+    SD_SESS=(r&&r.data)||[];
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No sessions in the last 7 days yet.<br>Once the runner is live and a session runs, it\u2019ll show here with its cell data.</div>'; return; }
+    // load runs (karts) for all sessions
+    SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
+      SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
+      SD_SESSION=SD_SESS[0].uuid;
+      var firstRuns=SD_RUNS[SD_SESSION]||[]; SD_KART=firstRuns.length?firstRuns[0]:null;
+      sdRenderShell(); sdLoadTrace();
+    },function(){ SD_RUNS={}; SD_SESSION=SD_SESS[0].uuid; sdRenderShell(); });
+  },function(){ body.innerHTML='<div class="sd-empty">Couldn\u2019t load sessions.</div>'; });
+}
+function sdRenderShell(){
+  var body=document.getElementById('sd-body'); if(!body) return;
+  var opts=SD_SESS.map(function(s){
+    var ks=(SD_RUNS[s.uuid]||[]).length;
+    return '<option value="'+s.uuid+'"'+(s.uuid===SD_SESSION?' selected':'')+'>'+_sdEsc(_sdSyd(s.scheduled_at,true)+' · '+(s.track||'')+' · '+ks+' kart'+(ks===1?'':'s'))+'</option>';
+  }).join('');
+  var runs=SD_RUNS[SD_SESSION]||[];
+  var kchips=runs.length?runs.map(function(rn){
+    return '<div class="sd-kchip'+((SD_KART&&rn.kart_no===SD_KART.kart_no)?' on':'')+'" onclick="sdPickKart(\''+_sdEsc(String(rn.kart_no))+'\')">'+_sdEsc(String(rn.kart_no))+'</div>';
+  }).join(''):'<div style="color:var(--t2);font-size:12px">No karts recorded for this session.</div>';
+  body.innerHTML=
+    '<div class="sd-lbl">Session</div>'+
+    '<select class="sd-sel" id="sd-sess" onchange="sdPickSession(this.value)">'+opts+'</select>'+
+    '<div class="sd-lbl">Kart on track</div>'+
+    '<div class="sd-kchips">'+kchips+'</div>'+
+    '<div id="sd-trace"><div class="sd-empty">Loading cell data…</div></div>';
+}
+function sdPickSession(uuid){
+  SD_SESSION=uuid; var runs=SD_RUNS[uuid]||[]; SD_KART=runs.length?runs[0]:null;
+  sdRenderShell(); sdLoadTrace();
+}
+function sdPickKart(kartNo){
+  var runs=SD_RUNS[SD_SESSION]||[]; SD_KART=runs.filter(function(r){return String(r.kart_no)===String(kartNo);})[0]||null;
+  // update chip active states without full rebuild
+  var chips=document.querySelectorAll('#sd-body .sd-kchip'); chips.forEach(function(c){ c.classList.toggle('on', c.textContent===String(kartNo)); });
+  sdLoadTrace();
+}
+function sdLoadTrace(){
+  var box=document.getElementById('sd-trace'); if(!box) return;
+  if(!SD_KART){ box.innerHTML='<div class="sd-empty">Pick a kart to see its cell data.</div>'; return; }
+  var sess=SD_SESS.filter(function(s){return s.uuid===SD_SESSION;})[0]; if(!sess){ return; }
+  box.innerHTML='<div class="sd-empty">Loading cell data for Kart '+_sdEsc(String(SD_KART.kart_no))+'…</div>';
+  var from=sess.scheduled_at, to=sess.ends_at||new Date(Date.parse(sess.scheduled_at)+15*60000).toISOString();
+  // query by serial (fleet_management_id) if we have it, else by kart number
+  var query=SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000);
+  if(SD_KART.fleet_management_id){ query=query.eq('serial_no',SD_KART.fleet_management_id); }
+  else { query=query.eq('kart_no',parseInt(SD_KART.kart_no,10)); }
+  query.then(function(r){
+    if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ box.innerHTML='<div class="sd-empty">Cell history table isn\u2019t set up yet \u2014 run hk_ai.sql.</div>'; return; }
+    SD_ROWS=(r&&r.data)||[];
+    if(!SD_ROWS.length){ box.innerHTML='<div class="sd-empty">No cell data logged for Kart '+_sdEsc(String(SD_KART.kart_no))+' in this session.<br><span style="font-size:11.5px">The logger records while a kart is on track and keeps 7 days. If the runner wasn\u2019t live during this session, there\u2019s nothing to show.</span></div>'; return; }
+    sdRenderTrace();
+  },function(){ box.innerHTML='<div class="sd-empty">Couldn\u2019t load cell data.</div>'; });
+}
+function _sdCellVal(row,idx){ var c=row.cells; if(Array.isArray(c)) return c[idx]; return null; }
+function sdAnalyse(){
+  // per-cell first/last/min + worst sag
+  var per=SD_CELL_NAMES.map(function(){return {first:null,last:null,min:Infinity,max:-Infinity,minAt:null};});
+  SD_ROWS.forEach(function(row){
+    for(var i=0;i<16;i++){ var v=_sdCellVal(row,i); if(v==null) continue; var p=per[i];
+      if(p.first==null)p.first=v; p.last=v; if(v<p.min){p.min=v;p.minAt=row.at;} if(v>p.max)p.max=v; }
+  });
+  var worst=-1,wi=-1; per.forEach(function(p,i){ if(p.first==null)return; var d=p.max-p.min; if(d>worst){worst=d;wi=i;} });
+  return {per:per,worstIdx:wi,worstDrop:worst};
+}
+function sdRenderTrace(){
+  var box=document.getElementById('sd-trace'); if(!box) return;
+  var a=sdAnalyse();
+  var minCell=a.per[a.worstIdx]||{}; var lowest=minCell.min;
+  var isBad=(a.worstIdx>=0 && lowest!=null && lowest<2.8);
+  var verdict;
+  if(isBad){
+    verdict='<div class="sd-verdict bad">\u26a0\ufe0f <b>Cell '+SD_CELL_NAMES[a.worstIdx]+' sagged</b> \u2014 dropped to <b>'+lowest.toFixed(2)+'V</b> at '+_sdSyd(minCell.minAt)+' (healthy cells held ~3.3V). Likely the weak/dead cell.</div>';
+  } else {
+    verdict='<div class="sd-verdict ok">\u2705 All cells held up \u2014 lowest was '+(lowest!=null?lowest.toFixed(2):'?')+'V ('+(a.worstIdx>=0?SD_CELL_NAMES[a.worstIdx]:'?')+'). No obvious dead cell this session.</div>';
+  }
+  box.innerHTML=
+    verdict+
+    '<div class="sd-card"><div class="sd-card-t"><span>Cell voltages over session</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' samples · 16 cells</span></div>'+
+      '<div style="position:relative;height:190px"><canvas id="sd-chart"></canvas></div>'+
+      '<div class="sd-legend"><div class="sd-lg"><span style="background:#378add"></span>L1\u2013L8</div><div class="sd-lg"><span style="background:#1d9e75"></span>R1\u2013R8</div>'+(a.worstIdx>=0&&isBad?'<div class="sd-lg"><span style="background:#e24b4a"></span>'+SD_CELL_NAMES[a.worstIdx]+' (worst)</div>':'')+'</div>'+
+    '</div>'+
+    '<div class="sd-toolbar"><span class="sd-lbl" style="margin:0">Table bank</span><div class="sd-bank">'+
+      '<div class="sd-bankbtn'+(SD_BANK==='L'?' on':'')+'" onclick="sdSetBank(\'L\')">Left</div>'+
+      '<div class="sd-bankbtn'+(SD_BANK==='R'?' on':'')+'" onclick="sdSetBank(\'R\')">Right</div>'+
+      '<div class="sd-bankbtn'+(SD_BANK==='all'?' on':'')+'" onclick="sdSetBank(\'all\')">All</div>'+
+    '</div></div>'+
+    '<div class="sd-card-t"><span>Every 0.5s reading</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' rows</span></div>'+
+    '<div class="sd-tblwrap" id="sd-tblwrap"></div>'+
+    '<div class="sd-dl"><div class="sd-dlbtn" onclick="sdExportCSV()">\u2b07 Export CSV (all 0.5s)</div></div>';
+  sdDrawChart(a); sdRenderTable();
+}
+function sdSetBank(b){ SD_BANK=b; var btns=document.querySelectorAll('#sd-trace .sd-bankbtn'); sdRenderTable();
+  var map={'L':'Left','R':'Right','all':'All'}; btns.forEach(function(x){ x.classList.toggle('on', x.textContent===map[b]); }); }
+function _sdBucketMin(){
+  // MIN-PRESERVING downsample for the graph: keep the lowest reading per cell in ~400 buckets,
+  // so a brief dropout stays visible. Returns {labels, perCell:[{name,data}], worstIdx}
+  var TARGET=400, n=SD_ROWS.length, step=Math.max(1,Math.ceil(n/TARGET));
+  var labels=[], series=SD_CELL_NAMES.map(function(nm){return {name:nm,data:[]};});
+  for(var i=0;i<n;i+=step){
+    var end=Math.min(n,i+step), mins=new Array(16).fill(null);
+    for(var j=i;j<end;j++){ for(var c=0;c<16;c++){ var v=_sdCellVal(SD_ROWS[j],c); if(v==null)continue; if(mins[c]==null||v<mins[c])mins[c]=v; } }
+    labels.push(_sdSyd(SD_ROWS[i].at));
+    for(var c=0;c<16;c++){ series[c].data.push(mins[c]); }
+  }
+  return {labels:labels,series:series};
+}
+function sdDrawChart(a){
+  // Hand-rolled SVG (no external chart lib — app stays self-contained/offline).
+  var d=_sdBucketMin();
+  var host=document.getElementById('sd-chart'); if(!host) return;
+  var W=680,H=190,P={t:10,r:10,b:22,l:40};
+  var iw=W-P.l-P.r, ih=H-P.t-P.b, n=d.labels.length||1;
+  // y-range from data
+  var lo=Infinity,hi=-Infinity;
+  d.series.forEach(function(s){ s.data.forEach(function(v){ if(v==null)return; if(v<lo)lo=v; if(v>hi)hi=v; }); });
+  if(!isFinite(lo)){ host.outerHTML='<div style="color:var(--t2);font-size:12px;padding:20px;text-align:center">No cell values to plot.</div>'; return; }
+  lo=Math.min(lo,2.0); hi=Math.max(hi,3.6); var pad=(hi-lo)*0.06||0.1; lo-=pad; hi+=pad;
+  function X(i){ return P.l+(n>1?(i/(n-1))*iw:iw/2); }
+  function Y(v){ return P.t+ih-((v-lo)/(hi-lo||1))*ih; }
+  var grid='',gl='';
+  for(var g=0;g<=3;g++){ var gv=lo+(hi-lo)*g/3, gy=Y(gv);
+    grid+='<line x1="'+P.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-P.r)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
+    gl+='<text x="'+(P.l-6)+'" y="'+(gy+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="#6b7280">'+gv.toFixed(2)+'V</text>'; }
+  function pathFor(data){ var p=''; for(var i=0;i<data.length;i++){ if(data[i]==null)continue; p+=(p?' L':'M')+X(i).toFixed(1)+' '+Y(data[i]).toFixed(1); } return p; }
+  var paths='';
+  for(var c=0;c<16;c++){ if(c===a.worstIdx)continue; var left=c<8;
+    paths+='<path d="'+pathFor(d.series[c].data)+'" fill="none" stroke="'+(left?'rgba(55,138,221,.42)':'rgba(29,158,117,.42)')+'" stroke-width="1"/>'; }
+  if(a.worstIdx>=0){ paths+='<path d="'+pathFor(d.series[a.worstIdx].data)+'" fill="none" stroke="#e24b4a" stroke-width="2.4" stroke-linejoin="round"/>'; }
+  // a few x labels
+  var xl='', stepL=Math.max(1,Math.ceil(n/6));
+  for(var j=0;j<n;j+=stepL){ xl+='<text x="'+X(j).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="8.5" fill="#6b7280">'+_sdEsc(d.labels[j]||'')+'</text>'; }
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block" role="img" aria-label="Cell voltages over the session">'+grid+gl+paths+xl+'</svg>';
+  // replace the canvas element with the svg
+  var parent=host.parentNode; if(parent){ parent.innerHTML=svg; }
+}
+function _sdChartNoop(){}
+function sdRenderTable(){
+  var wrap=document.getElementById('sd-tblwrap'); if(!wrap) return;
+  var cols = SD_BANK==='all'?SD_CELL_NAMES : (SD_BANK==='L'?SD_CELL_NAMES.slice(0,8):SD_CELL_NAMES.slice(8,16));
+  var idxs = cols.map(function(nm){return SD_CELL_NAMES.indexOf(nm);});
+  var a=sdAnalyse();
+  var head='<tr><th>Time</th><th>SOC</th><th>Pack</th>'+cols.map(function(nm){return '<th>'+nm+'</th>';}).join('')+'</tr>';
+  // virtualise: render at most ~600 rows for smoothness; note if truncated (CSV has all)
+  var MAXR=600, n=SD_ROWS.length, step=n>MAXR?Math.ceil(n/MAXR):1;
+  var rows='';
+  for(var i=0;i<n;i+=step){
+    var row=SD_ROWS[i];
+    rows+='<tr><td>'+_sdSyd(row.at)+'</td><td>'+(row.soc!=null?Math.round(row.soc)+'%':'-')+'</td><td>'+(row.pack_v!=null?(+row.pack_v).toFixed(1):'-')+'</td>';
+    idxs.forEach(function(ci){ var v=_sdCellVal(row,ci); var bad=(v!=null&&v<2.8); rows+='<td class="'+(bad?'bad':'')+'">'+(v!=null?(+v).toFixed(2):'-')+'</td>'; });
+    rows+='</tr>';
+  }
+  wrap.innerHTML='<table class="sd-tbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>'+
+    (step>1?'<div style="font-size:10.5px;color:var(--t2);padding:8px;text-align:center">Showing 1 in '+step+' rows for speed \u2014 Export CSV for all '+n+' readings.</div>':'');
+}
+function sdExportCSV(){
+  if(!SD_ROWS.length) return;
+  var head=['time','soc','pack_v','avg_v','current_a'].concat(SD_CELL_NAMES);
+  var lines=[head.join(',')];
+  SD_ROWS.forEach(function(row){
+    var line=[ _sdSyd(row.at), (row.soc!=null?row.soc:''), (row.pack_v!=null?row.pack_v:''), (row.avg_v!=null?row.avg_v:''), (row.current_a!=null?row.current_a:'') ];
+    for(var c=0;c<16;c++){ var v=_sdCellVal(row,c); line.push(v!=null?v:''); }
+    lines.push(line.join(','));
+  });
+  var sess=SD_SESS.filter(function(s){return s.uuid===SD_SESSION;})[0];
+  var fn='kart'+(SD_KART?SD_KART.kart_no:'')+'_'+((sess&&sess.label)||'session').replace(/[^a-z0-9]+/gi,'_')+'.csv';
+  var blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  var url=URL.createObjectURL(blob), aEl=document.createElement('a'); aEl.href=url; aEl.download=fn; document.body.appendChild(aEl); aEl.click();
+  setTimeout(function(){ document.body.removeChild(aEl); URL.revokeObjectURL(url); },100);
+}
+
 /* ===================== HK AI — read-only Q&A chat =====================
    Conversations persist per ACCOUNT in Supabase (ai_convos + ai_queue), so the same staff
    member sees the same threads on phone and Mac. The app inserts a question into ai_queue;
@@ -11889,7 +12126,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

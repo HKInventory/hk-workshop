@@ -33,6 +33,7 @@
         var sh=(window.screen&&screen.height)||lay;  // physical screen — does NOT shrink on the launch resize
         de.style.setProperty('--vhpx', lay+'px');
         de.style.setProperty('--shpx', Math.max(sh,lay)+'px');
+        de.style.setProperty('--gapB', Math.max(0, sh-lay)+'px');   // physical rows below the webview window (39 on letterboxed iOS PWAs)
       }catch(e){}
     }
     set();
@@ -58,7 +59,11 @@
     }
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
     input,textarea,select,[contenteditable]{-webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;-webkit-touch-callout:default}
-    html,body{height:100%;background:var(--bg);font-family:'Inter',-apple-system,sans-serif;color:var(--t1);overflow:hidden;-webkit-font-smoothing:antialiased}
+    /* NOTE: no overflow:hidden here. Overflow on the root propagates to the VIEWPORT and hard-clips
+       all painting at the window edge — which chopped everything below innerHeight (the bottom 39px
+       of the physical screen on letterboxed iOS PWAs). All app content is position:fixed with its own
+       scrollers, so the document itself can never scroll; overscroll-behavior kills rubber-banding. */
+    html,body{height:100%;background:var(--bg);font-family:'Inter',-apple-system,sans-serif;color:var(--t1);overscroll-behavior:none;-webkit-font-smoothing:antialiased}
     /* Full-bleed backdrop: a fixed layer painting the app background across the ENTIRE physical
        screen including the notch / home-indicator safe-area zones. In a home-screen PWA iOS can
        otherwise leave those zones showing as bands; this guarantees the black bleeds edge-to-edge
@@ -104,7 +109,7 @@
     #app.nav-locked, #app.nav-locked * { pointer-events: none !important; }
     /* ── Shell ── */
     #app{position:fixed;top:0;left:0;right:0;
-      bottom:calc(-1 * env(safe-area-inset-bottom,0px));
+      bottom:calc(-1 * var(--gapB, 0px));   /* reach the physical bottom on letterboxed iOS PWAs; scrollers already pad ≥48px so content stays clear */
       display:flex;flex-direction:column;overflow:hidden}
     /* Searchable parts picker (bottom sheet) for the repair form */
     .rfq-pick-ov{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center}
@@ -202,16 +207,15 @@
     #edge-frame{display:none}
     @media (pointer:coarse){
       #edge-frame{display:block;position:fixed;
-        top:calc(-1 * env(safe-area-inset-top,0px));
-        left:calc(-1 * env(safe-area-inset-left,0px));
-        right:calc(-1 * env(safe-area-inset-right,0px));
-        /* BOTTOM-ANCHORED with a PURE pixel overshoot — no env(), no var(), no height calc.
-           The previous failure was env(safe-area-inset-top) getting dropped inside a height calc on
-           this device, so the ring sized to the small 654 viewport and landed ~39px short = the slab.
-           A fixed -70px bottom can't be dropped and can't fall short: whether the fixed container is
-           the 654 visual viewport or the full 693 screen, -70 lands well past the physical bottom, and
-           the screen's own rounded corners clip the small overshoot cleanly. */
-        bottom:-70px;
+        /* On-device diag proved the webview window is innerHeight (654) tall starting at PHYSICAL 0
+           with the status bar drawn translucently over it — NOT inset by the safe areas. So:
+           · top:-inset pushed the top stroke to physical -39 = OFF-SCREEN (why no top edge showed);
+             the correct top is 0 — the stroke sits at the very top, under the translucent clock.
+           · the bottom of the physical screen is innerHeight + (screen.height - innerHeight); JS
+             measures that gap into --gapB (39 on this device) so the bottom stroke lands exactly at
+             the physical bottom edge. No env() anywhere — env-in-calc proved unreliable here. */
+        top:0;left:0;right:0;
+        bottom:calc(-1 * var(--gapB, 0px));
         pointer-events:none;z-index:2147482000;
         border:2.5px solid transparent;border-radius:56px;
         background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
@@ -2443,7 +2447,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DL · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DM · ZXing raw</div>
       </div>
     </div>
 
@@ -4060,12 +4064,12 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DL</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DM</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
       +'<div style="color:#9AB;margin-top:2px">--vhpx '+last.vp+'  --shpx '+last.shp+'  samples '+tl.length+'</div>'
-      +'<div style="color:#8DF;margin-top:2px">fixedH '+last.icb+'   app&#8595;'+last.appb+'   ring&#8595;'+last.rgb+'   (screen '+last.sh+')</div>'; }
+      +'<div style="color:#8DF;margin-top:2px">fixedH '+last.icb+'   gapB '+cssvar('--gapB')+'   app&#8595;'+last.appb+'   ring&#8595;'+last.rgb+'   (screen '+last.sh+')</div>'; }
   function sample(){ if(!enabled) return; try{ tl.push(snap()); if(tl.length>80) tl.shift(); render(); }catch(e){} }
   function build(){ if(box) return;
     box=document.createElement('div');
@@ -8839,7 +8843,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11444,18 +11448,18 @@ function sdEnter(){
   SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(200).then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ body.innerHTML='<div class="sd-empty">Session data isn\u2019t set up yet.<br>Run hk_ai.sql and deploy the runner, then sessions will appear here after they run.</div>'; return; }
     var all=(r&&r.data)||[];
-    // Show Adult + Intermediate sessions whose start time has already passed (so they ran, or were
-    // due to). We avoid hard-matching RaceFacer's exact status wording (it varies for finished races
-    // and was wrongly hiding real sessions). Future/not-yet-started sessions are excluded.
+    // Show EVERY track's sessions whose start time has already passed (so they ran, or were due to).
+    // Do NOT filter by track name: RaceFacer reports the LAYOUT as the track (the Adult track comes
+    // through as "The Sprint, Clockwise"), so a name whitelist silently hid whole tracks. The track
+    // chips below let the user narrow. We also avoid hard-matching RaceFacer's exact status wording
+    // (it varies for finished races and was wrongly hiding real sessions). Future sessions excluded.
     var nowMs=Date.now();
     SD_SESS=all.filter(function(s){
-      var trk=(s.track||'').toLowerCase();
-      if(!/adult|inter/.test(trk)) return false;                 // Adult + Intermediate only
       var startMs=s.scheduled_at?Date.parse(s.scheduled_at):0;
       if(startMs && startMs>nowMs+60000) return false;           // not yet started → hide
       return true;
     });
-    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No Adult or Intermediate sessions yet today.<br>Sessions appear here once they\u2019ve run. Cell data shows for karts the logger recorded while on track.</div>'; return; }
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No sessions yet today.<br>Sessions appear here once they\u2019ve run. Cell data shows for karts the logger recorded while on track.</div>'; return; }
     // load runs (karts) for all sessions
     SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
       SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
@@ -11473,7 +11477,13 @@ function _sdDayLabel(key){ // key is YYYY-MM-DD
   var p=key.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]);
   return d.getDate()+' '+_CH_MO[d.getMonth()];
 }
-function _sdTrackLabel(t){ t=(t||'').toLowerCase(); if(/inter/.test(t)) return 'Intermediate'; if(/adult/.test(t)) return 'Adult'; return t; }
+function _sdTrackLabel(t){ var s=(t||'').toLowerCase();
+  if(/inter/.test(s)) return 'Intermediate';
+  if(/adult|sprint/.test(s)) return 'Adult';       // Adult track sessions carry the LAYOUT name, e.g. "The Sprint, Clockwise"
+  if(/junior/.test(s)) return 'Junior';
+  if(/mini/.test(s)) return 'Mini';
+  if(/twin/.test(s)) return 'Twin';
+  return (t||'').replace(/\s*track\s*$/i,'').trim()||'Other'; }
 function sdRenderShell(){
   var body=document.getElementById('sd-body'); if(!body) return;
   // build the available filter values from the loaded sessions
@@ -12361,7 +12371,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

@@ -699,9 +699,9 @@
     .kart-chip:active{transform:scale(0.95)}
     .kart-chip .kc-num{font-size:clamp(16px,4.5vw,22px);font-weight:800;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.5)}
     /* Tile colour = kart status (OK / maintenance / damaged) */
-    .kart-chip[data-status="ok"]{background:linear-gradient(180deg,#347a53,#2a6044);border-color:rgba(74,140,102,.42)}
-    .kart-chip[data-status="maint"]{background:linear-gradient(180deg,#a67d38,#856025);border-color:rgba(176,135,66,.42)}
-    .kart-chip[data-status="damaged"]{background:linear-gradient(180deg,#b0483f,#8f342b);border-color:rgba(168,80,72,.42)}
+    .kart-chip[data-status="ok"]{background:linear-gradient(160deg,#1f9d63,#16794c);border-color:rgba(52,211,153,.45)}
+    .kart-chip[data-status="maint"]{background:linear-gradient(160deg,#f0cb1e,#d1a808);border-color:rgba(253,224,71,.5)}
+    .kart-chip[data-status="damaged"]{background:linear-gradient(160deg,#e2564d,#b3352c);border-color:rgba(248,113,113,.45)}
 .kart-chip .kc-num{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.5)}
     .kart-chip:hover{filter:brightness(1.12)}
     @media(hover:hover){.kart-chip:hover{transform:scale(1.05);z-index:2}}
@@ -2254,7 +2254,6 @@
             <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
             <div class="tile fin"      id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
             <div class="tile hkai"     id="whkai" onclick="go('hkai')"><div class="ti">🤖</div><div class="tl">HK AI</div><div class="ts">Ask anything</div></div>
-            <div class="tile sessdata" id="wsessdata" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
             <div class="tile kartinfo" id="wkart" onclick="go('kartinfo');loadKartInfo()"><div class="ti">🏁</div><div class="tl">Kart Info</div><div class="ts">Live fleet</div></div>
             <div class="tile beacon"   id="wbeacon" onclick="go('beaconhub')"><div class="ti">🏭</div><div class="tl">Facility</div><div class="ts">Layouts · tools</div><span id="rf-badge" style="display:none;position:absolute;top:8px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#FF3B30;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)"></span></div>
             <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
@@ -2352,7 +2351,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CQ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CT · ZXing raw</div>
       </div>
     </div>
 
@@ -2610,6 +2609,7 @@
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
+            <div class="tile sessdata" id="kit-sessdata" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
             <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
             <div class="tile gord" id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
           </div>
@@ -4302,7 +4302,7 @@ var TAB_DEFS=[
   {key:'manager',  id:'mgrt',    label:'Manager Dashboard'},
   {key:'finance',  id:'wfin',    label:'Finance'},
   {key:'hkai',     id:'whkai',   label:'HK AI'},
-  {key:'sessdata', id:'wsessdata', label:'Session Data'},
+  {key:'sessdata', id:'kit-sessdata', label:'Session Data'},
   {key:'tasks',    id:'wtasks',  label:'Tasks'},
   {key:'chats',    id:'wchats',  label:'Chats'},
   {key:'race',     id:'wrace',   label:'Intelligence'},
@@ -8675,7 +8675,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12126,7 +12126,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

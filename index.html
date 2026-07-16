@@ -14,6 +14,38 @@
   <link rel="shortcut icon" href="icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <title>HK Workshop</title>
+  <script>
+  /* iOS home-screen PWA viewport lock (bottom black-slab fix).
+     iOS shrinks the standalone layout viewport a beat AFTER launch, so anything sized from 100dvh
+     (the edge-frame ring) rides up and leaves a black strip along the bottom. Instead of fighting
+     that, capture the layout viewport height into --vhpx and the STABLE physical screen height into
+     --shpx as early as possible, and RE-ASSERT on every resize + a few post-launch ticks so the
+     SECOND (post-resize) measurement is the one that sticks. CSS below sizes the ring/backdrop from
+     these vars (with 100dvh as the pre-JS fallback). */
+  (function(){
+    var de=document.documentElement;
+    function set(){
+      try{
+        var vv=window.visualViewport;
+        var ih=window.innerHeight||de.clientHeight||0;
+        var vh=(vv&&vv.height)||ih;
+        var lay=Math.max(ih,vh)||ih;                 // layout viewport (what the frame should match; ignores keyboard shrink)
+        var sh=(window.screen&&screen.height)||lay;  // physical screen — does NOT shrink on the launch resize
+        de.style.setProperty('--vhpx', lay+'px');
+        de.style.setProperty('--shpx', Math.max(sh,lay)+'px');
+      }catch(e){}
+    }
+    set();
+    window.__vpBoot={t:Date.now(),ih:window.innerHeight,vh:(window.visualViewport&&window.visualViewport.height)||null,sh:(window.screen&&screen.height)||null};
+    window.__setVp=set;
+    addEventListener('resize',set,{passive:true});
+    addEventListener('orientationchange',function(){set();setTimeout(set,120);setTimeout(set,400);});
+    addEventListener('pageshow',set);
+    if(window.visualViewport){try{visualViewport.addEventListener('resize',set,{passive:true});visualViewport.addEventListener('scroll',set,{passive:true});}catch(e){}}
+    [60,150,300,600,1000,1600].forEach(function(t){setTimeout(set,t);});   // catch the late iOS launch resize
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)set();});
+  })();
+  </script>
   
   <style>
     :root {
@@ -32,10 +64,14 @@
        otherwise leave those zones showing as bands; this guarantees the black bleeds edge-to-edge
        so the app looks like it fills the whole phone. Sits behind everything. */
     #app-bg{position:fixed;
-      top:calc(-1 * env(safe-area-inset-top,0px) - 40px);
+      top:calc(-1 * env(safe-area-inset-top,0px) - 60px);
       left:calc(-1 * env(safe-area-inset-left,0px) - 40px);
       right:calc(-1 * env(safe-area-inset-right,0px) - 40px);
-      bottom:calc(-1 * env(safe-area-inset-bottom,0px) - 40px);
+      /* Height driven from the STABLE physical screen height (--shpx) + generous overscan, NOT bottom:0.
+         A bottom anchor rides the shrinking layout viewport during the iOS launch resize and falls short
+         (the uncovered strip is what reads as the slab); a fixed tall height can't fall short. Harmless
+         to over-cover — it's black, behind everything, non-interactive. */
+      height:calc(var(--shpx, 100dvh) + env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px) + 320px);
       background:var(--bg);z-index:-1;pointer-events:none}
 
     /* ── DESKTOP / TABLET ── */
@@ -172,7 +208,7 @@
         /* Height spans the full physical screen: dynamic viewport height plus BOTH the top and
            bottom safe-area insets we pulled past. This reaches the true bottom edge on any iPhone,
            regardless of home-indicator inset size — no dead space, no floating-high bottom. */
-        height:calc(100dvh + env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px));
+        height:calc(var(--vhpx, 100dvh) + env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px));
         pointer-events:none;z-index:2147482000;
         border:2.5px solid transparent;border-radius:56px;
         background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
@@ -183,7 +219,7 @@
     /* Older iOS without dvh support: fall back to vh */
     @supports not (height: 100dvh){
       @media (pointer:coarse){
-        #edge-frame{height:calc(100vh + env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px))}
+        #edge-frame{height:calc(var(--vhpx, 100vh) + env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px))}
       }
     }
 
@@ -192,7 +228,15 @@
     .hlogo{display:flex;align-items:center;gap:11px}
     .hk-icon{width:38px;height:38px;border-radius:8px;flex-shrink:0;object-fit:contain}
     /* HK splash — real Hyper Karting logo, built from parts (kart fade-in, HYPER slam, KARTING slam) */
-    #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 44%,#0c161c 0%,#06090c 56%,#000 100%);opacity:1;transition:opacity .5s ease;overflow:hidden}
+    /* Full-bleed PAST the insets (not inset:0) so the splash keeps covering the physical bottom edge
+       while iOS resizes the layout viewport on launch — otherwise its bottom rides up to the safe area
+       and briefly exposes the slab before the frame settles. Flex centering is unaffected. */
+    #splash{position:fixed;
+      top:calc(-1 * env(safe-area-inset-top,0px) - 40px);
+      left:calc(-1 * env(safe-area-inset-left,0px) - 40px);
+      right:calc(-1 * env(safe-area-inset-right,0px) - 40px);
+      bottom:calc(-1 * env(safe-area-inset-bottom,0px) - 40px);
+      z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 44%,#0c161c 0%,#06090c 56%,#000 100%);opacity:1;transition:opacity .5s ease;overflow:hidden}
     #splash.gone{opacity:0;pointer-events:none;transition:opacity .5s ease .1s}
     /* animated background */
     #splash .sp-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;contain:layout paint}
@@ -2401,7 +2445,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DH · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DI · ZXing raw</div>
       </div>
     </div>
 
@@ -3969,6 +4013,7 @@ var STAFF=[
 
 // ── Sizing ──
 function sz(){
+  if(window.__setVp)window.__setVp();   // re-assert --vhpx/--shpx (iOS launch-resize slab fix)
   var app=document.getElementById('app');
   // #app is pinned to all four edges, so it already fills the whole screen incl. the home-indicator
   // zone. Only job here: when the keyboard is up, lift the bottom edge so the composer stays visible.
@@ -3985,6 +4030,61 @@ function _safeBottom(){ if(window.__sab!=null) return window.__sab;
 if(window.visualViewport){ try{ window.visualViewport.addEventListener('resize',function(){ sz(); }); }catch(e){} }
 sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility();});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+
+/* ── Viewport diagnostic (OFF by default) ────────────────────────────────────────────────────────
+   Pins the EXACT pixel deltas behind the iOS launch bottom-slab so we fix by numbers, not guesses.
+   Enable any of:  URL ?vpd=1 (or #vpd)  ·  localStorage hk_vpdiag='1'  ·  TRIPLE-TAP the top-left
+   corner (the logo) — works on any screen incl. PIN/splash. It auto-records innerHeight / clientHeight
+   / visualViewport.height / screen.height / safe-area insets / --vhpx from launch through ~1.6s and
+   shows FIRST vs NOW with Δ, so a single screenshot ~2s after launch tells the whole story. Persisting
+   via localStorage means it survives the force-quit + relaunch needed to observe the launch glitch.
+   Tap "copy" to grab the raw timeline JSON, "×" to dismiss + disable. */
+(function(){
+  function probe(prop){ try{ var p=document.createElement('div'); p.style.cssText='position:fixed;left:0;top:0;width:1px;height:'+prop+';pointer-events:none;visibility:hidden'; document.body.appendChild(p); var h=p.offsetHeight||0; if(p.parentNode)p.parentNode.removeChild(p); return h; }catch(e){ return -1; } }
+  function cssvar(n){ try{ var v=getComputedStyle(document.documentElement).getPropertyValue(n); return v?v.trim():'-'; }catch(e){ return '-'; } }
+  function snap(){ var vv=window.visualViewport; return {
+    t:Date.now(), ih:window.innerHeight||0, ch:document.documentElement.clientHeight||0,
+    vh:vv?Math.round(vv.height):-1, sh:(window.screen&&screen.height)||-1,
+    it:probe('env(safe-area-inset-top,0px)'), ib:probe('env(safe-area-inset-bottom,0px)'), vp:cssvar('--vhpx') }; }
+  var enabled=false, box=null, tl=[], seeded=false;
+  function fmt(s){ return 'ih '+s.ih+'  ch '+s.ch+'  vv '+s.vh+'  scr '+s.sh+'  inT '+s.it+'  inB '+s.ib; }
+  function render(){ if(!box) return; var first=tl[0], last=tl[tl.length-1];
+    var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
+    var body=box.querySelector('.vpd-body'); if(!body) return;
+    body.innerHTML=''
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · +'+(last.t-first.t)+'ms</div>'
+      +'<div>launch  '+fmt(first)+'</div>'
+      +'<div>now     '+fmt(last)+'</div>'
+      +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
+      +'<div style="color:#9AB;margin-top:2px">--vhpx '+last.vp+'   samples '+tl.length+'</div>'; }
+  function sample(){ if(!enabled) return; try{ tl.push(snap()); if(tl.length>80) tl.shift(); render(); }catch(e){} }
+  function build(){ if(box) return;
+    box=document.createElement('div');
+    box.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:8px;right:8px;z-index:2147483646;background:rgba(6,10,14,.92);border:1px solid #2b6;border-radius:12px;padding:9px 11px;font:11px/1.5 Monaco,Consolas,monospace;color:#DFF;box-shadow:0 6px 24px rgba(0,0,0,.6);letter-spacing:.02em';
+    box.innerHTML='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:2px"><button class="vpd-copy" style="font:inherit;background:#123;color:#8CF;border:1px solid #37a;border-radius:7px;padding:2px 9px">copy</button><button class="vpd-x" style="font:inherit;background:#311;color:#F99;border:1px solid #a33;border-radius:7px;padding:2px 9px">&#215;</button></div><div class="vpd-body"></div>';
+    (document.body||document.documentElement).appendChild(box);
+    box.querySelector('.vpd-x').onclick=function(){ disable(); };
+    box.querySelector('.vpd-copy').onclick=function(){ var b=this; try{ navigator.clipboard.writeText(JSON.stringify(tl)); b.textContent='copied'; setTimeout(function(){b.textContent='copy';},1200);}catch(e){ b.textContent='err'; } }; }
+  function enable(persist){ if(enabled) return; enabled=true;
+    try{ if(persist) localStorage.setItem('hk_vpdiag','1'); }catch(e){}
+    if(!seeded && window.__vpBoot){ tl.push({t:window.__vpBoot.t, ih:window.__vpBoot.ih||0, ch:0, vh:window.__vpBoot.vh==null?-1:Math.round(window.__vpBoot.vh), sh:window.__vpBoot.sh==null?-1:window.__vpBoot.sh, it:-1, ib:-1, vp:'-'}); seeded=true; }
+    build(); sample();
+    addEventListener('resize',sample,{passive:true});
+    if(window.visualViewport){try{visualViewport.addEventListener('resize',sample,{passive:true});}catch(e){}}
+    [30,80,150,250,400,600,900,1300,1700,2400].forEach(function(t){ setTimeout(sample,t); }); }
+  function disable(){ enabled=false; try{ localStorage.removeItem('hk_vpdiag'); }catch(e){} if(box&&box.parentNode) box.parentNode.removeChild(box); box=null; }
+  window.__vpDiag={enable:function(){enable(true);},disable:disable};
+  try{ var h=(location.search+location.hash).toLowerCase();
+    var on = h.indexOf('vpd=1')>=0 || h.indexOf('#vpd')>=0;
+    if(!on){ try{ on = localStorage.getItem('hk_vpdiag')==='1'; }catch(e){} }
+    if(on) enable(false); }catch(e){}
+  var taps=[];
+  try{ document.addEventListener('pointerdown',function(e){
+    if(e.clientX>90 || e.clientY>90) return;   // top-left ~90px corner only
+    var now=Date.now(); taps.push(now); taps=taps.filter(function(t){return now-t<650;});
+    if(taps.length>=3){ taps=[]; if(enabled) disable(); else enable(true); }
+  },true); }catch(e){}
+})();
 
 // ── Fetch staff ──
 function fetchStaff(cb){ if(cb)cb(); } // staff PINs are verified server-side via verify-pin; never fetched to the browser
@@ -8730,7 +8830,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12252,7 +12352,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

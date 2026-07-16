@@ -31,7 +31,12 @@
        screen including the notch / home-indicator safe-area zones. In a home-screen PWA iOS can
        otherwise leave those zones showing as bands; this guarantees the black bleeds edge-to-edge
        so the app looks like it fills the whole phone. Sits behind everything. */
-    #app-bg{position:fixed;top:-100px;left:-100px;right:-100px;bottom:-100px;background:var(--bg);z-index:-1;pointer-events:none}
+    #app-bg{position:fixed;
+      top:calc(-1 * env(safe-area-inset-top,0px) - 40px);
+      left:calc(-1 * env(safe-area-inset-left,0px) - 40px);
+      right:calc(-1 * env(safe-area-inset-right,0px) - 40px);
+      bottom:calc(-1 * env(safe-area-inset-bottom,0px) - 40px);
+      background:var(--bg);z-index:-1;pointer-events:none}
 
     /* ── DESKTOP / TABLET ── */
     @media (min-width: 600px) {
@@ -62,7 +67,9 @@
         /* During screen transitions, block all taps to prevent multi-tab opening */
     #app.nav-locked, #app.nav-locked * { pointer-events: none !important; }
     /* ── Shell ── */
-    #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden}
+    #app{position:fixed;top:0;left:0;right:0;
+      bottom:calc(-1 * env(safe-area-inset-bottom,0px));
+      display:flex;flex-direction:column;overflow:hidden}
     /* Searchable parts picker (bottom sheet) for the repair form */
     .rfq-pick-ov{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center}
     .rfq-pick-ov.on{display:flex}

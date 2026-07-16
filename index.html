@@ -158,9 +158,17 @@
        black triangles at each corner. The ring sits flush to all four physical edges. */
     #edge-frame{display:none}
     @media (pointer:coarse){
-      #edge-frame{display:block;position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2147482000;
-        border:4px solid #FF00E5;border-radius:56px;
-        box-shadow:0 0 12px 2px rgba(255,0,229,.6),inset 0 0 12px 2px rgba(255,0,229,.4)}
+      #edge-frame{display:block;position:fixed;
+        top:calc(-1 * env(safe-area-inset-top,0px));
+        left:calc(-1 * env(safe-area-inset-left,0px));
+        right:calc(-1 * env(safe-area-inset-right,0px));
+        bottom:calc(-1 * env(safe-area-inset-bottom,0px));
+        pointer-events:none;z-index:2147482000;
+        border:2.5px solid transparent;border-radius:56px;
+        background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
+        -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+        -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);mask-composite:exclude;
+        opacity:.85;filter:saturate(1.15)}
     }
 
     /* ── Header ── */
@@ -379,6 +387,21 @@
     .sd-dl{display:flex;gap:8px;margin:10px 0 4px}
     .sd-dlbtn{flex:1;text-align:center;padding:10px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#5EEAD4;font-size:12.5px;font-weight:700;cursor:pointer}
     .sd-empty{text-align:center;color:var(--t2);font-size:13px;padding:36px 16px;line-height:1.6}
+    /* session filter system */
+    .sd-filters{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+    .sd-frow{display:flex;flex-direction:column;gap:6px}
+    .sd-fchips{display:flex;flex-wrap:wrap;gap:7px}
+    .sd-fchip{padding:8px 13px;border-radius:11px;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;transition:all .12s}
+    .sd-fchip.on{background:linear-gradient(180deg,rgba(45,212,191,.30),rgba(45,212,191,.15));border-color:rgba(45,212,191,.6);color:#5EEAD4}
+    .sd-slist{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+    .sd-scard{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-radius:12px;border:1px solid var(--b2);background:var(--card,#12161d);cursor:pointer;transition:all .12s}
+    .sd-scard:hover{border-color:rgba(45,212,191,.4)}
+    .sd-scard.on{background:linear-gradient(180deg,rgba(45,212,191,.14),rgba(45,212,191,.06));border-color:rgba(45,212,191,.55)}
+    .sd-scard .sc-l{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .sd-scard .sc-time{font-size:15px;font-weight:800;color:var(--t1)}
+    .sd-scard .sc-meta{font-size:11.5px;color:var(--t2)}
+    .sd-scard .sc-karts{flex:none;font-size:11px;font-weight:700;color:#5EEAD4;background:rgba(45,212,191,.12);border-radius:8px;padding:5px 9px}
+    .sd-snone{text-align:center;color:var(--t2);font-size:13px;padding:20px 16px}
     /* HK AI chat — fills the screen; messages scroll, input pinned to the bottom (inside the edge frame) */
     #s-hkai .sb{display:flex;flex-direction:column;padding:0;overflow:hidden;padding-bottom:0}
     .ai-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -1467,8 +1490,8 @@
     .bcnempty .big{font-size:17px;color:var(--t1);font-weight:700;margin-bottom:6px}
     .bcnscrim{position:absolute;inset:0;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:.2s;z-index:40}
     .bcnscrim.on{opacity:1;pointer-events:auto}
-    .bcndrawer{position:absolute;top:0;left:0;height:100%;width:312px;max-width:86%;background:var(--card);border-right:1px solid var(--b2);box-shadow:18px 0 50px rgba(0,0,0,.5);transform:translateX(-104%);transition:transform .24s cubic-bezier(.2,.7,.2,1);z-index:41;display:flex;flex-direction:column}
-    .bcndrawer.on{transform:none}
+    .bcndrawer{position:absolute;top:0;left:0;height:100%;width:312px;max-width:86%;background:var(--card);border-right:1px solid var(--b2);box-shadow:18px 0 50px rgba(0,0,0,.5);transform:translateX(-104%);visibility:hidden;transition:transform .24s cubic-bezier(.2,.7,.2,1),visibility .24s;z-index:41;display:flex;flex-direction:column}
+    .bcndrawer.on{visibility:visible;transform:none}
     .bcndh{padding:18px 18px 12px;border-bottom:1px solid var(--b1)}
     .bcndh .t{font-weight:800;font-size:16px}
     .bcndh .s{color:var(--t2);font-size:12px;margin-top:3px}
@@ -2362,7 +2385,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DF · ZXing raw</div>
       </div>
     </div>
 
@@ -3953,6 +3976,11 @@ function fetchStaff(cb){ if(cb)cb(); } // staff PINs are verified server-side vi
 // ── Session ──
 var stk=[];
 (function(){
+  // Belt-and-braces: make sure no drawer/overlay is stuck open from a stale iOS launch snapshot.
+  try{ var _d=document.getElementById('ai-drawer'); if(_d) _d.classList.remove('open');
+       var _db=document.getElementById('ai-drawer-back'); if(_db) _db.classList.remove('open');
+       var _bd=document.getElementById('bcnDrawer'); if(_bd) _bd.classList.remove('on');
+       var _bs=document.getElementById('bcnScrim'); if(_bs) _bs.classList.remove('on'); }catch(e){}
   // TV kiosk mode: …/#tv boots a read-only fullscreen board instead of the PIN screen.
   // A site can be appended for per-TV displays: …/#tv-melbourne (or #tv/melbourne, #tv=melbourne).
   var _hh=(location.hash||'').replace(/^#/,'').split(/[?&]/)[0].toLowerCase();
@@ -8686,7 +8714,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11279,6 +11307,7 @@ function hkNotify(toName,title,body,tag,url){
    the graph is down-sampled MIN-PRESERVING (keeps the lowest value in each bucket)
    so a momentary cell dropout still shows as a spike instead of being averaged away. */
 var SD_SESS=[], SD_RUNS={}, SD_SESSION=null, SD_KART=null, SD_ROWS=[], SD_BANK='R', _sdChart=null;
+var SD_FILT={date:null, track:null};   // active session filters
 var SD_CELL_NAMES=['L1','L2','L3','L4','L5','L6','L7','L8','R1','R2','R3','R4','R5','R6','R7','R8'];
 function _sdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function _sdSyd(iso,withDay){ try{ var o={timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}; if(withDay){o.day='2-digit';o.month='short';} return new Date(iso).toLocaleString('en-AU',o); }catch(e){ return ''; } }
@@ -11287,39 +11316,94 @@ function sdEnter(){
   body.innerHTML='<div class="sd-empty">Loading sessions…</div>';
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
   var since=new Date(Date.now()-7*86400000).toISOString();
-  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(120).then(function(r){
+  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(200).then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ body.innerHTML='<div class="sd-empty">Session data isn\u2019t set up yet.<br>Run hk_ai.sql and deploy the runner, then sessions will appear here after they run.</div>'; return; }
-    SD_SESS=(r&&r.data)||[];
-    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No sessions in the last 7 days yet.<br>Once the runner is live and a session runs, it\u2019ll show here with its cell data.</div>'; return; }
+    var all=(r&&r.data)||[];
+    // Only sessions that were actually GREEN-FLAGGED (ran) — status in_progress or finished, not
+    // just scheduled/future. And only Adult + Intermediate tracks (the RiMO-logged fleets).
+    SD_SESS=all.filter(function(s){
+      var st=(s.status||'').toLowerCase();
+      var ran=/progress|finish|complete|closed|ended|running|live/.test(st);
+      var trk=(s.track||'').toLowerCase();
+      var wanted=/adult|inter/.test(trk);
+      return ran && wanted;
+    });
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No green-flagged Adult or Intermediate sessions in the last 7 days.<br>Once a race is started, it\u2019ll show here with its cell data.</div>'; return; }
     // load runs (karts) for all sessions
     SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
       SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
-      SD_SESSION=SD_SESS[0].uuid;
-      var firstRuns=SD_RUNS[SD_SESSION]||[]; SD_KART=firstRuns.length?firstRuns[0]:null;
-      sdRenderShell(); sdLoadTrace();
-    },function(){ SD_RUNS={}; SD_SESSION=SD_SESS[0].uuid; sdRenderShell(); });
+      SD_SESSION=null; SD_KART=null;   // user picks via the filter list
+      sdRenderShell();
+    },function(){ SD_RUNS={}; sdRenderShell(); });
   },function(){ body.innerHTML='<div class="sd-empty">Couldn\u2019t load sessions.</div>'; });
 }
+function _sdDayKey(iso){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso)); }catch(e){ return ''; } }
+function _sdDayLabel(key){ // key is YYYY-MM-DD
+  var today=_sdDayKey(new Date().toISOString());
+  var yday=_sdDayKey(new Date(Date.now()-86400000).toISOString());
+  if(key===today) return 'Today';
+  if(key===yday) return 'Yesterday';
+  var p=key.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]);
+  return d.getDate()+' '+_CH_MO[d.getMonth()];
+}
+function _sdTrackLabel(t){ t=(t||'').toLowerCase(); if(/inter/.test(t)) return 'Intermediate'; if(/adult/.test(t)) return 'Adult'; return t; }
 function sdRenderShell(){
   var body=document.getElementById('sd-body'); if(!body) return;
-  var opts=SD_SESS.map(function(s){
+  // build the available filter values from the loaded sessions
+  var days={}, tracks={};
+  SD_SESS.forEach(function(s){ var dk=_sdDayKey(s.scheduled_at); if(dk) days[dk]=1; var tl=_sdTrackLabel(s.track); if(tl) tracks[tl]=1; });
+  var dayKeys=Object.keys(days).sort().reverse();
+  var trackKeys=Object.keys(tracks).sort();
+  // default the date filter to the most recent day if nothing chosen
+  if(!SD_FILT.date && dayKeys.length) SD_FILT.date=dayKeys[0];
+
+  var dayChips=dayKeys.map(function(k){ return '<div class="sd-fchip'+(SD_FILT.date===k?' on':'')+'" onclick="sdSetFilter(\'date\',\''+k+'\')">'+_sdEsc(_sdDayLabel(k))+'</div>'; }).join('');
+  var trackChips='<div class="sd-fchip'+(!SD_FILT.track?' on':'')+'" onclick="sdSetFilter(\'track\',\'\')">All</div>'+
+    trackKeys.map(function(k){ return '<div class="sd-fchip'+(SD_FILT.track===k?' on':'')+'" onclick="sdSetFilter(\'track\',\''+k+'\')">'+_sdEsc(k)+'</div>'; }).join('');
+
+  // filtered session list (most recent first)
+  var list=SD_SESS.filter(function(s){
+    if(SD_FILT.date && _sdDayKey(s.scheduled_at)!==SD_FILT.date) return false;
+    if(SD_FILT.track && _sdTrackLabel(s.track)!==SD_FILT.track) return false;
+    return true;
+  });
+  var listHTML=list.length?list.map(function(s){
     var ks=(SD_RUNS[s.uuid]||[]).length;
-    return '<option value="'+s.uuid+'"'+(s.uuid===SD_SESSION?' selected':'')+'>'+_sdEsc(_sdSyd(s.scheduled_at,true)+' · '+(s.track||'')+' · '+ks+' kart'+(ks===1?'':'s'))+'</option>';
-  }).join('');
+    var t=_sdSyd(s.scheduled_at).replace(/:\d\d /,' ');   // e.g. "10:40 am"
+    return '<div class="sd-scard'+(s.uuid===SD_SESSION?' on':'')+'" onclick="sdPickSession(\''+s.uuid+'\')">'+
+      '<div class="sc-l"><div class="sc-time">'+_sdEsc(t)+'</div><div class="sc-meta">'+_sdEsc((s.label||'')+' \u00b7 '+_sdTrackLabel(s.track))+'</div></div>'+
+      '<div class="sc-karts">'+ks+' kart'+(ks===1?'':'s')+'</div></div>';
+  }).join(''):'<div class="sd-snone">No sessions match these filters.</div>';
+
+  // keep a valid selection: if the current pick isn't in the filtered list, clear the trace
+  if(SD_SESSION && !list.some(function(s){return s.uuid===SD_SESSION;})){ SD_SESSION=null; SD_KART=null; }
+
   var runs=SD_RUNS[SD_SESSION]||[];
-  var kchips=runs.length?runs.map(function(rn){
-    return '<div class="sd-kchip'+((SD_KART&&rn.kart_no===SD_KART.kart_no)?' on':'')+'" onclick="sdPickKart(\''+_sdEsc(String(rn.kart_no))+'\')">'+_sdEsc(String(rn.kart_no))+'</div>';
-  }).join(''):'<div style="color:var(--t2);font-size:12px">No karts recorded for this session.</div>';
+  var kartBlock='';
+  if(SD_SESSION){
+    var kchips=runs.length?runs.map(function(rn){
+      return '<div class="sd-kchip'+((SD_KART&&rn.kart_no===SD_KART.kart_no)?' on':'')+'" onclick="sdPickKart(\''+_sdEsc(String(rn.kart_no))+'\')">'+_sdEsc(String(rn.kart_no))+'</div>';
+    }).join(''):'<div style="color:var(--t2);font-size:12px">No karts recorded for this session.</div>';
+    kartBlock='<div class="sd-lbl" style="margin-top:14px">Kart on track</div><div class="sd-kchips">'+kchips+'</div>';
+  }
+
   body.innerHTML=
-    '<div class="sd-lbl">Session</div>'+
-    '<select class="sd-sel" id="sd-sess" onchange="sdPickSession(this.value)">'+opts+'</select>'+
-    '<div class="sd-lbl">Kart on track</div>'+
-    '<div class="sd-kchips">'+kchips+'</div>'+
-    '<div id="sd-trace"><div class="sd-empty">Loading cell data…</div></div>';
+    '<div class="sd-filters">'+
+      '<div class="sd-frow"><div class="sd-lbl">Date</div><div class="sd-fchips">'+(dayChips||'<span style="color:var(--t2);font-size:12px">No sessions</span>')+'</div></div>'+
+      '<div class="sd-frow"><div class="sd-lbl">Track</div><div class="sd-fchips">'+trackChips+'</div></div>'+
+    '</div>'+
+    '<div class="sd-lbl">Session'+(list.length?' ('+list.length+')':'')+'</div>'+
+    '<div class="sd-slist">'+listHTML+'</div>'+
+    kartBlock+
+    '<div id="sd-trace">'+(SD_SESSION?'<div class="sd-empty">Loading cell data\u2026</div>':'<div class="sd-empty">Pick a session above to see its cell data.</div>')+'</div>';
+}
+function sdSetFilter(kind,val){
+  SD_FILT[kind]=val||null;
+  sdRenderShell();
 }
 function sdPickSession(uuid){
   SD_SESSION=uuid; var runs=SD_RUNS[uuid]||[]; SD_KART=runs.length?runs[0]:null;
-  sdRenderShell(); sdLoadTrace();
+  sdRenderShell(); if(SD_KART) sdLoadTrace();
 }
 function sdPickKart(kartNo){
   var runs=SD_RUNS[SD_SESSION]||[]; SD_KART=runs.filter(function(r){return String(r.kart_no)===String(kartNo);})[0]||null;
@@ -11334,7 +11418,7 @@ function sdLoadTrace(){
   box.innerHTML='<div class="sd-empty">Loading cell data for Kart '+_sdEsc(String(SD_KART.kart_no))+'…</div>';
   var from=sess.scheduled_at, to=sess.ends_at||new Date(Date.parse(sess.scheduled_at)+15*60000).toISOString();
   // query by serial (fleet_management_id) if we have it, else by kart number
-  var query=SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000);
+  var query=SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults,online').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000);
   if(SD_KART.fleet_management_id){ query=query.eq('serial_no',SD_KART.fleet_management_id); }
   else { query=query.eq('kart_no',parseInt(SD_KART.kart_no,10)); }
   query.then(function(r){
@@ -11354,6 +11438,18 @@ function sdAnalyse(){
   });
   var worst=-1,wi=-1; per.forEach(function(p,i){ if(p.first==null)return; var d=p.max-p.min; if(d>worst){worst=d;wi=i;} });
   return {per:per,worstIdx:wi,worstDrop:worst};
+}
+function sdOfflineCheck(){
+  // A kart is "offline" at a sample if online===0, OR if there's a big time GAP between consecutive
+  // samples (the logger only writes when a kart responds, so a gap = it dropped off track/offline).
+  var events=[], n=SD_ROWS.length;
+  var GAP_MS=8000;   // samples are ~0.5-1s apart; an 8s+ gap means it went missing
+  for(var i=0;i<n;i++){
+    var r=SD_ROWS[i];
+    if(r.online===0||r.online==='0'){ events.push({type:'flag',at:r.at}); }
+    if(i>0){ var dt=Date.parse(r.at)-Date.parse(SD_ROWS[i-1].at); if(dt>GAP_MS){ events.push({type:'gap',from:SD_ROWS[i-1].at,to:r.at,secs:Math.round(dt/1000)}); } }
+  }
+  return events;
 }
 function sdRenderTrace(){
   var box=document.getElementById('sd-trace'); if(!box) return;
@@ -11432,13 +11528,14 @@ function sdRenderTable(){
   var cols = SD_BANK==='all'?SD_CELL_NAMES : (SD_BANK==='L'?SD_CELL_NAMES.slice(0,8):SD_CELL_NAMES.slice(8,16));
   var idxs = cols.map(function(nm){return SD_CELL_NAMES.indexOf(nm);});
   var a=sdAnalyse();
-  var head='<tr><th>Time</th><th>SOC</th><th>Pack</th>'+cols.map(function(nm){return '<th>'+nm+'</th>';}).join('')+'</tr>';
+  var head='<tr><th>Time</th><th>On</th><th>SOC</th><th>Pack</th>'+cols.map(function(nm){return '<th>'+nm+'</th>';}).join('')+'</tr>';
   // virtualise: render at most ~600 rows for smoothness; note if truncated (CSV has all)
   var MAXR=600, n=SD_ROWS.length, step=n>MAXR?Math.ceil(n/MAXR):1;
   var rows='';
   for(var i=0;i<n;i+=step){
     var row=SD_ROWS[i];
-    rows+='<tr><td>'+_sdSyd(row.at)+'</td><td>'+(row.soc!=null?Math.round(row.soc)+'%':'-')+'</td><td>'+(row.pack_v!=null?(+row.pack_v).toFixed(1):'-')+'</td>';
+    var onl=(row.online===0||row.online==='0')?'<span style="color:#F09595">\u25cf</span>':'<span style="color:#7CFCA9">\u25cf</span>';
+    rows+='<tr><td>'+_sdSyd(row.at)+'</td><td style="text-align:center">'+onl+'</td><td>'+(row.soc!=null?Math.round(row.soc)+'%':'-')+'</td><td>'+(row.pack_v!=null?(+row.pack_v).toFixed(1):'-')+'</td>';
     idxs.forEach(function(ci){ var v=_sdCellVal(row,ci); var cls=(v==null)?'':(v>3?'cell-ok':(v>=2.6?'cell-warn':'cell-bad')); rows+='<td class="'+cls+'">'+(v!=null?(+v).toFixed(2):'-')+'</td>'; });
     rows+='</tr>';
   }
@@ -12137,7 +12234,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

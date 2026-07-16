@@ -148,11 +148,13 @@
     .rd-chev{color:var(--t2);font-size:20px;font-weight:700;margin-left:-2px}
     /* Forge-style ambient frame: a thin brand-gradient ring hugging the PHYSICAL screen edges
        (viewport-fit=cover lets fixed elements reach into the notch / home-indicator areas), so the
-       app visibly uses the whole phone. Touch devices only — pointless around a desktop window. */
+       app visibly uses the whole phone. Touch devices only — pointless around a desktop window.
+       Radius matches modern iPhone screen corners (~55px) so it hugs the curve instead of cutting
+       black triangles at each corner. The ring sits flush to all four physical edges. */
     #edge-frame{display:none}
     @media (pointer:coarse){
-      #edge-frame{display:block;position:fixed;inset:0;pointer-events:none;z-index:2147482000;
-        border:2.5px solid transparent;border-radius:48px;
+      #edge-frame{display:block;position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2147482000;
+        border:2.5px solid transparent;border-radius:56px;
         background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
         -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
         -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);mask-composite:exclude;
@@ -2351,7 +2353,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CU · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-CV · ZXing raw</div>
       </div>
     </div>
 
@@ -8675,7 +8677,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-CV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12126,7 +12128,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-CV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

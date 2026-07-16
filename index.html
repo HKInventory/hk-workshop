@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <!-- 'black' (solid) not 'black-translucent': translucent makes iOS letterbox the webview to
+       screen-minus-statusbar height positioned at the TOP, leaving an unpaintable ~39px black slab
+       at the BOTTOM (confirmed on-device — nothing composites below innerHeight). Solid 'black' puts
+       the bar at the top and fills the app to the physical bottom. App bg is #000 so it looks identical. -->
   <meta name="apple-mobile-web-app-title" content="HK Workshop">
   <meta name="theme-color" content="#000000">
   <link rel="manifest" href="manifest.json">
@@ -108,8 +112,7 @@
         /* During screen transitions, block all taps to prevent multi-tab opening */
     #app.nav-locked, #app.nav-locked * { pointer-events: none !important; }
     /* ── Shell ── */
-    #app{position:fixed;top:0;left:0;right:0;
-      bottom:calc(-1 * var(--gapB, 0px));   /* reach the physical bottom on letterboxed iOS PWAs; scrollers already pad ≥48px so content stays clear */
+    #app{position:fixed;top:0;left:0;right:0;bottom:0;   /* solid-black status bar makes the window reach the physical bottom; fill it */
       display:flex;flex-direction:column;overflow:hidden}
     /* Searchable parts picker (bottom sheet) for the repair form */
     .rfq-pick-ov{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center}
@@ -207,15 +210,11 @@
     #edge-frame{display:none}
     @media (pointer:coarse){
       #edge-frame{display:block;position:fixed;
-        /* On-device diag proved the webview window is innerHeight (654) tall starting at PHYSICAL 0
-           with the status bar drawn translucently over it — NOT inset by the safe areas. So:
-           · top:-inset pushed the top stroke to physical -39 = OFF-SCREEN (why no top edge showed);
-             the correct top is 0 — the stroke sits at the very top, under the translucent clock.
-           · the bottom of the physical screen is innerHeight + (screen.height - innerHeight); JS
-             measures that gap into --gapB (39 on this device) so the bottom stroke lands exactly at
-             the physical bottom edge. No env() anywhere — env-in-calc proved unreliable here. */
-        top:0;left:0;right:0;
-        bottom:calc(-1 * var(--gapB, 0px));
+        /* With the solid 'black' status bar the webview now fills to the physical bottom, so the ring
+           just fills the window: top/bottom/left/right = 0. The status bar sits above the window (its
+           own black strip with the clock); the ring frames the app from just under it to the very edge.
+           A 6px bottom bleed guarantees the stroke reaches the rounded corner with no hairline gap. */
+        top:0;left:0;right:0;bottom:-6px;
         pointer-events:none;z-index:2147482000;
         border:2.5px solid transparent;border-radius:56px;
         background:linear-gradient(160deg,#7C3AED 0%,#2563EB 18%,#06B6D4 36%,#22C55E 54%,#F59E0B 72%,#EC4899 88%,#7C3AED 100%) border-box;
@@ -2447,7 +2446,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DM · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DN · ZXing raw</div>
       </div>
     </div>
 
@@ -4064,7 +4063,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DM</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DN</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -8843,7 +8842,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12371,7 +12370,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';

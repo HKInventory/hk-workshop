@@ -2,7 +2,7 @@
   "name": "HK Workshop",
   "short_name": "HK Workshop",
   "start_url": "/hk-workshop/",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",

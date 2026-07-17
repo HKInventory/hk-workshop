@@ -2459,7 +2459,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DR · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DT · ZXing raw</div>
       </div>
     </div>
 
@@ -4076,7 +4076,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DR</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DT</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -8855,7 +8855,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11621,17 +11621,17 @@ function sdRenderTrace(){
   var isBad=(a.worstIdx>=0 && lowest!=null && lowest<2.8);
   var verdict;
   if(isBad){
-    verdict='<div class="sd-verdict bad">\u26a0\ufe0f <b>Cell '+SD_CELL_NAMES[a.worstIdx]+' sagged</b> \u2014 dropped to <b>'+Math.round(lowest*1000)+'mV</b> at '+_sdSyd(minCell.minAt)+' (healthy cells held ~3300mV). Likely the weak/dead cell.</div>';
+    verdict='<div class="sd-verdict bad">\u26a0\ufe0f <b>Cell '+SD_CELL_NAMES[a.worstIdx]+' sagged</b> \u2014 dropped to <b>'+lowest.toFixed(2)+'V</b> at '+_sdSyd(minCell.minAt)+' (healthy cells held ~3.3V). Likely the weak/dead cell.</div>';
   } else {
-    verdict='<div class="sd-verdict ok">\u2705 All cells held up \u2014 lowest was '+(lowest!=null?Math.round(lowest*1000)+'mV':'?')+' ('+(a.worstIdx>=0?SD_CELL_NAMES[a.worstIdx]:'?')+'). No obvious dead cell this session.</div>';
+    verdict='<div class="sd-verdict ok">\u2705 All cells held up \u2014 lowest was '+(lowest!=null?lowest.toFixed(2)+'V':'?')+' ('+(a.worstIdx>=0?SD_CELL_NAMES[a.worstIdx]:'?')+'). No obvious dead cell this session.</div>';
   }
   box.innerHTML=
     verdict+
     '<div class="sd-card"><div class="sd-card-t"><span>Cell voltages over session (mV)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' samples · 16 cells</span></div>'+
-      '<div style="position:relative;height:190px"><canvas id="sd-chart"></canvas></div>'+
+      '<div style="position:relative;width:100%"><canvas id="sd-chart"></canvas></div>'+
       '<div class="sd-legend"><div class="sd-lg"><span style="background:#378add"></span>L1\u2013L8</div><div class="sd-lg"><span style="background:#1d9e75"></span>R1\u2013R8</div>'+(a.worstIdx>=0&&isBad?'<div class="sd-lg"><span style="background:#e24b4a"></span>'+SD_CELL_NAMES[a.worstIdx]+' (worst)</div>':'')+'</div>'+
     '</div>'+
-    '<div class="sd-card-t"><span>Every 0.5s reading \u2014 all 16 cells (mV)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' rows</span></div>'+
+    '<div class="sd-card-t"><span>Every 0.5s reading \u2014 all 16 cells (V)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' rows</span></div>'+
     '<div class="sd-tblwrap" id="sd-tblwrap"></div>'+
     '<div class="sd-dl"><div class="sd-dlbtn" onclick="sdExportCSV()">\u2b07 Export CSV (all 0.5s)</div></div>';
   sdDrawChart(a); sdRenderTable();
@@ -11655,27 +11655,34 @@ function sdDrawChart(a){
   // Hand-rolled SVG (no external chart lib — app stays self-contained/offline).
   var d=_sdBucketMin();
   var host=document.getElementById('sd-chart'); if(!host) return;
-  var W=680,H=190,P={t:10,r:10,b:22,l:52};
+  var W=680,H=300,P={t:12,r:12,b:26,l:56};
   var iw=W-P.l-P.r, ih=H-P.t-P.b, n=d.labels.length||1;
   // y-range from data
   var lo=Infinity,hi=-Infinity;
   d.series.forEach(function(s){ s.data.forEach(function(v){ if(v==null)return; if(v<lo)lo=v; if(v>hi)hi=v; }); });
   if(!isFinite(lo)){ host.outerHTML='<div style="color:var(--t2);font-size:12px;padding:20px;text-align:center">No cell values to plot.</div>'; return; }
-  lo=Math.min(lo,2.0); hi=Math.max(hi,3.6); var pad=(hi-lo)*0.06||0.1; lo-=pad; hi+=pad;
+  // Hug the actual data so small sags are visible, keep a sensible minimum window, and snap to clean
+  // round-number millivolt gridlines. Aim for ~10-12 lines so the axis is detailed and easy to read off.
+  var loMv=Math.floor(lo*1000), hiMv=Math.ceil(hi*1000);
+  if(hiMv-loMv<250){ var midMv=Math.round((loMv+hiMv)/2); loMv=midMv-125; hiMv=midMv+125; }
+  var _niceMv=[10,20,25,50,100,150,200,250,500], _spanMv=hiMv-loMv, stepMv=_niceMv[_niceMv.length-1];
+  for(var _s=0;_s<_niceMv.length;_s++){ if(_spanMv/_niceMv[_s] <= 12){ stepMv=_niceMv[_s]; break; } }
+  loMv=Math.floor(loMv/stepMv)*stepMv; hiMv=Math.ceil(hiMv/stepMv)*stepMv;
+  lo=loMv/1000; hi=hiMv/1000;
   function X(i){ return P.l+(n>1?(i/(n-1))*iw:iw/2); }
   function Y(v){ return P.t+ih-((v-lo)/(hi-lo||1))*ih; }
   var grid='',gl='';
-  for(var g=0;g<=3;g++){ var gv=lo+(hi-lo)*g/3, gy=Y(gv);
-    grid+='<line x1="'+P.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-P.r)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
-    gl+='<text x="'+(P.l-6)+'" y="'+(gy+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="#6b7280">'+Math.round(gv*1000)+'mV</text>'; }
+  for(var gvMv=loMv; gvMv<=hiMv+0.5; gvMv+=stepMv){ var gy=Y(gvMv/1000);
+    grid+='<line x1="'+P.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-P.r)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.07)" stroke-width="1"/>';
+    gl+='<text x="'+(P.l-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8a93a0">'+gvMv+'mV</text>'; }
   function pathFor(data){ var p=''; for(var i=0;i<data.length;i++){ if(data[i]==null)continue; p+=(p?' L':'M')+X(i).toFixed(1)+' '+Y(data[i]).toFixed(1); } return p; }
   var paths='';
   for(var c=0;c<16;c++){ if(c===a.worstIdx)continue; var left=c<8;
-    paths+='<path d="'+pathFor(d.series[c].data)+'" fill="none" stroke="'+(left?'rgba(55,138,221,.42)':'rgba(29,158,117,.42)')+'" stroke-width="1"/>'; }
-  if(a.worstIdx>=0){ paths+='<path d="'+pathFor(d.series[a.worstIdx].data)+'" fill="none" stroke="#e24b4a" stroke-width="2.4" stroke-linejoin="round"/>'; }
+    paths+='<path d="'+pathFor(d.series[c].data)+'" fill="none" stroke="'+(left?'rgba(55,138,221,.45)':'rgba(29,158,117,.45)')+'" stroke-width="1.2"/>'; }
+  if(a.worstIdx>=0){ paths+='<path d="'+pathFor(d.series[a.worstIdx].data)+'" fill="none" stroke="#e24b4a" stroke-width="2.8" stroke-linejoin="round"/>'; }
   // a few x labels
   var xl='', stepL=Math.max(1,Math.ceil(n/6));
-  for(var j=0;j<n;j+=stepL){ xl+='<text x="'+X(j).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="8.5" fill="#6b7280">'+_sdEsc(d.labels[j]||'')+'</text>'; }
+  for(var j=0;j<n;j+=stepL){ xl+='<text x="'+X(j).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#8a93a0">'+_sdEsc(d.labels[j]||'')+'</text>'; }
   var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block" role="img" aria-label="Cell voltages over the session">'+grid+gl+paths+xl+'</svg>';
   // replace the canvas element with the svg
   var parent=host.parentNode; if(parent){ parent.innerHTML=svg; }
@@ -11694,7 +11701,7 @@ function sdRenderTable(){
     var row=SD_ROWS[i];
     var onl=(row.online===0||row.online==='0')?'<span style="color:#F09595">\u25cf</span>':'<span style="color:#7CFCA9">\u25cf</span>';
     rows+='<tr><td>'+_sdSyd(row.at)+'</td><td style="text-align:center">'+onl+'</td><td>'+(row.soc!=null?Math.round(row.soc)+'%':'-')+'</td><td>'+(row.pack_v!=null?(+row.pack_v).toFixed(1):'-')+'</td>';
-    idxs.forEach(function(ci){ var v=_sdCellVal(row,ci); var cls=(v==null)?'':(v>3?'cell-ok':(v>=2.6?'cell-warn':'cell-bad')); rows+='<td class="'+cls+'">'+(v!=null?Math.round(v*1000):'-')+'</td>'; });
+    idxs.forEach(function(ci){ var v=_sdCellVal(row,ci); var cls=(v==null)?'':(v>3?'cell-ok':(v>=2.6?'cell-warn':'cell-bad')); rows+='<td class="'+cls+'">'+(v!=null?(+v).toFixed(2):'-')+'</td>'; });
     rows+='</tr>';
   }
   wrap.innerHTML='<table class="sd-tbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>'+
@@ -12392,7 +12399,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -12755,7 +12762,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-DR';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-DT';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

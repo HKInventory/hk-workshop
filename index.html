@@ -2459,7 +2459,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DQ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-DR · ZXing raw</div>
       </div>
     </div>
 
@@ -4076,7 +4076,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DQ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-DR</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -8855,7 +8855,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-DR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11467,12 +11467,18 @@ function sdEnter(){
     SD_SESS=all.filter(function(s){
       var trk=(s.track||'').toLowerCase();
       if(!/adult|sprint|inter|twin/.test(trk)) return false;      // Adult / Intermediate / Twin only
-      // Only show a session once it has FINISHED (chequered). A race is done when its end time passes;
-      // ends_at is scheduled_at + the slot length, so we fall back to +13min if ends_at is missing.
-      // This keeps a live race hidden until it's over, and — because a finished session's end time
-      // stays in the past — it never disappears again once shown.
-      var endMs=s.ends_at?Date.parse(s.ends_at):(s.scheduled_at?Date.parse(s.scheduled_at)+13*60000:0);
-      if(!endMs || endMs>nowMs) return false;                     // not finished yet → hide
+      // FINISHED ONLY — never show a race before it starts or while it's running. RaceFacer reports a
+      // real status (finished / in_progress / not_started), which is the source of truth; the clock is
+      // only a fallback when status is missing/odd.
+      var st=(s.status||'').toLowerCase();
+      var startMs=s.scheduled_at?Date.parse(s.scheduled_at):0;
+      var endMs=s.ends_at?Date.parse(s.ends_at):(startMs?startMs+13*60000:0);
+      if(/progress|running|live|active|ongoing/.test(st)) return false;          // RUNNING → hide
+      if(/not.?started|scheduled|upcoming|pending|waiting|new/.test(st)) return false; // NOT STARTED → hide
+      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true; // FINISHED → show (trust status)
+      // status unknown → fall back to the clock: hide if it hasn't started or its window hasn't closed
+      if(startMs && startMs>nowMs) return false;
+      if(endMs && endMs>nowMs) return false;
       return true;
     });
     if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions yet today.<br>A race appears here once it\u2019s over. Cell data shows for karts the logger recorded while on track.</div>'; return; }
@@ -12386,7 +12392,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-DR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -12741,6 +12747,43 @@ function mrPushLoad(){
   } catch(e) {
     window.qrLibError = e.message;
   }
+</script>
+<script>
+/* ---- Auto-update: stale desktop tabs keep running old in-memory JS until reloaded, which is easy to
+   forget. This watches for a newer deployed build and offers a one-tap reload. HK_BUILD is bumped with
+   the other build markers on every deploy, so it always equals the running build; if the live file has a
+   higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
+   and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
+(function(){
+  var HK_BUILD='05Jul-DR';                 // running build (bumped by deploy)
+  var last=0, banner=null;
+  function showBanner(newB){
+    if(banner) return;
+    banner=document.createElement('div');
+    banner.id='hk-update-bar';
+    banner.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483600;'+
+      'padding:calc(10px + var(--satop,0px)) 16px 10px;background:linear-gradient(90deg,#2dd4bf,#22b8cf);'+
+      'color:#04231f;font:700 14px system-ui,-apple-system,sans-serif;text-align:center;cursor:pointer;'+
+      'box-shadow:0 3px 16px rgba(0,0,0,.45);letter-spacing:.01em';
+    banner.textContent='\u27f3 New version deployed \u2014 tap to update';
+    banner.onclick=function(){ try{ location.reload(); }catch(e){ location.href=location.href; } };
+    (document.body||document.documentElement).appendChild(banner);
+  }
+  function check(){
+    var now=Date.now(); if(now-last<25000) return; last=now;   // throttle: at most every 25s
+    try{
+      fetch(location.pathname+'?_hkv='+now,{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
+        if(!t) return;
+        var m=t.match(/05Jul-[A-Z]{2}\b/);                       // find the deployed build marker
+        if(m && m[0]!==HK_BUILD) showBanner(m[0]);
+      }).catch(function(){});
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) check(); });
+  window.addEventListener('focus',check);
+  setInterval(check, 180000);                                    // and every 3 min while open
+  setTimeout(check, 8000);                                       // one check shortly after load
+})();
 </script>
 </body>
 </html>

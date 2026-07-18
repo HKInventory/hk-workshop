@@ -963,6 +963,34 @@
     .kc-sum-dmg-row b{color:#FF6259}
     .kc-sum-close{margin-top:18px;width:100%;padding:13px;border-radius:13px;border:none;background:#22C55E;color:#fff;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit}
     .kc-confetti{position:absolute;width:11px;height:11px;border-radius:2px;will-change:transform,opacity}
+    /* Kart Check v2 — type boxes, run menu, forms */
+    .kc-typegrid{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+    .kc-typebox{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;background:var(--c1);border:1.5px solid var(--b1);border-radius:16px;padding:16px 16px 14px;cursor:pointer;font-family:inherit;text-align:left;transition:transform .12s,background .15s}
+    .kc-typebox:active{transform:scale(.985)}
+    .kc-tb-dot{width:12px;height:12px;border-radius:50%;position:absolute;top:17px;right:16px}
+    .kc-tb-name{font-size:19px;font-weight:900;color:var(--t1)}
+    .kc-tb-n{font-size:12px;font-weight:700;color:var(--t2)}
+    .kc-tb-go{font-size:13px;font-weight:800;margin-top:6px}
+    .kc-back{background:none;border:none;color:var(--acc);font-size:14px;font-weight:800;padding:2px 0 10px;cursor:pointer;font-family:inherit;display:block}
+    .kc-menu-h{font-size:21px;font-weight:900;margin:2px 0 2px}
+    .kc-check-by{font-size:12.5px;color:var(--t2);font-weight:600;margin-bottom:10px}
+    .kc-newbtn{width:100%;padding:14px;border-radius:14px;border:none;color:#fff;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;transition:transform .12s}
+    .kc-newbtn:active{transform:scale(.98)}
+    .kc-runs-h{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--t2);margin:18px 2px 8px}
+    .kc-runs{display:flex;flex-direction:column;gap:8px}
+    .kc-runs-empty{font-size:13px;color:var(--t2);margin:16px 2px}
+    .kc-runrow{display:flex;align-items:center;gap:10px;background:var(--c1);border:1.5px solid var(--b1);border-radius:13px;padding:12px 13px;cursor:pointer;font-family:inherit;text-align:left}
+    .kc-runrow.active{border-color:#22C55E66;background:#22C55E0d}
+    .kc-runrow:active{transform:scale(.99)}
+    .kc-run-main{flex:1;font-size:14px;color:var(--t1)}
+    .kc-run-sub{font-size:11.5px;color:var(--t2);font-weight:600;margin-top:2px}
+    .kc-run-cnt{font-size:11.5px;font-weight:700;color:var(--t2);text-align:right;white-space:nowrap}
+    .kc-run-live{font-size:9px;font-weight:900;letter-spacing:.5px;color:#fff;background:#22C55E;border-radius:5px;padding:2px 5px;vertical-align:middle}
+    .kc-newform{background:var(--c2);border:1.5px solid var(--b1);border-radius:14px;padding:14px;margin-top:10px}
+    .kc-fld{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--t2);margin-bottom:11px}
+    .kc-input{background:var(--c1);border:1.5px solid var(--b2);border-radius:10px;color:var(--t1);padding:11px;font-family:inherit;font-size:15px;font-weight:600;text-transform:none;letter-spacing:0}
+    .kc-nf-btns{display:flex;gap:8px}
+    .kc-nf-btns .kc-rf-cancel{flex:0 0 auto}.kc-nf-btns .kc-newbtn{flex:1}
     /* Parts used inside a repair */
     .repair-parts{margin-top:8px;border-top:1px dashed var(--b2);padding-top:8px}
     .repair-parts-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:5px}
@@ -6923,167 +6951,225 @@ function setKartType(type){
   renderKartChips();
 }
 
-/* ===================== KART CHECK =====================
-   Shared, live pre-session fleet check. Each kart of a type is ticked green (present & OK) or
-   red-X'd — a red X opens a note + Damaged/For-Maintenance choice that pushes STRAIGHT to
-   RaceFacer (one rf_note_queue row both files the note and flips the status), so a bad kart is
-   flagged BEFORE trading starts instead of after. State lives in the `kart_checks` table (one row
-   per kart per day), so several staff can split a type across their phones and see each other's
-   ticks live. On completion it shows a summary + confetti and pushes "Kart Count X is N" to all staff. */
-var KC_TYPE=null, KC_RESULTS={}, KC_RED=null, KC_RED_STATUS='damaged';   // KC_RESULTS[rfId]={result,note,by}
-function kcDate(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
+/* ===================== KART CHECK (v2) =====================
+   A Kart Check is a NAMED run. Landing = one box per kart type; tap a type to see its checks, then either
+   start a NEW check (mechanic + date) or open a previous one. In a check you tick each kart green (present
+   & OK) or red-X it (note + Damaged/For-Maintenance). Flags are recorded in the check as you go — so an
+   accidental red-X is undone with ZERO side effects (nothing has hit RaceFacer yet) — and are pushed to
+   RaceFacer in ONE batch when you COMPLETE the check (before trading opens), each flagged kart getting its
+   note + status in RF. Runs live in kart_check_runs and per-kart results in kart_checks (keyed by run_id)
+   with realtime, so a team can split a type across phones and see each other's ticks live. Completion shows
+   a summary + confetti and pushes "Kart Count <Type> Track is N!" to all staff. Needs kart_checks.sql. */
+var KC_VIEW='types', KC_TYPE=null, KC_RUN=null, KC_RUNS=[], KC_RESULTS={}, KC_RED=null, KC_RED_STATUS='damaged';
+function kcToday(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
 function _kcSite(){ return currentSite||'sydney'; }
 function _kcTypeLabel(t){ return t==='Intermediate'?'Inter':t; }
-// checkable = real fleet of a type that isn't long-term and isn't ALREADY damaged (so OK or FM). A kart
-// that's already been given a result THIS check stays in the list even after we flip it to damaged, so a
-// kart you just red-X'd doesn't vanish mid-check. Pre-existing damaged karts (no result) never appear.
-function _kcCheckable(k,type){ return !k.longTerm && k.type===type && k.rfId!=null && (_kcRes(k.rfId) || k.status!=='damaged'); }
-function kcFleet(type){ return (KART_LIST||[]).filter(function(k){ return _kcCheckable(k,type); }).sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); }); }
-function kcTypes(){ var c={}; (KART_LIST||[]).forEach(function(k){ if(k.longTerm||k.rfId==null)return; if(_kcRes(k.rfId)||k.status!=='damaged') c[k.type]=(c[k.type]||0)+1; });
-  var t=KART_TYPE_ORDER.filter(function(x){return c[x];}); Object.keys(c).forEach(function(x){ if(t.indexOf(x)<0)t.push(x); }); return t; }
+function _kcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _kcTime(iso){ try{ return new Date(iso).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Australia/Sydney'}); }catch(e){ return ''; } }
 function _kcRes(rfId){ return (KC_RESULTS[rfId]||{}).result||null; }
 function _kcOnScreen(){ try{ return stk[stk.length-1]==='kartcheck'; }catch(e){ return false; } }
+// checkable = fleet of a type, not long-term, not ALREADY damaged (OK or FM). A kart that's been given a
+// result in THIS run stays visible even after a flag, so a kart you just red-X'd doesn't vanish mid-check.
+function _kcCheckable(k,type){ return !k.longTerm && k.type===type && k.rfId!=null && (_kcRes(k.rfId) || k.status!=='damaged'); }
+function kcFleet(type){ return (KART_LIST||[]).filter(function(k){ return _kcCheckable(k,type); }).sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); }); }
+function kcTypes(){ var c={}; (KART_LIST||[]).forEach(function(k){ if(k.longTerm||k.rfId==null)return; if(k.status!=='damaged') c[k.type]=(c[k.type]||0)+1; });
+  var t=KART_TYPE_ORDER.filter(function(x){return c[x];}); Object.keys(c).forEach(function(x){ if(t.indexOf(x)<0)t.push(x); }); return t.map(function(x){return {type:x,n:c[x]};}); }
+
 function kcEnter(){
+  var tabsEl=document.getElementById('kc-type-tabs'); if(tabsEl) tabsEl.innerHTML='';
   var body=document.getElementById('kc-body'); if(!body) return;
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
-  body.innerHTML='<div class="sd-empty">Loading fleet…</div>'; KC_RED=null;
-  var render=function(){ var types=kcTypes(); if(KC_TYPE==null||types.indexOf(KC_TYPE)<0) KC_TYPE=types[0]||null; kcLoadResults(kcRender); };
-  if(!(KART_LIST&&KART_LIST.length)&&typeof loadRfKarts==='function'){ loadRfKarts(function(){ render(); }); }
-  else { render(); if(typeof loadRfKarts==='function') loadRfKarts(function(){ if(_kcOnScreen()) kcRender(); }); }
+  KC_VIEW='types'; KC_RUN=null; KC_RED=null;
+  if(!(KART_LIST&&KART_LIST.length)&&typeof loadRfKarts==='function'){ body.innerHTML='<div class="sd-empty">Loading fleet…</div>'; loadRfKarts(function(){ if(_kcOnScreen()) kcShowTypes(); }); }
+  else { kcShowTypes(); if(typeof loadRfKarts==='function') loadRfKarts(function(){ if(_kcOnScreen()&&KC_VIEW==='types') kcShowTypes(); }); }
 }
-function kcLoadResults(cb){ KC_RESULTS={};
-  SBC.from('kart_checks').select('rf_kart_id,result,note,by_name').eq('site',_kcSite()).eq('check_date',kcDate()).then(function(r){
-    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')){ var b=document.getElementById('kc-body'); if(b) b.innerHTML='<div class="sd-empty">Kart Check isn’t set up yet.<br>Run <b>kart_checks.sql</b> in Supabase, then reopen this tab.</div>'; return; }
-    ((r&&r.data)||[]).forEach(function(x){ if(x.rf_kart_id!=null) KC_RESULTS[x.rf_kart_id]={result:x.result,note:x.note,by:x.by_name}; });
-    if(cb)cb();
-  },function(){ if(cb)cb(); });
-}
-function setKcType(t){ KC_TYPE=t; KC_RED=null; kcRender(); }
-function kcRender(){
-  var tabsEl=document.getElementById('kc-type-tabs'), body=document.getElementById('kc-body'); if(!body) return;
+function kcShowTypes(){
+  KC_VIEW='types'; KC_TYPE=null; KC_RUN=null;
+  var body=document.getElementById('kc-body'); if(!body) return;
   var types=kcTypes();
-  if(!types.length){ if(tabsEl) tabsEl.innerHTML=''; body.innerHTML='<div class="sd-empty">No karts to check right now.</div>'; return; }
-  if(KC_TYPE==null||types.indexOf(KC_TYPE)<0) KC_TYPE=types[0];
-  if(tabsEl){ tabsEl.innerHTML=types.map(function(t){
-    var col=KART_TYPE_COLOR[t]||'#2DD4BF', fleet=kcFleet(t), done=fleet.filter(function(k){return _kcRes(k.rfId);}).length, active=(t===KC_TYPE);
-    var style=active?('background:'+col+'22;border-color:'+col+';color:'+col):'';
-    return '<button class="ktype-tab" style="'+style+'" onclick="setKcType(\''+t+'\')"><span>'+_kcTypeLabel(t)+'</span><span class="ktt-n"'+(active?(' style="color:'+col+'"'):'')+'>'+done+'/'+fleet.length+'</span></button>';
-  }).join(''); }
+  if(!types.length){ body.innerHTML='<div class="sd-empty">No karts to check right now.</div>'; return; }
+  var h='<div class="kc-typegrid">';
+  types.forEach(function(t){ var col=KART_TYPE_COLOR[t.type]||'#2DD4BF';
+    h+='<button class="kc-typebox" style="border-color:'+col+'55" onclick="kcOpenType(\''+t.type+'\')">'
+      +'<span class="kc-tb-dot" style="background:'+col+'"></span>'
+      +'<span class="kc-tb-name">'+_kcEsc(t.type)+'</span>'
+      +'<span class="kc-tb-n">'+t.n+' kart'+(t.n===1?'':'s')+'</span>'
+      +'<span class="kc-tb-go" style="color:'+col+'">Check ›</span></button>';
+  });
+  h+='</div>'; body.innerHTML=h;
+}
+function kcOpenType(type){
+  KC_TYPE=type; KC_VIEW='menu'; KC_RUN=null; KC_RESULTS={}; KC_RED=null;
+  var body=document.getElementById('kc-body'); if(body) body.innerHTML='<div class="sd-empty">Loading checks…</div>';
+  SBC.from('kart_check_runs').select('*').eq('site',_kcSite()).eq('kart_type',type).order('started_at',{ascending:false}).limit(30).then(function(r){
+    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')){ if(body) body.innerHTML='<div class="sd-empty">Kart Check isn’t set up yet.<br>Run <b>kart_checks.sql</b> in Supabase, then reopen.</div>'; return; }
+    KC_RUNS=(r&&r.data)||[]; if(_kcOnScreen()) kcRenderMenu();
+  },function(){ KC_RUNS=[]; if(_kcOnScreen()) kcRenderMenu(); });
+}
+function kcRenderMenu(){
+  var body=document.getElementById('kc-body'); if(!body) return;
+  var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF';
+  var h='<button class="kc-back" onclick="kcShowTypes()">‹ All kart types</button>';
+  h+='<div class="kc-menu-h" style="color:'+col+'">'+_kcEsc(KC_TYPE)+' checks</div>';
+  h+='<div id="kc-newwrap"><button class="kc-newbtn" style="background:'+col+'" onclick="kcNewForm()">＋ New check</button></div>';
+  if(KC_RUNS.length){
+    h+='<div class="kc-runs-h">Previous checks</div><div class="kc-runs">';
+    KC_RUNS.forEach(function(rn){
+      var active=(rn.status==='active');
+      var cnt=(rn.status==='done')?(((rn.ok_count||0)+(rn.fm_count||0))+' OK+FM · '+(rn.damaged_count||0)+' dmg'):'in progress';
+      var when=_kcEsc((rn.check_date||'')+(rn.started_at?(' · '+_kcTime(rn.started_at)):''));
+      h+='<button class="kc-runrow'+(active?' active':'')+'" onclick="kcOpenRun(\''+rn.id+'\')">'
+        +'<div class="kc-run-main"><b>'+_kcEsc(rn.mechanic||'—')+'</b>'+(active?' <span class="kc-run-live">LIVE</span>':'')+'<div class="kc-run-sub">'+when+'</div></div>'
+        +'<div class="kc-run-cnt">'+cnt+'</div></button>';
+    });
+    h+='</div>';
+  } else { h+='<div class="kc-runs-empty">No previous checks for '+_kcEsc(KC_TYPE)+' yet.</div>'; }
+  body.innerHTML=h;
+}
+function kcNewForm(){
+  var w=document.getElementById('kc-newwrap'); if(!w) return; var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF';
+  w.innerHTML='<div class="kc-newform">'
+    +'<label class="kc-fld">Mechanic<input id="kc-mech" class="kc-input" value="'+_kcEsc((cu&&cu.name)||'')+'" placeholder="Who\'s running this check?"></label>'
+    +'<label class="kc-fld">Date<input id="kc-date" type="date" class="kc-input" value="'+kcToday()+'"></label>'
+    +'<div class="kc-nf-btns"><button class="kc-rf-cancel" onclick="kcRenderMenu()">Cancel</button><button class="kc-newbtn" style="background:'+col+'" onclick="kcStartNew()">Start check</button></div>'
+    +'<div class="kc-rf-msg" id="kc-nf-msg"></div></div>';
+  setTimeout(function(){ var m=document.getElementById('kc-mech'); if(m) m.focus(); },30);
+}
+function kcStartNew(){
+  var mech=((document.getElementById('kc-mech')||{}).value||'').trim(), date=((document.getElementById('kc-date')||{}).value||'').trim()||kcToday();
+  var msg=document.getElementById('kc-nf-msg'); function say(t){ if(msg){ msg.textContent=t; msg.style.color='#FF5A52'; } }
+  if(!mech){ say('Enter the mechanic’s name'); return; }
+  if(!cu||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  var row={ site:_kcSite(), kart_type:KC_TYPE, mechanic:mech, check_date:date, status:'active', started_by:cu.name, started_at:new Date().toISOString() };
+  SBC.from('kart_check_runs').insert(row).select('*').then(function(r){
+    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run kart_checks.sql in Supabase first':(r.error.message||'Failed')); return; }
+    var run=(r&&r.data&&r.data[0])||null; if(!run){ say('Failed to start'); return; }
+    KC_RUN=run; KC_RESULTS={}; KC_RED=null; KC_VIEW='check'; kcRenderCheck();
+  },function(){ say('Connection error'); });
+}
+function kcOpenRun(runId){
+  var run=(KC_RUNS||[]).filter(function(x){return String(x.id)===String(runId);})[0]; if(!run) return;
+  KC_RUN=run; KC_RESULTS={}; KC_RED=null;
+  var body=document.getElementById('kc-body'); if(body) body.innerHTML='<div class="sd-empty">Loading…</div>';
+  SBC.from('kart_checks').select('rf_kart_id,result,note,by_name').eq('run_id',run.id).then(function(r){
+    ((r&&r.data)||[]).forEach(function(x){ if(x.rf_kart_id!=null) KC_RESULTS[x.rf_kart_id]={result:x.result,note:x.note,by:x.by_name}; });
+    if(run.status==='done'){ KC_VIEW='run'; kcRenderRunSummary(); } else { KC_VIEW='check'; kcRenderCheck(); }
+  },function(){ if(run.status==='done'){ KC_VIEW='run'; kcRenderRunSummary(); } else { KC_VIEW='check'; kcRenderCheck(); } });
+}
+function kcRenderCheck(){
+  var body=document.getElementById('kc-body'); if(!body||!KC_RUN) return;
   var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF', fleet=kcFleet(KC_TYPE);
   var done=fleet.filter(function(k){return _kcRes(k.rfId);}), missing=fleet.filter(function(k){return !_kcRes(k.rfId);});
-  var pct=fleet.length?Math.round(done.length/fleet.length*100):0, h='';
+  var pct=fleet.length?Math.round(done.length/fleet.length*100):0;
+  var h='<button class="kc-back" onclick="kcOpenType(\''+KC_TYPE+'\')">‹ '+_kcEsc(KC_TYPE)+' checks</button>';
+  h+='<div class="kc-menu-h" style="color:'+col+'">'+_kcEsc(KC_TYPE)+' check</div><div class="kc-check-by">'+_kcEsc(KC_RUN.mechanic||'')+' · '+_kcEsc(KC_RUN.check_date||'')+'</div>';
   h+='<div class="kc-prog"><div class="kc-prog-bar"><div class="kc-prog-fill" style="width:'+pct+'%;background:'+col+'"></div></div><div class="kc-prog-txt">'+done.length+' / '+fleet.length+' checked</div></div>';
   h+='<div class="kc-list">';
   fleet.forEach(function(k){
     var r=_kcRes(k.rfId), rowcls='kc-row'+(r==='ok'?' kc-ok':r==='damaged'?' kc-dmg':r==='maint'?' kc-fm':'');
-    h+='<div class="'+rowcls+'" id="kc-row-'+k.rfId+'">';
-    h+='<div class="kc-knum">'+(k.num!=null?k.num:'?')+'</div>';
+    h+='<div class="'+rowcls+'" id="kc-row-'+k.rfId+'"><div class="kc-knum">'+(k.num!=null?k.num:'?')+'</div>';
     if(r){ var by=(KC_RESULTS[k.rfId]||{}).by||''; var lbl=(r==='ok'?'OK':r==='damaged'?'Damaged':'For Maint');
       h+='<div class="kc-res '+(r==='ok'?'kc-res-ok':'kc-res-bad')+'">'+(r==='ok'?'✓ ':'✕ ')+lbl+(by?' · '+String(by).split(' ')[0]:'')+'</div><button class="kc-undo" onclick="kcUndo('+k.rfId+')">undo</button>';
-    } else {
-      h+='<div class="kc-acts"><button class="kc-tick" onclick="kcSet('+k.rfId+',\'ok\')">✓</button><button class="kc-x" onclick="kcRed('+k.rfId+')">✕</button></div>';
-    }
-    h+='</div>';
-    if(KC_RED===k.rfId) h+=kcRedForm(k);
+    } else { h+='<div class="kc-acts"><button class="kc-tick" onclick="kcSet('+k.rfId+',\'ok\')">✓</button><button class="kc-x" onclick="kcRed('+k.rfId+')">✕</button></div>'; }
+    h+='</div>'; if(KC_RED===k.rfId) h+=kcRedForm(k);
   });
   h+='</div>';
-  if(missing.length){ h+='<div class="kc-missing"><div class="kc-missing-h">🔎 Where '+(missing.length===1?'is this kart?':'are these '+missing.length+' karts?')+'</div><div class="kc-missing-sub">Find them and tick ✓ or ✕ to finish the check — nothing goes out unchecked.</div><div class="kc-missing-list">'+missing.map(function(k){return '<span class="kc-miss-chip">'+(k.num!=null?k.num:'?')+'</span>';}).join('')+'</div></div>'; }
+  if(missing.length){ h+='<div class="kc-missing"><div class="kc-missing-h">🔎 Where '+(missing.length===1?'is this kart?':'are these '+missing.length+' karts?')+'</div><div class="kc-missing-sub">Find them and tick ✓ or ✕ to finish the check.</div><div class="kc-missing-list">'+missing.map(function(k){return '<span class="kc-miss-chip">'+(k.num!=null?k.num:'?')+'</span>';}).join('')+'</div></div>'; }
   var can=fleet.length>0 && missing.length===0;
-  h+='<button class="kc-complete" '+(can?'':'disabled')+' style="'+(can?('background:'+col):'')+'" onclick="kcComplete()">'+(can?('🏁 Complete '+_kcTypeLabel(KC_TYPE)+' Check'):(missing.length+' still to check')) +'</button>';
-  h+='<button class="kc-reset" onclick="kcReset()">Reset this check</button>';
+  h+='<button class="kc-complete" '+(can?'':'disabled')+' style="'+(can?('background:'+col):'')+'" onclick="kcComplete()">'+(can?'🏁 Complete & flag in RaceFacer':(missing.length+' still to check'))+'</button>';
   body.innerHTML=h;
 }
 function kcRedForm(k){
-  return '<div class="kc-redform">'
-    +'<div class="kc-rf-seg"><button class="kc-seg '+(KC_RED_STATUS==='damaged'?'on dmg':'')+'" onclick="kcRedStatus(\'damaged\')">Damaged</button><button class="kc-seg '+(KC_RED_STATUS==='maint'?'on fm':'')+'" onclick="kcRedStatus(\'maint\')">For Maintenance</button></div>'
-    +'<textarea id="kc-note-'+k.rfId+'" class="kc-note" rows="2" placeholder="What’s wrong with kart '+(k.num!=null?k.num:'')+'? This goes straight to RaceFacer."></textarea>'
-    +'<div class="kc-rf-btns"><button class="kc-rf-cancel" onclick="kcRedCancel()">Cancel</button><button class="kc-rf-save" id="kc-save-'+k.rfId+'" onclick="kcSubmitRed('+k.rfId+')">Save &amp; flag in RF</button></div>'
+  return '<div class="kc-redform"><div class="kc-rf-seg"><button class="kc-seg '+(KC_RED_STATUS==='damaged'?'on dmg':'')+'" onclick="kcRedStatus(\'damaged\')">Damaged</button><button class="kc-seg '+(KC_RED_STATUS==='maint'?'on fm':'')+'" onclick="kcRedStatus(\'maint\')">For Maintenance</button></div>'
+    +'<textarea id="kc-note-'+k.rfId+'" class="kc-note" rows="2" placeholder="What’s wrong with kart '+(k.num!=null?k.num:'')+'? Sent to RaceFacer when you complete the check."></textarea>'
+    +'<div class="kc-rf-btns"><button class="kc-rf-cancel" onclick="kcRedCancel()">Cancel</button><button class="kc-rf-save" onclick="kcSubmitRed('+k.rfId+')">Mark '+((KC_RED_STATUS==='maint')?'For Maint':'Damaged')+'</button></div>'
     +'<div class="kc-rf-msg" id="kc-rf-msg-'+k.rfId+'"></div></div>';
 }
-function kcRedStatus(s){ KC_RED_STATUS=s; kcRender(); setTimeout(function(){ var t=document.getElementById('kc-note-'+KC_RED); if(t) t.focus(); },30); }
-function kcRed(rfId){ KC_RED=rfId; KC_RED_STATUS='damaged'; kcRender(); setTimeout(function(){ var t=document.getElementById('kc-note-'+rfId); if(t) t.focus(); var row=document.getElementById('kc-row-'+rfId); if(row) row.scrollIntoView({behavior:'smooth',block:'center'}); },40); }
-function kcRedCancel(){ KC_RED=null; kcRender(); }
-// green tick (or, after a red-X push, the chosen bad status): record the result to the shared table
+function kcRedStatus(s){ KC_RED_STATUS=s; kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+KC_RED); if(t) t.focus(); },30); }
+function kcRed(rfId){ KC_RED=rfId; KC_RED_STATUS='damaged'; kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+rfId); if(t) t.focus(); var row=document.getElementById('kc-row-'+rfId); if(row) row.scrollIntoView({behavior:'smooth',block:'center'}); },40); }
+function kcRedCancel(){ KC_RED=null; kcRenderCheck(); }
+// Record a result to the check (deferred — nothing hits RaceFacer until Complete, so Undo is side-effect-free).
 function kcSet(rfId,result,note){
-  if(!cu||typeof SBC==='undefined'||!SBC) return;
+  if(!cu||!KC_RUN||typeof SBC==='undefined'||!SBC) return;
   var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{};
-  KC_RESULTS[rfId]={result:result,note:note||'',by:cu.name}; KC_RED=null; if(_kcOnScreen()) kcRender();
-  var row={ site:_kcSite(), kart_type:String(k.type||KC_TYPE||''), check_date:kcDate(), rf_kart_id:rfId, kart_no:String(k.num!=null?k.num:''), result:result, note:(note||'').slice(0,1000), by_name:cu.name, updated_at:new Date().toISOString() };
-  SBC.from('kart_checks').upsert(row,{onConflict:'site,kart_type,check_date,rf_kart_id'}).then(function(r){
-    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')) alert('Run kart_checks.sql in Supabase first — it creates the shared check table.');
+  KC_RESULTS[rfId]={result:result,note:note||'',by:cu.name}; KC_RED=null; if(_kcOnScreen()) kcRenderCheck();
+  var row={ run_id:KC_RUN.id, site:_kcSite(), kart_type:String(k.type||KC_TYPE||''), rf_kart_id:rfId, kart_no:String(k.num!=null?k.num:''), result:result, note:(note||'').slice(0,1000), by_name:cu.name, updated_at:new Date().toISOString() };
+  SBC.from('kart_checks').upsert(row,{onConflict:'run_id,rf_kart_id'}).then(function(r){
+    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')) alert('Run kart_checks.sql in Supabase first.');
   },function(){});
 }
-function kcUndo(rfId){ delete KC_RESULTS[rfId]; if(_kcOnScreen()) kcRender();
-  SBC.from('kart_checks').delete().eq('site',_kcSite()).eq('check_date',kcDate()).eq('rf_kart_id',rfId).then(function(){},function(){}); }
-// red-X submit: one rf_note_queue row files the note AND flips the RaceFacer status (runner: status_change=1)
+function kcUndo(rfId){ if(!KC_RUN) return; delete KC_RESULTS[rfId]; if(_kcOnScreen()) kcRenderCheck();
+  SBC.from('kart_checks').delete().eq('run_id',KC_RUN.id).eq('rf_kart_id',rfId).then(function(){},function(){}); }
 function kcSubmitRed(rfId){
-  var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{};
-  var msg=document.getElementById('kc-rf-msg-'+rfId), ta=document.getElementById('kc-note-'+rfId), note=((ta&&ta.value)||'').trim();
-  function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
-  if(!note){ say('Add a quick note first'); return; }
-  if(!cu||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
-  var status=KC_RED_STATUS, btn=document.getElementById('kc-save-'+rfId); if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
-  var nrow={ site:_kcSite(), rf_kart_id:rfId, kart_name:String(k.num!=null?k.num:''), kart_type:String(k.type||KC_TYPE||''), user_name:cu.name, note:note.slice(0,1000), rf_status:status };
-  SBC.from('rf_note_queue').insert(nrow).then(function(r){
-    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); if(btn){ btn.disabled=false; btn.textContent='Save & flag in RF'; } return; }
-    if(k) k.status=status; if(typeof PENDING_KART_STATUS!=='undefined') PENDING_KART_STATUS[rfId]=status;
-    try{ var na=(RF_NOTES_BY_ID[rfId]=RF_NOTES_BY_ID[rfId]||[]); na.unshift({id:null,note:note,createdIso:(typeof noteNowIso==='function'?noteNowIso():new Date().toISOString()),createdBy:cu.name,archivedIso:'',archivedBy:'',open:true,active:true,_pending:true,_pendingAt:Date.now()}); }catch(e){}
-    if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
-    kcSet(rfId,status,note);
-  },function(){ say('Connection error'); if(btn){ btn.disabled=false; btn.textContent='Save & flag in RF'; } });
-}
-function kcReset(){
-  if(!KC_TYPE) return;
-  if(!confirm('Reset the '+_kcTypeLabel(KC_TYPE)+' check for today? This clears every tick for this type so it can be started fresh.')) return;
-  var fleet=kcFleet(KC_TYPE); fleet.forEach(function(k){ delete KC_RESULTS[k.rfId]; }); KC_RED=null; kcRender();
-  SBC.from('kart_checks').delete().eq('site',_kcSite()).eq('check_date',kcDate()).eq('kart_type',KC_TYPE).then(function(){},function(){});
+  var ta=document.getElementById('kc-note-'+rfId), note=((ta&&ta.value)||'').trim();
+  var msg=document.getElementById('kc-rf-msg-'+rfId); if(!note){ if(msg){ msg.textContent='Add a quick note first'; msg.style.color='#FF5A52'; } return; }
+  kcSet(rfId,KC_RED_STATUS,note);   // recorded now; pushed to RaceFacer on Complete
 }
 function kcComplete(){
-  var fleet=kcFleet(KC_TYPE); if(!fleet.length) return;
-  var okN=0,fmN=0,dmg=[];
-  fleet.forEach(function(k){ var r=_kcRes(k.rfId), c=(KC_RESULTS[k.rfId]||{});
-    if(r==='ok') okN++; else if(r==='maint'){ fmN++; dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:true}); } else if(r==='damaged'){ dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:false}); } });
-  var okfm=okN+fmN, typeLabel=_kcTypeLabel(KC_TYPE)===KC_TYPE?KC_TYPE:KC_TYPE, col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E';
-  kcConfetti(col);
-  // summary overlay
-  var ov=document.createElement('div'); ov.className='kc-summary-ov'; ov.id='kc-sum-ov';
-  var dmgHtml='';
-  if(dmg.length){ dmgHtml='<div class="kc-sum-dmg"><div class="kc-sum-dmg-h">FLAGGED IN RACEFACER ('+dmg.length+')</div>'+dmg.map(function(d){ return '<div class="kc-sum-dmg-row"><b>Kart '+(d.num!=null?d.num:'?')+'</b> · '+(d.fm?'For Maintenance':'Damaged')+'<br>'+_kcEsc(d.note)+(d.by?' <span style="color:var(--t2)">— '+_kcEsc(String(d.by).split(' ')[0])+'</span>':'')+'</div>'; }).join('')+'</div>'; }
-  ov.innerHTML='<div class="kc-summary">'
-    +'<div class="kc-sum-emoji">🏁</div>'
-    +'<div class="kc-sum-count" style="color:'+col+'">'+okfm+'</div>'
-    +'<div class="kc-sum-cap">'+_kcEsc(KC_TYPE)+' Track kart count</div>'
-    +'<div class="kc-sum-pills"><div class="kc-sum-pill"><div class="n" style="color:#22C55E">'+okN+'</div><div class="l">OK</div></div><div class="kc-sum-pill"><div class="n" style="color:#E0B000">'+fmN+'</div><div class="l">FOR MAINT</div></div><div class="kc-sum-pill"><div class="n" style="color:#FF3B30">'+dmg.filter(function(d){return !d.fm;}).length+'</div><div class="l">DAMAGED</div></div></div>'
-    +dmgHtml
-    +'<button class="kc-sum-close" onclick="kcSummaryClose()">Done</button></div>';
-  document.body.appendChild(ov); requestAnimationFrame(function(){ ov.classList.add('show'); });
-  // push "Kart Count X is N" to everyone
-  try{ var title='✅ '+KC_TYPE+' Kart Check done';
-    var body='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmg.filter(function(d){return !d.fm;}).length?(', '+dmg.filter(function(d){return !d.fm;}).length+' damaged'):'')+')';
-    _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,body,'kartcheck','./'); });
-  }catch(e){}
+  if(!KC_RUN) return; var fleet=kcFleet(KC_TYPE); if(!fleet.length) return;
+  var okN=0,fmN=0,dmg=[],pushes=[];
+  fleet.forEach(function(k){ var c=(KC_RESULTS[k.rfId]||{}), r=c.result;
+    if(r==='ok'){ okN++; }
+    else if(r==='maint'||r==='damaged'){ if(r==='maint') fmN++; dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:(r==='maint')});
+      pushes.push({ site:_kcSite(), rf_kart_id:k.rfId, kart_name:String(k.num!=null?k.num:''), kart_type:String(k.type||KC_TYPE||''), user_name:cu.name, note:String(c.note||'').slice(0,1000), rf_status:r }); }
+  });
+  var okfm=okN+fmN, col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E', dmgN=dmg.filter(function(d){return !d.fm;}).length;
+  var btn=document.querySelector('.kc-complete'); if(btn){ btn.disabled=true; btn.textContent='Flagging in RaceFacer…'; }
+  var finish=function(){
+    SBC.from('kart_check_runs').update({ status:'done', completed_at:new Date().toISOString(), ok_count:okN, fm_count:fmN, damaged_count:dmgN }).eq('id',KC_RUN.id).then(function(){},function(){});
+    KC_RUN.status='done'; KC_RUN.ok_count=okN; KC_RUN.fm_count=fmN; KC_RUN.damaged_count=dmgN;
+    pushes.forEach(function(p){ var kl=(KART_LIST||[]).filter(function(x){return x.rfId===p.rf_kart_id;})[0]; if(kl) kl.status=p.rf_status; if(typeof PENDING_KART_STATUS!=='undefined') PENDING_KART_STATUS[p.rf_kart_id]=p.rf_status; });
+    if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
+    kcConfetti(col); kcShowSummary(okfm,okN,fmN,dmg);
+    try{ var title='✅ '+KC_TYPE+' Kart Check done';
+      var b='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmgN?(', '+dmgN+' damaged'):'')+')';
+      _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,b,'kartcheck','./'); });
+    }catch(e){}
+  };
+  if(pushes.length){ SBC.from('rf_note_queue').insert(pushes).then(function(r){
+      if(r&&r.error){ if(btn){ btn.disabled=false; btn.textContent='🏁 Complete & flag in RaceFacer'; } alert((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':('Couldn’t flag karts: '+(r.error.message||''))); return; }
+      finish();
+    },function(){ if(btn){ btn.disabled=false; btn.textContent='🏁 Complete & flag in RaceFacer'; } alert('Connection error — nothing was flagged, try Complete again'); });
+  } else { finish(); }
 }
-function kcSummaryClose(){ var ov=document.getElementById('kc-sum-ov'); if(ov){ ov.classList.remove('show'); setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); },250); } }
-function _kcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function kcShowSummary(okfm,okN,fmN,dmg){
+  var col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E', dmgN=dmg.filter(function(d){return !d.fm;}).length;
+  var ov=document.createElement('div'); ov.className='kc-summary-ov'; ov.id='kc-sum-ov';
+  var dmgHtml=''; if(dmg.length){ dmgHtml='<div class="kc-sum-dmg"><div class="kc-sum-dmg-h">FLAGGED IN RACEFACER ('+dmg.length+')</div>'+dmg.map(function(d){ return '<div class="kc-sum-dmg-row"><b>Kart '+(d.num!=null?d.num:'?')+'</b> · '+(d.fm?'For Maintenance':'Damaged')+'<br>'+_kcEsc(d.note)+(d.by?' <span style="color:var(--t2)">— '+_kcEsc(String(d.by).split(' ')[0])+'</span>':'')+'</div>'; }).join('')+'</div>'; }
+  ov.innerHTML='<div class="kc-summary"><div class="kc-sum-emoji">🏁</div><div class="kc-sum-count" style="color:'+col+'">'+okfm+'</div><div class="kc-sum-cap">'+_kcEsc(KC_TYPE)+' Track kart count</div><div class="kc-sum-pills"><div class="kc-sum-pill"><div class="n" style="color:#22C55E">'+okN+'</div><div class="l">OK</div></div><div class="kc-sum-pill"><div class="n" style="color:#E0B000">'+fmN+'</div><div class="l">FOR MAINT</div></div><div class="kc-sum-pill"><div class="n" style="color:#FF3B30">'+dmgN+'</div><div class="l">DAMAGED</div></div></div>'+dmgHtml+'<button class="kc-sum-close" onclick="kcSummaryClose()">Done</button></div>';
+  document.body.appendChild(ov); requestAnimationFrame(function(){ ov.classList.add('show'); });
+}
+function kcSummaryClose(){ var ov=document.getElementById('kc-sum-ov'); if(ov){ ov.classList.remove('show'); setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); },250); } if(KC_TYPE) kcOpenType(KC_TYPE); }
+function kcRenderRunSummary(){
+  var body=document.getElementById('kc-body'); if(!body||!KC_RUN) return;
+  var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF', okN=0,fmN=0,dmg=[];
+  Object.keys(KC_RESULTS).forEach(function(id){ var c=KC_RESULTS[id],r=c.result; var kk=(KART_LIST||[]).filter(function(x){return String(x.rfId)===String(id);})[0]; var num=kk?kk.num:id;
+    if(r==='ok') okN++; else if(r==='maint'){ fmN++; dmg.push({num:num,note:c.note,by:c.by,fm:true}); } else if(r==='damaged'){ dmg.push({num:num,note:c.note,by:c.by,fm:false}); } });
+  var okfm=okN+fmN, dmgN=dmg.filter(function(d){return !d.fm;}).length;
+  var h='<button class="kc-back" onclick="kcOpenType(\''+KC_TYPE+'\')">‹ '+_kcEsc(KC_TYPE)+' checks</button>';
+  h+='<div class="kc-menu-h" style="color:'+col+'">'+_kcEsc(KC_TYPE)+' check</div><div class="kc-check-by">'+_kcEsc(KC_RUN.mechanic||'')+' · '+_kcEsc(KC_RUN.check_date||'')+' · done</div>';
+  h+='<div class="kc-sum-count" style="color:'+col+';text-align:center;margin:12px 0 0">'+okfm+'</div><div class="kc-sum-cap" style="text-align:center">'+_kcEsc(KC_TYPE)+' Track kart count</div>';
+  h+='<div class="kc-sum-pills"><div class="kc-sum-pill"><div class="n" style="color:#22C55E">'+okN+'</div><div class="l">OK</div></div><div class="kc-sum-pill"><div class="n" style="color:#E0B000">'+fmN+'</div><div class="l">FOR MAINT</div></div><div class="kc-sum-pill"><div class="n" style="color:#FF3B30">'+dmgN+'</div><div class="l">DAMAGED</div></div></div>';
+  if(dmg.length){ h+='<div class="kc-sum-dmg"><div class="kc-sum-dmg-h">FLAGGED ('+dmg.length+')</div>'+dmg.map(function(d){ return '<div class="kc-sum-dmg-row"><b>Kart '+(d.num!=null?d.num:'?')+'</b> · '+(d.fm?'For Maintenance':'Damaged')+'<br>'+_kcEsc(d.note||'')+(d.by?' <span style="color:var(--t2)">— '+_kcEsc(String(d.by).split(' ')[0])+'</span>':'')+'</div>'; }).join('')+'</div>'; }
+  body.innerHTML=h;
+}
 function kcConfetti(col){
   var fx=document.getElementById('kc-fx'); if(!fx){ fx=document.createElement('div'); fx.id='kc-fx'; document.body.appendChild(fx); }
   fx.innerHTML=''; var cols=[col||'#22C55E','#22C55E','#FFD600','#22D3EE','#F472B6','#fff'], N=90, W=window.innerWidth;
-  for(var i=0;i<N;i++){ (function(){ var p=document.createElement('div'); p.className='kc-confetti';
+  for(var i=0;i<N;i++){ (function(idx){ var p=document.createElement('div'); p.className='kc-confetti';
     var x=W/2+(Math.random()-0.5)*80, dx=(Math.random()-0.5)*2*W*0.55, dy=-(180+Math.random()*260), rot=(Math.random()*720-360);
-    p.style.background=cols[i%cols.length]; p.style.left=x+'px'; p.style.top=(window.innerHeight*0.42)+'px';
-    if(Math.random()<0.5) p.style.borderRadius='50%';
-    fx.appendChild(p);
-    var dur=1100+Math.random()*900;
-    p.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)',opacity:1,offset:0.35},{transform:'translate('+(dx*1.4)+'px,'+(window.innerHeight*0.7)+'px) rotate('+(rot*1.6)+'deg)',opacity:0}],{duration:dur,easing:'cubic-bezier(.15,.7,.4,1)'}).onfinish=function(){ if(p.parentNode) p.parentNode.removeChild(p); };
-  })(); }
+    p.style.background=cols[idx%cols.length]; p.style.left=x+'px'; p.style.top=(window.innerHeight*0.42)+'px';
+    if(Math.random()<0.5) p.style.borderRadius='50%'; fx.appendChild(p);
+    p.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)',opacity:1,offset:0.35},{transform:'translate('+(dx*1.4)+'px,'+(window.innerHeight*0.7)+'px) rotate('+(rot*1.6)+'deg)',opacity:0}],{duration:1100+Math.random()*900,easing:'cubic-bezier(.15,.7,.4,1)'}).onfinish=function(){ if(p.parentNode) p.parentNode.removeChild(p); };
+  })(i); }
   setTimeout(function(){ if(fx) fx.innerHTML=''; },2400);
 }
-// realtime: another phone ticked a kart — merge + re-render if we're on the Kart Check screen
+// realtime: another phone ticked a kart in the SAME run — merge + re-render if we're viewing that check
 function _rtKartCheck(p){
-  try{ var row=p&&(p.new||p.old); if(!row) return; if(row.site&&row.site!==_kcSite()) return; if(row.check_date&&row.check_date!==kcDate()) return;
+  try{ var row=p&&(p.new||p.old); if(!row||!KC_RUN) return; if(String(row.run_id)!==String(KC_RUN.id)) return;
     if(p.eventType==='DELETE'){ if(row.rf_kart_id!=null) delete KC_RESULTS[row.rf_kart_id]; }
     else if(p.new&&p.new.rf_kart_id!=null){ KC_RESULTS[p.new.rf_kart_id]={result:p.new.result,note:p.new.note,by:p.new.by_name}; }
-    if(_kcOnScreen()) kcRender();
+    if(_kcOnScreen()&&KC_VIEW==='check') kcRenderCheck();
   }catch(e){}
 }
 

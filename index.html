@@ -8767,19 +8767,21 @@ function notifNewRepair(rfId, noteId){
     RFQ_NOTE=n?{id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''}:null;
     RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=_rfqDefaultStatus(k); RFQ_AVAIL=false;
     renderKartDetail(k);   // detail renders with the repair form already open
-    go('kartdetail');      // slides in a finished screen
-    // Force a clean resting state AFTER the slide, unconditionally — on wide desktop this transition could
-    // stick half-way, leaving the notifications screen showing THROUGH the kart detail (the reported
-    // overlap). Snap kart-detail to rest, unlock nav, and push every other screen fully off so only the
-    // kart detail is on top.
-    setTimeout(function(){
-      try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
-      var _kd=document.getElementById('s-kartdetail');
-      if(_kd){ _kd.classList.add('active'); _kd.classList.remove('behind'); _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; _kd.style.transition=''; }
-      try{ var scrs=document.querySelectorAll('.scr'); for(var i=0;i<scrs.length;i++){ if(scrs[i].id!=='s-kartdetail'){ scrs[i].classList.remove('active'); scrs[i].classList.remove('behind'); scrs[i].style.transition=''; scrs[i].style.transform=''; } } }catch(e){}
-      try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
-      try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
-    }, 430);
+    // INSTANT (non-animated) jump to the kart detail. The animated slide left an in-between frame that
+    // wedged on wide desktop — the notifications screen stayed half-on, stacked over the kart detail
+    // (the reported overlap). Jumping straight there leaves no mid-transition state to get stuck on.
+    try{ if(typeof stk!=='undefined' && stk[stk.length-1]!=='kartdetail') stk.push('kartdetail'); }catch(e){}
+    var scrs=document.querySelectorAll('.scr');
+    for(var i=0;i<scrs.length;i++){ var sc=scrs[i];
+      if(sc.id==='s-kartdetail'){ sc.style.transition='none'; sc.classList.add('active'); sc.classList.remove('behind'); sc.style.transform='translate3d(0,0,0)'; }
+      else { sc.style.transition='none'; sc.classList.remove('active','behind'); sc.style.transform=''; }
+    }
+    var _kd=document.getElementById('s-kartdetail'); if(_kd) void _kd.offsetWidth;   // commit the no-animation layout
+    for(var j=0;j<scrs.length;j++){ scrs[j].style.transition=''; }                   // restore transitions for future nav
+    try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
+    try{ if(typeof updateUI==='function') updateUI('kartdetail'); }catch(e){}
+    try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
+    try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
   }catch(e){}
 }
 // ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────

@@ -124,10 +124,14 @@
     /* ── Shell ── */
     #app{position:fixed;top:0;left:0;right:0;bottom:0;   /* Desktop/default: top:0+bottom:0 = the browser window (correct on Mac). The PHYSICAL-height sizing that reaches past the iOS letterbox is applied ONLY on touch devices below — on desktop --shpx is the whole monitor, which pushed everything down. */
       display:flex;flex-direction:column;overflow:hidden}
-    /* Touch devices (the iPhone PWA) only: fill to the true physical bottom so tiles reach the border.
-       Desktop is untouched (on desktop --shpx is the whole monitor). */
+    /* Touch devices (the iPhone PWA) only. The INTERACTIVE content is sized to the VISIBLE webview
+       height (--vhpx = innerHeight), NOT the physical screen height (--shpx). Sizing #app to --shpx made
+       it ~39px taller than the visible webview on a letterboxed iOS PWA, so the bottom of the content
+       (Help / RIMO Data) fell below the visible area and read as a black slab cutting it off. The
+       full-bleed black backdrop (#app-bg, sized from --shpx) still reaches the physical edges, so the app
+       still looks edge-to-edge — but every row is now reachable inside the scroller. */
     @media (pointer:coarse){
-      #app{height:var(--shpx, 100lvh);bottom:auto}
+      #app{height:var(--vhpx, 100dvh);bottom:auto}
     }
     /* Searchable parts picker (bottom sheet) for the repair form */
     .rfq-pick-ov{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center}
@@ -6567,6 +6571,9 @@ function loadRfKarts(cb,force){
   // Refresh, a site change, or after 30 min — instead of dragging the whole ~18k-row
   // repair history down on every refresh. This is the big egress saving.
   var heavyFresh = !force && RF_LOADED && RF_HEAVY_SITE===site && (Date.now()-RF_HEAVY_AT)<1800000;
+  // NOTE: damage_note is intentionally NOT in this bulk select — it's read per-kart in loadKartRepairsFresh
+  // (with a fallback), so the fleet-wide bulk load never breaks if the rf_repairs_damage_note.sql column
+  // migration hasn't been run yet.
   var REP_COLS='rf_kart_id,id,date_discovered,date_repaired,cost,description,notes,mileage,mechanic,kart_name,kart_type,kart_garage_id,type_color';
   Promise.all([
     sbFetchAll('rf_karts','*','site',site,'rf_id'),
@@ -6607,7 +6614,8 @@ function loadRfKarts(cb,force){
         status:r.date_repaired?'fixed':'open',
         isoRepaired:r.date_repaired||'',                   // ISO yyyy-mm-dd completed (for day/week/month leaderboards)
         cost:(parseFloat(String(r.cost||'').replace(/[^0-9.]/g,''))||0),
-        issue:r.description||'Repair',                    // the original / issue note
+        issue:r.description||'Repair',                    // what was DONE (the repair annotation)
+        damageNote:r.damage_note||'',                     // the ORIGINAL note it was logged against (RF shows this in the expand)
         repairNotes:r.notes||'',                          // follow-up repair note(s), newline-joined
         parts:partsByRepair[r.id]||[],                    // parts used in this repair
         mileage:Number(r.mileage)||0,
@@ -6724,18 +6732,24 @@ function _watchRfQueueRow(table, id, onError, fallbackMsg){
 }
 function loadKartRepairsFresh(rfId,cb){
   if(rfId==null||typeof SBC==='undefined'||!SBC){ if(cb) cb(); return; }
-  SBC.from('rf_repairs').select('id,date_discovered,date_repaired,cost,description,notes,mileage,mechanic,kart_name,kart_type,kart_garage_id,type_color').eq('rf_kart_id',rfId).then(function(r){
-    var rows=(r&&r.data)||[]; var existing={}; (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x.id) existing[x.id]=x; });
+  var _apply=function(rows){ var existing={}; (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x.id) existing[x.id]=x; });
     var arr=rows.map(function(rr){ var iso=rr.date_discovered||rr.date_repaired||''; var prev=existing[Number(rr.id)];
       return { id:Number(rr.id)||0, iso:iso, date:iso?iso.split('-').reverse().join('.'):'', status:rr.date_repaired?'fixed':'open', isoRepaired:rr.date_repaired||'',
-        cost:(parseFloat(String(rr.cost||'').replace(/[^0-9.]/g,''))||0), issue:rr.description||'Repair', repairNotes:rr.notes||'', parts:(prev?prev.parts:[]), mileage:Number(rr.mileage)||0, user:rr.mechanic||'\u2014',
+        cost:(parseFloat(String(rr.cost||'').replace(/[^0-9.]/g,''))||0), issue:rr.description||'Repair', damageNote:rr.damage_note||'', repairNotes:rr.notes||'', parts:(prev?prev.parts:[]), mileage:Number(rr.mileage)||0, user:rr.mechanic||'\u2014',
         dateRepaired:rr.date_repaired?rr.date_repaired.split('-').reverse().join('.'):'', kartName:(rr.kart_name!=null?String(rr.kart_name):''), kartType:rr.kart_type||'', kartGarageId:rr.kart_garage_id||'', typeColor:rr.type_color||'' }; });
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(x){ if(x._pending && !arr.some(function(y){return y.issue===x.issue && y.iso===x.iso;})) arr.push(x); });
     arr.sort(function(a,b){return ((b.id||0)-(a.id||0))||(b.iso||'').localeCompare(a.iso||'');});
     RF_REPAIRS_BY_ID[rfId]=arr;
     if(SELECTED_KART&&SELECTED_KART.rfId===rfId){ KD_REPAIRS=arr; kdRefreshBodyIfChanged(); }
     if(cb) cb();
-  },function(){ if(cb) cb(); });
+  };
+  var COLS_SAFE='id,date_discovered,date_repaired,cost,description,notes,mileage,mechanic,kart_name,kart_type,kart_garage_id,type_color';
+  // Try WITH damage_note (original-note expand); if that column isn't migrated yet the query errors, so
+  // fall back to the safe column set \u2014 repairs must always load regardless of the rf_repairs_damage_note.sql state.
+  SBC.from('rf_repairs').select('id,date_discovered,date_repaired,cost,description,notes,damage_note,mileage,mechanic,kart_name,kart_type,kart_garage_id,type_color').eq('rf_kart_id',rfId).then(function(r){
+    if(r&&r.error){ SBC.from('rf_repairs').select(COLS_SAFE).eq('rf_kart_id',rfId).then(function(r2){ _apply((r2&&r2.data)||[]); },function(){ if(cb) cb(); }); return; }
+    _apply((r&&r.data)||[]);
+  },function(){ SBC.from('rf_repairs').select(COLS_SAFE).eq('rf_kart_id',rfId).then(function(r2){ _apply((r2&&r2.data)||[]); },function(){ if(cb) cb(); }); });
 }
 function kartRefreshSilent(){
   var scr=_curKartScr();
@@ -8781,7 +8795,13 @@ function notifNewRepair(rfId, noteId){
     try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
     try{ if(typeof updateUI==='function') updateUI('kartdetail'); }catch(e){}
     try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
-    try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
+    // Scroll straight to the NEW-REPAIR form so it's obvious a repair opened (not "just the kart page").
+    setTimeout(function(){ try{
+      var t=document.getElementById('rfq-note'); if(!t) return;
+      var _sb=(t.closest&&t.closest('.sb'))||null;
+      if(_sb){ var _card=(t.closest&&(t.closest('.rfq-card')||t.closest('.mc')))||t; var rc=_card.getBoundingClientRect(), rs=_sb.getBoundingClientRect(); var top=Math.max(0,_sb.scrollTop+(rc.top-rs.top)-64); if(_sb.scrollTo) _sb.scrollTo({top:top,behavior:'smooth'}); else _sb.scrollTop=top; }
+      try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); }
+    }catch(e){} }, 40);
   }catch(e){}
 }
 // ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────

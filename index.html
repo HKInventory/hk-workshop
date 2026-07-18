@@ -7097,27 +7097,38 @@ function kcRenderCheck(){
   fleet.forEach(function(k){
     var r=_kcRes(k.rfId), rowcls='kc-row'+(r==='ok'?' kc-ok':r==='damaged'?' kc-dmg':r==='maint'?' kc-fm':'');
     h+='<div class="'+rowcls+'" id="kc-row-'+k.rfId+'"><div class="kc-knum">'+(k.num!=null?k.num:'?')+'</div>';
-    if(r){ var by=(KC_RESULTS[k.rfId]||{}).by||''; var lbl=(r==='ok'?'OK':r==='damaged'?'Damaged':'For Maint');
-      h+='<div class="kc-res '+(r==='ok'?'kc-res-ok':'kc-res-bad')+'">'+(r==='ok'?'✓ ':'✕ ')+lbl+(by?' · '+String(by).split(' ')[0]:'')+'</div><button class="kc-undo" onclick="kcUndo('+k.rfId+')">undo</button>';
+    if(r){ var by=(KC_RESULTS[k.rfId]||{}).by||''; var lbl=(r==='ok'?'OK':r==='damaged'?'Damaged':'For Maint'); var bad=(r==='damaged'||r==='maint');
+      h+='<div class="kc-res '+(r==='ok'?'kc-res-ok':'kc-res-bad')+'">'+(r==='ok'?'✓ ':'✕ ')+lbl+(by?' · '+String(by).split(' ')[0]:'')+'</div>'
+        +(bad?'<button class="kc-undo" onclick="kcRed('+k.rfId+')">edit</button>':'')
+        +'<button class="kc-undo" onclick="kcUndo('+k.rfId+')">undo</button>';
     } else { h+='<div class="kc-acts"><button class="kc-tick" onclick="kcSet('+k.rfId+',\'ok\')">✓</button><button class="kc-x" onclick="kcRed('+k.rfId+')">✕</button></div>'; }
     h+='</div>'; if(KC_RED===k.rfId) h+=kcRedForm(k);
   });
   h+='</div>';
   if(missing.length){ h+='<div class="kc-missing"><div class="kc-missing-h">🔎 Where '+(missing.length===1?'is this kart?':'are these '+missing.length+' karts?')+'</div><div class="kc-missing-sub">Find them and tick ✓ or ✕ to finish the check.</div><div class="kc-missing-list">'+missing.map(function(k){return '<span class="kc-miss-chip">'+(k.num!=null?k.num:'?')+'</span>';}).join('')+'</div></div>'; }
   var can=fleet.length>0 && missing.length===0;
-  h+='<button class="kc-complete" '+(can?'':'disabled')+' style="'+(can?('background:'+col):'')+'" onclick="kcComplete()">'+(can?'🏁 Complete & flag in RaceFacer':(missing.length+' still to check'))+'</button>';
+  h+='<button class="kc-complete" '+(can?'':'disabled')+' style="'+(can?('background:'+col):'')+'" onclick="kcComplete()">'+(can?'🏁 Complete '+_kcTypeLabel(KC_TYPE)+' Check':(missing.length+' still to check'))+'</button>';
   body.innerHTML=h;
 }
+// In-progress note drafts, keyed by kart, so writing a note then moving to another kart (or leaving and
+// coming back) NEVER loses what you typed. Persisted to localStorage so it also survives a reload.
+var KC_DRAFTS=(function(){ try{ return JSON.parse(localStorage.getItem('hk_kc_drafts')||'{}')||{}; }catch(e){ return {}; } })();
+function _kcSaveDrafts(){ try{ localStorage.setItem('hk_kc_drafts',JSON.stringify(KC_DRAFTS)); }catch(e){} }
+function kcDraftInput(rfId){ var ta=document.getElementById('kc-note-'+rfId); if(ta){ KC_DRAFTS[rfId]={status:KC_RED_STATUS,text:ta.value}; _kcSaveDrafts(); } }
 function kcRedForm(k){
+  var d=KC_DRAFTS[k.rfId]||{}, cur=(KC_RESULTS[k.rfId]||{});
+  var txt=(d.text!=null?d.text:(cur.note||''));   // draft first, else the note already on this kart (edit)
+  var editing=(cur.result==='damaged'||cur.result==='maint');
   return '<div class="kc-redform"><div class="kc-rf-seg"><button class="kc-seg '+(KC_RED_STATUS==='damaged'?'on dmg':'')+'" onclick="kcRedStatus(\'damaged\')">Damaged</button><button class="kc-seg '+(KC_RED_STATUS==='maint'?'on fm':'')+'" onclick="kcRedStatus(\'maint\')">For Maintenance</button></div>'
-    +'<textarea id="kc-note-'+k.rfId+'" class="kc-note" rows="2" placeholder="What’s wrong with kart '+(k.num!=null?k.num:'')+'? Sent to RaceFacer when you complete the check."></textarea>'
-    +'<div class="kc-rf-btns"><button class="kc-rf-cancel" onclick="kcRedCancel()">Cancel</button><button class="kc-rf-save" onclick="kcSubmitRed('+k.rfId+')">Mark '+((KC_RED_STATUS==='maint')?'For Maint':'Damaged')+'</button></div>'
+    +'<textarea id="kc-note-'+k.rfId+'" class="kc-note" rows="2" oninput="kcDraftInput('+k.rfId+')" placeholder="What’s wrong with kart '+(k.num!=null?k.num:'')+'? Sent to RaceFacer the moment you tap Save.">'+_kcEsc(txt)+'</textarea>'
+    +'<div class="kc-rf-btns"><button class="kc-rf-cancel" onclick="kcRedCancel()">Close</button><button class="kc-rf-save" onclick="kcSubmitRed('+k.rfId+')">'+(editing?'Update in RaceFacer':'Save to RaceFacer')+'</button></div>'
     +'<div class="kc-rf-msg" id="kc-rf-msg-'+k.rfId+'"></div></div>';
 }
-function kcRedStatus(s){ KC_RED_STATUS=s; kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+KC_RED); if(t) t.focus(); },30); }
-function kcRed(rfId){ KC_RED=rfId; KC_RED_STATUS='damaged'; kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+rfId); if(t) t.focus(); var row=document.getElementById('kc-row-'+rfId); if(row) row.scrollIntoView({behavior:'smooth',block:'center'}); },40); }
-function kcRedCancel(){ KC_RED=null; kcRenderCheck(); }
-// Record a result to the check (deferred — nothing hits RaceFacer until Complete, so Undo is side-effect-free).
+function kcRedStatus(s){ KC_RED_STATUS=s; if(KC_RED!=null) kcDraftInput(KC_RED); kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+KC_RED); if(t){ t.focus(); try{ t.selectionStart=t.selectionEnd=t.value.length; }catch(e){} } },30); }
+function kcRed(rfId){ KC_RED=rfId; var d=KC_DRAFTS[rfId]||{}, cur=(KC_RESULTS[rfId]||{}); KC_RED_STATUS=d.status||(cur.result==='maint'?'maint':'damaged'); kcRenderCheck(); setTimeout(function(){ var t=document.getElementById('kc-note-'+rfId); if(t){ t.focus(); try{ t.selectionStart=t.selectionEnd=t.value.length; }catch(e){} } var row=document.getElementById('kc-row-'+rfId); if(row) row.scrollIntoView({behavior:'smooth',block:'center'}); },40); }
+// Close the form WITHOUT discarding — the draft stays (in KC_DRAFTS + localStorage) so you can come back.
+function kcRedCancel(){ if(KC_RED!=null){ var ta=document.getElementById('kc-note-'+KC_RED); if(ta&&ta.value.trim()){ KC_DRAFTS[KC_RED]={status:KC_RED_STATUS,text:ta.value}; _kcSaveDrafts(); } } KC_RED=null; kcRenderCheck(); }
+// Record a result to the check (the shared run state; also drives progress/summary).
 function kcSet(rfId,result,note){
   if(!cu||!KC_RUN||typeof SBC==='undefined'||!SBC) return;
   var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{};
@@ -7127,39 +7138,62 @@ function kcSet(rfId,result,note){
     if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')) alert('Run kart_checks.sql in Supabase first.');
   },function(){});
 }
-function kcUndo(rfId){ if(!KC_RUN) return; delete KC_RESULTS[rfId]; if(_kcOnScreen()) kcRenderCheck();
-  SBC.from('kart_checks').delete().eq('run_id',KC_RUN.id).eq('rf_kart_id',rfId).then(function(){},function(){}); }
+function kcUndo(rfId){ if(!KC_RUN) return;
+  var was=(KC_RESULTS[rfId]||{}).result;
+  delete KC_RESULTS[rfId]; delete KC_DRAFTS[rfId]; _kcSaveDrafts(); if(_kcOnScreen()) kcRenderCheck();
+  SBC.from('kart_checks').delete().eq('run_id',KC_RUN.id).eq('rf_kart_id',rfId).then(function(){},function(){});
+  // If it was flagged (already pushed to RaceFacer), clear that flag in RF too: delete the note + set OK.
+  if(was==='damaged'||was==='maint') _kcClearRf(rfId);
+}
+// Remove the check's active note(s) for a kart from RaceFacer and set it back to OK (used by undo/edit).
+function _kcClearRf(rfId){
+  try{
+    var notes=(RF_NOTES_BY_ID[rfId]||[]).filter(function(n){ return n.active!==false; });
+    notes.forEach(function(n){
+      n.active=false; n.open=false;
+      SBC.from('rf_note_queue').insert({ site:_kcSite(), rf_kart_id:rfId, user_name:(cu&&cu.name)||'', note:String(n.note||'').slice(0,1000), action:'delete', rf_notification_id:(n.notifId!=null?n.notifId:null) }).then(function(){},function(){});
+    });
+    SBC.from('rf_note_queue').insert({ site:_kcSite(), rf_kart_id:rfId, kart_name:'', kart_type:'', user_name:(cu&&cu.name)||'', note:'', rf_status:'ok' }).then(function(){},function(){});
+  }catch(e){}
+}
+// Red-X SAVE — push the note to RaceFacer INSTANTLY (one row files the note + flips the status), then
+// record it in the check. Editing an already-flagged kart first clears its previous RF note so RF ends
+// up with the ONE current note instead of a pile of duplicates.
 function kcSubmitRed(rfId){
   var ta=document.getElementById('kc-note-'+rfId), note=((ta&&ta.value)||'').trim();
-  var msg=document.getElementById('kc-rf-msg-'+rfId); if(!note){ if(msg){ msg.textContent='Add a quick note first'; msg.style.color='#FF5A52'; } return; }
-  kcSet(rfId,KC_RED_STATUS,note);   // recorded now; pushed to RaceFacer on Complete
+  var msg=document.getElementById('kc-rf-msg-'+rfId); function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
+  if(!note){ say('Add a quick note first'); return; }
+  if(!cu||!KC_RUN||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{}, status=KC_RED_STATUS;
+  var editing=((KC_RESULTS[rfId]||{}).result==='damaged'||(KC_RESULTS[rfId]||{}).result==='maint');
+  var btn=document.querySelector('.kc-redform .kc-rf-save'); if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  say('Sending to RaceFacer…','var(--t2)');
+  if(editing) _kcClearRf(rfId);   // replace the old note rather than stack a duplicate
+  var nrow={ site:_kcSite(), rf_kart_id:rfId, kart_name:String(k.num!=null?k.num:''), kart_type:String(k.type||KC_TYPE||''), user_name:cu.name, note:note.slice(0,1000), rf_status:status };
+  SBC.from('rf_note_queue').insert(nrow).then(function(r){
+    if(r&&r.error){ if(btn){ btn.disabled=false; btn.textContent='Save to RaceFacer'; } say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':('Couldn’t send: '+(r.error.message||''))); return; }
+    delete KC_DRAFTS[rfId]; _kcSaveDrafts();
+    if(k) k.status=status; _pendStatus(rfId,status);
+    try{ var na=(RF_NOTES_BY_ID[rfId]=RF_NOTES_BY_ID[rfId]||[]); na.unshift({id:null,note:note,createdIso:(typeof noteNowIso==='function'?noteNowIso():new Date().toISOString()),createdBy:cu.name,archivedIso:'',archivedBy:'',open:true,active:true,_pending:true,_pendingAt:Date.now()}); }catch(e){}
+    if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
+    kcSet(rfId,status,note);   // record in the check + re-render
+  },function(){ if(btn){ btn.disabled=false; btn.textContent='Save to RaceFacer'; } say('Connection error — not sent'); });
 }
+// Each red-X was already sent to RaceFacer the moment it was saved, so Complete just seals the run,
+// celebrates, and broadcasts the count — no batch push here.
 function kcComplete(){
   if(!KC_RUN) return; var fleet=kcFleet(KC_TYPE); if(!fleet.length) return;
-  var okN=0,fmN=0,dmg=[],pushes=[];
+  var okN=0,fmN=0,dmg=[];
   fleet.forEach(function(k){ var c=(KC_RESULTS[k.rfId]||{}), r=c.result;
-    if(r==='ok'){ okN++; }
-    else if(r==='maint'||r==='damaged'){ if(r==='maint') fmN++; dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:(r==='maint')});
-      pushes.push({ site:_kcSite(), rf_kart_id:k.rfId, kart_name:String(k.num!=null?k.num:''), kart_type:String(k.type||KC_TYPE||''), user_name:cu.name, note:String(c.note||'').slice(0,1000), rf_status:r }); }
-  });
+    if(r==='ok'){ okN++; } else if(r==='maint'){ fmN++; dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:true}); } else if(r==='damaged'){ dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:false}); } });
   var okfm=okN+fmN, col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E', dmgN=dmg.filter(function(d){return !d.fm;}).length;
-  var btn=document.querySelector('.kc-complete'); if(btn){ btn.disabled=true; btn.textContent='Flagging in RaceFacer…'; }
-  var finish=function(){
-    SBC.from('kart_check_runs').update({ status:'done', completed_at:new Date().toISOString(), ok_count:okN, fm_count:fmN, damaged_count:dmgN }).eq('id',KC_RUN.id).then(function(){},function(){});
-    KC_RUN.status='done'; KC_RUN.ok_count=okN; KC_RUN.fm_count=fmN; KC_RUN.damaged_count=dmgN;
-    pushes.forEach(function(p){ var kl=(KART_LIST||[]).filter(function(x){return x.rfId===p.rf_kart_id;})[0]; if(kl) kl.status=p.rf_status; _pendStatus(p.rf_kart_id,p.rf_status); });
-    if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
-    kcConfetti(col); kcShowSummary(okfm,okN,fmN,dmg);
-    try{ var title='✅ '+KC_TYPE+' Kart Check done';
-      var b='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmgN?(', '+dmgN+' damaged'):'')+')';
-      _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,b,'kartcheck','./'); });
-    }catch(e){}
-  };
-  if(pushes.length){ SBC.from('rf_note_queue').insert(pushes).then(function(r){
-      if(r&&r.error){ if(btn){ btn.disabled=false; btn.textContent='🏁 Complete & flag in RaceFacer'; } alert((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':('Couldn’t flag karts: '+(r.error.message||''))); return; }
-      finish();
-    },function(){ if(btn){ btn.disabled=false; btn.textContent='🏁 Complete & flag in RaceFacer'; } alert('Connection error — nothing was flagged, try Complete again'); });
-  } else { finish(); }
+  SBC.from('kart_check_runs').update({ status:'done', completed_at:new Date().toISOString(), ok_count:okN, fm_count:fmN, damaged_count:dmgN }).eq('id',KC_RUN.id).then(function(){},function(){});
+  KC_RUN.status='done'; KC_RUN.ok_count=okN; KC_RUN.fm_count=fmN; KC_RUN.damaged_count=dmgN;
+  kcConfetti(col); kcShowSummary(okfm,okN,fmN,dmg);
+  try{ var title='✅ '+KC_TYPE+' Kart Check done';
+    var b='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmgN?(', '+dmgN+' damaged'):'')+')';
+    _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,b,'kartcheck','./'); });
+  }catch(e){}
 }
 function kcShowSummary(okfm,okN,fmN,dmg){
   var col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E', dmgN=dmg.filter(function(d){return !d.fm;}).length;

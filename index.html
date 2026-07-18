@@ -2490,7 +2490,7 @@
         <div class="ki-tiles">
           <div class="tile mgr"      id="mgrt" style="display:none" onclick="go('manager');loadMgr()"><div class="ti">⭐</div><div class="tl">Manager Dashboard</div><div class="ts">Live data &amp; staff</div></div>
           <div class="tile fin"      id="wfin" style="display:none" onclick="go('finance');loadFin()"><div class="ti">💰</div><div class="tl">Finance</div><div class="ts">Stock value &amp; spend</div></div>
-          <div class="tile gord"     id="wgord" style="display:none" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
+          <div class="tile gord"     id="wgord" style="display:none;background:linear-gradient(145deg,#6366F1,#4338CA);border-color:rgba(129,140,248,.55)" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
           <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
         </div>
@@ -2810,11 +2810,11 @@
           <div class="pgtitle">Kart Info</div>
           <div class="ki-sub" id="ki-site-sub"></div>
           <div class="ki-tiles">
-            <div class="tile kartinfo ki-hero" style="background:linear-gradient(145deg,#EA580C,#9A3412);border-color:rgba(251,146,60,.55)" onclick="kiOpenKarts()"><div class="ti">🏎️</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
+            <div class="tile kartinfo ki-hero" onclick="kiOpenKarts()"><div class="ti">🏎️</div><div class="tl">Karts</div><div class="ts">Fleet · stats · repairs</div></div>
             <div class="tile tse" id="kit-notes" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
             <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile kiwire" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
-            <div class="tile gord" id="wkcheck" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
+            <div class="tile gord" id="wkcheck" style="background:linear-gradient(145deg,#EA580C,#9A3412);border-color:rgba(251,146,60,.55)" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
             <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
             <div class="tile sessdata" id="kit-sessdata" style="background:linear-gradient(145deg,#2563EB,#1E3A8A);border-color:rgba(96,165,250,.55)" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
@@ -11894,7 +11894,7 @@ function sdEnter(){
   body.innerHTML='<div class="sd-empty">Loading sessions…</div>';
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
   var since=new Date(Date.now()-7*86400000).toISOString();
-  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(200).then(function(r){
+  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(2000).then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ body.innerHTML='<div class="sd-empty">Session data isn\u2019t set up yet.<br>Run hk_ai.sql and deploy the runner, then sessions will appear here after they run.</div>'; return; }
     var all=(r&&r.data)||[];
     // Only the RiMO-logged tracks carry cell data: Adult (RaceFacer reports its layout name, e.g.

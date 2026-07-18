@@ -10456,9 +10456,13 @@ function tvRefresh(){ tvRenderCurrent(false); }
 function tvRerender(){ clearTimeout(_tvRr); _tvRr=setTimeout(tvRefresh,160); }
 /* ---------- rotation: one self-scheduling timer, never stacks ---------- */
 function tvAdvance(){
+  // Show the HK logo hand-off ONLY at the END of a kart-type's screen time (Adult→Inter etc.), never
+  // mid-scene. So: if the scene we're leaving is a kart-type scene, pulse the logo over the transition.
+  var wasType=(_tvCurKey && _tvCurKey.indexOf('type:')===0);
   var list=tvEnabledScenes();
   if(list.length){ var ci=(typeof tvIdx==='number'&&tvIdx>=0)?tvIdx:0; tvIdx=(ci+1)%list.length; }
   tvRenderCurrent(true);
+  if(wasType){ try{ tvHkPulse(); }catch(e){} }
   tvScheduleNext();
 }
 function tvScheduleNext(){
@@ -10672,7 +10676,8 @@ function bootTvDisplay(){
     }
     _tvBootAt=Date.now();
     tvSyncTimer=setInterval(tvSyncView,15000);     // catch scheduled messages + the morning cut-off
-    tvPulseTimer=setInterval(tvHkPulse,60000);     // HK animation once a minute
+    // NOTE: the HK logo no longer pops on a blind 60s timer (which made it appear mid-scene at random).
+    // It now shows only as the hand-off at the END of a kart-type's screen time — see tvAdvance().
     tvDataTimer=setInterval(tvLoadData,300000);    // refresh fleet/stock every 5 min as a backstop
     _tvHealTimer=setInterval(tvHeal,8000);         // watchdog: never leave the board blank
   }catch(e){

@@ -6394,13 +6394,21 @@ var ACTIVE_KART_TAB='overview';
 // ── Live RaceFacer data ────────────────────────────────────────────────────
 // rf_karts/rf_repairs are written by the sync. We map them into the SAME shapes
 // the existing render functions already expect, so nothing downstream changes.
-var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={}, PENDING_KART_STATUS={};
+var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={}, PENDING_KART_STATUS={}, PENDING_KART_AT={};
+// An optimistic status override (what the app set locally) self-expires after this. Without a cap, if
+// RaceFacer settles on a DIFFERENT status than we optimistically set (e.g. it was changed directly in RF),
+// the app held our value forever and the kart looked stuck (the "status isn't updating" bug).
+var PENDING_MAX_MS=25000;
+function _pendStatus(rfId,status){ PENDING_KART_STATUS[rfId]=status; PENDING_KART_AT[rfId]=Date.now(); }
+function _clearPend(rfId){ delete PENDING_KART_STATUS[rfId]; delete PENDING_KART_AT[rfId]; }
 function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Adult'; }
 function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
 function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
 function mapRfKart(r){
   var _st=rfStatusClass(r.status_code,r.status), _pend=PENDING_KART_STATUS[r.rf_id];
-  if(_pend!=null){ if(_pend===_st) delete PENDING_KART_STATUS[r.rf_id]; else _st=_pend; }   // hold the optimistic status until RaceFacer echoes it back
+  // Hold the optimistic status until RaceFacer echoes it back — but drop it once it matches OR once it's
+  // older than PENDING_MAX_MS, so a mismatch can't leave the kart permanently showing the wrong status.
+  if(_pend!=null){ if(_pend===_st || (Date.now()-(PENDING_KART_AT[r.rf_id]||0))>PENDING_MAX_MS) _clearPend(r.rf_id); else _st=_pend; }
   return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:_st,
     kartId:r.kart_id_label||'-', transponder:'-', brand:r.brand||'RiMO', model:r.model||'-', engine:'Electric',
     mileage:Number(r.total_km)||0, laps:Number(r.total_laps)||0, hours:Number(r.total_hours)||0,
@@ -6583,11 +6591,11 @@ function kdSetStatus(status){
   var map={ok:1,damaged:2,maint:3};   // RaceFacer kart_status_id
   var prev=k.status; k.status=status;
   var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.status=status;
-  PENDING_KART_STATUS[k.rfId]=status;   // survive fleet rebuilds (2s status poll) until RaceFacer echoes it back
+  _pendStatus(k.rfId,status);   // survive fleet rebuilds (2s status poll) until RaceFacer echoes it back (self-expires)
   var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
   // Instantly recolour this kart on the fleet grid too — don't wait for the RaceFacer round-trip.
   if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
-  function _revert(msg){ delete PENDING_KART_STATUS[k.rfId]; k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } if(msg) alert(msg); }
+  function _revert(msg){ _clearPend(k.rfId); k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } if(msg) alert(msg); }
   // Queuing always succeeds. What can fail is the runner's push to RaceFacer a second or two
   // later — most often "back to OK" while the kart still has an open damage. Watch the row.
   SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).select('id').then(function(r){
@@ -7118,7 +7126,7 @@ function kcComplete(){
   var finish=function(){
     SBC.from('kart_check_runs').update({ status:'done', completed_at:new Date().toISOString(), ok_count:okN, fm_count:fmN, damaged_count:dmgN }).eq('id',KC_RUN.id).then(function(){},function(){});
     KC_RUN.status='done'; KC_RUN.ok_count=okN; KC_RUN.fm_count=fmN; KC_RUN.damaged_count=dmgN;
-    pushes.forEach(function(p){ var kl=(KART_LIST||[]).filter(function(x){return x.rfId===p.rf_kart_id;})[0]; if(kl) kl.status=p.rf_status; if(typeof PENDING_KART_STATUS!=='undefined') PENDING_KART_STATUS[p.rf_kart_id]=p.rf_status; });
+    pushes.forEach(function(p){ var kl=(KART_LIST||[]).filter(function(x){return x.rfId===p.rf_kart_id;})[0]; if(kl) kl.status=p.rf_status; _pendStatus(p.rf_kart_id,p.rf_status); });
     if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
     kcConfetti(col); kcShowSummary(okfm,okN,fmN,dmg);
     try{ var title='✅ '+KC_TYPE+' Kart Check done';
@@ -7972,7 +7980,7 @@ function rfqPartSel(i,val){
     var w=(RF_WH||[]).filter(function(x){return x.part_id===pid;})[0];
     RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=pid; RFQ_PARTS[i].rf_id=(w&&w.rf_id)||pid;
     RFQ_PARTS[i].max_qty=(w&&w.max_qty)||99; RFQ_PARTS[i].name=(w&&w.name)||('part '+pid);
-    if(w&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(w.price)||0;
+    if(w&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(w.price)||_rfqInvPrice(w.name)||0;
   } else {
     var p=(parts||[]).filter(function(x){return String(x.sku)===String(val);})[0];
     RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=null; RFQ_PARTS[i].rf_id=null; RFQ_PARTS[i].max_qty=null;
@@ -7984,6 +7992,10 @@ function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)
 // ── Searchable parts picker (bottom sheet) ──────────────────────────────────
 var RFQ_PICK_ROW=-1;
 function _rfqNorm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+// RaceFacer's warehouse feed only prices SOME parts, so most showed blank. The app already keeps the
+// inventory `parts` table priced (Finance uses it) — fall back to it, matched by name, so a part shows a
+// price whenever we know one from either source.
+function _rfqInvPrice(name){ var n=_rfqNorm(name); if(!n) return 0; var p=(parts||[]).filter(function(x){ return _rfqNorm(x.desc||x.sku)===n; })[0]; return (p&&Number(p.price))||0; }
 function rfqOpenPartPick(i){
   RFQ_PICK_ROW=i;
   var ov=document.getElementById('rfq-pick-ov'); if(!ov) return;
@@ -7997,7 +8009,7 @@ function rfqFilterParts(q){
   var list=document.getElementById('rfq-pick-list'); if(!list) return;
   q=_rfqNorm(q);
   var src=(RF_WH&&RF_WH.length)
-    ? RF_WH.map(function(p){ return {id:'rf:'+p.part_id, name:p.name, price:p.price, max_qty:p.max_qty}; })
+    ? RF_WH.map(function(p){ return {id:'rf:'+p.part_id, name:p.name, price:(Number(p.price)||_rfqInvPrice(p.name)), max_qty:p.max_qty}; })
     : (parts||[]).map(function(p){ return {id:String(p.sku), name:(p.desc||p.sku), price:p.price, max_qty:null}; });
   if(RFQ_AVAIL) src=src.filter(function(p){ return p.max_qty==null||Number(p.max_qty)>0; });
   var out=src.filter(function(p){ return !q||_rfqNorm(p.name).indexOf(q)>=0; }).slice(0,250);
@@ -8053,7 +8065,7 @@ function rfqCardHtml(){
     +'<div id="rfq-parts"></div>'
     +'<div class="rfq-total">Total price: <b id="rfq-total">$0.00</b></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px">'
-    +'<div class="m-fld"><label>Working hours</label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="e.g. 4433"></div>'
+    +'<div class="m-fld"><label>Working hours <span style="color:#F59E0B">*</span></label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="required — e.g. 4433"></div>'
     +'<div class="m-fld"><label>Status</label>'+_rfqStatusSel()+'</div>'
     +'<div class="m-fld"><label>User</label>'+_rfqUserSel()+'</div></div>'
     +'<div class="m-fld" style="margin-top:8px"><label>Note</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
@@ -8115,6 +8127,7 @@ function rfqSubmit(){
   var disc=document.getElementById('rfq-disc').value||((typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10));
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
+  if(!hrs){ say('Enter the working hours'); okBtn('+ Save'); try{ var _wh=document.getElementById('rfq-hours'); if(_wh){ _wh.focus(); _wh.scrollIntoView({behavior:'smooth',block:'center'}); } }catch(e){} return; }   // working hours are mandatory on a repair
   var uEl=document.getElementById('rfq-user'), who=(uEl&&uEl.value)||cu.name;   // RaceFacer's User dropdown
   var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0,part_id:(p.part_id||null),id:(p.rf_id||null),max_qty:(p.max_qty||null)};});
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
@@ -8141,10 +8154,10 @@ function rfqSubmit(){
     try{
       var _st=(RFQ_STATUS==='for_maintenance')?'maint':RFQ_STATUS;
       if(_st&&k.status!==_st){ k.status=_st; var _kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(_kl) _kl.status=_st;
-        PENDING_KART_STATUS[k.rfId]=_st;
+        _pendStatus(k.rfId,_st);
         // If RaceFacer never echoes it (push failed), stop holding after 30s — the 2s status
         // poll then repaints the real status ("goes back to old status if it doesn't land in RF").
-        (function(_id,_v){ setTimeout(function(){ if(PENDING_KART_STATUS[_id]===_v){ delete PENDING_KART_STATUS[_id]; if(typeof kartRefreshSilent==='function'){ try{ kartRefreshSilent(); }catch(e){} } } },30000); })(k.rfId,_st);
+        (function(_id,_v){ setTimeout(function(){ if(PENDING_KART_STATUS[_id]===_v){ _clearPend(_id); if(typeof kartRefreshSilent==='function'){ try{ kartRefreshSilent(); }catch(e){} } } },30000); })(k.rfId,_st);
         var _seg=document.getElementById('kd-statusseg'); if(_seg) _seg.innerHTML=kdStatusSeg(_st);
         if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } }
     }catch(e){}
@@ -12225,7 +12238,9 @@ function aiPollAnswer(id){
 
 /* ---------- Chats ---------- */
 function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
-function chatEnter(){ chatShowList(); chatOpenDefault(); }
+// On phone, land on the chat LIST (don't auto-open a thread). Only auto-open a default thread on desktop,
+// where the list + thread show side by side so it isn't a forced navigation.
+function chatEnter(){ chatShowList(); if(_gcDesk()) chatOpenDefault(); }
 var _chDefT=null;
 /* Role chats: Mechanic -> Workshop, Facility -> Facility, Office -> Office. Managers &
    Assistant Managers are in all three, so they land in their MOST RECENT conversation.

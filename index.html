@@ -3215,6 +3215,7 @@
     <div class="m-tools">
       <input class="m-search-in" id="m-search" placeholder="Search parts..." oninput="mSearch()">
       <button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" onclick="mSupOpen()">🏷 Suppliers</button>
+      <button class="m-add" style="background:var(--card2);color:#F59E0B;border:1px solid rgba(245,158,11,.4)" onclick="mResetAllStats()">♻️ Reset stock data</button>
       <button class="m-add" onclick="mOpenAdd()">+ Add</button>
     </div>
     <div class="m-list" id="m-list"></div>
@@ -3442,6 +3443,7 @@
     <div class="m-fld" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Row</label><input id="m-f-row" placeholder="e.g. 3"></div><div><label>Shelf</label><input id="m-f-shelf" placeholder="e.g. B"></div></div>
     <div class="m-fld"><label>Location note <span style="color:var(--t2);font-weight:400">(optional)</span></label><input id="m-f-loc" placeholder="Anything extra — bin, cupboard…"></div>
     <div class="m-fld"><label>Photo URL <span style="color:var(--t2);font-weight:400">(optional — for QR labels when the RIMO photo isn&#8217;t found by SKU)</span></label><input id="m-f-img" placeholder="Paste the RIMO product image address" inputmode="url" autocapitalize="off" autocorrect="off"></div>
+    <div class="m-fld" id="m-f-resetwrap" style="display:none"><button class="m-form-btn" style="width:100%;background:var(--card2);color:#F59E0B;border:1px solid rgba(245,158,11,.4)" onclick="mResetPartStats()">♻️ Reset this part's stock data — smartness, predictions, 0/6</button></div>
     <div class="m-form-msg" id="m-form-msg"></div>
     <div class="m-form-row">
       <button class="m-form-btn m-cancel" onclick="mCloseForm()">Cancel</button>
@@ -3844,7 +3846,8 @@ function mapPart(r){
     image_url:(r.image_url||''),
     is_rimo:_rimoVal(r.is_rimo), brand:(r.brand||''), lead_days:(r.lead_days!=null?Number(r.lead_days):null),
     yield_rate:(r.yield_rate!=null?Number(r.yield_rate):null), category:(r.category||''),
-    used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null
+    used90:0, daysLeft:null, recommendedReorder:null, orderQuantity:null,
+    stats_reset_at:(r.stats_reset_at||null)
   };
 }
 function loadParts(cb){
@@ -3861,11 +3864,16 @@ function loadParts(cb){
          min to always carry (reorder point) = ceil(90d usage x 1.3)   (covers the 3-month lead + 30% buffer)
          order quantity                      = ceil(90d usage x 2)      (6-month supply between deliveries)
        daysLeft = current stock / daily usage rate. */
+    // Per-part "reset stock data" baseline: usage/scans logged BEFORE a part's stats_reset_at are ignored,
+    // so its smartness + predictions + 0/6 start fresh without deleting any history.
+    var resetBySku={}; (pres.data||[]).forEach(function(r){ if(r&&r.stats_reset_at){ var rt=Date.parse(r.stats_reset_at); if(!isNaN(rt)) resetBySku[String(r.sku)]=rt; } });
     var ninety=Date.now()-90*864e5, usage90={}, scans90={}, scansAll={};
     ((lres&&lres.data)||[]).forEach(function(l){
       if(String(l.action||'')!=='TAKEN') return;
-      var sk=String(l.sku||''); scansAll[sk]=(scansAll[sk]||0)+1;   // lifetime count — gates the yield rate
-      var t=new Date(l.ts).getTime(); if(isNaN(t)||t<ninety) return;
+      var sk=String(l.sku||''); var t=new Date(l.ts).getTime();
+      if(resetBySku[sk] && (isNaN(t)||t<resetBySku[sk])) return;    // pre-reset usage doesn't count
+      scansAll[sk]=(scansAll[sk]||0)+1;   // lifetime count (since reset) — gates the yield rate
+      if(isNaN(t)||t<ninety) return;
       usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0); scans90[sk]=(scans90[sk]||0)+1;
     });
     var arr=pres.data.map(function(r){
@@ -10689,6 +10697,7 @@ function mOpenAdd(){
   mEditSku=null; mFillForm(null);
   document.getElementById('m-form-title').textContent='Add Part';
   document.getElementById('m-f-sku').readOnly=false;
+  var rw=document.getElementById('m-f-resetwrap'); if(rw) rw.style.display='none';   // reset only applies to existing parts
   document.getElementById('m-form').classList.add('show');
 }
 function mOpenEdit(sku){
@@ -10696,11 +10705,32 @@ function mOpenEdit(sku){
   mEditSku=sku; mFillForm(p);
   document.getElementById('m-form-title').textContent='Edit Part';
   document.getElementById('m-f-sku').readOnly=true;
+  var rw=document.getElementById('m-f-resetwrap'); if(rw) rw.style.display='';
   document.getElementById('m-form').classList.add('show');
 }
 function mCloseForm(){ document.getElementById('m-form').classList.remove('show'); }
 function mFormMsg(t){ document.getElementById('m-form-msg').textContent=t||''; }
 function mReloadParts(){ loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){}} mRenderList(); }); }
+// Reset stock "smartness" (usage history, reorder predictions, the 0/6 yield gate) by stamping a baseline
+// the usage maths ignores everything before. Non-destructive: no logs deleted, stock quantities untouched.
+function mResetPartStats(){
+  if(!mEditSku){ return; }
+  if(typeof SBC==='undefined'||!SBC){ mFormMsg('Not connected'); return; }
+  if(!confirm('Reset stock data for this part?\n\nIts usage history, predictions and 0/6 smartness start fresh from now. Stock quantity is NOT changed.')) return;
+  mFormMsg('Resetting…');
+  SBC.from('parts').update({stats_reset_at:new Date().toISOString()}).eq('sku',mEditSku).then(function(r){
+    if(r&&r.error){ mFormMsg((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run stock_reset.sql in Supabase first':('Failed — '+(r.error.message||''))); return; }
+    mFormMsg('✓ Stock data reset — predictions rebuild as it’s used'); mReloadParts();
+  },function(){ mFormMsg('Connection error'); });
+}
+function mResetAllStats(){
+  if(typeof SBC==='undefined'||!SBC){ alert('Not connected'); return; }
+  if(!confirm('Reset stock data for ALL parts?\n\nEvery part’s usage history, predictions and 0/6 smartness start fresh from now. Stock quantities are NOT changed. This can’t be undone.')) return;
+  SBC.from('parts').update({stats_reset_at:new Date().toISOString()}).not('sku','is',null).then(function(r){
+    if(r&&r.error){ alert((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run stock_reset.sql in Supabase first — it adds the stats_reset_at column':('Failed — '+(r.error.message||''))); return; }
+    alert('✓ Stock data reset for all parts — predictions will rebuild as parts are used.'); mReloadParts();
+  },function(){ alert('Connection error'); });
+}
 function mSave(){
   var skuIn=(document.getElementById('m-f-sku').value||'').trim();
   var desc=document.getElementById('m-f-desc').value.trim();

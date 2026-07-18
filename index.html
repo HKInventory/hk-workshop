@@ -626,8 +626,13 @@
     /* ── Scan ── */
     .scanf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 20px}
     .scan-title{font-size:24px;font-weight:800;letter-spacing:.2px}
-    #qrvc{width:100%;max-width:340px;aspect-ratio:1;border-radius:28px;overflow:hidden;background:#000;border:5px solid #fff;box-shadow:0 10px 44px rgba(0,0,0,.55);position:relative}
-    #qrv{width:100%;height:100%;object-fit:cover}
+    #qrvc{width:100%;max-width:340px;aspect-ratio:1;border-radius:28px;overflow:hidden;background:#0a0a0a;border:5px solid #fff;box-shadow:0 10px 44px rgba(0,0,0,.55);position:relative}
+    /* Soft shimmer while the camera warms up, so opening Scan never shows a hard black square that then jumps to video. */
+    #qrvc::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,#141414 30%,#242424 50%,#141414 70%);background-size:220% 100%;animation:qrShimmer 1.1s ease-in-out infinite;opacity:1;transition:opacity .4s ease;pointer-events:none;z-index:0}
+    #qrvc.live::after{opacity:0}
+    @keyframes qrShimmer{0%{background-position:130% 0}100%{background-position:-130% 0}}
+    #qrv{width:100%;height:100%;object-fit:cover;position:relative;z-index:1;opacity:0;transition:opacity .45s ease}
+    #qrvc.live #qrv{opacity:1}
     .scan-btns{display:flex;gap:56px;align-items:center;justify-content:center;margin-top:6px}
     .scan-rnd{width:64px;height:64px;border-radius:50%;border:none;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s}
     .scan-rnd:active{transform:scale(.92)}
@@ -4133,7 +4138,9 @@ function startRealtime(){
           if(_html!=null){ _kdBodySig=_sig; _tb.innerHTML=_html; }
         }
       } else if(scr==='kartlist'){
-        KSB_LAST='';
+        // Don't clear KSB_LAST on a live refresh — renderStatusBar only re-renders (and replays its
+        // reveal) when the OK/maint/damaged counts actually change; clearing it made the bar re-animate
+        // on every realtime tick.
         if(typeof renderTypeTabs==='function') renderTypeTabs();
         if(typeof renderKartChips==='function') renderKartChips();
       }
@@ -5640,6 +5647,7 @@ function _initScanner(){
       maxScansPerSecond:5
     });
     qrs.start().then(function(){
+      var _vc=document.getElementById('qrvc'); if(_vc) _vc.classList.add('live');   // fade the live feed in over the shimmer
       document.getElementById('sst').innerText='Point at a part\u2019s QR label';
       try{
         var tp=document.getElementById('scan-tip');
@@ -5672,6 +5680,7 @@ function stopScan(){
     try{qrs.stop();qrs.destroy();}catch(e){}
     qrs=null;
   }
+  var _vc=document.getElementById('qrvc'); if(_vc) _vc.classList.remove('live');   // reset so the next open shimmers cleanly
   document.getElementById('sbn').style.display='block';
   document.getElementById('ssp').style.display='none';
   document.getElementById('sst').innerText='Camera stopped';
@@ -6777,7 +6786,10 @@ function kiRenderKarts(){
   if(SELECTED_KART_TYPE===LT_TYPE){ if(!hasLT){ var fr=firstReal(); if(fr) SELECTED_KART_TYPE=fr; } }
   else if(!present[SELECTED_KART_TYPE]){ var first=firstReal(); if(first) SELECTED_KART_TYPE=first; else if(hasLT) SELECTED_KART_TYPE=LT_TYPE; }
   var ksub=document.getElementById('ki-karts-sub'); if(ksub) ksub.innerText=kiSubText();
-  KSB_LAST=''; renderTypeTabs(); renderKartChips();
+  // NOTE: do NOT clear KSB_LAST here — this runs on every data refresh, and clearing it defeated the
+  // "only animate when the counts actually change" guard, so the coloured usable bar replayed its reveal
+  // animation on every refresh. KSB_LAST is reset only when the bar is actually torn down (kartListLoading).
+  renderTypeTabs(); renderKartChips();
 }
 function kartListLoading(on){
   var sub=document.getElementById('ki-karts-sub'),tabs=document.getElementById('ki-type-tabs'),bar=document.getElementById('kart-statusbar'),chips=document.getElementById('kart-chips');
@@ -6785,7 +6797,7 @@ function kartListLoading(on){
     var srch=document.getElementById('kart-search');
     if(sub) sub.style.display='none';
     if(srch) srch.style.display='none';
-    if(tabs) tabs.innerHTML=''; if(bar) bar.innerHTML='';
+    if(tabs) tabs.innerHTML=''; if(bar){ bar.innerHTML=''; KSB_LAST=''; }   // bar torn down -> allow one fresh reveal when it comes back
     // Single centred spinner in the middle of the screen (no top-left magnifier/text) until the fleet lands.
     if(chips) chips.innerHTML='<div class="fleet-loading" style="grid-column:1/-1"><div class="fleet-spinner"></div><div class="fleet-loading-t">Loading fleet…</div></div>';
   }
@@ -8755,19 +8767,21 @@ function notifNewRepair(rfId, noteId){
     RFQ_NOTE=n?{id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''}:null;
     RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=_rfqDefaultStatus(k); RFQ_AVAIL=false;
     renderKartDetail(k);   // detail renders with the repair form already open
-    go('kartdetail');      // slides in a finished screen
-    // Force a clean resting state AFTER the slide, unconditionally — on wide desktop this transition could
-    // stick half-way, leaving the notifications screen showing THROUGH the kart detail (the reported
-    // overlap). Snap kart-detail to rest, unlock nav, and push every other screen fully off so only the
-    // kart detail is on top.
-    setTimeout(function(){
-      try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
-      var _kd=document.getElementById('s-kartdetail');
-      if(_kd){ _kd.classList.add('active'); _kd.classList.remove('behind'); _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; _kd.style.transition=''; }
-      try{ var scrs=document.querySelectorAll('.scr'); for(var i=0;i<scrs.length;i++){ if(scrs[i].id!=='s-kartdetail'){ scrs[i].classList.remove('active'); scrs[i].classList.remove('behind'); scrs[i].style.transition=''; scrs[i].style.transform=''; } } }catch(e){}
-      try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
-      try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
-    }, 430);
+    // INSTANT (non-animated) jump to the kart detail. The animated slide left an in-between frame that
+    // wedged on wide desktop — the notifications screen stayed half-on, stacked over the kart detail
+    // (the reported overlap). Jumping straight there leaves no mid-transition state to get stuck on.
+    try{ if(typeof stk!=='undefined' && stk[stk.length-1]!=='kartdetail') stk.push('kartdetail'); }catch(e){}
+    var scrs=document.querySelectorAll('.scr');
+    for(var i=0;i<scrs.length;i++){ var sc=scrs[i];
+      if(sc.id==='s-kartdetail'){ sc.style.transition='none'; sc.classList.add('active'); sc.classList.remove('behind'); sc.style.transform='translate3d(0,0,0)'; }
+      else { sc.style.transition='none'; sc.classList.remove('active','behind'); sc.style.transform=''; }
+    }
+    var _kd=document.getElementById('s-kartdetail'); if(_kd) void _kd.offsetWidth;   // commit the no-animation layout
+    for(var j=0;j<scrs.length;j++){ scrs[j].style.transition=''; }                   // restore transitions for future nav
+    try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
+    try{ if(typeof updateUI==='function') updateUI('kartdetail'); }catch(e){}
+    try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
+    try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
   }catch(e){}
 }
 // ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────

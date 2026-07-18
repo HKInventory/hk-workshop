@@ -8663,17 +8663,19 @@ function notifNewRepair(rfId, noteId){
     RFQ_NOTE=n?{id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''}:null;
     RFQ_MODE='repair'; RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}]; RFQ_STATUS=_rfqDefaultStatus(k); RFQ_AVAIL=false;
     renderKartDetail(k);   // detail renders with the repair form already open
-    go('kartdetail');      // slides in a finished screen — nothing mutates after it lands
-    // After the slide settles, only do small in-place updates (parts list + warehouse) and a gentle
-    // focus — no tab rebuild, no scrollIntoView. A resting-transform re-assert stays as cheap insurance.
-    var _nr=0;
-    (function whenSettled(){
-      if(typeof navLock!=='undefined' && navLock && _nr++<80){ setTimeout(whenSettled,25); return; }
+    go('kartdetail');      // slides in a finished screen
+    // Force a clean resting state AFTER the slide, unconditionally — on wide desktop this transition could
+    // stick half-way, leaving the notifications screen showing THROUGH the kart detail (the reported
+    // overlap). Snap kart-detail to rest, unlock nav, and push every other screen fully off so only the
+    // kart detail is on top.
+    setTimeout(function(){
+      try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
+      var _kd=document.getElementById('s-kartdetail');
+      if(_kd){ _kd.classList.add('active'); _kd.classList.remove('behind'); _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; _kd.style.transition=''; }
+      try{ var scrs=document.querySelectorAll('.scr'); for(var i=0;i<scrs.length;i++){ if(scrs[i].id!=='s-kartdetail'){ scrs[i].classList.remove('active'); scrs[i].style.transition=''; scrs[i].style.transform=''; } } }catch(e){}
       try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
       try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
-      var _kd=document.getElementById('s-kartdetail');
-      if(_kd){ _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; }
-    })();
+    }, 430);
   }catch(e){}
 }
 // ── Fleet-wide repairs table (mirrors RaceFacer Garage → Repairs) ───────────

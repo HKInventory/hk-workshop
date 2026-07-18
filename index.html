@@ -11874,6 +11874,12 @@ function sdEnter(){
       var st=(s.status||'').toLowerCase();
       var startMs=s.scheduled_at?Date.parse(s.scheduled_at):0;
       var endMs=s.ends_at?Date.parse(s.ends_at):(startMs?startMs+13*60000:0);
+      // KEY FIX for "no sessions show": a race scheduled well in the past IS over, even if the runner left
+      // its status stuck at in_progress (RaceFacer's finished string doesn't always flip it). Show
+      // explicitly-finished OR clock-long-past races before the status guards below could hide them.
+      var longPast=startMs && (nowMs-startMs)>30*60000;
+      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;
+      if(longPast) return true;
       if(/progress|running|live|active|ongoing/.test(st)) return false;          // RUNNING → hide
       if(/not.?started|scheduled|upcoming|pending|waiting|new/.test(st)) return false; // NOT STARTED → hide
       if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true; // FINISHED → show (trust status)
@@ -11882,14 +11888,14 @@ function sdEnter(){
       if(endMs && endMs>nowMs) return false;
       return true;
     });
-    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions yet today.<br>A race appears here once it\u2019s over. Cell data shows for karts the logger recorded while on track.</div>'; return; }
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over. Cell data shows for karts the logger recorded while on track.</div>'; return; }
     // load runs (karts) for all sessions
     SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
       SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
       // Drop empty slots: a scheduled race nobody entered has 0 karts and nothing to show. Keeping
       // them just clutters the list with "0 karts / no data".
       SD_SESS=SD_SESS.filter(function(s){ return (SD_RUNS[s.uuid]||[]).length>0; });
-      if(!SD_SESS.length){ document.getElementById('sd-body').innerHTML='<div class="sd-empty">No sessions with karts yet today.</div>'; return; }
+      if(!SD_SESS.length){ document.getElementById('sd-body').innerHTML='<div class="sd-empty">No sessions with karts recorded in the last 7 days.</div>'; return; }
       SD_SESSION=null; SD_KART=null;   // user picks via the filter list
       sdRenderShell();
     },function(){ SD_RUNS={}; sdRenderShell(); });

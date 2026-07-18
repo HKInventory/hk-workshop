@@ -6946,6 +6946,7 @@ function kiRefRefresh(){
 // Colour-coded type tabs — one per type present in the fleet, plus a Long Term pile
 function renderTypeTabs(){
   var box=document.getElementById('ki-type-tabs'); if(!box) return;
+  if(typeof FLEET_LOADED!=='undefined' && !FLEET_LOADED){ box.innerHTML=''; return; }   // while loading, show only the centred spinner
   var byType={}, lt=[];
   KART_LIST.forEach(function(k){ if(k.longTerm){ lt.push(k); } else { (byType[k.type]=byType[k.type]||[]).push(k); } });
   var types=KART_TYPE_ORDER.filter(function(t){return byType[t]&&byType[t].length;});
@@ -7750,6 +7751,7 @@ function loadKartInfo(){
 var KSB_LAST='';
 function renderStatusBar(){
   var box=document.getElementById('kart-statusbar'); if(!box) return;
+  if(typeof FLEET_LOADED!=='undefined' && !FLEET_LOADED){ box.innerHTML=''; KSB_LAST=''; return; }   // while loading, show only the centred spinner
   // Long Term pile — a count + per-type breakdown (no usable bar; these can't be fixed right now)
   if(SELECTED_KART_TYPE===LT_TYPE){
     var lt=KART_LIST.filter(function(k){return k.longTerm;});
@@ -7784,13 +7786,17 @@ function renderStatusBar(){
 }
 
 function renderKartChips(filter){
-  renderStatusBar();
+  renderTypeTabs(); renderStatusBar();
+  var _search=document.getElementById('kart-search'), _sub=document.getElementById('ki-karts-sub');
   // Until the real fleet arrives, show a loading state — never flash the placeholder karts.
   if(!FLEET_LOADED){
+    if(_search) _search.style.display='none';
+    if(_sub) _sub.style.display='none';
     var g0=document.getElementById('kart-chips');
     if(g0) g0.innerHTML='<div class="fleet-loading" style="grid-column:1/-1"><div class="fleet-spinner"></div><div class="fleet-loading-t">Loading fleet\u2026</div></div>';
     return;
   }
+  if(_search) _search.style.display=''; if(_sub) _sub.style.display='';
   var q=(filter||(document.getElementById('kart-search')?document.getElementById('kart-search').value:'')||'').trim().toLowerCase();
   var grid=document.getElementById('kart-chips');
   if(SELECTED_KART_TYPE===LT_TYPE){
@@ -8000,11 +8006,13 @@ function rfqPartSel(i,val){
     var w=(RF_WH||[]).filter(function(x){return x.part_id===pid;})[0];
     RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=pid; RFQ_PARTS[i].rf_id=(w&&w.rf_id)||pid;
     RFQ_PARTS[i].max_qty=(w&&w.max_qty)||99; RFQ_PARTS[i].name=(w&&w.name)||('part '+pid);
-    if(w&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(w.price)||_rfqInvPrice(w.name)||0;
+    // Selecting/SWAPPING a part always takes that part's price (was only filled when empty, so a swap
+    // kept the previous part's price).
+    if(w) RFQ_PARTS[i].price=Number(w.price)||_rfqInvPrice(w.name)||0;
   } else {
     var p=(parts||[]).filter(function(x){return String(x.sku)===String(val);})[0];
     RFQ_PARTS[i].sku=val; RFQ_PARTS[i].part_id=null; RFQ_PARTS[i].rf_id=null; RFQ_PARTS[i].max_qty=null;
-    RFQ_PARTS[i].name=p?(p.desc||p.sku):val; if(p&&!RFQ_PARTS[i].price) RFQ_PARTS[i].price=Number(p.price)||0;
+    RFQ_PARTS[i].name=p?(p.desc||p.sku):val; if(p) RFQ_PARTS[i].price=Number(p.price)||_rfqInvPrice(p.desc||p.sku)||0;
   }
   rfqRenderParts();
 }

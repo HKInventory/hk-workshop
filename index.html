@@ -435,7 +435,7 @@
     .tile.fin     {background:linear-gradient(145deg,#DB2777,#831843);border:1px solid rgba(244,114,182,0.42)}
     .tile.kidh    {background:linear-gradient(145deg,#E11D48,#5B0A1E);border:1px solid rgba(251,113,133,0.5)}
     .tile.hkai    {background:linear-gradient(145deg,#7C3AED,#5B21B6);border:1px solid rgba(167,139,250,0.50)}
-    .tile.sessdata{background:linear-gradient(145deg,#0F766E,#134E4A);border:1px solid rgba(45,212,191,0.45)}
+    .tile.sessdata{background:linear-gradient(145deg,#06B6D4,#0E7490);border:1px solid rgba(103,232,249,0.55)}
     /* Session Data screen */
     #s-sessdata .sb{padding-left:16px;padding-right:16px}
     .sd-h{font-size:20px;font-weight:900;color:#2DD4BF;display:flex;align-items:center;gap:8px;margin:4px 0 3px}
@@ -2814,10 +2814,10 @@
             <div class="tile tse" id="kit-notes" onclick="kiOpenRef('notes')"><div class="ti">📋</div><div class="tl">Notes</div><div class="ts">All kart notes</div></div>
             <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile kiwire" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
-            <div class="tile gord" id="wkcheck" style="background:linear-gradient(145deg,#EA580C,#9A3412);border-color:rgba(251,146,60,.55)" onclick="go('kartcheck')"><div class="ti">🩺</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
+            <div class="tile gord" id="wkcheck" style="background:linear-gradient(145deg,#EA580C,#9A3412);border-color:rgba(251,146,60,.55)" onclick="go('kartcheck')"><div class="ti">✅</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
             <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
-            <div class="tile sessdata" id="kit-sessdata" style="background:linear-gradient(145deg,#2563EB,#1E3A8A);border-color:rgba(96,165,250,.55)" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
+            <div class="tile sessdata" id="kit-sessdata" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
             <div class="tile hkai" id="kit-help" onclick="kiOpenRef('help')"><div class="ti">🛟</div><div class="tl">Help</div><div class="ts">Common fixes</div></div>
           </div>
@@ -4747,6 +4747,18 @@ function _resetTabView(id){
     if(id==='kartlist'){ if(typeof renderTypeTabs==='function') renderTypeTabs(); if(typeof renderKartChips==='function') renderKartChips(); }
   }catch(e){} }
   if(id==='chats'){ try{ if(typeof chatShowList==='function'&&document.getElementById('ch-list-view')) chatShowList(); }catch(e){} }
+  // Kart Check always reopens on the kart-TYPE list, never mid-way inside the last check. Reset the
+  // view state + swap the body to the types grid NOW (before the slide), so the stale last-check DOM
+  // never animates in first (the "glitches to the last check done" bug).
+  if(id==='kartcheck'){ try{
+    if(typeof KC_VIEW!=='undefined') KC_VIEW='types';
+    if(typeof KC_RUN!=='undefined') KC_RUN=null;
+    if(typeof KC_RED!=='undefined') KC_RED=null;
+    if(typeof KC_TYPE!=='undefined') KC_TYPE=null;
+    var _ktt=document.getElementById('kc-type-tabs'); if(_ktt) _ktt.innerHTML='';
+    var _kb=document.getElementById('kc-body');
+    if(_kb){ if(typeof kcShowTypes==='function'&&typeof KART_LIST!=='undefined'&&KART_LIST&&KART_LIST.length) kcShowTypes(); else _kb.innerHTML='<div class="sd-empty">Loading…</div>'; }
+  }catch(e){} }
   if(id==='tasks'){ try{ if(typeof TK_FILTER!=='undefined') TK_FILTER='mine'; }catch(e){} }
   if(id==='search'){ var si=document.getElementById('si'); if(si) si.value=''; }
   if(id==='order'){ var os=document.getElementById('os'); if(os) os.value=''; }
@@ -6715,9 +6727,12 @@ function kiRenderKarts(){
 function kartListLoading(on){
   var sub=document.getElementById('ki-karts-sub'),tabs=document.getElementById('ki-type-tabs'),bar=document.getElementById('kart-statusbar'),chips=document.getElementById('kart-chips');
   if(on){
-    if(sub) sub.innerText=(typeof siteLabel==='function'?siteLabel(currentSite):'')+' fleet · loading…';
+    var srch=document.getElementById('kart-search');
+    if(sub) sub.style.display='none';
+    if(srch) srch.style.display='none';
     if(tabs) tabs.innerHTML=''; if(bar) bar.innerHTML='';
-    if(chips) chips.innerHTML='<div class="kart-loading">Loading the fleet…</div>';
+    // Single centred spinner in the middle of the screen (no top-left magnifier/text) until the fleet lands.
+    if(chips) chips.innerHTML='<div class="fleet-loading" style="grid-column:1/-1"><div class="fleet-spinner"></div><div class="fleet-loading-t">Loading fleet…</div></div>';
   }
 }
 
@@ -8672,7 +8687,7 @@ function notifNewRepair(rfId, noteId){
       try{ if(typeof navLock!=='undefined') navLock=false; }catch(e){}
       var _kd=document.getElementById('s-kartdetail');
       if(_kd){ _kd.classList.add('active'); _kd.classList.remove('behind'); _kd.style.transition='none'; _kd.style.transform='translate3d(0,0,0)'; void _kd.offsetWidth; _kd.style.transition=''; }
-      try{ var scrs=document.querySelectorAll('.scr'); for(var i=0;i<scrs.length;i++){ if(scrs[i].id!=='s-kartdetail'){ scrs[i].classList.remove('active'); scrs[i].style.transition=''; scrs[i].style.transform=''; } } }catch(e){}
+      try{ var scrs=document.querySelectorAll('.scr'); for(var i=0;i<scrs.length;i++){ if(scrs[i].id!=='s-kartdetail'){ scrs[i].classList.remove('active'); scrs[i].classList.remove('behind'); scrs[i].style.transition=''; scrs[i].style.transform=''; } } }catch(e){}
       try{ if(typeof rfqRenderParts==='function') rfqRenderParts(); if(typeof rfqWhBanner==='function') rfqWhBanner(); if(typeof loadRfWarehouse==='function') loadRfWarehouse(); }catch(e){}
       try{ var t=document.getElementById('rfq-note'); if(t){ try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } } }catch(e){}
     }, 430);
@@ -10262,13 +10277,25 @@ function tvSetScene(html,advancing){
   for(var i=0;i<all.length-2;i++){ if(all[i].parentNode) all[i].parentNode.removeChild(all[i]); }
 }
 function tvRenderDots(n,idx){ var el=document.getElementById('tv-dots'); if(!el) return; var s=''; for(var i=0;i<n;i++) s+='<i class="'+(i===idx?'on':'')+'"></i>'; el.innerHTML=s; }
+var _tvCurKey='';
 function tvRenderCurrent(advancing){
   if(tvOverlayActive()) return;
   var list; try{ list=tvEnabledScenes(); }catch(e){ list=[]; }
-  if(!list.length){ try{ tvSetScene(tvSceneIdle(),advancing); }catch(e){} tvRenderDots(0,0); return; }
+  if(!list.length){ try{ tvSetScene(tvSceneIdle(),advancing); }catch(e){} _tvCurKey=''; tvRenderDots(0,0); return; }
   if(typeof tvIdx!=='number'||isNaN(tvIdx)||tvIdx<0||tvIdx>=list.length) tvIdx=0;
-  var html; try{ html=list[tvIdx].render(); }catch(e){ html=tvSceneIdle(); }
+  var sc=list[tvIdx], key=sc.key;
+  // Data-only refresh of the leaderboard: update the numbers in place and DON'T rebuild the scene.
+  // Rebuilding re-runs tvSceneLeaderboard() -> tvLbStart(), which resets TV_LB_PHASE to 0. On a busy
+  // board realtime data lands more often than the 10s phase step, so that reset left the board frozen
+  // on "Today" and it never cycled to Week/Month/All-time (the "repairs aren't switching" bug).
+  if(!advancing && key==='leaderboard' && _tvCurKey==='leaderboard' && document.getElementById('tv-lb-wrap')){
+    try{ TV_LB_ALL=tvLeaderboard(); tvLbApply(false); }catch(e){}
+    tvRenderDots(list.length,tvIdx);
+    return;
+  }
+  var html; try{ html=sc.render(); }catch(e){ html=tvSceneIdle(); }
   tvSetScene(html,advancing);
+  _tvCurKey=key;
   tvRenderDots(list.length,tvIdx);
 }
 function tvRefresh(){ tvRenderCurrent(false); }

@@ -124,19 +124,23 @@
     /* ── Shell ── */
     #app{position:fixed;top:0;left:0;right:0;bottom:0;   /* Desktop/default: top:0+bottom:0 = the browser window (correct on Mac). The PHYSICAL-height sizing that reaches past the iOS letterbox is applied ONLY on touch devices below — on desktop --shpx is the whole monitor, which pushed everything down. */
       display:flex;flex-direction:column;overflow:hidden}
-    /* Touch devices (the iPhone PWA) only. The INTERACTIVE content is sized to the VISIBLE webview
-       height (--vhpx = innerHeight), NOT the physical screen height (--shpx). Sizing #app to --shpx made
-       it ~39px taller than the visible webview on a letterboxed iOS PWA, so the bottom of the content
-       (Help / RIMO Data) fell below the visible area and read as a black slab cutting it off. The
-       full-bleed black backdrop (#app-bg, sized from --shpx) still reaches the physical edges, so the app
-       still looks edge-to-edge — but every row is now reachable inside the scroller. */
+    /* Touch devices (the iPhone PWA) only: the app fills the TRUE PHYSICAL screen edge-to-edge (--shpx),
+       so it's functional right across the whole iPhone. The black slab that used to cut off the bottom
+       is the iOS standalone LETTERBOX — eliminated by the apple-touch-startup-image launch screens in
+       <head> (iOS letterboxes a home-screen PWA when no launch image matches the device). With those in
+       place the visible webview == the physical screen, so --shpx sizing reaches every edge with nothing
+       cut off. (Re-add the app to the Home Screen once after this deploys so iOS picks up the launch
+       screen.) The scroller keeps a safe-area bottom pad so the last row always clears the home indicator. */
     @media (pointer:coarse){
-      #app{height:var(--vhpx, 100dvh);bottom:auto}
+      #app{height:var(--shpx, 100lvh);bottom:auto}
     }
     /* Searchable parts picker (bottom sheet) for the repair form */
     .rfq-pick-ov{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center}
     .rfq-pick-ov.on{display:flex}
-    .rfq-pick-sheet{width:100%;max-width:560px;max-height:82vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--b2);border-top-left-radius:22px;border-top-right-radius:22px;padding:14px 14px calc(max(env(safe-area-inset-bottom),0px) + 14px);box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+    /* STABLE height (was max-height, which let the sheet shrink to fit few results — so the search box
+       slid down toward the bottom of the screen as you typed). A fixed height keeps the input anchored at
+       the top and lets only the results list scroll. */
+    .rfq-pick-sheet{width:100%;max-width:560px;height:min(82vh,600px);display:flex;flex-direction:column;background:var(--card);border:1px solid var(--b2);border-top-left-radius:22px;border-top-right-radius:22px;padding:14px 14px calc(max(env(safe-area-inset-bottom),0px) + 14px);box-shadow:0 -12px 40px rgba(0,0,0,.5)}
     .rfq-pick-top{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-shrink:0}
     .rfq-pick-top input{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:1px solid var(--b2);background:var(--bg);color:var(--t1);font-size:16px}
     .rfq-pick-x{flex:0 0 auto;width:42px;height:42px;border-radius:11px;border:1px solid var(--b2);background:var(--bg);color:var(--t1);font-size:15px;cursor:pointer}
@@ -3966,15 +3970,19 @@ function sbManagerData(cb){
     // write path (the append-only logins insert) is blocked: the presence heartbeat (last_seen,
     // upserted every 60s while the app is open), a login row today, and any stock action today.
     // last-active = newest of those; a green dot means seen in the last 5 minutes.
-    var _todayKey=_sydDay(now), lastMs={}, roleOf={}, nowMs=now.getTime();
+    // Who LOGGED IN today (list membership + last-active time) = newest of presence / login / stock action.
+    // But "active NOW" (the green dot) is driven ONLY by the live presence heartbeat (upserted every 60s
+    // while the app is open, and DELETED on logout) — a one-off login row must NOT keep someone green
+    // after they've logged out.
+    var _todayKey=_sydDay(now), lastMs={}, roleOf={}, presMs={}, nowMs=now.getTime();
     function _bump(n,ms,role){ n=String(n||''); if(!n||isNaN(ms))return; if(!lastMs[n]||ms>lastMs[n])lastMs[n]=ms; if(role&&!roleOf[n])roleOf[n]=String(role); }
-    presence.forEach(function(p){ var d=_loginParse(p.last_seen||p.ts); _bump(p.name,d.getTime(),p.role); });
+    presence.forEach(function(p){ var t=_loginParse(p.last_seen||p.ts).getTime(); _bump(p.name,t,p.role); if(!isNaN(t)){ var nm=String(p.name||''); if(nm&&(!presMs[nm]||t>presMs[nm])) presMs[nm]=t; } });
     logins.forEach(function(x){ var d=_loginParse(x.ts||x.created_at||x.inserted_at); _bump(x.name,d.getTime(),x.role); });
     logs.forEach(function(l){ var d=new Date(l.ts); if(!isNaN(d)) _bump(l.staff_name,d.getTime()); });
-    // The person viewing the dashboard is active right now — guarantee they appear.
-    try{ if(cu&&cu.name) _bump(cu.name,nowMs,cu.role); }catch(e){}
+    // The person viewing the dashboard is active right now — guarantee they appear AND count as live.
+    try{ if(cu&&cu.name){ _bump(cu.name,nowMs,cu.role); presMs[cu.name]=nowMs; } }catch(e){}
     var loggedInToday=Object.keys(lastMs).filter(function(n){ return _sydDay(new Date(lastMs[n]))===_todayKey; })
-      .map(function(n){ return {name:n,role:roleOf[n]||'',lastMs:lastMs[n],activeNow:(nowMs-lastMs[n])<300000}; })
+      .map(function(n){ return {name:n,role:roleOf[n]||'',lastMs:lastMs[n],activeNow:(presMs[n]!=null && (nowMs-presMs[n])<300000)}; })
       .sort(function(a,b){ return (b.activeNow-a.activeNow)||(b.lastMs-a.lastMs); });
     cb({todayLog:todayLog,topWeek:topWeek,staffList:staffList,stockouts:stockouts,loggedInToday:loggedInToday});
   }).catch(function(){ cb({todayLog:[],topWeek:[],staffList:[],stockouts:[],loggedInToday:[]}); });
@@ -5023,7 +5031,12 @@ function goHome(){
   },500);
 }
 
-function logout(){TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
+function logout(){
+  // Presence: stop the heartbeat and drop this user's row so they immediately fall off "active now"
+  // (a logged-out user must not keep showing green on the dashboard).
+  try{ if(_presenceT){ clearInterval(_presenceT); _presenceT=null; } }catch(e){}
+  try{ if(cu&&cu.name&&typeof SBC!=='undefined'&&SBC) SBC.from('presence').delete().eq('name',cu.name).then(function(){},function(){}); }catch(e){}
+  TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
 /* Auto sign-out after inactivity (security). Default 30 min; AUTO_LOGOUT_MIN can be
    driven from an owner setting later. Only runs for a signed-in user — never the
    TV board, never the PIN screen. Any tap/key/scroll resets the countdown. */
@@ -8342,6 +8355,10 @@ function rfqSubmit(){
         if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } }
     }catch(e){}
     KD_REPAIRS=arr; RFQ_MODE=null; ktTab('Repairs');
+    // Repaint the open-notes list NOW so the note we just logged a repair against disappears instantly
+    // (the note branch already did this; the repair branch didn't, so the note lingered until a refresh).
+    try{ var _on=document.getElementById('kd-opennotes'); if(_on) _on.innerHTML=kartOpenNotesHTML(k.rfId); }catch(e){}
+    try{ if(typeof kartRerenderNow==='function') kartRerenderNow(); }catch(e){}
   },function(){ say('Connection error'); okBtn('\u2713 Log repair'); });
 }
 function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
@@ -10203,6 +10220,18 @@ function tvLbStart(){
     TV_LB_PHASE=(TV_LB_PHASE+1)%4; tvLbApply(true);
   },step);
 }
+// Data-only refresh: update each visible row's numbers in place WITHOUT reordering, so a background
+// repair-data refresh never snaps rows around. Reordering (the smooth shuffle) happens only on a phase tick.
+function tvLbUpdateNumbers(){
+  var wrap=document.getElementById('tv-lb-wrap'); if(!wrap) return;
+  var by={}; (TV_LB_ALL||[]).forEach(function(o){ by[o.user]=o; });
+  var phase=TV_LB_PHASE;
+  [].slice.call(wrap.querySelectorAll('.tv-lbrow')).forEach(function(r){
+    var o=by[r.getAttribute('data-name')]; if(!o) return;
+    var cells=r.querySelectorAll('.tv-ct4>b'), vals=[o.day,o.week,o.month,o.all];
+    for(var c=0;c<cells.length;c++){ if(cells[c]){ cells[c].textContent=(vals[c]||0); cells[c].className=(c===phase?'on':''); } }
+  });
+}
 function tvSceneLeaderboard(){
   var lb=tvLeaderboard();
   if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs recorded yet.</div>';
@@ -10412,7 +10441,9 @@ function tvRenderCurrent(advancing){
   // board realtime data lands more often than the 10s phase step, so that reset left the board frozen
   // on "Today" and it never cycled to Week/Month/All-time (the "repairs aren't switching" bug).
   if(!advancing && key==='leaderboard' && _tvCurKey==='leaderboard' && document.getElementById('tv-lb-wrap')){
-    try{ TV_LB_ALL=tvLeaderboard(); tvLbApply(false); }catch(e){}
+    // Refresh the numbers in place only — DON'T reorder (that would snap rows). The smooth day→week→
+    // month→all shuffle is driven by the phase timer (tvLbApply(true)).
+    try{ TV_LB_ALL=tvLeaderboard(); tvLbUpdateNumbers(); }catch(e){}
     tvRenderDots(list.length,tvIdx);
     return;
   }

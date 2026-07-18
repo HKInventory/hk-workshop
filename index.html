@@ -4584,7 +4584,6 @@ var TAB_DEFS=[
   {key:'manager',  id:'mgrt',    label:'Manager Dashboard'},
   {key:'finance',  id:'wfin',    label:'Finance'},
   {key:'hkai',     id:'whkai',   label:'HK AI'},
-  {key:'sessdata', id:'kit-sessdata', label:'Session Data'},
   {key:'tasks',    id:'wtasks',  label:'Tasks'},
   {key:'chats',    id:'wchats',  label:'Chats'},
   {key:'race',     id:'wrace',   label:'Intelligence'},
@@ -4599,7 +4598,7 @@ var TAB_DEFS=[
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
-var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','sessdata','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers (Session Data now lives under Kart Info sections, ki:sessdata)
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
@@ -4661,7 +4660,8 @@ var KI_SECTION_DEFS=[
   {key:'ki:dehaardt', label:'Dehaardt',   tile:'kit-dehaardt'},
   {key:'ki:help',     label:'Help',       tile:'kit-help'},
   {key:'ki:rimo',     label:'RIMO Data',    tile:'kit-rimo'},
-  {key:'ki:rimoctl',  label:'RIMO Control', tile:'kit-rimoctl'}
+  {key:'ki:rimoctl',  label:'RIMO Control', tile:'kit-rimoctl'},
+  {key:'ki:sessdata', label:'Session Data', tile:'kit-sessdata'}   // lives with the Kart Info sections, gated by ki:* access (was a top-level tab shown to everyone)
 ];
 var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 // Hub section groups for the Access editor — one group per hub, mirroring the Kart Info sections.

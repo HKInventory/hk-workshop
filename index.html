@@ -789,6 +789,10 @@
     .kn-card-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
     /* small round ✕ to delete/archive a note (kart notes, notifications, kart pages) */
     .kn-x{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:var(--t2);font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+    .kn-actbtns{display:inline-flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:nowrap}
+    .kn-editbtn{flex:none;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:var(--t1);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .12s;display:inline-flex;align-items:center;gap:5px}
+    .kn-editbtn:active{transform:scale(.96);filter:brightness(1.1)}
+    .kn-actbtns .kn-x{margin-left:0}
     .kn-x:hover{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.55);color:#FF6B61}
     .kn-opentable .kn-x,.rep-table .kn-x{width:20px;height:20px;font-size:11px}
     /* profile photo avatars — fill the round avatar chip */
@@ -885,7 +889,7 @@
     .kt-sec-lbl{font-size:11px;color:var(--t2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:18px 0 10px}
     .kt-sec-lbl:first-child{margin-top:4px}
     /* Kart Info landing — tile dashboard (mirrors the home grid) */
-    .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(11px,2.4vw,16px);margin-top:18px;max-width:820px;margin-left:auto;margin-right:auto}
+    .ki-tiles{display:grid;grid-template-columns:1fr 1fr;gap:clamp(11px,2.4vw,16px);margin-top:18px;max-width:820px;margin-left:auto;margin-right:auto;padding-bottom:calc(max(env(safe-area-inset-bottom),16px) + 20px)}
     .ki-tiles .tile{aspect-ratio:1.15/1;min-height:116px}
     .ki-tiles .ki-hero{grid-column:1/-1;aspect-ratio:auto;min-height:104px}
     @media (min-width:720px){
@@ -1245,6 +1249,11 @@
     .bt{background:rgba(255,59,48,.1);color:#f87171}
     .br{background:rgba(0,200,83,.1);color:#4ade80}
     .schip{display:inline-flex;align-items:center;gap:5px;background:var(--acc2);border:1px solid rgba(0,207,255,.14);border-radius:999px;padding:5px 12px;margin:3px;font-size:12px;font-weight:600}
+    .schip-on{border-color:rgba(61,214,140,.45);background:rgba(61,214,140,.12)}
+    .pres-dot{width:8px;height:8px;border-radius:50%;background:#64748B;box-shadow:none;flex:0 0 auto}
+    .pres-dot.on{background:#3DD68C;box-shadow:0 0 0 3px rgba(61,214,140,.22);animation:presPulse 2s ease-in-out infinite}
+    @keyframes presPulse{0%,100%{box-shadow:0 0 0 3px rgba(61,214,140,.22)}50%{box-shadow:0 0 0 5px rgba(61,214,140,.08)}}
+    .pres-ago{margin-left:6px;font-size:10.5px;font-weight:600;color:var(--t2);opacity:.85}
     .prow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1)}
     .prow:last-child{border-bottom:none}
     .pval{font-size:15px;font-weight:800;color:var(--acc);letter-spacing:4px}
@@ -3910,8 +3919,8 @@ function sbManagerData(cb){
   function sameDay(d){return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();}
   var weekAgo=new Date(now.getTime()-7*864e5), ninety=new Date(now.getTime()-90*864e5);
   var pMap={}; (parts||[]).forEach(function(p){pMap[p.sku]={desc:p.desc,qty:p.qty,reorder:p.reorder,nonRimo:(p.is_rimo===false),lead:(p.lead_days!=null?Number(p.lead_days):null),brand:(p.brand||'')};});
-  Promise.all([SBC.from('logs').select('*').eq('site',(currentSite||'sydney')),SBC.from('logins').select('*')]).then(function(rs){
-    var logs=(rs[0]&&rs[0].data)||[], logins=(rs[1]&&rs[1].data)||[];
+  Promise.all([SBC.from('logs').select('*').eq('site',(currentSite||'sydney')),SBC.from('logins').select('*'),SBC.from('presence').select('*')]).then(function(rs){
+    var logs=(rs[0]&&rs[0].data)||[], logins=(rs[1]&&rs[1].data)||[], presence=(rs[2]&&rs[2].data)||[];
     var todayLog=[], weekTaken={}, staffWeek={}, usage90={};
     logs.forEach(function(l){
       var d=new Date(l.ts); if(isNaN(d))return;
@@ -3932,10 +3941,53 @@ function sbManagerData(cb){
     // browser-local, so the bucket is always the venue's day.
     function _loginParse(s){ s=String(s==null?'':s); if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s=s.replace(' ','T')+'Z'; return new Date(s); }
     function _sydDay(d){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }catch(e){ return ''; } }
-    var _todayKey=_sydDay(now), seen={}, loggedInToday=[];
-    logins.forEach(function(x){ var d=_loginParse(x.ts||x.created_at||x.inserted_at); if(isNaN(d)||_sydDay(d)!==_todayKey)return; var n=String(x.name||''); if(n&&!seen[n]){seen[n]=1;loggedInToday.push({name:n,role:String(x.role||'')});} });
+    // ACTIVE STAFF — merge three signals so a genuinely-active person always shows even if one
+    // write path (the append-only logins insert) is blocked: the presence heartbeat (last_seen,
+    // upserted every 60s while the app is open), a login row today, and any stock action today.
+    // last-active = newest of those; a green dot means seen in the last 5 minutes.
+    var _todayKey=_sydDay(now), lastMs={}, roleOf={}, nowMs=now.getTime();
+    function _bump(n,ms,role){ n=String(n||''); if(!n||isNaN(ms))return; if(!lastMs[n]||ms>lastMs[n])lastMs[n]=ms; if(role&&!roleOf[n])roleOf[n]=String(role); }
+    presence.forEach(function(p){ var d=_loginParse(p.last_seen||p.ts); _bump(p.name,d.getTime(),p.role); });
+    logins.forEach(function(x){ var d=_loginParse(x.ts||x.created_at||x.inserted_at); _bump(x.name,d.getTime(),x.role); });
+    logs.forEach(function(l){ var d=new Date(l.ts); if(!isNaN(d)) _bump(l.staff_name,d.getTime()); });
+    // The person viewing the dashboard is active right now — guarantee they appear.
+    try{ if(cu&&cu.name) _bump(cu.name,nowMs,cu.role); }catch(e){}
+    var loggedInToday=Object.keys(lastMs).filter(function(n){ return _sydDay(new Date(lastMs[n]))===_todayKey; })
+      .map(function(n){ return {name:n,role:roleOf[n]||'',lastMs:lastMs[n],activeNow:(nowMs-lastMs[n])<300000}; })
+      .sort(function(a,b){ return (b.activeNow-a.activeNow)||(b.lastMs-a.lastMs); });
     cb({todayLog:todayLog,topWeek:topWeek,staffList:staffList,stockouts:stockouts,loggedInToday:loggedInToday});
   }).catch(function(){ cb({todayLog:[],topWeek:[],staffList:[],stockouts:[],loggedInToday:[]}); });
+}
+/* Presence heartbeat — keeps ACTIVE STAFF live. Upserts one row per person into `presence`
+   (last_seen) every 60s while the app is open, plus on login/resume/tab-focus. The Manager
+   Dashboard reads it for the green "active now" dot + last-active time. Silent no-op if the
+   presence table isn't set up yet (run presence.sql) — the dashboard falls back to logins/logs. */
+var _presenceT=null;
+function pingPresence(){
+  try{
+    if(typeof SBC==='undefined'||!SBC||!cu||!cu.name||window.TRAINING) return;
+    SBC.from('presence').upsert({name:cu.name,role:(cu.role||''),site:(currentSite||'sydney'),last_seen:new Date().toISOString()},{onConflict:'name'}).then(function(){},function(){});
+  }catch(e){}
+}
+function startPresence(){
+  try{
+    pingPresence();
+    if(_presenceT) clearInterval(_presenceT);
+    _presenceT=setInterval(pingPresence,60000);
+    if(!window._presenceWired){ window._presenceWired=1;
+      document.addEventListener('visibilitychange',function(){ if(!document.hidden) pingPresence(); });
+      window.addEventListener('focus',pingPresence);
+    }
+  }catch(e){}
+}
+// "just now" / "3m ago" / "2h ago" / a clock time for older — for the Active Today list.
+function _activeAgo(ms){
+  if(!ms) return '';
+  var s=Math.max(0,Math.floor((Date.now()-ms)/1000));
+  if(s<75) return 'now';
+  if(s<3600) return Math.round(s/60)+'m ago';
+  if(s<21600) return Math.round(s/3600)+'h ago';
+  try{ return new Date(ms).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
 }
 /* Finance — live from logs x price + current parts */
 function sbFinanceData(cb){
@@ -4247,6 +4299,7 @@ var stk=[];
   if(u&&ud===new Date().toDateString()){
     try{
       cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');playSplash(false);loadSites(function(){applySiteAccent('home');});
+      try{ startPresence(); }catch(e){}   // resumed session still counts as active (records presence)
       // Preload parts from sessionStorage cache, then refresh in background.
       // Ensures scanning is INSTANT — no network wait on first scan after app open.
       var pc=sessionStorage.getItem('hk_p');
@@ -4846,6 +4899,7 @@ function onLoginOk(m,entered){
   cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
+  try{ if(!TRAINING) startPresence(); }catch(e){}
   document.getElementById('we').innerText=(typeof roleEmojiFor==='function'?roleEmojiFor(m.role):(m.emoji||'\ud83d\udd27'));
   document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
   document.getElementById('wr').innerText=m.role;
@@ -6111,10 +6165,11 @@ function loadMgr(){
     // Populate stat cards
     document.getElementById('st-takes').innerText=totalTake;
     document.getElementById('st-restocks').innerText=totalRestock;
-    document.getElementById('st-staff').innerText=li.length;
+    var activeNowCount=li.filter(function(u){return u.activeNow;}).length;
+    document.getElementById('st-staff').innerText=activeNowCount||li.length;
     document.getElementById('st-soon').innerText=soon;
 
-    document.getElementById('mli').innerHTML=li.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No one logged in yet today</div>':li.map(function(u){var sf=STAFF.find(function(s){return s.name===u.name;})||{emoji:'🔧'};return '<div class="schip">'+sf.emoji+' '+u.name.split(' ')[0]+'</div>';}).join('');
+    document.getElementById('mli').innerHTML=li.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No one logged in yet today</div>':li.map(function(u){var sf=STAFF.find(function(s){return s.name===u.name;})||{emoji:'🔧'};var ago=_activeAgo(u.lastMs);return '<div class="schip'+(u.activeNow?' schip-on':'')+'"><span class="pres-dot'+(u.activeNow?' on':'')+'"></span>'+sf.emoji+' '+u.name.split(' ')[0]+'<small class="pres-ago">'+ago+'</small></div>';}).join('');
     var ts={};(d.todayLog||[]).forEach(function(r){if(!ts[r.name])ts[r.name]={t:0,r:0};if(r.action==='TAKEN')ts[r.name].t+=r.qty;if(r.action==='RESTOCK')ts[r.name].r+=r.qty;});
     var ns=Object.keys(ts);
     document.getElementById('mta').innerHTML=ns.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No activity today</div>':ns.map(function(n){return '<div class="mr"><div class="mrl">'+n+'</div><div class="mrr">'+(ts[n].t?'<span class="bdg bt">−'+ts[n].t+'</span> ':'')+( ts[n].r?'<span class="bdg br">+'+ts[n].r+'</span>':'')+'</div></div>';}).join('');
@@ -7929,7 +7984,7 @@ function selectKart(rfId){
 // Single-page kart detail — mirrors the RaceFacer garage page:
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
-var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false;
+var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false, RFQ_EDIT_NOTE=null;
 var _kdBodySig='';   // signature of what the kart-detail tab body currently shows, so a realtime refresh only rebuilds it when the data actually changed (kills the strobing)
 
 /* ===== TYPING LOCK ==========================================================================
@@ -8164,7 +8219,7 @@ function rfqToggle(mode){
   // (no other notes -> OK, other notes -> For Maintenance). Note form keeps the current status.
   var curStatus=(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.status)?KD_KART.status:'ok';
   if(mode==='repair') curStatus=_rfqDefaultStatus(KD_KART);
-  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null;
+  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null; RFQ_EDIT_NOTE=null;
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
@@ -8198,6 +8253,14 @@ function rfqSubmit(){
     SBC.from('rf_note_queue').insert(nrow).then(function(r){
       if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('\u2713 Save note'); return; }
       try{ var na=(RF_NOTES_BY_ID[k.rfId]=RF_NOTES_BY_ID[k.rfId]||[]); na.unshift({id:null, note:note, createdIso:noteNowIso(), createdBy:cu.name, archivedIso:'', archivedBy:'', open:true, active:true, _pending:true, _pendingAt:Date.now()}); }catch(e){}
+      // Editing = replace: the corrected note is now queued, so retire the ORIGINAL (archive locally +
+      // in Supabase + tell RaceFacer to clear it) so only the edited version remains.
+      try{ if(RFQ_EDIT_NOTE&&RFQ_EDIT_NOTE.id!=null){ var _old=RFQ_EDIT_NOTE, _nowI=new Date().toISOString();
+        (RF_NOTES_BY_ID[k.rfId]||[]).forEach(function(x){ if(x.id===_old.id){ x.active=false; x.open=false; x.archivedIso=_nowI; x.archivedBy=cu.name; } });
+        SBC.from('rf_kart_notes').update({active:false,archived_at:_nowI,archived_by:cu.name}).eq('id',_old.id).then(function(){},function(){});
+        SBC.from('rf_note_queue').insert({ site:(currentSite||'sydney'), rf_kart_id:k.rfId, user_name:cu.name, note:String(_old.note||'').slice(0,1000), action:'delete', rf_notification_id:(_old.notifId!=null?_old.notifId:null) }).then(function(){},function(){});
+      } }catch(e){}
+      RFQ_EDIT_NOTE=null;
       RFQ_MODE=null; ktTab('Repairs'); var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
     },function(){ say('Connection error'); okBtn('\u2713 Save note'); });
     return;
@@ -8466,7 +8529,7 @@ function kartOpenNotesHTML(rfId){
   if(!open.length) return '';
   var CAP=6, shown=open.slice(0,CAP), extra=open.length-shown.length;
   var rows=shown.map(function(n){
-    var act=(n.id!=null&&cu)?'<button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button><button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
+    var act=(n.id!=null&&cu)?'<div class="kn-actbtns"><button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button><button class="kn-editbtn" title="Edit note" onclick="hkEditNote('+n.id+',event)">\u270e Edit</button><button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button></div>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
     return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td><td class="kn-act">'+act+'</td></tr>';
   }).join('');
   if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td colspan="2">+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
@@ -8605,6 +8668,20 @@ function kiNotesListHTML(rows, km){
     }
   });
   return h+'</div>';
+}
+// ── Edit a kart note ───────────────────────────────────────────────────────
+// RaceFacer has no in-place note edit, so an edit = replace: open the note form pre-filled with the
+// current text; on save, the new note is queued to RaceFacer AND the old one is deleted (rfqSubmit
+// handles the delete once the replacement is queued). Keeps the flow familiar and the status intact.
+function hkEditNote(noteId, ev){
+  try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
+  if(noteId==null||!cu||!KD_KART||KD_KART.rfId==null) return;
+  var notes=(RF_NOTES_BY_ID[KD_KART.rfId])||[];
+  var n=notes.filter(function(x){return x.id===noteId;})[0]; if(!n) return;
+  rfqToggle('note');   // opens the note editor (clears RFQ_EDIT_NOTE) — set the edit target AFTER
+  RFQ_EDIT_NOTE={ id:n.id, notifId:(n.notifId!=null?n.notifId:null), note:n.note||'' };
+  var t=document.getElementById('rfq-note'); if(t){ t.value=n.note||''; try{ t.focus({preventScroll:true}); }catch(e){ t.focus(); } }
+  var sb=document.getElementById('rfq-send'); if(sb) sb.textContent='✓ Update note';
 }
 // ── Delete (archive) a kart note from anywhere in the app ──────────────────
 // Archives the row in Supabase (active=false) so it vanishes instantly from Notifications,

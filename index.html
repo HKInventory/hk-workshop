@@ -904,6 +904,65 @@
     .ktype-tab:active{transform:scale(0.96)}
     @media(hover:hover){.ktype-tab:hover{transform:scale(1.06);border-color:var(--b2);z-index:2}}
     .ktype-tab .ktt-n{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.3px}
+    /* Kart Check */
+    .kc-sub{font-size:12.5px;color:var(--t2);line-height:1.7;margin:2px 2px 4px}
+    .kc-prog{margin:4px 2px 12px}
+    .kc-prog-bar{height:8px;border-radius:6px;background:var(--b1);overflow:hidden}
+    .kc-prog-fill{height:100%;border-radius:6px;transition:width .35s cubic-bezier(.25,.46,.45,.94)}
+    .kc-prog-txt{font-size:11px;font-weight:700;color:var(--t2);margin-top:5px;letter-spacing:.3px}
+    .kc-list{display:flex;flex-direction:column;gap:7px}
+    .kc-row{display:flex;align-items:center;gap:10px;background:var(--c1);border:1.5px solid var(--b1);border-radius:14px;padding:9px 11px;transition:border-color .15s,background .15s}
+    .kc-row.kc-ok{border-color:#22C55E55;background:#22C55E10}
+    .kc-row.kc-dmg{border-color:#FF3B3055;background:#FF3B3010}
+    .kc-row.kc-fm{border-color:#FFD60055;background:#FFD60010}
+    .kc-knum{font-weight:900;font-size:16px;min-width:52px;color:var(--t1)}
+    .kc-acts{margin-left:auto;display:flex;gap:8px}
+    .kc-tick,.kc-x{width:44px;height:38px;border-radius:11px;border:1.5px solid var(--b2);background:transparent;font-size:19px;font-weight:900;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:transform .12s,background .15s,border-color .15s}
+    .kc-tick{color:#22C55E}.kc-x{color:#FF3B30}
+    .kc-tick:active,.kc-x:active{transform:scale(.9)}
+    @media(hover:hover){.kc-tick:hover{background:#22C55E22;border-color:#22C55E}.kc-x:hover{background:#FF3B3022;border-color:#FF3B30}}
+    .kc-res{margin-left:auto;font-size:12.5px;font-weight:800;letter-spacing:.2px}
+    .kc-res-ok{color:#22C55E}.kc-res-bad{color:#FF3B30}
+    .kc-undo{background:none;border:none;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:6px 4px 6px 8px}
+    .kc-redform{background:var(--c2);border:1.5px solid #FF3B3040;border-radius:13px;padding:11px;margin:-2px 0 3px}
+    .kc-rf-seg{display:flex;gap:8px;margin-bottom:9px}
+    .kc-seg{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--b2);background:transparent;color:var(--t2);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .kc-seg.on.dmg{background:#FF3B3022;border-color:#FF3B30;color:#FF3B30}
+    .kc-seg.on.fm{background:#FFD60022;border-color:#E0B000;color:#E0B000}
+    .kc-note{width:100%;box-sizing:border-box;background:var(--c1);border:1.5px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px;font-family:inherit;font-size:14px;resize:vertical}
+    .kc-rf-btns{display:flex;gap:8px;margin-top:9px}
+    .kc-rf-cancel{flex:0 0 auto;padding:10px 16px;border-radius:10px;border:1.5px solid var(--b2);background:transparent;color:var(--t2);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+    .kc-rf-save{flex:1;padding:10px;border-radius:10px;border:none;background:#FF3B30;color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+    .kc-rf-save:disabled{opacity:.6}
+    .kc-rf-msg{font-size:12px;font-weight:700;margin-top:7px;min-height:14px}
+    .kc-missing{margin:14px 0 4px;background:#F59E0B12;border:1.5px solid #F59E0B44;border-radius:14px;padding:13px}
+    .kc-missing-h{font-size:15px;font-weight:900;color:#E0900B}
+    .kc-missing-sub{font-size:12px;color:var(--t2);margin:3px 0 9px}
+    .kc-missing-list{display:flex;flex-wrap:wrap;gap:6px}
+    .kc-miss-chip{background:var(--c1);border:1.5px solid #F59E0B55;color:var(--t1);font-weight:800;font-size:13px;border-radius:9px;padding:4px 10px}
+    .kc-complete{width:100%;margin:16px 0 4px;padding:15px;border-radius:15px;border:none;color:#fff;font-weight:900;font-size:16px;cursor:pointer;font-family:inherit;transition:transform .12s,opacity .15s}
+    .kc-complete:disabled{background:var(--b1);color:var(--t2);cursor:default}
+    .kc-complete:not(:disabled):active{transform:scale(.98)}
+    .kc-reset{width:100%;margin:2px 0 10px;padding:9px;border-radius:11px;border:none;background:none;color:var(--t2);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline}
+    /* Kart Check completion summary + confetti */
+    #kc-fx{position:fixed;inset:0;pointer-events:none;z-index:9998}
+    .kc-summary-ov{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:22px;opacity:0;transition:opacity .25s}
+    .kc-summary-ov.show{opacity:1}
+    .kc-summary{background:var(--c1);border:1.5px solid var(--b1);border-radius:22px;padding:24px 20px;max-width:420px;width:100%;text-align:center;transform:scale(.9);transition:transform .3s cubic-bezier(.2,1.3,.5,1);max-height:86vh;overflow:auto}
+    .kc-summary-ov.show .kc-summary{transform:scale(1)}
+    .kc-sum-emoji{font-size:52px}
+    .kc-sum-count{font-size:46px;font-weight:900;line-height:1.05;margin:6px 0 2px}
+    .kc-sum-cap{font-size:14px;font-weight:800;color:var(--t2);letter-spacing:.3px}
+    .kc-sum-pills{display:flex;gap:9px;justify-content:center;margin:16px 0}
+    .kc-sum-pill{flex:1;background:var(--c2);border-radius:13px;padding:11px 6px}
+    .kc-sum-pill .n{font-size:24px;font-weight:900}
+    .kc-sum-pill .l{font-size:10.5px;font-weight:700;color:var(--t2);letter-spacing:.4px;margin-top:2px}
+    .kc-sum-dmg{text-align:left;margin-top:6px;border-top:1px dashed var(--b2);padding-top:12px}
+    .kc-sum-dmg-h{font-size:12px;font-weight:800;color:#FF3B30;letter-spacing:.4px;margin-bottom:7px}
+    .kc-sum-dmg-row{font-size:13px;color:var(--t1);padding:6px 0;border-bottom:1px solid var(--b1);line-height:1.5}
+    .kc-sum-dmg-row b{color:#FF6259}
+    .kc-sum-close{margin-top:18px;width:100%;padding:13px;border-radius:13px;border:none;background:#22C55E;color:#fff;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit}
+    .kc-confetti{position:absolute;width:11px;height:11px;border-radius:2px;will-change:transform,opacity}
     /* Parts used inside a repair */
     .repair-parts{margin-top:8px;border-top:1px dashed var(--b2);padding-top:8px}
     .repair-parts-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:5px}
@@ -2879,12 +2938,10 @@
         <button class="back" onclick="back()"> Back</button>
       </div>
       <div class="sb">
-        <div class="pgtitle">Kart Check</div>
-        <div class="rcard">
-          <div style="font-size:56px;margin-bottom:16px">🩺</div>
-          <div style="font-size:18px;font-weight:800;color:#22C55E;margin-bottom:10px">Coming Soon</div>
-          <div style="font-size:14px;color:var(--t2);line-height:1.9">Run and log pre-session checks across the fleet.</div>
-        </div>
+        <div class="pgtitle">🩺 Kart Check</div>
+        <div class="kc-sub">Tick every kart present &amp; OK. Red-X a problem — it adds a note and flags the kart in RaceFacer <b>immediately</b>, so nothing bad rolls out. Shared live: split a type across phones.</div>
+        <div class="ktype-tabs" id="kc-type-tabs"></div>
+        <div id="kc-body"><div class="sd-empty">Loading fleet…</div></div>
       </div>
     </div>
 
@@ -3830,8 +3887,14 @@ function sbManagerData(cb){
     var stockouts=[];
     Object.keys(usage90).forEach(function(sk){ var pm=pMap[sk]||{}; var dr=usage90[sk]/90, qty=pm.qty||0, days=dr>0?Math.floor(qty/dr):999; var lead=(pm.lead!=null&&pm.lead>0)?pm.lead:null; var orderIn=lead!=null?(days-lead):null; if(days<90||(pm.nonRimo&&orderIn!=null&&orderIn<90)){ var sd=new Date(now.getTime()+days*864e5); var od=lead!=null?new Date(now.getTime()+Math.max(0,orderIn)*864e5).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):null; stockouts.push({sku:sk,desc:pm.desc||sk,qty:qty,daysLeft:days,date:sd.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),nonRimo:!!pm.nonRimo,lead:lead,brand:pm.brand||'',orderIn:orderIn,orderDate:od}); }});
     stockouts.sort(function(a,b){return a.daysLeft-b.daysLeft;});
-    var seen={}, loggedInToday=[];
-    logins.forEach(function(x){ var d=new Date(x.ts); if(isNaN(d)||!sameDay(d))return; var n=String(x.name||''); if(n&&!seen[n]){seen[n]=1;loggedInToday.push({name:n,role:String(x.role||'')});} });
+    // Parse a login timestamp robustly: a naive value (no Z / no offset) is stored as UTC, so tag it as
+    // UTC before converting — otherwise a browser in Sydney reads an 8:30am login (22:30 UTC the day
+    // BEFORE) as yesterday and it vanishes from "today". Compare on the Sydney calendar day, not raw
+    // browser-local, so the bucket is always the venue's day.
+    function _loginParse(s){ s=String(s==null?'':s); if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s=s.replace(' ','T')+'Z'; return new Date(s); }
+    function _sydDay(d){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }catch(e){ return ''; } }
+    var _todayKey=_sydDay(now), seen={}, loggedInToday=[];
+    logins.forEach(function(x){ var d=_loginParse(x.ts||x.created_at||x.inserted_at); if(isNaN(d)||_sydDay(d)!==_todayKey)return; var n=String(x.name||''); if(n&&!seen[n]){seen[n]=1;loggedInToday.push({name:n,role:String(x.role||'')});} });
     cb({todayLog:todayLog,topWeek:topWeek,staffList:staffList,stockouts:stockouts,loggedInToday:loggedInToday});
   }).catch(function(){ cb({todayLog:[],topWeek:[],staffList:[],stockouts:[],loggedInToday:[]}); });
 }
@@ -4011,6 +4074,7 @@ function startRealtime(){
     }).subscribe();
     SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} }).subscribe();
     SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} }).subscribe();
+    SBC.channel('kc-rt').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
   }catch(e){}
 }
 startRealtime();
@@ -4664,6 +4728,7 @@ function updateUI(id){
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
   if(id==='sessdata' && typeof sdEnter==='function'){ try{sdEnter();}catch(e){} }
+  if(id==='kartcheck' && typeof kcEnter==='function'){ try{kcEnter();}catch(e){} }
   if(id==='tasks' && typeof tasksEnter==='function'){ try{tasksEnter();}catch(e){} }
   if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
@@ -4729,7 +4794,7 @@ function onLoginOk(m,entered){
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
   cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
-  if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role}).then(function(){},function(){});}catch(e){}}
+  if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
   document.getElementById('we').innerText=(typeof roleEmojiFor==='function'?roleEmojiFor(m.role):(m.emoji||'\ud83d\udd27'));
   document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
   document.getElementById('wr').innerText=m.role;
@@ -6856,6 +6921,170 @@ function setKartType(type){
   var sb=document.getElementById('kart-search'); if(sb) sb.value='';
   renderTypeTabs();
   renderKartChips();
+}
+
+/* ===================== KART CHECK =====================
+   Shared, live pre-session fleet check. Each kart of a type is ticked green (present & OK) or
+   red-X'd — a red X opens a note + Damaged/For-Maintenance choice that pushes STRAIGHT to
+   RaceFacer (one rf_note_queue row both files the note and flips the status), so a bad kart is
+   flagged BEFORE trading starts instead of after. State lives in the `kart_checks` table (one row
+   per kart per day), so several staff can split a type across their phones and see each other's
+   ticks live. On completion it shows a summary + confetti and pushes "Kart Count X is N" to all staff. */
+var KC_TYPE=null, KC_RESULTS={}, KC_RED=null, KC_RED_STATUS='damaged';   // KC_RESULTS[rfId]={result,note,by}
+function kcDate(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
+function _kcSite(){ return currentSite||'sydney'; }
+function _kcTypeLabel(t){ return t==='Intermediate'?'Inter':t; }
+// checkable = real fleet of a type that isn't long-term and isn't ALREADY damaged (so OK or FM). A kart
+// that's already been given a result THIS check stays in the list even after we flip it to damaged, so a
+// kart you just red-X'd doesn't vanish mid-check. Pre-existing damaged karts (no result) never appear.
+function _kcCheckable(k,type){ return !k.longTerm && k.type===type && k.rfId!=null && (_kcRes(k.rfId) || k.status!=='damaged'); }
+function kcFleet(type){ return (KART_LIST||[]).filter(function(k){ return _kcCheckable(k,type); }).sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); }); }
+function kcTypes(){ var c={}; (KART_LIST||[]).forEach(function(k){ if(k.longTerm||k.rfId==null)return; if(_kcRes(k.rfId)||k.status!=='damaged') c[k.type]=(c[k.type]||0)+1; });
+  var t=KART_TYPE_ORDER.filter(function(x){return c[x];}); Object.keys(c).forEach(function(x){ if(t.indexOf(x)<0)t.push(x); }); return t; }
+function _kcRes(rfId){ return (KC_RESULTS[rfId]||{}).result||null; }
+function _kcOnScreen(){ try{ return stk[stk.length-1]==='kartcheck'; }catch(e){ return false; } }
+function kcEnter(){
+  var body=document.getElementById('kc-body'); if(!body) return;
+  if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
+  body.innerHTML='<div class="sd-empty">Loading fleet…</div>'; KC_RED=null;
+  var render=function(){ var types=kcTypes(); if(KC_TYPE==null||types.indexOf(KC_TYPE)<0) KC_TYPE=types[0]||null; kcLoadResults(kcRender); };
+  if(!(KART_LIST&&KART_LIST.length)&&typeof loadRfKarts==='function'){ loadRfKarts(function(){ render(); }); }
+  else { render(); if(typeof loadRfKarts==='function') loadRfKarts(function(){ if(_kcOnScreen()) kcRender(); }); }
+}
+function kcLoadResults(cb){ KC_RESULTS={};
+  SBC.from('kart_checks').select('rf_kart_id,result,note,by_name').eq('site',_kcSite()).eq('check_date',kcDate()).then(function(r){
+    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')){ var b=document.getElementById('kc-body'); if(b) b.innerHTML='<div class="sd-empty">Kart Check isn’t set up yet.<br>Run <b>kart_checks.sql</b> in Supabase, then reopen this tab.</div>'; return; }
+    ((r&&r.data)||[]).forEach(function(x){ if(x.rf_kart_id!=null) KC_RESULTS[x.rf_kart_id]={result:x.result,note:x.note,by:x.by_name}; });
+    if(cb)cb();
+  },function(){ if(cb)cb(); });
+}
+function setKcType(t){ KC_TYPE=t; KC_RED=null; kcRender(); }
+function kcRender(){
+  var tabsEl=document.getElementById('kc-type-tabs'), body=document.getElementById('kc-body'); if(!body) return;
+  var types=kcTypes();
+  if(!types.length){ if(tabsEl) tabsEl.innerHTML=''; body.innerHTML='<div class="sd-empty">No karts to check right now.</div>'; return; }
+  if(KC_TYPE==null||types.indexOf(KC_TYPE)<0) KC_TYPE=types[0];
+  if(tabsEl){ tabsEl.innerHTML=types.map(function(t){
+    var col=KART_TYPE_COLOR[t]||'#2DD4BF', fleet=kcFleet(t), done=fleet.filter(function(k){return _kcRes(k.rfId);}).length, active=(t===KC_TYPE);
+    var style=active?('background:'+col+'22;border-color:'+col+';color:'+col):'';
+    return '<button class="ktype-tab" style="'+style+'" onclick="setKcType(\''+t+'\')"><span>'+_kcTypeLabel(t)+'</span><span class="ktt-n"'+(active?(' style="color:'+col+'"'):'')+'>'+done+'/'+fleet.length+'</span></button>';
+  }).join(''); }
+  var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF', fleet=kcFleet(KC_TYPE);
+  var done=fleet.filter(function(k){return _kcRes(k.rfId);}), missing=fleet.filter(function(k){return !_kcRes(k.rfId);});
+  var pct=fleet.length?Math.round(done.length/fleet.length*100):0, h='';
+  h+='<div class="kc-prog"><div class="kc-prog-bar"><div class="kc-prog-fill" style="width:'+pct+'%;background:'+col+'"></div></div><div class="kc-prog-txt">'+done.length+' / '+fleet.length+' checked</div></div>';
+  h+='<div class="kc-list">';
+  fleet.forEach(function(k){
+    var r=_kcRes(k.rfId), rowcls='kc-row'+(r==='ok'?' kc-ok':r==='damaged'?' kc-dmg':r==='maint'?' kc-fm':'');
+    h+='<div class="'+rowcls+'" id="kc-row-'+k.rfId+'">';
+    h+='<div class="kc-knum">'+(k.num!=null?k.num:'?')+'</div>';
+    if(r){ var by=(KC_RESULTS[k.rfId]||{}).by||''; var lbl=(r==='ok'?'OK':r==='damaged'?'Damaged':'For Maint');
+      h+='<div class="kc-res '+(r==='ok'?'kc-res-ok':'kc-res-bad')+'">'+(r==='ok'?'✓ ':'✕ ')+lbl+(by?' · '+String(by).split(' ')[0]:'')+'</div><button class="kc-undo" onclick="kcUndo('+k.rfId+')">undo</button>';
+    } else {
+      h+='<div class="kc-acts"><button class="kc-tick" onclick="kcSet('+k.rfId+',\'ok\')">✓</button><button class="kc-x" onclick="kcRed('+k.rfId+')">✕</button></div>';
+    }
+    h+='</div>';
+    if(KC_RED===k.rfId) h+=kcRedForm(k);
+  });
+  h+='</div>';
+  if(missing.length){ h+='<div class="kc-missing"><div class="kc-missing-h">🔎 Where '+(missing.length===1?'is this kart?':'are these '+missing.length+' karts?')+'</div><div class="kc-missing-sub">Find them and tick ✓ or ✕ to finish the check — nothing goes out unchecked.</div><div class="kc-missing-list">'+missing.map(function(k){return '<span class="kc-miss-chip">'+(k.num!=null?k.num:'?')+'</span>';}).join('')+'</div></div>'; }
+  var can=fleet.length>0 && missing.length===0;
+  h+='<button class="kc-complete" '+(can?'':'disabled')+' style="'+(can?('background:'+col):'')+'" onclick="kcComplete()">'+(can?('🏁 Complete '+_kcTypeLabel(KC_TYPE)+' Check'):(missing.length+' still to check')) +'</button>';
+  h+='<button class="kc-reset" onclick="kcReset()">Reset this check</button>';
+  body.innerHTML=h;
+}
+function kcRedForm(k){
+  return '<div class="kc-redform">'
+    +'<div class="kc-rf-seg"><button class="kc-seg '+(KC_RED_STATUS==='damaged'?'on dmg':'')+'" onclick="kcRedStatus(\'damaged\')">Damaged</button><button class="kc-seg '+(KC_RED_STATUS==='maint'?'on fm':'')+'" onclick="kcRedStatus(\'maint\')">For Maintenance</button></div>'
+    +'<textarea id="kc-note-'+k.rfId+'" class="kc-note" rows="2" placeholder="What’s wrong with kart '+(k.num!=null?k.num:'')+'? This goes straight to RaceFacer."></textarea>'
+    +'<div class="kc-rf-btns"><button class="kc-rf-cancel" onclick="kcRedCancel()">Cancel</button><button class="kc-rf-save" id="kc-save-'+k.rfId+'" onclick="kcSubmitRed('+k.rfId+')">Save &amp; flag in RF</button></div>'
+    +'<div class="kc-rf-msg" id="kc-rf-msg-'+k.rfId+'"></div></div>';
+}
+function kcRedStatus(s){ KC_RED_STATUS=s; kcRender(); setTimeout(function(){ var t=document.getElementById('kc-note-'+KC_RED); if(t) t.focus(); },30); }
+function kcRed(rfId){ KC_RED=rfId; KC_RED_STATUS='damaged'; kcRender(); setTimeout(function(){ var t=document.getElementById('kc-note-'+rfId); if(t) t.focus(); var row=document.getElementById('kc-row-'+rfId); if(row) row.scrollIntoView({behavior:'smooth',block:'center'}); },40); }
+function kcRedCancel(){ KC_RED=null; kcRender(); }
+// green tick (or, after a red-X push, the chosen bad status): record the result to the shared table
+function kcSet(rfId,result,note){
+  if(!cu||typeof SBC==='undefined'||!SBC) return;
+  var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{};
+  KC_RESULTS[rfId]={result:result,note:note||'',by:cu.name}; KC_RED=null; if(_kcOnScreen()) kcRender();
+  var row={ site:_kcSite(), kart_type:String(k.type||KC_TYPE||''), check_date:kcDate(), rf_kart_id:rfId, kart_no:String(k.num!=null?k.num:''), result:result, note:(note||'').slice(0,1000), by_name:cu.name, updated_at:new Date().toISOString() };
+  SBC.from('kart_checks').upsert(row,{onConflict:'site,kart_type,check_date,rf_kart_id'}).then(function(r){
+    if(r&&r.error&&/relation|does not exist|schema cache/i.test(r.error.message||'')) alert('Run kart_checks.sql in Supabase first — it creates the shared check table.');
+  },function(){});
+}
+function kcUndo(rfId){ delete KC_RESULTS[rfId]; if(_kcOnScreen()) kcRender();
+  SBC.from('kart_checks').delete().eq('site',_kcSite()).eq('check_date',kcDate()).eq('rf_kart_id',rfId).then(function(){},function(){}); }
+// red-X submit: one rf_note_queue row files the note AND flips the RaceFacer status (runner: status_change=1)
+function kcSubmitRed(rfId){
+  var k=(KART_LIST||[]).filter(function(x){return x.rfId===rfId;})[0]||{};
+  var msg=document.getElementById('kc-rf-msg-'+rfId), ta=document.getElementById('kc-note-'+rfId), note=((ta&&ta.value)||'').trim();
+  function say(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'#FF5A52'; } }
+  if(!note){ say('Add a quick note first'); return; }
+  if(!cu||typeof SBC==='undefined'||!SBC){ say('Not signed in'); return; }
+  var status=KC_RED_STATUS, btn=document.getElementById('kc-save-'+rfId); if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  var nrow={ site:_kcSite(), rf_kart_id:rfId, kart_name:String(k.num!=null?k.num:''), kart_type:String(k.type||KC_TYPE||''), user_name:cu.name, note:note.slice(0,1000), rf_status:status };
+  SBC.from('rf_note_queue').insert(nrow).then(function(r){
+    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); if(btn){ btn.disabled=false; btn.textContent='Save & flag in RF'; } return; }
+    if(k) k.status=status; if(typeof PENDING_KART_STATUS!=='undefined') PENDING_KART_STATUS[rfId]=status;
+    try{ var na=(RF_NOTES_BY_ID[rfId]=RF_NOTES_BY_ID[rfId]||[]); na.unshift({id:null,note:note,createdIso:(typeof noteNowIso==='function'?noteNowIso():new Date().toISOString()),createdBy:cu.name,archivedIso:'',archivedBy:'',open:true,active:true,_pending:true,_pendingAt:Date.now()}); }catch(e){}
+    if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
+    kcSet(rfId,status,note);
+  },function(){ say('Connection error'); if(btn){ btn.disabled=false; btn.textContent='Save & flag in RF'; } });
+}
+function kcReset(){
+  if(!KC_TYPE) return;
+  if(!confirm('Reset the '+_kcTypeLabel(KC_TYPE)+' check for today? This clears every tick for this type so it can be started fresh.')) return;
+  var fleet=kcFleet(KC_TYPE); fleet.forEach(function(k){ delete KC_RESULTS[k.rfId]; }); KC_RED=null; kcRender();
+  SBC.from('kart_checks').delete().eq('site',_kcSite()).eq('check_date',kcDate()).eq('kart_type',KC_TYPE).then(function(){},function(){});
+}
+function kcComplete(){
+  var fleet=kcFleet(KC_TYPE); if(!fleet.length) return;
+  var okN=0,fmN=0,dmg=[];
+  fleet.forEach(function(k){ var r=_kcRes(k.rfId), c=(KC_RESULTS[k.rfId]||{});
+    if(r==='ok') okN++; else if(r==='maint'){ fmN++; dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:true}); } else if(r==='damaged'){ dmg.push({num:k.num,note:c.note||'',by:c.by||'',fm:false}); } });
+  var okfm=okN+fmN, typeLabel=_kcTypeLabel(KC_TYPE)===KC_TYPE?KC_TYPE:KC_TYPE, col=KART_TYPE_COLOR[KC_TYPE]||'#22C55E';
+  kcConfetti(col);
+  // summary overlay
+  var ov=document.createElement('div'); ov.className='kc-summary-ov'; ov.id='kc-sum-ov';
+  var dmgHtml='';
+  if(dmg.length){ dmgHtml='<div class="kc-sum-dmg"><div class="kc-sum-dmg-h">FLAGGED IN RACEFACER ('+dmg.length+')</div>'+dmg.map(function(d){ return '<div class="kc-sum-dmg-row"><b>Kart '+(d.num!=null?d.num:'?')+'</b> · '+(d.fm?'For Maintenance':'Damaged')+'<br>'+_kcEsc(d.note)+(d.by?' <span style="color:var(--t2)">— '+_kcEsc(String(d.by).split(' ')[0])+'</span>':'')+'</div>'; }).join('')+'</div>'; }
+  ov.innerHTML='<div class="kc-summary">'
+    +'<div class="kc-sum-emoji">🏁</div>'
+    +'<div class="kc-sum-count" style="color:'+col+'">'+okfm+'</div>'
+    +'<div class="kc-sum-cap">'+_kcEsc(KC_TYPE)+' Track kart count</div>'
+    +'<div class="kc-sum-pills"><div class="kc-sum-pill"><div class="n" style="color:#22C55E">'+okN+'</div><div class="l">OK</div></div><div class="kc-sum-pill"><div class="n" style="color:#E0B000">'+fmN+'</div><div class="l">FOR MAINT</div></div><div class="kc-sum-pill"><div class="n" style="color:#FF3B30">'+dmg.filter(function(d){return !d.fm;}).length+'</div><div class="l">DAMAGED</div></div></div>'
+    +dmgHtml
+    +'<button class="kc-sum-close" onclick="kcSummaryClose()">Done</button></div>';
+  document.body.appendChild(ov); requestAnimationFrame(function(){ ov.classList.add('show'); });
+  // push "Kart Count X is N" to everyone
+  try{ var title='✅ '+KC_TYPE+' Kart Check done';
+    var body='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmg.filter(function(d){return !d.fm;}).length?(', '+dmg.filter(function(d){return !d.fm;}).length+' damaged'):'')+')';
+    _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,body,'kartcheck','./'); });
+  }catch(e){}
+}
+function kcSummaryClose(){ var ov=document.getElementById('kc-sum-ov'); if(ov){ ov.classList.remove('show'); setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); },250); } }
+function _kcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function kcConfetti(col){
+  var fx=document.getElementById('kc-fx'); if(!fx){ fx=document.createElement('div'); fx.id='kc-fx'; document.body.appendChild(fx); }
+  fx.innerHTML=''; var cols=[col||'#22C55E','#22C55E','#FFD600','#22D3EE','#F472B6','#fff'], N=90, W=window.innerWidth;
+  for(var i=0;i<N;i++){ (function(){ var p=document.createElement('div'); p.className='kc-confetti';
+    var x=W/2+(Math.random()-0.5)*80, dx=(Math.random()-0.5)*2*W*0.55, dy=-(180+Math.random()*260), rot=(Math.random()*720-360);
+    p.style.background=cols[i%cols.length]; p.style.left=x+'px'; p.style.top=(window.innerHeight*0.42)+'px';
+    if(Math.random()<0.5) p.style.borderRadius='50%';
+    fx.appendChild(p);
+    var dur=1100+Math.random()*900;
+    p.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)',opacity:1,offset:0.35},{transform:'translate('+(dx*1.4)+'px,'+(window.innerHeight*0.7)+'px) rotate('+(rot*1.6)+'deg)',opacity:0}],{duration:dur,easing:'cubic-bezier(.15,.7,.4,1)'}).onfinish=function(){ if(p.parentNode) p.parentNode.removeChild(p); };
+  })(); }
+  setTimeout(function(){ if(fx) fx.innerHTML=''; },2400);
+}
+// realtime: another phone ticked a kart — merge + re-render if we're on the Kart Check screen
+function _rtKartCheck(p){
+  try{ var row=p&&(p.new||p.old); if(!row) return; if(row.site&&row.site!==_kcSite()) return; if(row.check_date&&row.check_date!==kcDate()) return;
+    if(p.eventType==='DELETE'){ if(row.rf_kart_id!=null) delete KC_RESULTS[row.rf_kart_id]; }
+    else if(p.new&&p.new.rf_kart_id!=null){ KC_RESULTS[p.new.rf_kart_id]={result:p.new.result,note:p.new.note,by:p.new.by_name}; }
+    if(_kcOnScreen()) kcRender();
+  }catch(e){}
 }
 
 

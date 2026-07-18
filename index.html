@@ -12236,10 +12236,17 @@ function chatUpdateSeen(){
     var other=CH_OTHER&&CH_OTHER.name, at=other?CH_READS[other]:null;
     txt=(at&&Date.parse(at)>=t)?'Seen':'Delivered';
   } else {
-    var mem=(CH_GROUP&&CH_GROUP.members)||null,n=0,k;
-    if(mem){ for(k=0;k<mem.length;k++){ if(mem[k]===me) continue; var a=CH_READS[mem[k]]; if(a&&Date.parse(a)>=t) n++; } }
-    else { for(k in CH_READS){ if(k!==me&&Date.parse(CH_READS[k])>=t) n++; } }
-    txt=n?('Seen by '+n):'Delivered';
+    // Group chat: show WHO has read the latest message (WhatsApp-style), not just a count. A member has
+    // read it if their chat_reads timestamp is at/after this message. Tap to see the full list.
+    var mem=(CH_GROUP&&CH_GROUP.members)||null,readers=[],k;
+    if(mem){ for(k=0;k<mem.length;k++){ if(mem[k]===me) continue; var a=CH_READS[mem[k]]; if(a&&Date.parse(a)>=t) readers.push(mem[k]); } }
+    else { for(k in CH_READS){ if(k!==me&&Date.parse(CH_READS[k])>=t) readers.push(k); } }
+    if(!readers.length){ txt='Delivered'; }
+    else { var fn=readers.map(function(n){return String(n).split(' ')[0];});
+      txt=(readers.length<=3)?('Seen by '+fn.join(', ')):('Seen by '+fn.slice(0,2).join(', ')+' +'+(readers.length-2)); }
+    var d0=document.createElement('div'); d0.id='ch-seen'; d0.className='ch-seen'; d0.textContent=txt;
+    if(readers.length){ d0.style.cursor='pointer'; d0.title='Read by: '+readers.join(', '); d0.onclick=function(){ alert('Read by:\n'+readers.join('\n')); }; }
+    box.appendChild(d0); return;
   }
   var d=document.createElement('div'); d.id='ch-seen'; d.className='ch-seen'; d.textContent=txt; box.appendChild(d);
 }
@@ -12406,6 +12413,7 @@ function chatOpen(channel,title,other,dmStaff){
     else { t.innerHTML='<span class="ch-av ch-team">\ud83d\udcac</span><span>'+tvEsc(title)+'</span>'; }
   }
   var m=document.getElementById('ch-msgs'); if(m) m.innerHTML='<div class="ch-empty">Loading\u2026</div>';
+  try{ _chBindHold(); }catch(e){}
   try{ var _rows=document.querySelectorAll('#ch-channels .ck-row2'); for(var _ri=0;_ri<_rows.length;_ri++){ _rows[_ri].classList.toggle('sel',_rows[_ri].getAttribute('data-ch')===channel); } }catch(e){}
   chatMarkRead(channel); _chSbMode(_gcDesk()?false:true); chatFetch();
 }
@@ -12442,7 +12450,8 @@ function chatRenderMsgs(elId,msgs,scroll){
     var _ed=(m.edited?' <span class="ch-edited">(edited)</span>':'');
     if(m.image){ html+='<div class="ch-bub ch-bub-img"'+_mid+_own+'><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="event.stopPropagation();_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+_ed+'</div>':'')+'</div>'; }
     else { html+='<div class="ch-bub"'+_mid+_own+'>'+_chRenderBody(m.body)+_ed+'</div>'; }
-    if(mine&&m.id!=null&&elId==='ch-msgs'){ html+='<div class="ch-mini">'+(m.image?'':'<button onclick="chatEditMsg('+m.id+')" title="Edit">\u270e</button>')+'<button class="x" onclick="chatDeleteMsg('+m.id+')" title="Delete">\u2715</button></div>'; }
+    // Own messages are edited/deleted by HOLDING the bubble (WhatsApp-style) \u2014 see _chBindHold \u2014 instead of
+    // always-on mini buttons. The hold handler checks ownership from CH_MSGS, so no per-bubble marker needed.
     lastDay=day; prevAuthor=m.author; prevT=t;
   });
   if(prevAuthor!==null) html+='</div></div>';
@@ -12469,6 +12478,26 @@ function chatMentionPick(i){
   ta.value=before+ta.value.slice(pos);
   if(box) box.style.display='none';
   try{ ta.focus(); ta.selectionStart=ta.selectionEnd=before.length; }catch(e){}
+}
+// WhatsApp-style long-press: hold your own message bubble to reveal Edit / Delete. Bound once to the
+// (static) #ch-msgs container, so it survives every re-render. A move cancels it (so it never fires
+// mid-scroll); right-click does the same on desktop. A tap elsewhere dismisses the action bar.
+var _chHoldTimer=null,_chHoldPt=null;
+function _chClearHold(){ if(_chHoldTimer){ clearTimeout(_chHoldTimer); _chHoldTimer=null; } }
+function _chBubMineId(el){ var b=el&&el.closest&&el.closest('.ch-bub[data-mid]'); if(!b) return null; var id=Number(b.getAttribute('data-mid')); var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; return (m&&cu&&m.author===cu.name)?id:null; }
+function _chBindHold(){
+  var box=document.getElementById('ch-msgs'); if(!box||box._holdBound) return; box._holdBound=true;
+  box.addEventListener('pointerdown',function(e){
+    var id=_chBubMineId(e.target); if(id==null) return;
+    _chHoldPt={x:e.clientX,y:e.clientY};
+    _chClearHold(); _chHoldTimer=setTimeout(function(){ _chHoldTimer=null; try{ if(navigator.vibrate) navigator.vibrate(18); }catch(_){} chatMsgActions(id); },420);
+  });
+  box.addEventListener('pointermove',function(e){ if(_chHoldTimer&&_chHoldPt){ var dx=e.clientX-_chHoldPt.x,dy=e.clientY-_chHoldPt.y; if(dx*dx+dy*dy>90) _chClearHold(); } });
+  box.addEventListener('pointerup',_chClearHold); box.addEventListener('pointercancel',_chClearHold);
+  box.addEventListener('scroll',_chClearHold,true);
+  box.addEventListener('contextmenu',function(e){ var id=_chBubMineId(e.target); if(id!=null){ e.preventDefault(); chatMsgActions(id); } });
+  // Tap anywhere outside the open action bar dismisses it.
+  document.addEventListener('pointerdown',function(e){ var bar=document.getElementById('ch-actbar'); if(bar && !(e.target.closest&&(e.target.closest('#ch-actbar')||e.target.closest('.ch-bub[data-mid=\"'+bar.getAttribute('data-mid')+'\"]')))){ bar.parentNode&&bar.parentNode.removeChild(bar); } },true);
 }
 function chatMsgActions(id){
   var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m||!cu||m.author!==cu.name) return;

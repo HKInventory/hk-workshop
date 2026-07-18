@@ -1046,6 +1046,8 @@
     .rep-row .rep-mono{font-family:Monaco,Consolas,monospace;color:var(--t2);white-space:nowrap;font-size:12px}
     .rep-cost{color:#F59E0B;font-weight:700;white-space:nowrap}
     .rep-expcell{width:42px;text-align:center}
+    .rep-editbtn{margin-top:12px;padding:9px 16px;border-radius:9px;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:var(--t1);font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .12s}
+    .rep-editbtn:active{transform:scale(.97);filter:brightness(1.1)}
     .rep-expbtn{width:26px;height:26px;border-radius:7px;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:#cbd5e1;font-size:17px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
     .rep-row.open .rep-expbtn{background:#2DD4BF;border-color:#2DD4BF;color:#04140a}
     .rep-detail > td{background:rgba(255,255,255,.02);padding:0 12px 14px}
@@ -8009,15 +8011,11 @@ function loadRimo(){
 function startRimoLive(){
   if(typeof SBC==='undefined'||!SBC) return;
   loadRimo();                                         // refresh now (also picks up a site change)
-  // Live updates: the runner only writes karts that actually changed, so realtime is cheap — a kart
-  // flipping online fires one event and the dot updates within a moment. Debounced so a burst (e.g.
-  // the runner's first full write after a restart) collapses into a single reload.
-  if(!_rimoSub){
-    try{ _rimoSub=SBC.channel('rimo-live')
-      .on('postgres_changes',{event:'*',schema:'public',table:'rimo_karts'},function(){ clearTimeout(_rimoDeb); _rimoDeb=setTimeout(loadRimo,600); })
-      .subscribe(); }catch(e){}
-  }
-  if(!_rimoPollT) _rimoPollT=setInterval(loadRimo, 20000);   // backstop in case realtime drops
+  // COST: rimo_karts changes every ~5s, so a realtime subscription here fired constantly and, multiplied
+  // across every open phone/Mac, was a major driver of the Supabase Realtime bill. The online/offline dots
+  // don't need to be instant — a short poll is plenty and costs nothing on Realtime. So: NO realtime
+  // subscription; poll every 15s instead.
+  if(!_rimoPollT) _rimoPollT=setInterval(loadRimo, 15000);
 }
 
 // Small HTML escaper for RaceFacer-sourced free text (repair notes etc.)
@@ -8035,7 +8033,7 @@ function selectKart(rfId){
 // Single-page kart detail — mirrors the RaceFacer garage page:
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
-var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false, RFQ_EDIT_NOTE=null;
+var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false, RFQ_EDIT_NOTE=null, RFQ_EDIT_REPAIR=null;
 var _kdBodySig='';   // signature of what the kart-detail tab body currently shows, so a realtime refresh only rebuilds it when the data actually changed (kills the strobing)
 
 /* ===== TYPING LOCK ==========================================================================
@@ -8079,6 +8077,29 @@ function rfqRepairForNote(noteId){
   // to the local id only until the sync populates rf_notification_id.
   RFQ_NOTE={id:noteId,notifId:(n.notifId!=null?n.notifId:null),note:n.note||''};
   rfqToggle('repair');
+}
+// Edit an existing repair: open the repair form pre-filled with what we have (note, dates, status, parts)
+// and remember which repair we're editing. RaceFacer's repair API doesn't return working hours, so those
+// are re-entered. On save, rfqSubmit sends an EDIT (rf_repair_id + action) instead of creating a new one.
+function hkEditRepair(repairId, ev){
+  try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
+  var k=KD_KART||{}; var r=(KD_REPAIRS||[]).filter(function(x){return x.id===repairId;})[0]; if(!r) return;
+  rfqToggle('repair');                       // renders the form (also clears the edit flags)
+  RFQ_EDIT_REPAIR={ id:r.id };
+  // status: the app repair object doesn't carry rf_status, so start from the kart's current status.
+  RFQ_STATUS=_rfqDefaultStatus(k);
+  RFQ_PARTS=(r.parts||[]).filter(function(p){return p&&p.name;}).map(function(p){ return {sku:(p.sku||p.name||''),name:p.name,qty:Number(p.qty)||1,price:Number(p.price)||0,part_id:(p.part_id||null),rf_id:(p.rf_id||null)}; });
+  if(!RFQ_PARTS.length) RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];
+  try{ rfqRenderParts(); rfqWhBanner(); }catch(e){}
+  // pre-fill the text fields after the form is in the DOM
+  setTimeout(function(){ try{
+    var _n=document.getElementById('rfq-note'); if(_n) _n.value=(r.issue||'');
+    var _d=document.getElementById('rfq-disc'); if(_d&&r.iso) _d.value=r.iso;
+    var _dr=document.getElementById('rfq-date'); if(_dr&&(r.isoRepaired||r.iso)) _dr.value=(r.isoRepaired||r.iso);
+    var _u=document.getElementById('rfq-user'); if(_u&&r.user) _u.value=r.user;
+    var _sb=document.getElementById('rfq-send'); if(_sb) _sb.textContent='✓ Update repair';
+    var _h=document.getElementById('rfq-hours'); if(_h){ _h.placeholder='re-enter working hours'; try{ _h.focus({preventScroll:true}); }catch(e){} }
+  }catch(e){} }, 30);
 }
 function loadRfWarehouse(){
   if(RF_WH!==null||typeof SBC==='undefined'||!SBC) return;
@@ -8270,7 +8291,7 @@ function rfqToggle(mode){
   // (no other notes -> OK, other notes -> For Maintenance). Note form keeps the current status.
   var curStatus=(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.status)?KD_KART.status:'ok';
   if(mode==='repair') curStatus=_rfqDefaultStatus(KD_KART);
-  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null; RFQ_EDIT_NOTE=null;
+  RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null; RFQ_EDIT_NOTE=null; RFQ_EDIT_REPAIR=null;
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
@@ -8323,12 +8344,21 @@ function rfqSubmit(){
   if(!hrs){ say('Enter the working hours'); okBtn('+ Save'); try{ var _wh=document.getElementById('rfq-hours'); if(_wh){ _wh.focus(); _wh.scrollIntoView({behavior:'smooth',block:'center'}); } }catch(e){} return; }   // working hours are mandatory on a repair
   var uEl=document.getElementById('rfq-user'), who=(uEl&&uEl.value)||cu.name;   // RaceFacer's User dropdown
   var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0,part_id:(p.part_id||null),id:(p.rf_id||null),max_qty:(p.max_qty||null)};});
+  var _editId=(RFQ_EDIT_REPAIR&&RFQ_EDIT_REPAIR.id)||null;
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
             user_name:who, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
             working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
             notification_id:(RFQ_NOTE&&(RFQ_NOTE.notifId!=null?RFQ_NOTE.notifId:RFQ_NOTE.id))||null };
+  if(_editId){ row.action='edit'; row.rf_repair_id=_editId; }
   SBC.from('rf_repair_queue').insert(row).then(function(r){
-    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('+ Save'); return; }
+    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?(_editId?'Run rf_repair_edit.sql in Supabase first':'Run rf_sync.sql in Supabase first'):(r.error.message||'Failed')); okBtn(_editId?'✓ Update repair':'+ Save'); return; }
+    // EDIT: update the existing repair row in place (optimistic) instead of adding a new one.
+    if(_editId){
+      try{ (RF_REPAIRS_BY_ID[k.rfId]||[]).forEach(function(x){ if(x.id===_editId){ x.issue=note; x.iso=disc; x.date=disc.split('-').reverse().join('.'); x.isoRepaired=(fixed?dt:''); x.dateRepaired=(fixed?dt.split('-').reverse().join('.'):''); x.cost=useParts.reduce(function(a,p){return a+p.qty*p.price;},0); x.parts=useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};}); x.user=who; x._pending=true; } }); }catch(e){}
+      RFQ_EDIT_REPAIR=null; RFQ_MODE=null; KD_REPAIRS=RF_REPAIRS_BY_ID[k.rfId]||KD_REPAIRS; ktTab('Repairs');
+      try{ var _on2=document.getElementById('kd-opennotes'); if(_on2) _on2.innerHTML=kartOpenNotesHTML(k.rfId); }catch(e){}
+      return;
+    }
     var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
     arr.unshift({ id:Date.now(), iso:disc, date:disc.split('-').reverse().join('.'), status:(fixed?'fixed':'open'),
       isoRepaired:(fixed?dt:''), cost:useParts.reduce(function(a,p){return a+p.qty*p.price;},0), issue:note, repairNotes:'',
@@ -8611,7 +8641,8 @@ function repTableHTML(){
     var costTxt=r.cost?'<span class="rep-cost">$'+r.cost.toFixed(2)+'</span>':'<span class="rep-mono">\u2014</span>';
     var noteLines=(r.repairNotes||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
     var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
-    var hasDetail=noteLines.length>0||parts.length>0;   // the row already shows the note; the expand adds the repair note + parts (no re-printing it)
+    var editable=!!(cu&&r.id);
+    var hasDetail=noteLines.length>0||parts.length>0||editable;   // the row already shows the note; the expand adds the repair note + parts (+ an Edit button)
     var head='<tr class="rep-row'+(hasDetail?'':' rep-nodetail')+'" id="reprow-'+i+'"'+(hasDetail?(' onclick="toggleRep('+i+')"'):'')+'>'
       +'<td class="rep-desc">'+kEsc(r.damageNote||r.issue)+'</td>'
       +'<td class="rep-mono">'+(r.date||'\u2014')+'</td>'
@@ -8631,6 +8662,7 @@ function repTableHTML(){
         +parts.map(function(p){return '<tr><td>'+kEsc(p.name)+'</td><td class="rp-r">'+(p.qty||1)+'</td><td class="rp-r">'+kEsc(_money(p.price))+'</td></tr>';}).join('')
         +'</tbody></table>';
     }
+    if(editable) inner+='<button class="rep-editbtn" onclick="hkEditRepair('+r.id+',event)">✎ Edit repair</button>';
     var detail='<tr class="rep-detail" id="repdet-'+i+'" style="display:none"><td colspan="7"><div class="rep-detbox">'+inner+'</div></td></tr>';
     return head+detail;
   }).join('');
@@ -10589,11 +10621,12 @@ function tvApplyState(row){
 }
 function tvSubscribe(){
   try{
+    // COST CONTROL: a 24/7 TV subscribing to high-write tables (rf_karts / rf_kart_notes / rf_repairs /
+    // rimo) multiplied Supabase Realtime usage massively — every row write × every TV on = one billed
+    // message. The board is a passive display, so it now REFRESHES ON A TIMER (tvDataTimer) instead of
+    // realtime for fleet/notes/repairs. Only tv_state (config pushes from the cast controller) and
+    // ramp_events (rare) stay on realtime — both are tiny and need to land promptly.
     SBC.channel('tv-rt').on('postgres_changes',{event:'*',schema:'public',table:'tv_state'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.site&&nw.site!==currentSite) return; tvApplyState(nw); }).subscribe();
-    SBC.channel('tv-karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-reps').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ tvDataSoon(); }).subscribe();
     SBC.channel('tv-ramp').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ tvRampLoad(); }).subscribe();
   }catch(e){}
 }
@@ -10678,7 +10711,7 @@ function bootTvDisplay(){
     tvSyncTimer=setInterval(tvSyncView,15000);     // catch scheduled messages + the morning cut-off
     // NOTE: the HK logo no longer pops on a blind 60s timer (which made it appear mid-scene at random).
     // It now shows only as the hand-off at the END of a kart-type's screen time — see tvAdvance().
-    tvDataTimer=setInterval(tvLoadData,300000);    // refresh fleet/stock every 5 min as a backstop
+    tvDataTimer=setInterval(tvLoadData,90000);     // poll fleet/notes/repairs every 90s (replaces realtime — a plain read is cheap; realtime broadcasts were the cost)
     _tvHealTimer=setInterval(tvHeal,8000);         // watchdog: never leave the board blank
   }catch(e){
     // Last-resort recovery: never leave the TV blank. Drop the splash, show the

@@ -2724,6 +2724,9 @@
             <option value="daily">Daily spend — last 90 days</option>
             <option value="topparts">Top parts spend — this month</option>
             <option value="stock">Stock value breakdown</option>
+            <option value="category">Spend by category</option>
+            <option value="expensive">Most valuable stock</option>
+            <option value="yoy">This year vs last year</option>
           </select></div>
           <div class="fin-chart-wrap" id="fin-chart"><div class="emp" style="padding:4px 0">Loading...</div></div>
         </div>
@@ -6215,10 +6218,19 @@ function finRenderChart(){
       {l:'Reorder forecast cost',v:d.reorderForecastCost||0},
       {l:'Spend this month',v:d.spendMonth||0}
     ],['#EC4899','#94A3B8','#F59E0B','#22C55E']);
+  } else if(which==='category'){
+    var cat=(d.categoryList||[]).slice(0,8).map(function(c){return {l:c.cat,v:c.value};});
+    html=cat.length?_finSvgBars(cat):'';
+  } else if(which==='expensive'){
+    var exp=(d.expensiveInStock||[]).slice(0,8).map(function(p){return {l:p.desc,v:p.value};});
+    html=exp.length?_finSvgBars(exp):'';
+  } else if(which==='yoy'){
+    html=_finSvgBars([{l:'Last year',v:d.spendLastYr||0},{l:'This year (YTD)',v:d.spendYTD||0}],['#94A3B8','#22C55E']);
   }
   box.innerHTML=html||'<div class="emp" style="padding:8px 0;font-size:13px;color:var(--t2)">No data for this indicator yet</div>';
 }
 function loadFin(){
+  var _si=document.getElementById('fin-ind'); if(_si) _si.value='monthly';   // always reopen Finance on the default graph
   var btn=document.getElementById('rb-fin'),lbl=document.getElementById('rt-fin');
   if(btn){btn.classList.add('spinning');if(lbl)lbl.innerText='Updating...';}
   // Show instant local stock-value while we wait for the full payload

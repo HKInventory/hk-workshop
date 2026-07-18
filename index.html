@@ -7046,7 +7046,9 @@ function kcRenderMenu(){
     KC_RUNS.forEach(function(rn){
       var active=(rn.status==='active');
       var cnt=(rn.status==='done')?(((rn.ok_count||0)+(rn.fm_count||0))+' OK+FM · '+(rn.damaged_count||0)+' dmg'):'in progress';
-      var when=_kcEsc((rn.check_date||'')+(rn.started_at?(' · '+_kcTime(rn.started_at)):''));
+      // Show when it FINISHED for a done check (not when it started); active checks show the start time.
+      var _wt=(rn.status==='done'&&rn.completed_at)?rn.completed_at:rn.started_at;
+      var when=_kcEsc((rn.check_date||'')+(_wt?(' · '+(rn.status==='done'?'done ':'')+_kcTime(_wt)):''));
       h+='<button class="kc-runrow'+(active?' active':'')+'" onclick="kcOpenRun(\''+rn.id+'\')">'
         +'<div class="kc-run-main"><b>'+_kcEsc(rn.mechanic||'—')+'</b>'+(active?' <span class="kc-run-live">LIVE</span>':'')+'<div class="kc-run-sub">'+when+'</div></div>'
         +'<div class="kc-run-cnt">'+cnt+'</div></button>';
@@ -7210,7 +7212,7 @@ function kcRenderRunSummary(){
     if(r==='ok') okN++; else if(r==='maint'){ fmN++; dmg.push({num:num,note:c.note,by:c.by,fm:true}); } else if(r==='damaged'){ dmg.push({num:num,note:c.note,by:c.by,fm:false}); } });
   var okfm=okN+fmN, dmgN=dmg.filter(function(d){return !d.fm;}).length;
   var h='<button class="kc-back" onclick="kcOpenType(\''+KC_TYPE+'\')">‹ '+_kcEsc(KC_TYPE)+' checks</button>';
-  h+='<div class="kc-menu-h" style="color:'+col+'">'+_kcEsc(KC_TYPE)+' check</div><div class="kc-check-by">'+_kcEsc(KC_RUN.mechanic||'')+' · '+_kcEsc(KC_RUN.check_date||'')+' · done</div>';
+  h+='<div class="kc-menu-h" style="color:'+col+'">'+_kcEsc(KC_TYPE)+' check</div><div class="kc-check-by">'+_kcEsc(KC_RUN.mechanic||'')+' · '+_kcEsc(KC_RUN.check_date||'')+' · finished '+_kcEsc(KC_RUN.completed_at?_kcTime(KC_RUN.completed_at):'')+'</div>';
   h+='<div class="kc-sum-count" style="color:'+col+';text-align:center;margin:12px 0 0">'+okfm+'</div><div class="kc-sum-cap" style="text-align:center">'+_kcEsc(KC_TYPE)+' Track kart count</div>';
   h+='<div class="kc-sum-pills"><div class="kc-sum-pill"><div class="n" style="color:#22C55E">'+okN+'</div><div class="l">OK</div></div><div class="kc-sum-pill"><div class="n" style="color:#E0B000">'+fmN+'</div><div class="l">FOR MAINT</div></div><div class="kc-sum-pill"><div class="n" style="color:#FF3B30">'+dmgN+'</div><div class="l">DAMAGED</div></div></div>';
   if(dmg.length){ h+='<div class="kc-sum-dmg"><div class="kc-sum-dmg-h">FLAGGED ('+dmg.length+')</div>'+dmg.map(function(d){ return '<div class="kc-sum-dmg-row"><b>Kart '+(d.num!=null?d.num:'?')+'</b> · '+(d.fm?'For Maintenance':'Damaged')+'<br>'+_kcEsc(d.note||'')+(d.by?' <span style="color:var(--t2)">— '+_kcEsc(String(d.by).split(' ')[0])+'</span>':'')+'</div>'; }).join('')+'</div>'; }

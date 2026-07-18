@@ -2347,6 +2347,18 @@
     .ci-mem .ch-av{width:38px;height:38px;font-size:18px;flex:none}
     .ci-mn{font-weight:600;font-size:14.5px}
     .ci-admin-tag{font-size:10px;font-weight:800;color:#4C9DFF;background:rgba(26,115,232,.18);border-radius:5px;padding:1px 5px;margin-left:4px}
+    /* WhatsApp-style member editor */
+    .cgm-row{display:flex;align-items:center;gap:11px;padding:8px 6px;border-radius:12px}
+    .cgm-row .ch-av{width:38px;height:38px;font-size:18px;flex:none}
+    .cgm-nm{flex:1;font-weight:600;font-size:14.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cgm-x{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--b2);background:rgba(255,90,82,.08);color:#FF6B61;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+    .cgm-x:hover{background:rgba(255,90,82,.2);border-color:rgba(255,90,82,.6)}
+    .cgm-add{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid rgba(52,211,153,.5);background:rgba(52,211,153,.1);color:#34D399;font-size:17px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+    .cgm-add:hover{background:rgba(52,211,153,.22)}
+    .cgm-addbtn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 8px;margin-top:4px;border:1px dashed var(--b2);border-radius:12px;background:transparent;color:var(--acc);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+    .cgm-addbtn .cgm-plus{width:34px;height:34px;border-radius:50%;background:rgba(0,207,255,.14);display:inline-flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+    .cgm-sec{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);margin:12px 2px 4px}
+    .cgm-addwrap{max-height:40vh;overflow:auto;border:1px solid var(--b1);border-radius:12px;padding:4px;margin-top:6px}
     .bt-toggle{display:flex;align-items:center;gap:10px;margin-top:12px;cursor:pointer;font-weight:600;font-size:14px}
     .bt-toggle input{width:22px;height:22px;accent-color:#1A73E8;flex:none}
     body.bigtext .ch-bub{font-size:16.5px}
@@ -3156,8 +3168,8 @@
             <label class="tk-fld" style="margin-top:10px"><span>Group name</span><input id="ci-rename" maxlength="80"></label>
             <div class="acct-lbl" style="margin-top:12px">Colour</div>
             <div class="acct-swatches" id="ci-colors"></div>
-            <div class="acct-lbl" style="margin-top:14px">People (tick to add, untick to remove)</div>
-            <div class="cg-members" id="ci-editmem"></div>
+            <div class="acct-lbl" style="margin-top:14px">Members</div>
+            <div id="ci-editmem"></div>
             <div class="m-form-msg" id="ci-msg"></div>
             <button class="tk-btn" onclick="chatSaveGroupInfo()">Save changes</button>
           </div>
@@ -12472,7 +12484,7 @@ function aiPollAnswer(id){
 function _gcDesk(){ try{ return window.matchMedia&&window.matchMedia('(min-width:900px)').matches; }catch(e){ return false; } }
 // On phone, land on the chat LIST (don't auto-open a thread). Only auto-open a default thread on desktop,
 // where the list + thread show side by side so it isn't a forced navigation.
-function chatEnter(){ chatShowList(); if(_gcDesk()) chatOpenDefault(); }
+function chatEnter(){ chatShowList(); _chEnsureRoleGroups(function(){ chatLoadList(); }); if(_gcDesk()) chatOpenDefault(); }
 var _chDefT=null;
 /* Role chats: Mechanic -> Workshop, Facility -> Facility, Office -> Office. Managers &
    Assistant Managers are in all three, so they land in their MOST RECENT conversation.
@@ -12536,6 +12548,16 @@ function _chGroupEnsure(def, cb){
   },function(){ cb(null); });
 }
 function _chWorkshopEnsure(cb){ _chGroupEnsure(CH_ROLE_GROUPS[0], cb); }   // kept for any older callers
+/* Make sure the role-type group chats the user should see actually EXIST, so they always show in the
+   list (not only after someone opens them). Managers/AMs see all three; a role user sees just theirs. */
+function _chEnsureRoleGroups(cb){
+  if(typeof SBC==='undefined'||!SBC||!cu){ if(cb) cb(); return; }
+  var role=cu.role||'', defs=[];
+  if(typeof _isMgr==='function'&&_isMgr(role)) defs=CH_ROLE_GROUPS.slice();
+  else { for(var i=0;i<CH_ROLE_GROUPS.length;i++){ if(CH_ROLE_GROUPS[i].test(role)){ defs=[CH_ROLE_GROUPS[i]]; break; } } }
+  if(!defs.length){ if(cb) cb(); return; }
+  var pending=defs.length; defs.forEach(function(d){ _chGroupEnsure(d, function(){ if(--pending<=0 && cb) cb(); }); });
+}
 function chatGoBack(){ return false; }   // Back always leaves Chats \u2192 home
 function chatBack(){ if(typeof chatGoBack==='function'&&chatGoBack()) return; back(); }
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
@@ -12690,10 +12712,11 @@ function chatRenderList(){
   var q=CH_FILTER.trim().toLowerCase(); function _pass(n){ return !q||String(n||'').toLowerCase().indexOf(q)>=0; }
   var html='<div class="ck-hdrow"><div class="ck-hd">Chats</div><button class="ck-new" onclick="chatNewGroup()">+ New group</button></div>';
   if(_pass('Team chat')) html+=_chConvRow('general','<span class="ch-av ch-team">\ud83d\udcac</span>','Team chat','Everyone at '+csL,'chatOpenGeneral()');
-  if(_chCanOffice() && _pass('Office')) html+=_chConvRow('office','<span class="ch-av" style="background:#6366F1">\ud83c\udfe2</span>','Office','Office staff','chatOpenOffice()');
+  // Role-type chats (Office / Facility / Workshop) are real chat_groups rows \u2014 the old hardcoded
+  // 'office' special channel that duplicated the Office group has been removed.
   if(CH_GROUPS&&CH_GROUPS.length){
     html+='<div class="ck-sec">Groups</div>';
-    CH_GROUPS.forEach(function(g){ if(_pass(g.name)) html+=_chConvRow('group:'+g.id,_grpAvatar(g),g.name,((g.members||[]).length)+' members','chatOpenGroup('+g.id+')'); });
+    CH_GROUPS.forEach(function(g){ if(_pass(g.name)) html+=_chConvRow('group:'+g.id,_grpAvatar(g),g.name,((g.members||[]).length)+' member'+(((g.members||[]).length)===1?'':'s'),'chatOpenGroup('+g.id+')'); });
   }
   html+='<div class="ck-sec">Direct messages</div>';
   CH_DM=_roster().filter(function(s){ return s&&s.name&&s.name!==me; });
@@ -13132,11 +13155,37 @@ function chatGroupInfo(){
     var rn=document.getElementById('ci-rename'); if(rn) rn.value=g.name||'';
     _CI_COLOR=g.color||'';
     var col=document.getElementById('ci-colors'); if(col) col.innerHTML=ACCT_SWATCHES.map(function(c){ return '<div class="acct-sw'+(c.toLowerCase()===String(_CI_COLOR).toLowerCase()?' on':'')+'" data-c="'+c+'" style="background:'+c+'" onclick="ciPickColor(\''+c+'\')"></div>'; }).join('');
-    var mm=document.getElementById('ci-editmem'); if(mm) mm.innerHTML=_roster().filter(function(s){return s&&s.name;}).map(function(s){ var inG=(g.members||[]).indexOf(s.name)>=0, isC=(s.name===g.created_by); return '<label class="cg-mem">'+_chAvatar(s.name,s)+'<span class="cg-mn">'+tvEsc(s.name)+(isC?' <span class="ci-admin-tag">you</span>':'')+'</span><input type="checkbox" class="cg-chk ci-chk" value="'+tvEsc(s.name)+'"'+(inG?' checked':'')+(isC?' disabled':'')+'></label>'; }).join('');
+    CH_EDIT_MEMS=(g.members||[]).slice(); _CI_ADDOPEN=false; _ciRenderMems(g);
     var ms=document.getElementById('ci-msg'); if(ms) ms.textContent='';
   }
 }
 function ciPickColor(c){ _CI_COLOR=c; var col=document.getElementById('ci-colors'); if(col){ Array.prototype.forEach.call(col.children,function(el){ el.classList.toggle('on',(el.getAttribute('data-c')||'').toLowerCase()===String(c).toLowerCase()); }); } }
+/* WhatsApp-style member editor: CH_EDIT_MEMS is the working member list. Members show with a remove ✕;
+   "Add people" reveals only the staff NOT already in the group, each with a + to add. */
+var CH_EDIT_MEMS=[], _CI_ADDOPEN=false;
+function _ciRenderMems(g){
+  var box=document.getElementById('ci-editmem'); if(!box) return;
+  var creator=g.created_by||'';
+  var mems=CH_EDIT_MEMS.slice().sort(function(a,b){ if(a===creator)return -1; if(b===creator)return 1; return a<b?-1:1; });
+  var h=mems.map(function(n){ var st=_staffByName(n); var isC=(n===creator);
+    return '<div class="cgm-row">'+_chAvatar(n,st)+'<span class="cgm-nm">'+tvEsc(n)+(isC?' <span class="ci-admin-tag">you</span>':'')+'</span>'
+      +(isC?'':'<button class="cgm-x" title="Remove" onclick="ciRemoveMem(\''+_jsq(n)+'\')">✕</button>')+'</div>';
+  }).join('');
+  var inSet={}; CH_EDIT_MEMS.forEach(function(n){ inSet[n]=1; });
+  var others=_roster().filter(function(s){ return s&&s.name&&!inSet[s.name]; });
+  h+='<button class="cgm-addbtn" onclick="ciToggleAdd()"><span class="cgm-plus">＋</span>'+(_CI_ADDOPEN?'Done adding':'Add people'+(others.length?(' ('+others.length+')'):''))+'</button>';
+  if(_CI_ADDOPEN){
+    if(!others.length) h+='<div class="cgm-addwrap"><div class="ch-empty" style="padding:10px">Everyone is already in this chat.</div></div>';
+    else h+='<div class="cgm-sec">Not in this chat</div><div class="cgm-addwrap">'+others.sort(function(a,b){return a.name<b.name?-1:1;}).map(function(s){
+      return '<div class="cgm-row">'+_chAvatar(s.name,s)+'<span class="cgm-nm">'+tvEsc(s.name)+(s.role?(' <span style="color:var(--t2);font-weight:600;font-size:11.5px">· '+tvEsc(s.role)+'</span>'):'')+'</span><button class="cgm-add" title="Add" onclick="ciAddMem(\''+_jsq(s.name)+'\')">＋</button></div>';
+    }).join('')+'</div>';
+  }
+  box.innerHTML=h;
+}
+function _jsq(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function ciRemoveMem(n){ CH_EDIT_MEMS=CH_EDIT_MEMS.filter(function(x){return x!==n;}); if(CH_GROUP) _ciRenderMems(CH_GROUP); }
+function ciAddMem(n){ if(CH_EDIT_MEMS.indexOf(n)<0) CH_EDIT_MEMS.push(n); if(CH_GROUP) _ciRenderMems(CH_GROUP); }
+function ciToggleAdd(){ _CI_ADDOPEN=!_CI_ADDOPEN; if(CH_GROUP) _ciRenderMems(CH_GROUP); }
 function chatSaveGroupInfo(){
   var g=CH_GROUP; if(!g||!cu||typeof SBC==='undefined'||!SBC) return;
   if(!_chIsAdmin(g)) return;
@@ -13144,7 +13193,7 @@ function chatSaveGroupInfo(){
   var emo=(document.getElementById('ci-emoji').value||'').trim().slice(0,4);
   var nm=(document.getElementById('ci-rename').value||'').trim().slice(0,80);
   if(!nm){ say('Group needs a name'); return; }
-  var picks=[]; Array.prototype.forEach.call(document.querySelectorAll('#ci-editmem .ci-chk'),function(c){ if(c.checked) picks.push(c.value); });
+  var picks=CH_EDIT_MEMS.slice();
   if(picks.indexOf(g.created_by)<0) picks.push(g.created_by);
   say('Saving\u2026','var(--t2)');
   function _applied(){ g.emoji=emo; g.name=nm; g.members=picks; g.color=_CI_COLOR||null; CH_MYGROUPS['group:'+g.id]=g; CH_TITLE=nm; CH_GROUP_MEMBERS=picks;

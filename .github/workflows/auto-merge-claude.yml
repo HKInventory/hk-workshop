@@ -1,0 +1,58 @@
+# Auto-merge validated Claude branches into main.
+#
+# Before this, every fix needed a manual "Compare & pull request" -> Merge round trip. Now a push
+# to claude/** is validated and merged automatically, and GitHub Pages deploys from main.
+#
+# The validation step is the point of the whole thing. index.html is one ~13,000-line file holding
+# all the HTML, CSS and JS, and it serves both the workshop PWA and the TV board — so a single
+# stray bracket takes everything down at once, on the shop floor, with no staging step in between.
+# Nothing reaches main unless the JS parses, the tags balance and the build marker is consistent.
+# If validation fails the branch simply stays unmerged and this run goes red; main is never left
+# broken.
+#
+# To switch it off: disable this workflow in the Actions tab, or delete this file. Merges go back
+# to being manual and nothing else changes.
+name: Auto-merge Claude branches
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+permissions:
+  contents: write
+
+# Never let two runs race to write main.
+concurrency:
+  group: auto-merge-main
+  cancel-in-progress: false
+
+jobs:
+  validate-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate index.html
+        run: python3 .github/validate-app.py
+
+      - name: Merge into main
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          # --no-ff keeps each merge a visible, revertable unit in the history.
+          if ! git merge --no-ff "$GITHUB_SHA" -m "Auto-merge ${GITHUB_REF_NAME} (validated)"; then
+            echo "::error::Merge conflict with main. Resolve it manually, then push again."
+            exit 1
+          fi
+          git push origin main
+          echo "Merged ${GITHUB_REF_NAME} into main."

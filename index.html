@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EU · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EV · ZXing raw</div>
       </div>
     </div>
 
@@ -2753,7 +2753,7 @@
           <div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:8px">
             <div style="display:flex;align-items:center;cursor:pointer;font-size:12px;font-weight:800;color:var(--t2)" onclick="lastOnlineToggle()">
               <span id="lo-caret" style="display:inline-block;width:14px">&#9656;</span><span>Last online</span>
-              <span style="flex:1"></span><span style="font-weight:600;font-size:11px">sign in / sign out &middot; Sydney time</span>
+              <span style="flex:1"></span><span style="font-weight:600;font-size:11px" id="lo-tzlabel">sign in / sign out</span>
             </div>
             <div id="lo-body" style="display:none;margin-top:8px"></div>
           </div>
@@ -3587,12 +3587,63 @@ function setTopAccent(mode){
 function siteById(id){for(var i=0;i<allSites.length;i++)if(allSites[i].id===id)return allSites[i];return null;}
 function siteLabel(id){var s=siteById(id);return s?s.label:(id?id.charAt(0).toUpperCase()+id.slice(1):'Site');}
 function siteAccent(id){var s=siteById(id);return (s&&s.accent)||'#00CFFF';}
+
+/* ===== THE VENUE'S CLOCK IS A PROPERTY OF THE VENUE, NOT OF THE SOFTWARE =====
+   Every time helper in here used to say 'Australia/Sydney' outright — twelve places — and the
+   runner decided with `SITE === 'melbourne' ? ... : ...`. That works for exactly two venues and
+   quietly produces wrong days, wrong "before midday" and wrong opening hours for a third. Open in
+   Perth and every timestamp reads two hours ahead; open in Auckland and the day boundary is out.
+
+   So the timezone now belongs to the SITE record (sites.tz, an IANA name like 'Australia/Perth'),
+   which is the same place the label and accent already live. Set it once per venue and every date,
+   time, day boundary and daily-summary bucket follows.
+
+   THREE LAYERS, so nothing breaks while a new venue is being set up:
+     1. sites.tz if it is set — the authority.
+     2. A guess from the site id for the obvious Australasian cases, so a site called 'perth'
+        behaves correctly the moment it is created, before anyone touches the column.
+     3. Australia/Sydney, the founding venue.
+
+   Resolved values are cached in localStorage because loadSites is async: the first paint after a
+   cold start would otherwise use the fallback and visibly correct itself a moment later. */
+var TZ_BY_ID={ sydney:'Australia/Sydney', melbourne:'Australia/Melbourne', perth:'Australia/Perth',
+               brisbane:'Australia/Brisbane', adelaide:'Australia/Adelaide', darwin:'Australia/Darwin',
+               hobart:'Australia/Hobart', canberra:'Australia/Sydney', goldcoast:'Australia/Brisbane',
+               auckland:'Pacific/Auckland', christchurch:'Pacific/Auckland', training:'Australia/Sydney' };
+var TZ_FALLBACK='Australia/Sydney';
+function _tzValid(z){
+  if(!z||typeof z!=='string'||z.indexOf('/')<0) return false;
+  try{ new Intl.DateTimeFormat('en',{timeZone:z}).format(new Date()); return true; }catch(e){ return false; }
+}
+function siteTz(id){
+  id=String(id||currentSite||'sydney').toLowerCase();
+  var s=siteById(id);
+  if(s&&_tzValid(s.tz)) return s.tz;
+  var cached=null; try{ cached=localStorage.getItem('hk_tz_'+id); }catch(e){}
+  if(_tzValid(cached)) return cached;
+  if(_tzValid(TZ_BY_ID[id])) return TZ_BY_ID[id];
+  return TZ_FALLBACK;
+}
+/* The zone for whatever site is on screen right now. Every formatter below reads this. */
+function venueTz(){ return siteTz(currentSite); }
+/* A short label for the UI, so a Perth manager can see WHICH clock a screen is quoting rather than
+   having to trust it. 'Perth time', 'Sydney time'. */
+function venueTzLabel(id){
+  var z=siteTz(id), city=z.split('/').pop().replace(/_/g,' ');
+  return city+' time';
+}
 function loadSites(cb){
   var qs=[SBC.from('sites').select('*').eq('active',true).order('position')];
   qs.push(cu?SBC.from('account_sites').select('site').eq('staff_name',cu.name):Promise.resolve({data:[]}));
   Promise.all(qs).then(function(rs){
-    allSites=((rs[0]&&rs[0].data)||[]).map(function(r){return {id:r.id,label:r.label,accent:r.accent,position:r.position};});
-    if(!allSites.length) allSites=[{id:'sydney',label:'Sydney',accent:'#00CFFF',position:1}];
+    // tz comes through with the rest of the site record. It is optional: a database that predates
+    // the column simply returns undefined and siteTz() falls back, so nothing waits on a migration.
+    allSites=((rs[0]&&rs[0].data)||[]).map(function(r){return {id:r.id,label:r.label,accent:r.accent,position:r.position,tz:r.tz||null};});
+    if(!allSites.length) allSites=[{id:'sydney',label:'Sydney',accent:'#00CFFF',position:1,tz:'Australia/Sydney'}];
+    // Cache each venue's zone so the FIRST paint after a cold start is already right. loadSites is
+    // async; without this a Perth screen would render in Sydney time for a moment and then correct
+    // itself, which looks like a glitch and is worse than being slightly slow.
+    try{ allSites.forEach(function(s){ if(_tzValid(s.tz)) localStorage.setItem('hk_tz_'+s.id, s.tz); }); }catch(e){}
     mySites=((rs[1]&&rs[1].data)||[]).map(function(r){return r.site;});
     if(cu && _isMgr(cu.role)){ mySites=allSites.map(function(s){return s.id;}); }   // managers get all sites
     else if(!mySites.length) mySites=['sydney'];
@@ -4018,7 +4069,7 @@ function sbManagerData(cb){
     // BEFORE) as yesterday and it vanishes from "today". Compare on the Sydney calendar day, not raw
     // browser-local, so the bucket is always the venue's day.
     function _loginParse(s){ s=String(s==null?'':s); if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s=s.replace(' ','T')+'Z'; return new Date(s); }
-    function _sydDay(d){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }catch(e){ return ''; } }
+    function _sydDay(d){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit'}).format(d); }catch(e){ return ''; } }
     // ACTIVE STAFF — merge three signals so a genuinely-active person always shows even if one
     // write path (the append-only logins insert) is blocked: the presence heartbeat (last_seen,
     // upserted every 60s while the app is open), a login row today, and any stock action today.
@@ -4344,7 +4395,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EU</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EV</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6068,7 +6119,7 @@ function _isPuncture(txt){
 /* Sydney parts for an instant — the venue's clock decides both the day and "before midday". */
 function _sydParts(ms){
   try{
-    var p=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+    var p=new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
       .formatToParts(new Date(ms)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
     var h=(p.hour==='24')?0:parseInt(p.hour,10);
     return {day:p.year+'-'+p.month+'-'+p.day, hour:h};
@@ -6267,20 +6318,20 @@ function sessionClose(){
 /* Sydney calendar day for an instant. The venue's day is what staff mean by "today" — a browser
    in another timezone (or a laptop left open past midnight UTC) must not shift the boundary. */
 function _sydDayKey(ms){
-  try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms)); }
+  try{ return new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms)); }
   catch(e){ return new Date(ms).toISOString().slice(0,10); }
 }
 function _sydTime(v){
   if(!v) return '—';
   var t=(typeof v==='number')?v:Date.parse(String(v).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(v))?'':'Z'));
   if(!t||isNaN(t)) return '—';
-  try{ return new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(t)); }
+  try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(t)); }
   catch(e){ return ''; }
 }
 function _sydDate(v){
   var t=(typeof v==='number')?v:Date.parse(String(v).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(v))?'':'Z'));
   if(!t||isNaN(t)) return '';
-  try{ return new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',weekday:'short',day:'numeric',month:'short'}).format(new Date(t)); }
+  try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),weekday:'short',day:'numeric',month:'short'}).format(new Date(t)); }
   catch(e){ return ''; }
 }
 function lastOnlineToggle(){
@@ -6325,6 +6376,8 @@ function lastOnlineRender(){
   var names=Object.keys(last);
   try{ (STAFF||[]).forEach(function(s){ if(s&&s.name&&!last[s.name]) names.push(s.name); }); }catch(e){}
   names.sort(function(a,b){ return (last[b]?last[b].t:0)-(last[a]?last[a].t:0); });
+  // Name the clock these times are in. A Perth manager reading "09:22" needs to know whose 09:22.
+  try{ var _lt=document.getElementById('lo-tzlabel'); if(_lt) _lt.textContent='sign in / sign out · '+venueTzLabel(currentSite); }catch(e){}
   var today=_sydDayKey(Date.now()), yest=_sydDayKey(Date.now()-86400000);
   b.innerHTML=names.map(function(n){
     var e=last[n], x=e&&e.row;
@@ -6464,7 +6517,7 @@ function healthRender(){
   // Sydney explicitly, and via _sydParse — an untagged timestamp from Postgres would otherwise be
   // read as the viewer's local time, which is right only by accident.
   var _wt=cur.at?_sydParse(cur.at):null;
-  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return new Date(_wt).toLocaleString(); } })();
+  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return new Date(_wt).toLocaleString(); } })();
 
   // --- headline bars -------------------------------------------------------
   var bars=hBar(cur.db_total_bytes,HK_PLAN.db_bytes,'Database size',
@@ -7972,14 +8025,14 @@ function setKartType(type){
    with realtime, so a team can split a type across phones and see each other's ticks live. Completion shows
    a summary + confetti and pushes "Kart Count <Type> Track is N!" to all staff. Needs kart_checks.sql. */
 var KC_VIEW='types', KC_TYPE=null, KC_RUN=null, KC_RUNS=[], KC_RESULTS={}, KC_RED=null, KC_RED_STATUS='damaged';
-function kcToday(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
+function kcToday(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
 function _kcSite(){ return currentSite||'sydney'; }
 function _kcTypeLabel(t){ return t==='Intermediate'?'Inter':t; }
 function _kcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 /* new Date('2026-07-26T09:20:00') — no zone suffix — is read as LOCAL time by JS, so an untagged
    timestamp coming back from Postgres was already an hour or ten out before the timeZone option got
    a chance to do anything. _sydParse tags it as UTC first, which is what it actually is. */
-function _kcTime(iso){ var t=_sydParse(iso); if(t==null) return ''; try{ return new Date(t).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Australia/Sydney'}); }catch(e){ return ''; } }
+function _kcTime(iso){ var t=_sydParse(iso); if(t==null) return ''; try{ return new Date(t).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:venueTz()}); }catch(e){ return ''; } }
 function _kcRes(rfId){ return (KC_RESULTS[rfId]||{}).result||null; }
 function _kcOnScreen(){ try{ return stk[stk.length-1]==='kartcheck'; }catch(e){ return false; } }
 // checkable = fleet of a type, not long-term, not ALREADY damaged (OK or FM). A kart that's been given a
@@ -9494,7 +9547,7 @@ function noteNowIso(){
   // note you just typed would render ten hours out until the sync replaced it.
   try{ return new Date().toISOString(); }catch(e){}
   try{
-    var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
+    var parts=new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
     var g=function(t){var v=(parts.find(function(p){return p.type===t;})||{}).value||'00'; return v==='24'?'00':v;};
     return g('year')+'-'+g('month')+'-'+g('day')+'T'+g('hour')+':'+g('minute')+':'+g('second');
   }catch(e){
@@ -9515,7 +9568,7 @@ function fmtNoteDate(iso){
   var t=_sydParse(iso);
   if(t==null) return String(iso);
   try{
-    var f=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Sydney',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+    var f=new Intl.DateTimeFormat('en-GB',{timeZone:venueTz(),day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
       .formatToParts(new Date(t)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
     var hh=(f.hour==='24')?'00':f.hour;
     return f.day+'.'+f.month+'.'+f.year+' '+hh+':'+f.minute;
@@ -10395,7 +10448,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10844,11 +10897,57 @@ function msToggleSite(i,sid){ var st=mStaffDraft[i]; if(!st||_isMgr(st.role)) re
 function siLoad(){
   var el=document.getElementById('m-sites-list'); el.innerHTML='<div class="m-empty">Loading sites\u2026</div>';
   mLoadSnap(function(res){
-      if(res&&res.success){ mSitesDraft=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent,position:s.position,active:s.active!==false,_existing:true};}); mSitesLoaded=true; siRender(); }
+      if(res&&res.success){ mSitesDraft=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent,position:s.position,active:s.active!==false,tz:s.tz||null,_existing:true};}); mSitesLoaded=true; siRender(); }
       else if(el){ el.innerHTML='<div class="m-empty">'+((res&&res.message)||'Could not load sites')+'</div>'; }
   });
 }
+/* The zones a karting venue in this part of the world plausibly sits in. Deliberately a short list
+   rather than all ~600 IANA zones — a dropdown nobody can scan is not a usable control. Anything
+   already stored that is not on the list is kept and shown, so a hand-set zone is never silently
+   overwritten by opening this screen. */
+var TZ_CHOICES=[
+  ['Australia/Sydney','Sydney / Canberra / NSW (AEST/AEDT)'],
+  ['Australia/Melbourne','Melbourne / Victoria (AEST/AEDT)'],
+  ['Australia/Brisbane','Brisbane / Queensland (AEST, no DST)'],
+  ['Australia/Perth','Perth / WA (AWST)'],
+  ['Australia/Adelaide','Adelaide / SA (ACST/ACDT)'],
+  ['Australia/Darwin','Darwin / NT (ACST, no DST)'],
+  ['Australia/Hobart','Hobart / Tasmania (AEST/AEDT)'],
+  ['Pacific/Auckland','Auckland / New Zealand (NZST/NZDT)'],
+  ['Asia/Singapore','Singapore'],
+  ['Asia/Dubai','Dubai'],
+  ['Europe/London','London'],
+];
+function siSaveTz(msg){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var rows=mSitesDraft.filter(function(s){ return s._existing&&s.id&&_tzValid(siTzOf(s)); });
+  if(!rows.length) return;
+  Promise.all(rows.map(function(s){
+    return SBC.from('sites').update({tz:siTzOf(s)}).eq('id',s.id).then(function(r){ return r; },function(e){ return {error:e}; });
+  })).then(function(rs){
+    var bad=rs.filter(function(r){ return r&&r.error; })[0];
+    if(bad&&msg){
+      var missing=/tz|column|schema cache|PGRST204/i.test(String((bad.error&&bad.error.message)||''));
+      msg.style.color='var(--red)';
+      msg.textContent=missing?'Site saved, but the timezone column is missing — run the sites.tz SQL.'
+                             :'Site saved, but the timezone could not be stored.';
+      return;
+    }
+    // Update the caches immediately so the clock changes without a reload.
+    try{ rows.forEach(function(s){ localStorage.setItem('hk_tz_'+s.id, siTzOf(s)); var live=siteById(s.id); if(live) live.tz=siTzOf(s); }); }catch(e){}
+  });
+}
+function siTzOf(s){
+  if(s&&_tzValid(s.tz)) return s.tz;
+  return (s&&TZ_BY_ID[String(s.id||'').toLowerCase()])||TZ_FALLBACK;
+}
 function siRender(){
+  // Keep any zone already saved that isn't in the short list, so opening this screen can't quietly
+  // replace a deliberately hand-set value with the nearest listed one.
+  try{ mSitesDraft.forEach(function(s){
+    var z=siTzOf(s);
+    if(_tzValid(z) && !TZ_CHOICES.some(function(c){return c[0]===z;})) TZ_CHOICES.push([z,z]);
+  }); }catch(e){}
   var el=document.getElementById('m-sites-list');
   if(!mSitesDraft.length){ el.innerHTML='<div class="m-empty">No sites yet — tap \u201c+ Add site\u201d.</div>'; return; }
   el.innerHTML=mSitesDraft.map(function(s,i){
@@ -10856,7 +10955,12 @@ function siRender(){
     return '<div class="prow site-edit-row">'
       +'<input type="color" class="site-accent" value="'+(s.accent||'#00CFFF')+'" oninput="siField('+i+',\'accent\',this.value)">'
       +'<div class="site-edit-meta"><input class="staff-name-input" type="text" value="'+(s.label||'').replace(/"/g,'&quot;')+'" placeholder="Site name" oninput="siField('+i+',\'label\',this.value)">'
-      +'<span class="site-id">'+(s._existing?('id: '+s.id):'new site')+'</span></div>'
+      +'<span class="site-id">'+(s._existing?('id: '+s.id):'new site')+'</span>'
+      // A venue's clock belongs to the venue. Without this the whole app assumes Sydney, so a Perth
+      // site reports the wrong day, the wrong "before midday" and the wrong opening hours.
+      +'<select class="site-tz" onchange="siField('+i+',\'tz\',this.value)" style="margin-top:5px;width:100%;font-size:11.5px;padding:4px 6px;border-radius:7px;background:var(--c2);color:var(--t1);border:1px solid var(--b1)">'
+      +TZ_CHOICES.map(function(z){ return '<option value="'+z[0]+'"'+((siTzOf(s)===z[0])?' selected':'')+'>'+z[1]+'</option>'; }).join('')
+      +'</select></div>'
       +'<span class="site-dot" style="background:'+(s.accent||'#00CFFF')+';box-shadow:0 0 10px '+(s.accent||'#00CFFF')+'"></span>'
       +(canDel?'<button type="button" class="site-del" title="Delete venue" onclick="siDelete('+i+')">\u00d7</button>':'')
       +'</div>';
@@ -10881,7 +10985,7 @@ function siDelete(i){
     }).catch(function(){ if(msg){msg.style.color='var(--red)';msg.textContent='Connection error';} });
 }
 function siField(i,f,v){ if(mSitesDraft[i]){ mSitesDraft[i][f]=v; if(f==='accent'){ var d=document.querySelectorAll('#m-sites-list .site-edit-row')[i]; if(d){var dot=d.querySelector('.site-dot'); if(dot){dot.style.background=v;dot.style.boxShadow='0 0 10px '+v;}} } } }
-function siAddRow(){ if(!mSitesLoaded){ siLoad(); return; } var pos=mSitesDraft.reduce(function(m,s){return Math.max(m,s.position||0);},0)+1; mSitesDraft.push({id:'',label:'',accent:'#00CFFF',position:pos,active:true,_existing:false}); siRender(); var rows=document.querySelectorAll('#m-sites-list .site-edit-row'); if(rows.length){var nm=rows[rows.length-1].querySelector('.staff-name-input'); if(nm)nm.focus();} }
+function siAddRow(){ if(!mSitesLoaded){ siLoad(); return; } var pos=mSitesDraft.reduce(function(m,s){return Math.max(m,s.position||0);},0)+1; mSitesDraft.push({id:'',label:'',accent:'#00CFFF',position:pos,active:true,tz:TZ_FALLBACK,_existing:false}); siRender(); var rows=document.querySelectorAll('#m-sites-list .site-edit-row'); if(rows.length){var nm=rows[rows.length-1].querySelector('.staff-name-input'); if(nm)nm.focus();} }
 function siSave(){
   var msg=document.getElementById('m-sites-msg'), btn=document.getElementById('m-sites-save'); msg.style.color='';
   for(var i=0;i<mSitesDraft.length;i++){ if(!(mSitesDraft[i].label||'').trim()){ msg.style.color='var(--red)'; msg.textContent='Every site needs a name.'; return; } if(!/^#[0-9a-fA-F]{6}$/.test(mSitesDraft[i].accent||'')){ msg.style.color='var(--red)'; msg.textContent=(mSitesDraft[i].label||'A site')+' needs a hex colour.'; return; } }
@@ -10891,7 +10995,15 @@ function siSave(){
   fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({masterPin:masterPin,op:'sites-save',sites:mSitesDraft})})
     .then(function(r){return r.json();}).then(function(res){
       btn.textContent='Save sites'; btn.disabled=false;
-      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713'; mSitesLoaded=false; siLoad(); mStaffLoaded=false; if(document.getElementById('m-staff-list')) msLoad(); loadSites(function(){ applySiteAccent(stk&&stk.length?stk[stk.length-1]:'home'); }); setTimeout(function(){msg.textContent='';msg.style.color='';},2500); }
+      if(res&&res.success){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713';
+        // TIMEZONE IS WRITTEN SEPARATELY, ON PURPOSE.
+        // The sites-save Edge Function was written before sites.tz existed and only persists the
+        // columns it knows about, so tz sent in that payload is simply dropped. Rather than leave the
+        // picker looking like it works when it doesn't, the zone is written straight to the row here.
+        // This screen is already behind the master PIN, so it is not a new privilege \u2014 and if the
+        // column hasn't been added yet, it says so instead of failing silently.
+        siSaveTz(msg);
+        mSitesLoaded=false; siLoad(); mStaffLoaded=false; if(document.getElementById('m-staff-list')) msLoad(); loadSites(function(){ applySiteAccent(stk&&stk.length?stk[stk.length-1]:'home'); }); setTimeout(function(){if(msg.style.color!=='var(--red)'){msg.textContent='';msg.style.color='';}},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save sites'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
 }
@@ -13159,7 +13271,7 @@ var SD_SESS=[], SD_RUNS={}, SD_SESSION=null, SD_KART=null, SD_ROWS=[], SD_BANK='
 var SD_FILT={date:null, track:null};   // active session filters
 var SD_CELL_NAMES=['L1','L2','L3','L4','L5','L6','L7','L8','R1','R2','R3','R4','R5','R6','R7','R8'];
 function _sdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function _sdSyd(iso,withDay){ try{ var o={timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}; if(withDay){o.day='2-digit';o.month='short';} return new Date(iso).toLocaleString('en-AU',o); }catch(e){ return ''; } }
+function _sdSyd(iso,withDay){ try{ var o={timeZone:venueTz(),hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}; if(withDay){o.day='2-digit';o.month='short';} return new Date(iso).toLocaleString('en-AU',o); }catch(e){ return ''; } }
 function sdEnter(){
   var body=document.getElementById('sd-body'); if(!body) return;
   body.innerHTML='<div class="sd-empty">Loading sessions…</div>';
@@ -13208,7 +13320,7 @@ function sdEnter(){
     },function(){ SD_RUNS={}; sdRenderShell(); });
   },function(){ body.innerHTML='<div class="sd-empty">Couldn\u2019t load sessions.</div>'; });
 }
-function _sdDayKey(iso){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso)); }catch(e){ return ''; } }
+function _sdDayKey(iso){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso)); }catch(e){ return ''; } }
 function _sdDayLabel(key){ // key is YYYY-MM-DD
   var today=_sdDayKey(new Date().toISOString());
   var yday=_sdDayKey(new Date(Date.now()-86400000).toISOString());
@@ -14210,7 +14322,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14679,7 +14791,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EU';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EV';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

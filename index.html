@@ -2600,7 +2600,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EI · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EJ · ZXing raw</div>
       </div>
     </div>
 
@@ -4307,7 +4307,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EI</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EJ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5483,28 +5483,39 @@ function startScan(){
   if(qrs) return;
   document.getElementById('sbn').style.display='none';
   document.getElementById('ssp').style.display='block';
-  document.getElementById('sst').innerText='Opening camera...';
-  // Poll for library + video element ready (up to 5 seconds)
-  var tries=0;
-  var poll=setInterval(function(){
+  document.getElementById('sst').innerText='Opening camera\u2026';
+  // SMOOTHNESS. This used to start a 100ms setInterval and wait for its FIRST tick before even
+  // checking — so the camera was held back by at least a tick even when the decoder had been
+  // loaded since page start (which it usually has: the module script loads it at the bottom of
+  // the page). On a cold PWA launch the wait was longer still, with nothing on screen but
+  // "Opening camera…". Three changes: check once immediately, poll faster, and hook
+  // window.onQrReady so we start the instant the module lands instead of up to a tick later.
+  var tries=0, poll=null, _done=false;
+  function _ready(){ var v=document.getElementById('qrv'); return !!(window.QrScanner&&v&&v.offsetWidth>20); }
+  function _go(){ if(_done) return; _done=true; if(poll) clearInterval(poll); _initScanner(); }
+  // The module may already have landed — in the common case this opens the camera with no wait.
+  if(_ready()){ _go(); return; }
+  // Fire the moment the decoder module resolves, rather than waiting to notice on the next tick.
+  window.onQrReady=function(){ if(!_done&&_ready()) _go(); };
+  poll=setInterval(function(){
     tries++;
-    var v=document.getElementById('qrv');
-    var ready=window.QrScanner&&v&&v.offsetWidth>20;
-    if(ready){
-      clearInterval(poll);
-      _initScanner();
+    if(_ready()){
+      _go();
     } else if(window.qrLibError){
-      clearInterval(poll);
+      _done=true; clearInterval(poll);
       document.getElementById('sst').innerText='Scanner failed to load. Check internet.';
       document.getElementById('sbn').style.display='block';
       document.getElementById('ssp').style.display='none';
-    } else if(tries>50){
-      clearInterval(poll);
-      document.getElementById('sst').innerText='Scanner timed out — try again';
+    } else if(tries>125){
+      _done=true; clearInterval(poll);
+      document.getElementById('sst').innerText='Scanner timed out \u2014 try again';
       document.getElementById('sbn').style.display='block';
       document.getElementById('ssp').style.display='none';
+    } else if(tries===8){
+      // Only say this once it's genuinely slow, so the normal fast path never shows it.
+      document.getElementById('sst').innerText='Starting scanner\u2026';
     }
-  },100);
+  },40);
 }
 
 // Shared scan-result handling for BOTH polarities. Accepts a ?sku= URL, a bare HK:<sku>
@@ -9730,7 +9741,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13049,7 +13060,9 @@ function chatUpdateSeen(){
     else { var fn=readers.map(function(n){return String(n).split(' ')[0];});
       txt=(readers.length<=3)?('Seen by '+fn.join(', ')):('Seen by '+fn.slice(0,2).join(', ')+' +'+(readers.length-2)); }
     var d0=document.createElement('div'); d0.id='ch-seen'; d0.className='ch-seen'; d0.textContent=txt;
-    if(readers.length){ d0.style.cursor='pointer'; d0.title='Read by: '+readers.join(', '); d0.onclick=function(){ alert('Read by:\n'+readers.join('\n')); }; }
+    // Tapping the receipt opens the same panel the hold menu uses, rather than a raw alert().
+    if(readers.length&&last&&last.id!=null){ d0.style.cursor='pointer'; d0.title='Read by: '+readers.join(', ');
+      d0.onclick=function(){ try{ chatReadBy(last.id); }catch(e){} }; }
     box.appendChild(d0); return;
   }
   var d=document.createElement('div'); d.id='ch-seen'; d.className='ch-seen'; d.textContent=txt; box.appendChild(d);
@@ -13313,8 +13326,56 @@ function chatMsgActions(id){
   var old=document.getElementById('ch-actbar'); if(old){ old.parentNode.removeChild(old); if(old.getAttribute('data-mid')==String(id)) return; }
   var bub=document.querySelector('#ch-msgs .ch-bub[data-mid=\"'+id+'\"]'); if(!bub) return;
   var bar=document.createElement('div'); bar.id='ch-actbar'; bar.setAttribute('data-mid',id); bar.className='ch-actbar';
-  bar.innerHTML=(m.image?'':'<button onclick=\"event.stopPropagation();chatEditMsg('+id+')\">\u270e Edit</button>')+'<button class=\"del\" onclick=\"event.stopPropagation();chatDeleteMsg('+id+')\">\ud83d\uddd1 Delete</button>';
+  bar.innerHTML='<button onclick=\"event.stopPropagation();chatReadBy('+id+')\">\ud83d\udc41 Read by</button>'
+    +(m.image?'':'<button onclick=\"event.stopPropagation();chatEditMsg('+id+')\">\u270e Edit</button>')
+    +'<button class=\"del\" onclick=\"event.stopPropagation();chatDeleteMsg('+id+')\">\ud83d\uddd1 Delete</button>';
   bub.parentNode.insertBefore(bar,bub.nextSibling);
+}
+
+/* Who has read THIS message.
+   Before, the only read receipt was a single "Seen by…" line under the LAST message you sent, and
+   tapping it produced a raw alert(). So there was no way to check whether an earlier message — the
+   one that actually mattered — had been read, which is what made it feel unclear. Holding any of
+   your own messages now answers it directly, WhatsApp-style, in a panel rather than an alert.
+
+   A person has read the message if their chat_reads timestamp is at or after it. People who
+   haven't are listed too: "nobody has read it yet" is the useful answer, and an empty panel
+   would read as broken. */
+function chatReadWho(m){
+  var read=[],unread=[],me=(cu&&cu.name)||'';
+  if(!m) return {read:read,unread:unread};
+  var t=Date.parse(m.created_at)||0;
+  var mem=(CH_GROUP&&CH_GROUP.members)||null;
+  if(!mem&&CH_CHANNEL&&CH_CHANNEL.indexOf('dm:')===0&&CH_OTHER&&CH_OTHER.name) mem=[CH_OTHER.name];
+  if(!mem){ mem=Object.keys(CH_READS||{}); }
+  mem.forEach(function(n){
+    if(!n||n===me) return;
+    var a=(CH_READS||{})[n];
+    if(a&&Date.parse(a)>=t) read.push(n); else unread.push(n);
+  });
+  return {read:read,unread:unread};
+}
+function chatReadBy(id){
+  var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m) return;
+  var bar=document.getElementById('ch-actbar'); if(bar&&bar.parentNode) bar.parentNode.removeChild(bar);
+  var bub=document.querySelector('#ch-msgs .ch-bub[data-mid=\"'+id+'\"]'); if(!bub) return;
+  var w=chatReadWho(m);
+  var line=function(n,seen){
+    var st=_staffByName(n)||{name:n};
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px">'
+      +'<span style="opacity:'+(seen?1:.45)+'">'+userEmoji(st)+'</span>'
+      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:'+(seen?1:.55)+'">'+tvEsc(n)+'</span>'
+      +'<span style="font-size:11px;color:'+(seen?'#34D399':'var(--t2)')+'">'+(seen?'\u2713\u2713 read':'sent')+'</span></div>';
+  };
+  var body=w.read.map(function(n){return line(n,true);}).join('')+w.unread.map(function(n){return line(n,false);}).join('');
+  if(!body) body='<div style="font-size:12.5px;color:var(--t2);padding:4px 0">No one else is in this chat yet.</div>';
+  var panel=document.createElement('div');
+  panel.id='ch-actbar'; panel.setAttribute('data-mid',id); panel.className='ch-actbar';
+  panel.style.cssText='display:block;text-align:left;padding:10px 12px;max-height:44vh;overflow-y:auto';
+  panel.innerHTML='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--t2);margin-bottom:6px">'
+    +(w.read.length?(w.read.length+' of '+(w.read.length+w.unread.length)+' have read this'):'Not read yet')+'</div>'+body;
+  panel.addEventListener('pointerdown',function(e){ e.stopPropagation(); });
+  bub.parentNode.insertBefore(panel,bub.nextSibling);
 }
 function chatEditMsg(id){
   var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m) return;
@@ -13490,7 +13551,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13959,7 +14020,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EI';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EJ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

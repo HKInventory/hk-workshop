@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EM · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EN · ZXing raw</div>
       </div>
     </div>
 
@@ -4038,7 +4038,16 @@ function pingPresence(){
 }
 function startPresence(){
   try{
-    pingPresence();
+    // FORCE AN INSERT ON SIGN-IN.
+    // Other dashboards watch presence for INSERT and DELETE only — the once-a-minute heartbeat is an
+    // UPDATE, which is deliberately not subscribed to so it costs nothing. But upsert() only INSERTs
+    // when there is no row: if a previous session ended without a clean sign-out, this person's row
+    // still exists and their sign-in would be an UPDATE — firing no event, so nobody's screen would
+    // show them arrive. Clearing the row first makes every sign-in a real INSERT. Two writes, once
+    // per sign-in, is nothing; a green dot that never appears is the actual cost.
+    if(cu&&cu.name&&typeof SBC!=='undefined'&&SBC&&!window.TRAINING){
+      SBC.from('presence').delete().eq('name',cu.name).then(function(){ pingPresence(); },function(){ pingPresence(); });
+    } else pingPresence();
     if(_presenceT) clearInterval(_presenceT);
     _presenceT=setInterval(pingPresence,60000);
     if(!window._presenceWired){ window._presenceWired=1;
@@ -4285,7 +4294,7 @@ function _safeBottom(){ if(window.__sab!=null) return window.__sab;
   try{ var p=document.createElement('div'); p.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden'; document.body.appendChild(p); window.__sab=p.offsetHeight||0; p.parentNode.removeChild(p); }catch(e){ window.__sab=0; }
   return window.__sab; }
 if(window.visualViewport){ try{ window.visualViewport.addEventListener('resize',function(){ sz(); }); }catch(e){} }
-sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility();});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
+sz();window.addEventListener('resize',function(){sz();if(cu)applyRoleVisibility(true);});window.addEventListener('orientationchange',function(){setTimeout(sz,300);});
 if('serviceWorker' in navigator){
   // sw.js is network-only for navigations, so a fresh index.html always lands on deploy — no hard
   // reinstall ever needed. This just keeps the worker itself current if sw.js changes; no reloads.
@@ -4319,7 +4328,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EM</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EN</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4848,9 +4857,21 @@ function loadAccessCfg(cb){
     if(cb) cb();
   }, function(){ if(cb) cb(); });
 }
-function applyRoleVisibility(){
+var _rvSig=null;
+function applyRoleVisibility(force){
   if(!cu) return;
   var eff=effectiveTabs(cu);
+  // THE LOAD GLITCH.
+  // This runs once at sign-in from the cached/default access set, then AGAIN a moment later when
+  // app_access comes back from Supabase. The second run rewrote every tile's display and re-ran the
+  // home layout, so every tab visibly jumped once on load — even though in the normal case the two
+  // runs produce exactly the same result. Fingerprint the inputs and skip the whole pass when
+  // nothing has actually changed. When access genuinely differs the repaint still happens, because
+  // then it is a real change rather than a flicker.
+  var sig=[cu.name,cu.role,(eff||[]).slice().sort().join('|'),(MASTER_ADMINS||[]).join('|'),
+           window.innerWidth>=900?'d':'m'].join('~');
+  if(!force && sig===_rvSig) return;
+  _rvSig=sig;
   var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
   // pointer:fine = mouse primary, no touch = desktop
   var isDesktop=window.innerWidth>=900 && (window.matchMedia('(pointer: fine)').matches || navigator.maxTouchPoints===0);
@@ -4920,6 +4941,8 @@ function updateUI(id){
     else stopRimoLive();
   }
   if(id==='health' && typeof healthLoad==='function'){ try{ healthLoad(); }catch(e){} }
+  // Live staff dots: hold the presence feed only while the dashboard showing them is open.
+  if(typeof presStart==='function'){ if(id==='manager'){ try{ presStart(); }catch(e){} } else { try{ presStop(); }catch(e){} } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
@@ -5986,6 +6009,88 @@ function mdTab(name){
   if(name==='todo')  todoLoad();
 }
 
+/* ===== LIVE STAFF PRESENCE ========================================================
+   Green dot the moment someone signs in, grey the moment they sign out, then
+   "1m ago", "2m ago" as time passes.
+
+   Presence had NO realtime subscription at all — the list only refreshed when the
+   Manager Dashboard was re-entered, so a colleague signing in or out was invisible
+   until you navigated away and back.
+
+   The obvious fix — subscribe to the presence table — is the wrong one. The
+   heartbeat upserts one row per person per minute, so with ten staff and a few
+   dashboards open that is thousands of realtime messages an hour for information
+   nobody is watching change. This app has already been burned once by exactly
+   that shape of cost.
+
+   So: subscribe to INSERT and DELETE only. A first sign-in is an INSERT, a
+   sign-out is a DELETE (the app removes the row), and the once-a-minute heartbeat
+   is an UPDATE — which we never subscribe to and never pay for. Login and logout
+   are therefore instant while the steady state costs nothing.
+
+   Everything else is local: a 20s ticker re-renders the "Xm ago" text and drops
+   anyone past the 5-minute window to grey, so a browser closed without signing
+   out still fades correctly with no traffic at all. Both are torn down when the
+   dashboard closes. */
+var _presSub=null, _presTick=null;
+function presStart(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  if(!_presSub){
+    try{
+      _presSub=SBC.channel('presence-rt')
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'presence'},function(){ presRefresh(); })
+        .on('postgres_changes',{event:'DELETE',schema:'public',table:'presence'},function(){ presRefresh(); })
+        .subscribe();
+    }catch(e){}
+  }
+  // Local clock only — no network, no messages.
+  // 20s ticker repaints the "Xm ago" text locally. Every third tick it also re-reads the table —
+  // a plain read, no realtime messages — as a backstop for anything the INSERT/DELETE subscription
+  // cannot see (a browser closed without signing out, a missed event, a dropped socket).
+  if(!_presTick){ var _pt=0; _presTick=setInterval(function(){
+    if(document.hidden) return;
+    if((++_pt % 3)===0) presRefresh(); else presRepaint();
+  },20000); }
+  presRefresh();
+}
+function presStop(){
+  try{ if(_presSub&&SBC&&SBC.removeChannel) SBC.removeChannel(_presSub); }catch(e){}
+  _presSub=null;
+  try{ if(_presTick){ clearInterval(_presTick); _presTick=null; } }catch(e){}
+}
+/* Re-read just the presence table and repaint. Deliberately not loadMgr() — that
+   pulls logs, logins and stock as well, which is far too heavy to run every time
+   somebody signs in. */
+function presRefresh(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('presence').select('name,role,last_seen').then(function(r){
+    if(r&&r.error) return;
+    PRES_ROWS=(r&&r.data)||[];
+    presRepaint();
+  },function(){});
+}
+var PRES_ROWS=null;
+function presRepaint(){
+  var el=document.getElementById('mli'); if(!el) return;
+  if(!PRES_ROWS) return;
+  var nowMs=Date.now(), seen={};
+  function parse(v){ var t=String(v==null?'':v); if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(t)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(t)) t=t.replace(' ','T')+'Z'; return Date.parse(t)||0; }
+  PRES_ROWS.forEach(function(p){ var n=String(p.name||''); if(!n) return; var t=parse(p.last_seen); if(!seen[n]||t>seen[n].t) seen[n]={t:t,role:p.role||''}; });
+  // You are active by definition — your own heartbeat may not have landed yet.
+  try{ if(cu&&cu.name) seen[cu.name]={t:nowMs,role:(cu.role||'')}; }catch(e){}
+  var names=Object.keys(seen);
+  if(!names.length){ el.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px">No one signed in right now</div>'; return; }
+  names.sort(function(a,b){ return seen[b].t-seen[a].t; });
+  el.innerHTML=names.map(function(n){
+    var t=seen[n].t, on=(nowMs-t)<300000;   // 5 min window, same as the dashboard's own rule
+    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'🔧'}):{emoji:'🔧'};
+    return '<div class="schip'+(on?' schip-on':'')+'"><span class="pres-dot'+(on?' on':'')+'"></span>'
+      +sf.emoji+' '+acEsc(n.split(' ')[0])+'<small class="pres-ago">'+_activeAgo(t)+'</small></div>';
+  }).join('');
+  var st=document.getElementById('st-staff');
+  if(st) st.innerText=names.filter(function(n){ return (nowMs-seen[n].t)<300000; }).length;
+}
+
 /* ===== APP HEALTH (Manager Dashboard -> Health) ==================================
    What this system costs, with history rather than a single instant.
 
@@ -6011,6 +6116,14 @@ function hBytes(n){
   return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2))+' '+u[i];
 }
 function hNum(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString(); }
+/* A connection state, not a measurement — so it gets a badge rather than a progress bar. */
+function hStatus(label,ok,note){
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px">'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">'+acEsc(label)+'</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-top:3px">'+acEsc(note||(ok?'Connected — raw figures stored in the snapshot':'not connected'))+'</div></div>'
+    +'<span style="font-size:12px;font-weight:800;color:'+(ok?'#34D399':'#94A3B8')+'">'+(ok?'connected':'not connected')+'</span>'
+  +'</div>';
+}
 function hBar(used,cap,label,sub){
   var pct=(cap&&used!=null)?Math.min(100,used/cap*100):null;
   // Colour by headroom, not by taste: amber at 70%, red at 90% — early enough to act on.
@@ -6064,6 +6177,9 @@ function healthRender(){
     return;
   }
   var cur=rows[0], hist=rows.slice().reverse();   // oldest -> newest, for the sparklines
+  // New fields only appear in snapshots written by a runner that has them. A stale row would
+  // otherwise report "cannot tell" forever with no hint as to why.
+  var staleH=cur.at?((Date.now()-Date.parse(cur.at))/3600000):0;
   var when=cur.at?(new Date(cur.at)).toLocaleString():'';
 
   // --- headline bars -------------------------------------------------------
@@ -6087,12 +6203,11 @@ function healthRender(){
       hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+hNum(rtw)+' of '+hNum(wpm)+' rows/min going to published tables');
   }
 
-  bars+=cur.render_available
-    ? hBar(null,null,'Render bandwidth','Connected — see the raw figures below')
-    : hBar(null,null,'Render bandwidth',cur.render_note||'not connected');
-  bars+=cur.supabase_available
-    ? hBar(null,null,'Supabase usage API','Connected — see the raw figures below')
-    : hBar(null,null,'Supabase usage API',cur.supabase_note||'not connected');
+  // hBar's right-hand slot showed "not connected" whenever it had no percentage to display, which
+  // contradicted its own subtitle on the connected rows. Connection state is not a percentage, so
+  // it gets its own row type.
+  bars+=hStatus('Render bandwidth', cur.render_available, cur.render_note);
+  bars+=hStatus('Supabase usage API', cur.supabase_available, cur.supabase_note);
 
   // --- what is actually being written -------------------------------------
   var byT=cur.writes_by_table||{};
@@ -6133,7 +6248,8 @@ function healthRender(){
 
   host.innerHTML=
     '<div class="mc"><div class="mct">App Health</div>'
-      +'<div style="font-size:11px;color:var(--t2);margin:0 0 12px">Updated '+acEsc(when)+' · one snapshot a day</div>'
+      +'<div style="font-size:11px;color:'+(staleH>26?'#FFB020':'var(--t2)')+';margin:0 0 12px">Updated '+acEsc(when)+' · one snapshot a day'
+        +(staleH>26?' · <b>'+Math.round(staleH)+'h old — redeploy the runner to refresh</b>':'')+'</div>'
       +bars
     +'</div>'
     +'<div class="mc"><div class="mct">What this means</div>'
@@ -9926,7 +10042,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13736,7 +13852,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14205,7 +14321,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EM';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EN';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

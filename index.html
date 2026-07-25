@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EP · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EQ · ZXing raw</div>
       </div>
     </div>
 
@@ -4338,7 +4338,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EP</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EQ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7978,13 +7978,40 @@ function kcRenderMenu(){
       // Show when it FINISHED for a done check (not when it started); active checks show the start time.
       var _wt=(rn.status==='done'&&rn.completed_at)?rn.completed_at:rn.started_at;
       var when=_kcEsc((rn.check_date||'')+(_wt?(' · '+(rn.status==='done'?'done ':'')+_kcTime(_wt)):''));
-      h+='<button class="kc-runrow'+(active?' active':'')+'" onclick="kcOpenRun(\''+rn.id+'\')">'
+      // Managers and assistant managers can bin a LIVE check — an abandoned or mistakenly-started one
+      // otherwise sits at the top of the list forever and invites someone to resume the wrong run.
+      // A COMPLETED check is a record of work and a count people rely on, so it stays put: no delete
+      // button is drawn for it, and kcDeleteRun refuses one server-side too.
+      var canDel=active && (typeof _isMgrRole==='function') && cu && (_isMgrRole(cu.role)||cu.name===MASTER_OWNER);
+      h+='<div style="display:flex;align-items:stretch;gap:6px">'
+        +'<button class="kc-runrow'+(active?' active':'')+'" style="flex:1" onclick="kcOpenRun(\''+rn.id+'\')">'
         +'<div class="kc-run-main"><b>'+_kcEsc(rn.mechanic||'—')+'</b>'+(active?' <span class="kc-run-live">LIVE</span>':'')+'<div class="kc-run-sub">'+when+'</div></div>'
-        +'<div class="kc-run-cnt">'+cnt+'</div></button>';
+        +'<div class="kc-run-cnt">'+cnt+'</div></button>'
+        +(canDel?('<button class="kc-runrow" style="flex:0 0 46px;justify-content:center;color:#FF5A52;font-size:16px" title="Delete this live check" onclick="event.stopPropagation();kcDeleteRun(\''+rn.id+'\',\''+_kcEsc(String(rn.mechanic||'')).replace(/'/g,"&#39;")+'\')">\ud83d\uddd1</button>'):'')
+      +'</div>';
     });
     h+='</div>';
   } else { h+='<div class="kc-runs-empty">No previous checks for '+_kcEsc(KC_TYPE)+' yet.</div>'; }
   body.innerHTML=h;
+}
+/* Delete a live kart check. Managers and assistant managers only, and only while it is still
+   running — a completed check is a record of work and a fleet count people act on, so it is not
+   deletable from here at all. The status is re-checked in the delete itself rather than trusted from
+   the list, so a stale screen cannot remove a check that finished a moment ago. */
+function kcDeleteRun(id,who){
+  if(!id) return;
+  if(!(cu && typeof _isMgrRole==='function' && (_isMgrRole(cu.role)||cu.name===MASTER_OWNER))) return;
+  if(!confirm('Delete this live check'+(who?(' by '+who):'')+'?\n\nAnything already ticked on it is lost. Completed checks cannot be deleted.')) return;
+  // .eq('status','active') is the real guard: if it completed between the page rendering and this
+  // tap, the delete matches nothing rather than destroying a finished count.
+  SBC.from('kart_checks').delete().eq('run_id',id).then(function(){
+    SBC.from('kart_check_runs').delete().eq('id',id).eq('status','active').select('id').then(function(r){
+      if(r&&r.error){ alert('Could not delete: '+(r.error.message||'try again')); return; }
+      if(!r||!r.data||!r.data.length){ alert('That check has already been completed, so it can no longer be deleted.'); }
+      if(typeof KC_RUN!=='undefined' && KC_RUN && KC_RUN.id===id){ KC_RUN=null; KC_RESULTS={}; }
+      try{ kcOpenType(KC_TYPE); }catch(e){ try{ kcShowTypes(); }catch(e2){} }
+    },function(){ alert('Connection error'); });
+  },function(){ alert('Connection error'); });
 }
 function kcNewForm(){
   var w=document.getElementById('kc-newwrap'); if(!w) return; var col=KART_TYPE_COLOR[KC_TYPE]||'#2DD4BF';
@@ -9402,6 +9429,11 @@ function _admWatch(id, say, btn){
 // like a synced RaceFacer note (which stores Sydney wall-clock). Using new Date().toISOString() here
 // instead would store real UTC and show 10h early on the pending note.
 function noteNowIso(){
+  // A TRUE UTC INSTANT. This used to return Sydney wall-clock with no zone suffix, to match how the
+  // runner was (incorrectly) storing RaceFacer's times. Now that the runner stores real UTC and the
+  // display converts to Sydney, an optimistic local note must be a real instant too — otherwise the
+  // note you just typed would render ten hours out until the sync replaced it.
+  try{ return new Date().toISOString(); }catch(e){}
   try{
     var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
     var g=function(t){var v=(parts.find(function(p){return p.type===t;})||{}).value||'00'; return v==='24'?'00':v;};
@@ -9413,14 +9445,34 @@ function noteNowIso(){
 }
 function fmtNoteDate(iso){
   if(!iso) return '\u2014';
-  // Show the wall-clock time exactly as RaceFacer recorded it. The synced timestamps are
-  // tagged UTC, so new Date()+local getters shift them +10h (17:13 -> next-day 03:13);
-  // instead read the y/m/d/h/m straight out of the string with no timezone conversion.
-  var m=String(iso).match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-  if(m) return m[3]+'.'+m[2]+'.'+m[1]+' '+m[4]+':'+m[5];
-  var d=new Date(iso); if(isNaN(d.getTime())) return String(iso);
-  var p=function(n){return (n<10?'0':'')+n;};
-  return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+  // ALWAYS RENDER IN SYDNEY TIME.
+  // This used to strip the timezone and read the wall-clock straight out of the string. That was a
+  // deliberate workaround for a RUNNER bug: RaceFacer reports Sydney time, and the runner was storing
+  // it tagged as UTC, so the stored string already read as Sydney and converting it would have shifted
+  // it +10h. The runner now stores a true UTC instant, so that workaround became the error itself —
+  // an 8:30am note rendered as the previous day at 22:30.
+  // Converting properly is right for both: a correctly-stored instant lands on Sydney wall-clock, and
+  // legacy rows written under the old scheme self-correct as soon as the sync next touches them.
+  var t=_sydParse(iso);
+  if(t==null) return String(iso);
+  try{
+    var f=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Sydney',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+      .formatToParts(new Date(t)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
+    var hh=(f.hour==='24')?'00':f.hour;
+    return f.day+'.'+f.month+'.'+f.year+' '+hh+':'+f.minute;
+  }catch(e){
+    var d=new Date(t), p=function(n){return (n<10?'0':'')+n;};
+    return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+}
+/* Parse a stored timestamp to an instant. PostgREST returns "+00:00"; anything arriving with no zone
+   marker at all is a UTC value that lost its suffix, so tag it rather than letting the browser read
+   it as local — that alone would move a note by the viewer's own offset. */
+function _sydParse(v){
+  var t=String(v==null?'':v).trim(); if(!t) return null;
+  if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(t) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(t)) t=t.replace(' ','T')+'Z';
+  var ms=Date.parse(t);
+  return isNaN(ms)?null:ms;
 }
 function fmtNoteWhen(iso,who){ if(!iso) return '\u2014'; return fmtNoteDate(iso)+(who?(' - '+kEsc(who)):''); }
 
@@ -10277,7 +10329,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14087,7 +14139,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14556,7 +14608,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EP';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EQ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

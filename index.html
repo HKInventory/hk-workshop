@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ES · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ET · ZXing raw</div>
       </div>
     </div>
 
@@ -4344,7 +4344,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ES</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ET</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6231,9 +6231,22 @@ var PRES_ROWS=null, LO_OPEN=false, LO_ROWS=null;
 function sessionOpen(){
   try{
     if(!cu||!cu.name||typeof SBC==='undefined'||!SBC||window.TRAINING) return;
-    SBC.from('staff_sessions').insert({name:cu.name,role:(cu.role||''),site:(currentSite||'sydney'),signed_in_at:new Date().toISOString()})
-      .select('id').then(function(r){
-        try{ var id=r&&r.data&&r.data[0]&&r.data[0].id; if(id!=null) sessionStorage.setItem('hk_sess_id',String(id)); }catch(e){}
+    // ONE ROW PER SHIFT, NOT ONE PER PAGE LOAD.
+    // This inserted unconditionally, so a reload, a site switch or a second tab each opened another
+    // row — Harvey showed six times in one morning, all "still on". A shift that is already open for
+    // this person TODAY is the same shift, so it is reused: the sign-in time stays the real one and
+    // the row count stops climbing. Only a genuinely new day (or a closed shift) opens a new row.
+    SBC.from('staff_sessions').select('id,signed_in_at').eq('name',cu.name).is('signed_out_at',null)
+      .order('signed_in_at',{ascending:false}).limit(1).then(function(r){
+        var open=(r&&r.data&&r.data[0])||null;
+        if(open&&_sydDayKey(Date.parse(String(open.signed_in_at).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(open.signed_in_at))?'':'Z')))===_sydDayKey(Date.now())){
+          try{ sessionStorage.setItem('hk_sess_id',String(open.id)); }catch(e){}
+          return;
+        }
+        SBC.from('staff_sessions').insert({name:cu.name,role:(cu.role||''),site:(currentSite||'sydney'),signed_in_at:new Date().toISOString()})
+          .select('id').then(function(r2){
+            try{ var id=r2&&r2.data&&r2.data[0]&&r2.data[0].id; if(id!=null) sessionStorage.setItem('hk_sess_id',String(id)); }catch(e){}
+          },function(){});
       },function(){});
   }catch(e){}
 }
@@ -6280,7 +6293,7 @@ function lastOnlineLoad(){
   var b=document.getElementById('lo-body'); if(!b) return;
   if(typeof SBC==='undefined'||!SBC) return;
   if(!LO_ROWS) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Loading\u2026</div>';
-  SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at').order('signed_in_at',{ascending:false}).limit(120)
+  SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at').order('signed_in_at',{ascending:false}).limit(300)
     .then(function(r){
       if(r&&r.error){
         var missing=/staff_sessions|does not exist|schema cache/i.test(r.error.message||'');
@@ -6295,24 +6308,40 @@ function lastOnlineLoad(){
 function lastOnlineRender(){
   var b=document.getElementById('lo-body'); if(!b) return;
   var rows=LO_ROWS||[];
-  if(!rows.length){ b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">No sign-ins recorded yet.</div>'; return; }
-  // Grouped by day so "when was Ross last here" is answerable at a glance, newest first.
-  var byDay={};
+  // ONE LINE PER PERSON, NOT ONE PER SESSION.
+  // Grouping by day listed every row, so a morning of reloads read as six identical "Harvey Betts \u2026
+  // still on" lines and the question the list exists to answer \u2014 when was each person last here \u2014
+  // got buried in its own history. Each staff member now appears once, showing their MOST RECENT
+  // sign-in with the date beside the time, most recently seen first.
+  var last={};
+  function _ms(v){ return Date.parse(String(v).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(v))?'':'Z')); }
   rows.forEach(function(x){
-    var d=_sydDate(x.signed_in_at); if(!d) return;
-    (byDay[d]=byDay[d]||[]).push(x);
+    if(!x||!x.name) return;
+    var t=_ms(x.signed_in_at); if(!t||isNaN(t)) return;
+    if(!last[x.name]||t>last[x.name].t) last[x.name]={t:t,row:x};
   });
-  b.innerHTML=Object.keys(byDay).map(function(d){
-    return '<div style="font-size:11px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin:8px 0 4px">'+acEsc(d)+'</div>'
-      +byDay[d].map(function(x){
-        var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(y){return y.name===x.name;})||{emoji:'\ud83d\udd27'}):{emoji:'\ud83d\udd27'};
-        var out=x.signed_out_at?_sydTime(x.signed_out_at):'<span style="color:#34D399">still on</span>';
-        return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px">'
-          +'<span>'+sf.emoji+'</span>'
-          +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(x.name)+'</span>'
-          +'<span style="color:var(--t2)">in '+_sydTime(x.signed_in_at)+'</span>'
-          +'<span style="margin-left:10px;min-width:82px;text-align:right">out '+out+'</span></div>';
-      }).join('');
+  // Everyone on the staff list gets a line, including people with no record yet \u2014 "never" is an
+  // answer, and a missing name reads as a bug rather than as information.
+  var names=Object.keys(last);
+  try{ (STAFF||[]).forEach(function(s){ if(s&&s.name&&!last[s.name]) names.push(s.name); }); }catch(e){}
+  names.sort(function(a,b){ return (last[b]?last[b].t:0)-(last[a]?last[a].t:0); });
+  var today=_sydDayKey(Date.now()), yest=_sydDayKey(Date.now()-86400000);
+  b.innerHTML=names.map(function(n){
+    var e=last[n], x=e&&e.row;
+    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(y){return y.name===n;})||{emoji:'\ud83d\udd27'}):{emoji:'\ud83d\udd27'};
+    var when, out;
+    if(!x){ when='<span style="color:var(--t2);opacity:.7">never signed in</span>'; out=''; }
+    else {
+      var dk=_sydDayKey(e.t);
+      var day=(dk===today)?'Today':(dk===yest?'Yesterday':_sydDate(e.t));
+      when='<span style="color:var(--t2)">'+acEsc(day)+' \u00b7 '+_sydTime(e.t)+'</span>';
+      out=x.signed_out_at?('out '+_sydTime(x.signed_out_at)):'<span style="color:#34D399">still on</span>';
+    }
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px">'
+      +'<span>'+sf.emoji+'</span>'
+      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(n)+'</span>'
+      +when
+      +'<span style="margin-left:10px;min-width:82px;text-align:right">'+out+'</span></div>';
   }).join('');
 }
 function presRepaint(){
@@ -10353,7 +10382,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ES \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ET \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14168,7 +14197,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ES \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ET \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14637,7 +14666,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-ES';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-ET';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

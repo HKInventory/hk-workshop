@@ -2600,7 +2600,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EH · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EI · ZXing raw</div>
       </div>
     </div>
 
@@ -3054,7 +3054,7 @@
           <div class="ck-list" id="tk-list"><div class="m-empty">Loading tasks…</div></div>
         </div>
         <div id="tk-form-view" style="display:none">
-          <div class="pgtitle">New task</div>
+          <div class="pgtitle" id="tkf-heading">New task</div>
           <label class="tk-fld"><span>Title</span><input id="tkf-title" maxlength="140" placeholder="e.g. Replace kart 12 bumper"></label>
           <label class="tk-fld"><span>Details (optional)</span><textarea id="tkf-details" rows="3" placeholder="Anything the assignee needs to know"></textarea></label>
           <div class="tk-fld"><span>Assign to</span><div class="cg-members" id="tkf-assignees" style="max-height:38vh"></div></div>
@@ -3063,12 +3063,18 @@
             <label class="tk-fld"><span>Priority</span><select id="tkf-priority"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option></select></label>
           </div>
           <div class="m-form-msg" id="tkf-msg"></div>
-          <button class="tk-btn" onclick="taskCreate()">Create task</button>
+          <button class="tk-btn" id="tkf-submit" onclick="taskCreate()">Create task</button>
         </div>
         <div id="tk-detail-view" style="display:none">
           <div class="pgtitle" id="tkd-title">Task</div>
           <div class="mc" style="text-align:left" id="tkd-info"></div>
           <button class="tk-btn tk-done" id="tkd-complete" onclick="taskComplete()">✔ Mark complete</button>
+          <!-- Edit / delete are gated on canSetTasks — the same permission that allows creating a
+               task. If you can set work for someone, you can correct it or call it off. -->
+          <div id="tkd-owner-actions" style="display:none;gap:10px;margin-top:10px">
+            <button class="tk-btn" style="flex:1" onclick="taskEdit()">✏️ Edit</button>
+            <button class="tk-btn" style="flex:1;background:#7F1D1D;border-color:#B91C1C" onclick="taskDelete()">🗑 Delete</button>
+          </div>
           <div class="ck-sec">Comments</div>
           <div class="ch-thread" style="min-height:0">
             <div class="ch-msgs" id="tkd-msgs"></div>
@@ -4301,7 +4307,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EH</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EI</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -9724,7 +9730,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13484,7 +13490,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13670,7 +13676,7 @@ function _tkViews(which){
   });
 }
 function taskShowList(refetch){
-  TK_SEL=null; TKD_MSGS=[]; _tkViews('list');
+  TK_SEL=null; TKD_MSGS=[]; TK_EDIT=null; _tkViews('list');
   if(refetch===false) taskRenderList(); else taskFetch();
 }
 function taskFetch(){
@@ -13714,18 +13720,70 @@ function taskRenderList(){
     return '<div class="tk-row'+(t.status==='done'?' done':'')+'" onclick="taskOpenIdx('+i+')"><div class="tk-pr" style="background:'+(_TK_PC[t.priority]||_TK_PC.normal)+'"></div><div style="flex:1"><div class="tk-t">'+tvEsc(t.title)+'</div><div class="tk-sub">'+sub+'</div></div></div>';
   }).join('');
 }
+var TK_EDIT=null;   // the task being edited, or null when the form is creating a new one
+function _tkFillRoster(checked){
+  var box=document.getElementById('tkf-assignees'); if(!box) return;
+  var on={}; (checked||[]).forEach(function(n){ on[String(n).trim()]=1; });
+  box.innerHTML=_roster().filter(function(s){return s&&s.name;}).map(function(s){
+    var tick=checked?!!on[s.name]:(cu&&s.name===cu.name);
+    return '<label class="cg-mem">'+_chAvatar(s.name,s)+'<span class="cg-mn">'+tvEsc(s.name)+'</span><input type="checkbox" class="cg-chk tkf-chk" value="'+tvEsc(s.name)+'"'+(tick?' checked':'')+'></label>';
+  }).join('');
+}
+function _tkFormMode(editing){
+  var h=document.getElementById('tkf-heading'); if(h) h.innerText=editing?'Edit task':'New task';
+  var b=document.getElementById('tkf-submit');  if(b) b.innerText=editing?'Save changes':'Create task';
+}
 function taskNew(){
   if(typeof canSetTasks==='function'&&!canSetTasks(cu)) return;
+  TK_EDIT=null; _tkFormMode(false);
   _tkViews('form');
-  var box=document.getElementById('tkf-assignees');
-  if(box) box.innerHTML=_roster().filter(function(s){return s&&s.name;}).map(function(s){
-    return '<label class="cg-mem">'+_chAvatar(s.name,s)+'<span class="cg-mn">'+tvEsc(s.name)+'</span><input type="checkbox" class="cg-chk tkf-chk" value="'+tvEsc(s.name)+'"'+((cu&&s.name===cu.name)?' checked':'')+'></label>';
-  }).join('');
+  _tkFillRoster(null);
   var tt=document.getElementById('tkf-title'); if(tt){ tt.value=''; setTimeout(function(){ try{tt.focus();}catch(e){} },80); }
   var dd=document.getElementById('tkf-details'); if(dd) dd.value='';
   var du=document.getElementById('tkf-due'); if(du) du.value='';
   var pr=document.getElementById('tkf-priority'); if(pr) pr.value='normal';
   var mg=document.getElementById('tkf-msg'); if(mg) mg.textContent='';
+}
+
+/* Edit an existing task. Same permission as creating one: if you can set work for someone, you can
+   correct it. Reuses the create form rather than a second one, so the two can't drift apart. */
+function taskEdit(){
+  var t=TK_SEL; if(!t) return;
+  if(typeof canSetTasks==='function'&&!canSetTasks(cu)) return;
+  TK_EDIT=t; _tkFormMode(true);
+  _tkViews('form');
+  _tkFillRoster(_tkAssignees(t));
+  var tt=document.getElementById('tkf-title'); if(tt) tt.value=t.title||'';
+  var dd=document.getElementById('tkf-details'); if(dd) dd.value=t.details||'';
+  var pr=document.getElementById('tkf-priority'); if(pr) pr.value=t.priority||'normal';
+  var du=document.getElementById('tkf-due');
+  if(du){
+    // datetime-local wants "YYYY-MM-DDTHH:MM" in LOCAL time. due_at is a UTC instant, so convert
+    // rather than slicing the ISO string — slicing would show a Sydney task at UTC and quietly
+    // shift the due time by 10 hours every time anyone opened the edit form.
+    var v='';
+    if(t.due_at){ var d=new Date(t.due_at);
+      if(!isNaN(d.getTime())){ var pad=function(n){return (n<10?'0':'')+n;};
+        v=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); } }
+    else if(t.due_date){ v=String(t.due_date).slice(0,10)+'T09:00'; }
+    du.value=v;
+  }
+  var mg=document.getElementById('tkf-msg'); if(mg) mg.textContent='';
+}
+
+/* Delete a task. Confirms first and names the task, because this also removes its comment thread
+   and there is no undo. */
+function taskDelete(){
+  var t=TK_SEL; if(!t) return;
+  if(typeof canSetTasks==='function'&&!canSetTasks(cu)) return;
+  if(!confirm('Delete "'+String(t.title||'this task').slice(0,60)+'"?\n\nThis also removes its comments and cannot be undone.')) return;
+  SBC.from('tasks').delete().eq('id',t.id).then(function(r){
+    if(r&&r.error){ alert('Could not delete: '+(r.error.message||'try again')); return; }
+    // Tidy the thread too, so a future task reusing this id can't inherit old comments.
+    try{ SBC.from('messages').delete().eq('channel','task:'+t.id).then(function(){},function(){}); }catch(e){}
+    TK_LIST=(TK_LIST||[]).filter(function(x){ return x.id!==t.id; });
+    taskShowList(false);
+  },function(){ alert('Connection error'); });
 }
 function taskCreate(){
   var mg=document.getElementById('tkf-msg');
@@ -13750,9 +13808,29 @@ function taskCreate(){
     status:'open'
   };
   say('Saving\u2026','var(--t2)');
+  var _dueTxt=(due_at||due_date)?('Due '+_tkDue(due_at||due_date)+'. '):'';
+
+  // EDIT: same form, same validation, so the two paths can never drift apart. created_by and status
+  // are deliberately NOT touched — editing a task must not silently reassign authorship or reopen
+  // something already marked done.
+  if(TK_EDIT&&TK_EDIT.id!=null){
+    var patch={ title:row.title, details:row.details, assignee:row.assignee, assignees:row.assignees,
+                due_date:row.due_date, due_at:row.due_at, priority:row.priority };
+    var wasOn=_tkAssignees(TK_EDIT).map(function(n){return String(n).trim();});
+    SBC.from('tasks').update(patch).eq('id',TK_EDIT.id).then(function(r){
+      if(r&&r.error){ say('Save failed \u2014 '+(r.error.message||'try again')); return; }
+      // Only tell people who weren't already on it — re-notifying the whole list on every small
+      // edit trains everyone to ignore task alerts.
+      picks.filter(function(n){ return wasOn.indexOf(n)<0; })
+           .forEach(function(n){ hkNotify(n,'\u2705 Task assigned: '+row.title.slice(0,60), _dueTxt+(row.details||('From '+(cu.name||'').split(' ')[0])).slice(0,140),'hk-task'); });
+      TK_EDIT=null;
+      taskShowList(true);
+    },function(){ say('Connection error'); });
+    return;
+  }
+
   SBC.from('tasks').insert(row).then(function(r){
     if(r&&r.error){ say('Save failed \u2014 '+(r.error.message||'try again')); return; }
-    var _dueTxt=(due_at||due_date)?('Due '+_tkDue(due_at||due_date)+'. '):'';
     picks.forEach(function(n){ hkNotify(n,'\u2705 New task: '+row.title.slice(0,60), _dueTxt+(row.details||('From '+(cu.name||'').split(' ')[0])).slice(0,140),'hk-task'); });
     taskShowList(true);
   },function(){ say('Connection error'); });
@@ -13778,6 +13856,9 @@ function taskRenderDetail(){
     btn.textContent=(t.status==='done')?'\u21A9 Reopen task':'\u2714 Mark complete';
     btn.classList.toggle('tk-done',t.status!=='done');
   }
+  // Edit / delete for anyone who can set tasks — same gate as the "+ New task" button.
+  var oa=document.getElementById('tkd-owner-actions');
+  if(oa) oa.style.display=(typeof canSetTasks==='function'&&canSetTasks(cu))?'flex':'none';
 }
 function tkdFetch(){
   if(typeof SBC==='undefined'||!SBC||!TK_SEL) return;
@@ -13829,7 +13910,12 @@ function _rtTaskIn(p){
     if(TK_VIEW==='list') taskFetch();
     else if(TK_VIEW==='detail'&&TK_SEL&&typeof SBC!=='undefined'&&SBC){
       SBC.from('tasks').select('id,site,title,details,assignee,created_by,due_date,priority,status,created_at,done_at').eq('id',TK_SEL.id).maybeSingle().then(function(r){
-        if(r&&r.data&&TK_SEL&&r.data.id===TK_SEL.id){ TK_SEL=r.data; taskRenderDetail(); }
+        if(!TK_SEL) return;
+        // The row is gone — someone deleted this task on another device. Without this the detail
+        // screen just sat there showing a task that no longer exists, and Mark complete would fail
+        // silently. Drop back to the list instead.
+        if(r&&!r.error&&!r.data){ TK_LIST=(TK_LIST||[]).filter(function(x){ return x.id!==TK_SEL.id; }); taskShowList(false); return; }
+        if(r&&r.data&&r.data.id===TK_SEL.id){ TK_SEL=r.data; taskRenderDetail(); }
       },function(){});
     }
   },600);
@@ -13873,7 +13959,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EH';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EI';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

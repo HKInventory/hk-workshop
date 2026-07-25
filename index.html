@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EO · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EP · ZXing raw</div>
       </div>
     </div>
 
@@ -2704,6 +2704,7 @@
         <div id="intel-pane-today">
           <div id="raceTrack" class="rcard" style="text-align:left;padding:20px"><div style="font-size:13px;color:var(--t2)">Loading track…</div></div>
           <div id="raceStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"></div>
+          <div id="raceTyre"></div>
           <div id="raceDisc"></div>
           <div id="raceWork"></div>
         </div>
@@ -4337,7 +4338,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EO</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EP</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6017,6 +6018,127 @@ function mdTab(name){
   });
   if(name==='notif') loadNotifications();
   if(name==='todo')  todoLoad();
+}
+
+/* ===== TYRE / PUNCTURE SPIKE ANALYSIS =============================================
+   Punctures found in the morning were almost certainly done the evening before —
+   a kart that comes off track flat gets parked, and the damage is only written up
+   when someone walks the fleet next morning. So the count reported BEFORE MIDDAY
+   is a measure of the PREVIOUS day's shift, not today's.
+
+   This compares today's before-midday count against the average of previous days
+   and, when it is above, names the manager who closed the night before.
+
+   Two deliberate choices about how that is presented:
+
+   1. It is called a CORRELATION, not a verdict. The app can see when damage was
+      written up, never when or how it happened — a wet night or a school group
+      will spike punctures with nobody at fault. Presenting an inference as a
+      finding would get someone blamed for weather.
+   2. A single day above average means nothing; on any normal distribution roughly
+      half of all days are. It only speaks up when today clears the average by a
+      real margin AND there is enough history for the average to mean anything. */
+var TYRE_MIN_DAYS=5;          // fewer days than this and the "average" is noise
+var TYRE_SPIKE_FACTOR=1.5;    // must clear the average by half again to be worth raising
+function _isPuncture(txt){
+  var t=String(txt||'').toLowerCase();
+  return /punctur|flat tyre|flat tire|\btyre\b|\btire\b/.test(t) && !/pressure check|rotat/.test(t);
+}
+/* Sydney parts for an instant — the venue's clock decides both the day and "before midday". */
+function _sydParts(ms){
+  try{
+    var p=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+      .formatToParts(new Date(ms)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
+    var h=(p.hour==='24')?0:parseInt(p.hour,10);
+    return {day:p.year+'-'+p.month+'-'+p.day, hour:h};
+  }catch(e){ var d=new Date(ms); return {day:d.toISOString().slice(0,10), hour:d.getUTCHours()}; }
+}
+function tyreAnalyse(){
+  var byDay={};
+  function note(ms){
+    if(!ms||isNaN(ms)) return;
+    var p=_sydParts(ms);
+    if(p.hour>=12) return;                       // afternoon reports say nothing about last night
+    byDay[p.day]=(byDay[p.day]||0)+1;
+  }
+  // Notes and repairs both describe the same event, so count each kart+day once rather than twice.
+  var seen={};
+  function tally(ms,kartId){
+    if(!ms||isNaN(ms)) return;
+    var p=_sydParts(ms); if(p.hour>=12) return;
+    var key=p.day+'|'+kartId; if(seen[key]) return; seen[key]=1;
+    byDay[p.day]=(byDay[p.day]||0)+1;
+  }
+  try{
+    Object.keys(RF_NOTES_BY_ID||{}).forEach(function(kid){
+      (RF_NOTES_BY_ID[kid]||[]).forEach(function(n){ if(n&&_isPuncture(n.note)) tally(Date.parse(n.createdIso),kid); });
+    });
+    Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(kid){
+      (RF_REPAIRS_BY_ID[kid]||[]).forEach(function(r){ if(r&&_isPuncture(r.issue)) tally(Date.parse(r.iso||r.isoRepaired),kid); });
+    });
+  }catch(e){ return null; }
+  var days=Object.keys(byDay).sort();
+  if(days.length<TYRE_MIN_DAYS) return {days:days.length,enough:false};
+  var today=_sydParts(Date.now()).day;
+  var prior=days.filter(function(d){ return d!==today; });
+  if(!prior.length) return {days:days.length,enough:false};
+  var avg=prior.reduce(function(a,d){ return a+byDay[d]; },0)/prior.length;
+  var todayN=byDay[today]||0;
+  return { enough:true, days:prior.length, avg:avg, today:todayN,
+           spike:(todayN>avg*TYRE_SPIKE_FACTOR && todayN>avg+1),
+           recent:days.slice(-14).map(function(d){ return {day:d,n:byDay[d]}; }) };
+}
+/* Who closed the night before. Read from sign-in history rather than guessed: the manager or
+   assistant manager with the LATEST sign-in on the previous Sydney day is the one who closed. */
+function tyreBlameFor(cb){
+  if(typeof SBC==='undefined'||!SBC){ cb(null); return; }
+  var since=new Date(Date.now()-3*86400000).toISOString();
+  SBC.from('staff_sessions').select('name,role,signed_in_at').gte('signed_in_at',since).order('signed_in_at',{ascending:false}).limit(60)
+    .then(function(r){
+      if(r&&r.error){ cb(null); return; }
+      var yest=_sydParts(Date.now()-86400000).day, best=null;
+      ((r&&r.data)||[]).forEach(function(x){
+        if(!x||!x.name) return;
+        if(!_isMgrRole(x.role||'')) return;
+        var ms=Date.parse(String(x.signed_in_at).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(x.signed_in_at))?'':'Z'));
+        if(_sydParts(ms).day!==yest) return;
+        if(!best||ms>best.ms) best={name:x.name,ms:ms};
+      });
+      cb(best);
+    },function(){ cb(null); });
+}
+function tyreRender(){
+  var el=document.getElementById('raceTyre'); if(!el) return;
+  var a=tyreAnalyse();
+  if(!a){ el.innerHTML=''; return; }
+  if(!a.enough){
+    el.innerHTML='<div class="rcard" style="text-align:left;padding:16px"><div style="font-weight:800;margin-bottom:4px">🛞 Tyre &amp; puncture trend</div>'
+      +'<div style="font-size:12px;color:var(--t2);line-height:1.5">Building a baseline — needs about '+TYRE_MIN_DAYS+' days of morning reports before an average means anything. '+a.days+' so far.</div></div>';
+    return;
+  }
+  var col=a.spike?'#FF5A52':'#34D399';
+  var spark=a.recent.map(function(d){
+    var h=Math.max(3,Math.round(d.n/Math.max(1,Math.max.apply(null,a.recent.map(function(x){return x.n;})))*28));
+    return '<i title="'+acEsc(d.day)+': '+d.n+'" style="display:inline-block;width:7px;height:'+h+'px;background:'+(d.n>a.avg*TYRE_SPIKE_FACTOR?'#FF5A52':'#475569')+';margin-right:3px;border-radius:2px;vertical-align:bottom"></i>';
+  }).join('');
+  el.innerHTML='<div class="rcard" style="text-align:left;padding:16px">'
+    +'<div style="font-weight:800;margin-bottom:6px">🛞 Tyre &amp; puncture trend</div>'
+    +'<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">'
+      +'<span style="font-size:26px;font-weight:800;color:'+col+'">'+a.today+'</span>'
+      +'<span style="font-size:12px;color:var(--t2)">before midday today &middot; average '+a.avg.toFixed(1)+' over '+a.days+' days</span></div>'
+    +'<div style="margin-bottom:8px">'+spark+'</div>'
+    +'<div id="tyre-blame" style="font-size:12.5px;line-height:1.55;color:'+(a.spike?'#FFB020':'var(--t2)')+'">'
+      +(a.spike?'Above the usual morning count — checking who closed last night…'
+              :'Normal for a morning. Punctures written up before midday usually happened the evening before.')
+    +'</div></div>';
+  if(!a.spike) return;
+  tyreBlameFor(function(b){
+    var t=document.getElementById('tyre-blame'); if(!t) return;
+    t.innerHTML='<b>'+a.today+' punctures before midday</b> against a usual '+a.avg.toFixed(1)+'. '
+      +'These are almost always damage from the evening before, written up next morning.'
+      +(b?(' <b>'+acEsc(b.name)+'</b> closed last night.'):' No manager sign-in recorded for last night.')
+      +'<div style="color:var(--t2);margin-top:6px;font-size:11.5px">A correlation, not a verdict — the app can see when damage was written up, never how it happened. Wet weather or a large group will do this with nobody at fault.</div>';
+  });
 }
 
 /* ===== LIVE STAFF PRESENCE ========================================================
@@ -7999,8 +8121,11 @@ function kcComplete(){
   SBC.from('kart_check_runs').update({ status:'done', completed_at:new Date().toISOString(), ok_count:okN, fm_count:fmN, damaged_count:dmgN }).eq('id',KC_RUN.id).then(function(){},function(){});
   KC_RUN.status='done'; KC_RUN.ok_count=okN; KC_RUN.fm_count=fmN; KC_RUN.damaged_count=dmgN;
   kcConfetti(col); kcShowSummary(okfm,okN,fmN,dmg);
-  try{ var title='✅ '+KC_TYPE+' Kart Check done';
-    var b='Kart Count '+KC_TYPE+' Track is '+okfm+'! ('+okN+' OK, '+fmN+' FM'+(dmgN?(', '+dmgN+' damaged'):'')+')';
+  try{ var title='✅ '+KC_TYPE+' check done!';
+    // Name whoever ran it — a check is someone's work, and "who signed off on this count" is the
+    // first thing anyone asks when the number looks wrong.
+    var _by=(KC_RUN&&KC_RUN.mechanic)||(cu&&cu.name)||'';
+    var b='Kart Count is '+okfm+'. ('+okN+' OK, '+fmN+' FM'+(dmgN?(', '+dmgN+' damaged'):'')+')'+(_by?(' By '+_by):'');
     _roster().forEach(function(s){ if(s&&s.name) hkNotify(s.name,title,b,'kartcheck','./'); });
   }catch(e){}
 }
@@ -8162,6 +8287,7 @@ function renderRaceDisc(rows){
   h+='</div>'; if(rows.length>12) h+='<div style="font-size:12px;color:var(--t2);margin-top:8px">+'+(rows.length-12)+' more</div>'; h+='</div>'; host.innerHTML=h;
 }
 function loadRace(){
+  try{ tyreRender(); }catch(e){}   // tyre/puncture trend sits above the discrepancy list
   if(typeof SBC==='undefined'||!SBC) return;
   RACE_STAT={rep:null,parts:null,disc:null};
   var today=(typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10);
@@ -10151,7 +10277,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13961,7 +14087,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14430,7 +14556,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EO';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EP';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

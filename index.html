@@ -2590,7 +2590,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EB · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EC · ZXing raw</div>
       </div>
     </div>
 
@@ -4050,6 +4050,15 @@ function sbFinanceData(cb){
     cb({stockValue:Math.round(sv),spendMonth:Math.round(spendMonth),spendYTD:Math.round(spendYTD),spendLastYr:Math.round(spendLastYr),dailyAvg:Math.round(spend90/90),yoyChange:yoy,monthly12:monthly12,daily90:daily90,categoryList:[],expensiveInStock:exp,deadStockValue:Math.round(dsv),deadStockItems:ds,reorderForecastCost:Math.round(rfc),reorderForecastItems:rfi,topTakenMonth:topTakenMonth});
   }).catch(function(){ cb({stockValue:Math.round(sv),spendMonth:0,spendYTD:0,spendLastYr:0,dailyAvg:0,yoyChange:null,monthly12:[],daily90:[],categoryList:[],expensiveInStock:exp,deadStockValue:0,deadStockItems:[],reorderForecastCost:0,reorderForecastItems:[],topTakenMonth:[]}); });
 }
+/* TV refresh hooks.
+   The TV board used to open its OWN channels for rf_karts / rf_kart_notes / rf_repairs / tasks /
+   ramp_events — but the TV also runs startRealtime() below, which already subscribes to all five.
+   Every change on those tables was therefore delivered to the TV TWICE and billed twice. The TV now
+   registers a callback here instead of opening a second subscription; the handlers below invoke it.
+   Same behaviour, half the messages. tv_state is NOT duplicated, so it keeps its own channel. */
+var TV_RT={karts:null,notes:null,reps:null,tasks:null,ramp:null};
+function _tvHook(k){ try{ var f=TV_RT&&TV_RT[k]; if(typeof f==='function') f(); }catch(e){} }
+
 /* Realtime: keep parts fresh across every device */
 function startRealtime(){
   function _reload(){ loadParts(function(d){ if(d){parts=d;try{sessionStorage.setItem('hk_p',JSON.stringify(parts));}catch(e){} var cur=(typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; if(cur&&typeof refreshParts==='function'){try{refreshParts(cur,true);}catch(e){}} }}); }
@@ -4174,15 +4183,15 @@ function startRealtime(){
     SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _rtParts(); _rtNotif(); }).subscribe();
     SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
     // RaceFacer tables -> refresh whatever RF view is open, live (debounced so a sync burst = one refresh).
-    SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); }).subscribe();
+    SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); _tvHook('karts'); }).subscribe();
     // Repair/note events MERGE instantly (cheap, in-memory) but the kart-screen REDRAW is
     // debounced: during a sync sweep thousands of these arrive, and redrawing per event is a
     // DOM-rebuild storm — the strobing kart counts. One redraw ~1.2s after the burst settles.
     var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 500, 2200);
-    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); }).subscribe();
+    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); _tvHook('reps'); }).subscribe();
     // Notes: MERGE instantly (incl. DELETE), then redraw. A delete is a single event, not a
     // sync burst, so redraw promptly rather than on the debounce that smooths mass updates.
-    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); }).subscribe();
+    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); _tvHook('notes'); }).subscribe();
     SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
     SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
     SBC.channel('msg-rt').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
@@ -4194,8 +4203,8 @@ function startRealtime(){
     }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
       try{ var row=p&&(p.new||p.old); if(row&&row.channel===CH_CHANNEL){ if(p&&p.new) CH_READS[p.new.name]=p.new.at; chatUpdateSeen(); } }catch(e){}
     }).subscribe();
-    SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} }).subscribe();
-    SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} }).subscribe();
+    SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} _tvHook('tasks'); }).subscribe();
+    SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} _tvHook('ramp'); }).subscribe();
     SBC.channel('kc-rt').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
   }catch(e){}
 }
@@ -4272,7 +4281,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EB</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EC</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4859,6 +4868,12 @@ function updateUI(id){
   if(id==='account'&&typeof accountRender==='function'){try{accountRender();}catch(e){}}
   // Keep the live status/notes refresh running only while a kart list/detail screen is open.
   if(typeof startKartAutoRefresh==='function'){ if(id==='kartlist'||id==='kartdetail'){ startKartAutoRefresh(); } else { stopKartAutoRefresh(); } }
+  // Same rule for the RiMO live feed — hold the subscription + poll only while a kart screen (which
+  // is where the online/SOC dots are drawn) is open. The TV never navigates, so it is left alone.
+  if(typeof stopRimoLive==='function' && !window._tvBootAt){
+    if(/^kart/.test(String(id||''))){ if(typeof startRimoLive==='function') startRimoLive(); }
+    else stopRimoLive();
+  }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
@@ -8019,6 +8034,19 @@ function startRimoLive(){
   }
   if(!_rimoPollT) _rimoPollT=setInterval(loadRimo, 20000);   // backstop in case realtime drops
 }
+/* Release the RiMO live feed when no screen is showing kart dots.
+   startRimoLive() is called from loadRfKarts(), i.e. on EVERY device that opens the app — and the
+   subscription was never closed, so every phone, tablet and left-open desktop tab held a permanent
+   rimo_karts subscription (plus a 20s poll) for the whole session, whether or not any dot was on
+   screen. Combined with the runner re-writing the fleet every 4s, that was a large slice of the
+   324M-message bill and a steady egress drain. Both are now scoped to the screens that use them.
+   The TV is exempt: it shows the "Karts Online" scene continuously and never navigates. */
+function stopRimoLive(){
+  try{ if(_rimoSub && typeof SBC!=='undefined' && SBC && SBC.removeChannel) SBC.removeChannel(_rimoSub); }catch(e){}
+  _rimoSub=null;
+  try{ if(_rimoPollT){ clearInterval(_rimoPollT); _rimoPollT=null; } }catch(e){}
+  try{ if(_rimoDeb){ clearTimeout(_rimoDeb); _rimoDeb=null; } }catch(e){}
+}
 
 // Small HTML escaper for RaceFacer-sourced free text (repair notes etc.)
 function kEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -9427,7 +9455,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -10589,12 +10617,17 @@ function tvApplyState(row){
 }
 function tvSubscribe(){
   try{
+    // tv_state is the TV's own table — nothing else subscribes to it, so it keeps a real channel.
     SBC.channel('tv-rt').on('postgres_changes',{event:'*',schema:'public',table:'tv_state'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.site&&nw.site!==currentSite) return; tvApplyState(nw); }).subscribe();
-    SBC.channel('tv-karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-reps').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(){ tvDataSoon(); }).subscribe();
-    SBC.channel('tv-ramp').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ tvRampLoad(); }).subscribe();
+    // rf_karts / tasks / rf_kart_notes / rf_repairs / ramp_events are ALREADY subscribed by
+    // startRealtime(), which the TV also runs. Opening second channels for them meant every change
+    // was delivered — and billed — to this screen twice. Register the TV's refresh as a hook on the
+    // existing subscriptions instead: identical behaviour, half the realtime messages.
+    TV_RT.karts=function(){ tvDataSoon(); };
+    TV_RT.tasks=function(){ tvDataSoon(); };
+    TV_RT.notes=function(){ tvDataSoon(); };
+    TV_RT.reps =function(){ tvDataSoon(); };
+    TV_RT.ramp =function(){ tvRampLoad(); };
   }catch(e){}
 }
 
@@ -13077,7 +13110,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13466,7 +13499,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EB';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EC';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -441,7 +441,7 @@
     .tile.tor     {background:linear-gradient(145deg,#059669,#064E3B);border:1px solid rgba(52,211,153,0.38)}
     .tile.mgr     {background:linear-gradient(145deg,#475569,#1E293B);border:1px solid rgba(148,163,184,0.40)}
     .tile.fin     {background:linear-gradient(145deg,#DB2777,#831843);border:1px solid rgba(244,114,182,0.42)}
-    .tile.kidh    {background:linear-gradient(145deg,#E11D48,#5B0A1E);border:1px solid rgba(251,113,133,0.5)}
+    .tile.kidh    {background:linear-gradient(145deg,#84CC16,#3F6212);border:1px solid rgba(163,230,53,0.5)}
     .tile.hkai    {background:linear-gradient(145deg,#7C3AED,#5B21B6);border:1px solid rgba(167,139,250,0.50)}
     .tile.sessdata{background:linear-gradient(145deg,#06B6D4,#0E7490);border:1px solid rgba(103,232,249,0.55)}
     /* Session Data screen */
@@ -1342,6 +1342,9 @@
     .m-add{background:var(--grad);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:14px;padding:11px 16px;cursor:pointer;white-space:normal;line-height:1.3}
     .ck-testbtn.ghost{background:transparent;border:1px dashed var(--b2);color:var(--t2)}
     .m-list{flex:1;overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 24px);-webkit-overflow-scrolling:touch}
+    /* A secondary list inside a pane that already has a .m-list. Must NOT flex:1 — two growing
+       scrollers split the pane between them and squeeze anything after them off-screen. */
+    .m-sublist{flex:0 0 auto;max-height:34vh;overflow-y:auto;padding:0 18px 2px;-webkit-overflow-scrolling:touch}
     .m-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:11px 12px;margin-bottom:8px}
     .m-row-main{flex:1;min-width:0;cursor:pointer}
     .m-row-desc{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1709,8 +1712,8 @@
     /* TV Display — distinct violet vs Kart Info/Sessions */
     .tile.ttv{background:linear-gradient(150deg,#5B21B6,#2E1065)!important;border-color:#8B5CF655!important}
     .tile.kicpu{background:linear-gradient(150deg,#155E75,#083344)!important;border-color:#22D3EE55!important}
-    .tile.kidh{background:linear-gradient(150deg,#EF4444,#B91C1C)!important;border:1.5px solid rgba(248,113,133,0.9)!important;box-shadow:0 0 0 1px rgba(239,68,68,0.3),0 8px 24px rgba(239,68,68,0.28)!important}
-    .tile.kidh .ti{filter:drop-shadow(0 0 8px rgba(248,113,113,.7))}
+    .tile.kidh{background:linear-gradient(150deg,#A3E635,#4D7C0F)!important;border:1.5px solid rgba(190,242,100,0.9)!important;box-shadow:0 0 0 1px rgba(132,204,22,0.3),0 8px 24px rgba(132,204,22,0.28)!important}
+    .tile.kidh .ti{filter:drop-shadow(0 0 8px rgba(163,230,53,.7))}
     .tile.kiwire{background:linear-gradient(150deg,#22C55E,#15803D)!important;border:1.5px solid rgba(74,222,128,0.9)!important;box-shadow:0 0 0 1px rgba(34,197,94,0.3),0 8px 24px rgba(34,197,94,0.26)!important}
     .tile.kiwire .ti{filter:drop-shadow(0 0 8px rgba(74,222,128,.7))}
     /* beacons: Dehaardt function reference */
@@ -2590,7 +2593,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EC · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EG · ZXing raw</div>
       </div>
     </div>
 
@@ -3438,7 +3441,7 @@
          RaceFacer on its own, so anything unassigned shows up in this list waiting for a venue. -->
     <div class="m-tools"><div class="m-pane-title">Kart types &rarr; venue</div><button class="m-add" onclick="mktLoad(1)">&#8635; Refresh</button></div>
     <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">New kart types are picked up from RaceFacer automatically and land here as <b>Unassigned</b>. A type with no venue is not synced anywhere &mdash; give it one to bring its karts in.</div>
-    <div class="m-list" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
+    <div class="m-sublist" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
     <div class="m-form-msg" id="mkt-msg" style="margin:0 18px 14px"></div>
 
     <div class="m-tools"><input class="m-search-in" id="mk-search" placeholder="Find a kart number or type…" oninput="mkSearch()" autocomplete="off"></div>
@@ -4289,7 +4292,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EC</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6549,7 +6552,35 @@ var RF_LOADED=false, RF_REPAIRS_BY_ID={}, RF_NOTES_BY_ID={}, PENDING_KART_STATUS
 var PENDING_MAX_MS=25000;
 function _pendStatus(rfId,status){ PENDING_KART_STATUS[rfId]=status; PENDING_KART_AT[rfId]=Date.now(); }
 function _clearPend(rfId){ delete PENDING_KART_STATUS[rfId]; delete PENDING_KART_AT[rfId]; }
-function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Adult'; }
+// NOTE the fallback. This used to end `return t||'Adult'`, so ANY kart whose type was empty or
+// unrecognised was silently filed under Adult — it looked like a real Adult kart, inflated the Adult
+// count, and gave no clue anything was wrong. A kart with no type is a data problem, not an Adult
+// kart, so it now says so. (This is one of the two reasons Melbourne karts showed up under Adult;
+// the other was the seed map calling RaceFacer's type 23 "Adult Track" when its real name is
+// "Melbourne Fleet".)
+function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Unknown'; }
+/* Type accent colours, by MAJORITY not by whichever kart happened to be iterated last.
+   This was `KART_LIST.forEach(... KART_TYPE_COLOR[k.type]=readableColor(k.typeColor))`, i.e. the last
+   kart processed set the colour for the whole type. That is fine until two different RaceFacer types
+   collapse to one app type name — which is exactly what happened when RaceFacer's type 23
+   ("Melbourne Fleet", green) was mislabelled "Adult Track" and shortened to "Adult" alongside the
+   real Adult Track (purple). The Melbourne karts sorted last, so Adult rendered green and no longer
+   matched RaceFacer. Taking the most common colour means a stray or mislabelled kart can never
+   hijack a type's colour, whatever else is wrong with the data. */
+function applyTypeColors(list){
+  try{
+    var tally={};
+    (list||[]).forEach(function(k){
+      if(!k||!k.typeColor||!/^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) return;
+      var t=k.type||'Unknown'; (tally[t]=tally[t]||{})[k.typeColor]=(tally[t][k.typeColor]||0)+1;
+    });
+    Object.keys(tally).forEach(function(t){
+      var best=null,n=-1;
+      Object.keys(tally[t]).forEach(function(c){ if(tally[t][c]>n){ n=tally[t][c]; best=c; } });
+      if(best) KART_TYPE_COLOR[t]=readableColor(best);
+    });
+  }catch(e){}
+}
 function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
 function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
 function mapRfKart(r){
@@ -6644,7 +6675,7 @@ function loadRfKarts(cb,force){
       try{ loadKartLookups(); }catch(e){}   // one-time: fetch the labelled safety-server / type lists
       try{ startRimoLive(); }catch(e){}      // RiMO live online/SOC dots (refreshes on site change too)
       // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
-      KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+      applyTypeColors(KART_LIST);
       KARTS_AT=Date.now(); KARTS_SITE=site;
     }
     if(!heavyFresh){
@@ -8447,7 +8478,18 @@ function renderKdTabs(){
   }).join('');
 }
 
+// The scrolling ancestor of the kart-detail tab body, so a tab switch can put the reader back
+// where they were instead of throwing them to the top of the screen.
+function _kdScroller(){
+  var n=document.getElementById('kt-tabbody');
+  for(;n;n=n.parentElement){ if(n.classList&&n.classList.contains('sb')) return n; }
+  return null;
+}
 function ktTab(name){
+  // Swapping the tab body replaces the whole panel, which collapsed the scroll position to 0 — so
+  // moving between Repairs / Kart Notes / Parts threw you back to the top of the kart every time.
+  // Capture where the reader is, then restore it after the swap.
+  var sb=_kdScroller(), prev=sb?sb.scrollTop:0;
   KD_TAB=name; renderKdTabs();
   var body=document.getElementById('kt-tabbody'); if(!body) return;
   if(name==='Repairs') body.innerHTML=rfqCardHtml()+repTableHTML();
@@ -8456,6 +8498,20 @@ function ktTab(name){
   else if(name==='Kart Notes') body.innerHTML=notesTabHTML();
   else if(name==='Admin') body.innerHTML=adminTabHTML();
   else body.innerHTML='<div class="rep-empty">Maintenance schedule isn\u2019t synced from RaceFacer yet.</div>';
+  if(sb&&prev>0){
+    // Clamp to the new content: a shorter tab must not leave the view stranded past its end.
+    // rAF so the browser has laid the new panel out and scrollHeight is real.
+    requestAnimationFrame(function(){
+      try{
+        var tabs=document.getElementById('kd-tabs');
+        // Never scroll so far that the tab strip leaves the screen — switching tabs should feel like
+        // the panel changed underneath a fixed header, not like a jump to somewhere else.
+        var cap=tabs?Math.max(0,tabs.offsetTop-8):0;
+        var max=Math.max(0,sb.scrollHeight-sb.clientHeight);
+        sb.scrollTop=Math.min(prev,max,Math.max(cap,max));
+      }catch(e){}
+    });
+  }
 }
 
 /* ===== ADMIN TAB — edit EVERY RaceFacer kart field (transponder, tyre, chassis, price, …) =====
@@ -9463,7 +9519,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9490,7 +9546,7 @@ function mktMsg(t,col){ var m=document.getElementById('mkt-msg'); if(m){ m.textC
 function mktLoad(force){
   if(typeof SBC==='undefined'||!SBC) return;
   if(force) mktMsg('');
-  SBC.from('rf_kart_types').select('uuid,type,site,active,sort_order').order('sort_order',{nullsFirst:false}).order('type')
+  SBC.from('rf_kart_types').select('uuid,rf_type_id,type,site,active,sort_order').order('sort_order',{nullsFirst:false}).order('type')
     .then(function(r){
       if(r&&r.error){ mktRenderErr(r.error.message); return; }
       MKT_ROWS=(r&&r.data)||[]; mktRender();
@@ -9522,10 +9578,15 @@ function mktRender(){
   el.innerHTML=rows.map(function(t){
     var name=acEsc(t.type||'(unnamed type)');
     var warn=t.site?'':'<span style="color:#FFB020;font-weight:700">&#9888; unassigned</span>';
+    // Types found in RaceFacer's settings list have a numeric id but no garage uuid yet, so the
+    // runner can't sync them from a garage page. Say so rather than showing a meaningless key.
+    var linked=/^[0-9a-f]{8}-/i.test(String(t.uuid||''));
+    var ref=(t.rf_type_id!=null?('RaceFacer #'+acEsc(String(t.rf_type_id))):acEsc(String(t.uuid).slice(0,8)+'\u2026'))
+           +(linked?'':' &middot; <span style="color:#94A3B8">not linked to a garage page yet</span>');
     return '<div class="m-row" style="align-items:center;gap:10px">'
       +'<div style="flex:1;min-width:0">'
         +'<div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+name+'</div>'
-        +'<div style="font-size:10.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+warn+(warn?' &middot; ':'')+acEsc(String(t.uuid).slice(0,8))+'&hellip;</div>'
+        +'<div style="font-size:10.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+warn+(warn?' &middot; ':'')+ref+'</div>'
       +'</div>'
       +'<select class="m-search-in" style="flex:0 0 132px;padding:7px 8px" onchange="mktSet(\''+acEsc(t.uuid)+'\',this.value)"'+(MKT_BUSY?' disabled':'')+'>'
         +mktSiteOptions(t.site||'')
@@ -9535,9 +9596,19 @@ function mktRender(){
 }
 function mktSet(uuid,site){
   if(typeof SBC==='undefined'||!SBC||MKT_BUSY) return;
-  MKT_BUSY=true; mktMsg('Saving\u2026','var(--t2)');
   var row=(MKT_ROWS||[]).filter(function(x){return x.uuid===uuid;})[0];
   var prev=row?row.site:null;
+  // A venue change moves EVERY kart of that type to the other site on the next sync. Setting
+  // "Melbourne Fleet" to Sydney once dragged 57 Melbourne karts into the Sydney fleet, where they
+  // showed as Adult and inflated the count from 71 to 128 — with nothing on screen to say so.
+  // Confirm first, and name the consequence.
+  if(prev!==(site||null)){
+    var label=(row&&row.type)||'this type';
+    var what=site?('move every '+label+' kart to '+((typeof siteLabel==='function'?siteLabel(site):site)||site))
+                 :('stop syncing '+label+' karts at any venue');
+    if(!confirm('This will '+what+' on the next sync (~2 minutes).\n\nContinue?')){ mktRender(); return; }
+  }
+  MKT_BUSY=true; mktMsg('Saving\u2026','var(--t2)');
   if(row) row.site=site||null;
   SBC.from('rf_kart_types').update({site:site||null,updated_at:new Date().toISOString(),updated_by:(cu&&cu.name)||''}).eq('uuid',uuid)
     .then(function(r){
@@ -10241,12 +10312,21 @@ function tvRepairTallies(){
     (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
       if(!r) return;   // EVERY RaceFacer repair counts on the leaderboard (fixed or not)
       var raw=(r.user||'').trim(); if(!raw||raw==='\u2014'||raw==='-') return;
-      var u=_repairName(raw); var iso=((r.isoRepaired||r.iso)||'').slice(0,10); if(!iso) return;
+      var u=_repairName(raw);
+      // THE PERIOD BOARDS COUNT COMPLETED WORK, NOT DAMAGES LOGGED.
+      // The date used to fall back to date_discovered whenever a repair had no date_repaired, so a
+      // damage RAISED today but not yet fixed was tallied as that person's repair for today. That is
+      // why the board credited people with repairs they had not done. Day/week/month now count only
+      // repairs carrying an actual completion date; `last` still tracks any activity so a mechanic
+      // who has only logged damage still shows as recently active.
+      var done=(r.isoRepaired||'').slice(0,10);
+      var seen=((r.isoRepaired||r.iso)||'').slice(0,10);
       var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0,last:''});
-      if(iso&&(!rec.last||iso>rec.last)) rec.last=iso;
-      if(iso===w.today) rec.day++;
-      if(iso>=w.weekStart&&iso<=w.today) rec.week++;
-      if(iso.slice(0,7)===w.month) rec.month++;
+      if(seen&&(!rec.last||seen>rec.last)) rec.last=seen;
+      if(!done) return;                       // raised but not completed — not a repair yet
+      if(done===w.today) rec.day++;
+      if(done>=w.weekStart&&done<=w.today) rec.week++;
+      if(done.slice(0,7)===w.month) rec.month++;
     });
   });
   // Apply base floors AFTER counting real repairs, and lift `last` so a floored mechanic ranks
@@ -10257,7 +10337,7 @@ function tvRepairTallies(){
 function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.all>0;}); }
 /* Phase-cycling leaderboard: while the slide is up it re-ranks Daily \u2192 Weekly \u2192 Monthly \u2192
    All-time, sliding rows to their new spots (FLIP) and highlighting the active column. */
-var TV_LB_PHASE=0,TV_LB_T=null,TV_LB_DATA=[];
+var TV_LB_PHASE=0,TV_LB_T=null,TV_LB_DATA=[],TV_LB_SEEN=0;   // SEEN: phase survives scene re-entry (see tvLbStart)
 var TV_LB_KEYS=['day','week','month','all'];
 function tvLbSort(list,key){
   var pri={day:['day','week','month','all'],week:['week','month','all','day'],month:['month','all','week','day'],all:['all','month','week','day']}[key];
@@ -10323,7 +10403,14 @@ function tvLbApply(animate){
 function tvLbStart(){
   if(TV_LB_T){ clearInterval(TV_LB_T); TV_LB_T=null; }
   if(!document.getElementById('tv-lb-wrap')) return;
-  TV_LB_PHASE=0; tvLbApply(false);
+  // DON'T reset the phase to 0 here. The leaderboard is one scene in a rotation, so it is only on
+  // screen for part of each cycle — and resetting on every entry meant it always restarted at
+  // "Today" and Week / Month / All-time were effectively never reached. That is the "stuck on
+  // daily" bug: an in-place data refresh was already guarded against (see tvSyncView), but
+  // re-ENTERING the scene still reset it. Carry the phase across visits so each appearance
+  // continues the cycle, and keep stepping every 10s while it is showing.
+  if(TV_LB_SEEN) TV_LB_PHASE=(TV_LB_PHASE+1)%4; else TV_LB_SEEN=1;
+  tvLbApply(false);
   var step=10000;   // 10s on each of Daily / Week / Month / All-time
   TV_LB_T=setInterval(function(){
     if(!document.getElementById('tv-lb-wrap')){ clearInterval(TV_LB_T); TV_LB_T=null; return; }
@@ -10646,7 +10733,7 @@ function tvLoadFleet(){
       }
       if(rows.length){
         KART_LIST=rows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
-        KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+        applyTypeColors(KART_LIST);
         KARTS_AT=Date.now(); KARTS_SITE=site;
       }
       tvRerender();
@@ -13192,7 +13279,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13581,7 +13668,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EC';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

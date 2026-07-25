@@ -2593,7 +2593,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EG · ZXing raw</div>
       </div>
     </div>
 
@@ -4292,7 +4292,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EF</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6559,6 +6559,28 @@ function _clearPend(rfId){ delete PENDING_KART_STATUS[rfId]; delete PENDING_KART
 // the other was the seed map calling RaceFacer's type 23 "Adult Track" when its real name is
 // "Melbourne Fleet".)
 function rfTypeShort(t){ t=(t||'').replace(/\s*track\s*$/i,'').trim(); if(/^intermediate$/i.test(t))return 'Intermediate'; return t||'Unknown'; }
+/* Type accent colours, by MAJORITY not by whichever kart happened to be iterated last.
+   This was `KART_LIST.forEach(... KART_TYPE_COLOR[k.type]=readableColor(k.typeColor))`, i.e. the last
+   kart processed set the colour for the whole type. That is fine until two different RaceFacer types
+   collapse to one app type name — which is exactly what happened when RaceFacer's type 23
+   ("Melbourne Fleet", green) was mislabelled "Adult Track" and shortened to "Adult" alongside the
+   real Adult Track (purple). The Melbourne karts sorted last, so Adult rendered green and no longer
+   matched RaceFacer. Taking the most common colour means a stray or mislabelled kart can never
+   hijack a type's colour, whatever else is wrong with the data. */
+function applyTypeColors(list){
+  try{
+    var tally={};
+    (list||[]).forEach(function(k){
+      if(!k||!k.typeColor||!/^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) return;
+      var t=k.type||'Unknown'; (tally[t]=tally[t]||{})[k.typeColor]=(tally[t][k.typeColor]||0)+1;
+    });
+    Object.keys(tally).forEach(function(t){
+      var best=null,n=-1;
+      Object.keys(tally[t]).forEach(function(c){ if(tally[t][c]>n){ n=tally[t][c]; best=c; } });
+      if(best) KART_TYPE_COLOR[t]=readableColor(best);
+    });
+  }catch(e){}
+}
 function rfStatusClass(code,txt){ if(code===2||/damaged/i.test(txt||''))return 'damaged'; if(code===3||/maintenance/i.test(txt||''))return 'maint'; return 'ok'; }
 function rfNum(n){ var m=String(n||'').match(/\d+/); return m?parseInt(m[0],10):0; }
 function mapRfKart(r){
@@ -6653,7 +6675,7 @@ function loadRfKarts(cb,force){
       try{ loadKartLookups(); }catch(e){}   // one-time: fetch the labelled safety-server / type lists
       try{ startRimoLive(); }catch(e){}      // RiMO live online/SOC dots (refreshes on site change too)
       // Tint each type with RaceFacer's own colour when we have it (falls back to the defaults).
-      KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+      applyTypeColors(KART_LIST);
       KARTS_AT=Date.now(); KARTS_SITE=site;
     }
     if(!heavyFresh){
@@ -9497,7 +9519,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9574,9 +9596,19 @@ function mktRender(){
 }
 function mktSet(uuid,site){
   if(typeof SBC==='undefined'||!SBC||MKT_BUSY) return;
-  MKT_BUSY=true; mktMsg('Saving\u2026','var(--t2)');
   var row=(MKT_ROWS||[]).filter(function(x){return x.uuid===uuid;})[0];
   var prev=row?row.site:null;
+  // A venue change moves EVERY kart of that type to the other site on the next sync. Setting
+  // "Melbourne Fleet" to Sydney once dragged 57 Melbourne karts into the Sydney fleet, where they
+  // showed as Adult and inflated the count from 71 to 128 — with nothing on screen to say so.
+  // Confirm first, and name the consequence.
+  if(prev!==(site||null)){
+    var label=(row&&row.type)||'this type';
+    var what=site?('move every '+label+' kart to '+((typeof siteLabel==='function'?siteLabel(site):site)||site))
+                 :('stop syncing '+label+' karts at any venue');
+    if(!confirm('This will '+what+' on the next sync (~2 minutes).\n\nContinue?')){ mktRender(); return; }
+  }
+  MKT_BUSY=true; mktMsg('Saving\u2026','var(--t2)');
   if(row) row.site=site||null;
   SBC.from('rf_kart_types').update({site:site||null,updated_at:new Date().toISOString(),updated_by:(cu&&cu.name)||''}).eq('uuid',uuid)
     .then(function(r){
@@ -10701,7 +10733,7 @@ function tvLoadFleet(){
       }
       if(rows.length){
         KART_LIST=rows.map(mapRfKart).sort(function(a,b){return a.num-b.num;});
-        KART_LIST.forEach(function(k){ if(k.typeColor && /^#[0-9a-fA-F]{3,8}$/.test(k.typeColor)) KART_TYPE_COLOR[k.type]=readableColor(k.typeColor); });
+        applyTypeColors(KART_LIST);
         KARTS_AT=Date.now(); KARTS_SITE=site;
       }
       tvRerender();
@@ -13247,7 +13279,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13636,7 +13668,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EF';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

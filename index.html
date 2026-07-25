@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ER · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ES · ZXing raw</div>
       </div>
     </div>
 
@@ -3604,7 +3604,7 @@ function applySiteAccent(id){
   var tb=document.getElementById('trainBanner');
   if(TRAINING){
     var bar0=document.getElementById('siteBar'); if(bar0) bar0.style.display='none';
-    if(tb){ var was=(tb.style.display==='flex'); tb.style.display=_show?'flex':'none'; if((_show)!==was && typeof sz==='function') setTimeout(sz,0); }
+    if(tb){ var was=(tb.style.display==='flex'); tb.style.display=_show?'flex':'none'; if((_show)!==was && typeof sz==='function'){ if(window.requestAnimationFrame) requestAnimationFrame(function(){ try{ sz(); }catch(e){} }); else sz(); } }
     try{document.documentElement.style.setProperty('--site','#00CFFF');}catch(e){}
     var hd0=document.getElementById('hdr'); if(hd0) hd0.style.borderBottom='1px solid var(--b1)';
     setTopAccent(_show?'#FFD600':'flow');
@@ -3619,7 +3619,13 @@ function applySiteAccent(id){
   var show=!!cu&&id!=='pin'&&id!=='welcome';
   var wasShown=bar.style.display==='flex';
   bar.style.display=show?'flex':'none';
-  if(show!==wasShown && typeof sz==='function') setTimeout(sz,0);
+  // Measure in the SAME frame the bar's visibility changed, not a tick later. Deferring this is
+  // what made switching site visibly re-flow the tiles: the browser painted the new layout, then
+  // sz() -> layoutHome() adjusted it again on the next task. rAF keeps it before the next paint.
+  if(show!==wasShown && typeof sz==='function'){
+    if(window.requestAnimationFrame) requestAnimationFrame(function(){ try{ sz(); }catch(e){} });
+    else sz();
+  }
   bar.style.color=ac; bar.style.background=_rgba(ac,.12); bar.style.borderTop='1px solid '+_rgba(ac,.28);
   bar.style.setProperty('--siteGlow',_rgba(ac,.22));
   var dot=bar.querySelector('.sb-dot'); if(dot){dot.style.background=ac;dot.style.boxShadow='0 0 10px '+ac;}
@@ -3713,7 +3719,7 @@ function buildTrainData(){
     return {sku:r.sku,description:r.d,internal_description:r.d,desc:r.d,qty:r.qty,min_stock:r.min,reorder:r.min,loc:r.loc,price:(r.eur*EURAUD),price_eur:r.eur,price_aud:null,auto_min:true,qr_print:true,scans90:(u>0?Math.max(3,Math.round(u/3)):0),scansAll:(u>0?Math.max(3,Math.round(u/3)):0),used90:u,daysLeft:dl,recommendedReorder:(u>0?Math.ceil(u*1.3):null),orderQuantity:(u>0?Math.ceil(u*2):null)};
   }).sort(function(a,b){return a.desc.localeCompare(b.desc);});
 }
-function showTrainingBanner(b){ var el=document.getElementById('trainBanner'); if(el){ el.style.display=b?'flex':'none'; if(typeof sz==='function') setTimeout(sz,0); } }
+function showTrainingBanner(b){ var el=document.getElementById('trainBanner'); if(el){ el.style.display=b?'flex':'none'; if(typeof sz==='function'){ if(window.requestAnimationFrame) requestAnimationFrame(function(){ try{ sz(); }catch(e){} }); else sz(); } } }
 function resetPinUI(){
   var t=document.getElementById('pinTitle'); if(t)t.innerText='Welcome back';
   var p=document.getElementById('pinSub'); if(p)p.innerText='Enter your PIN to continue';
@@ -4338,7 +4344,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ER</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ES</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4882,6 +4888,7 @@ function applyRoleVisibility(force){
            window.innerWidth>=900?'d':'m'].join('~');
   if(!force && sig===_rvSig) return;
   _rvSig=sig;
+  _lhSig=null;   // tile visibility is about to change, so the cached grid layout no longer applies
   var noCam=!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia;
   // pointer:fine = mouse primary, no touch = desktop
   var isDesktop=window.innerWidth>=900 && (window.matchMedia('(pointer: fine)').matches || navigator.maxTouchPoints===0);
@@ -4965,6 +4972,14 @@ function updateUI(id){
 function sizeTiles(){ layoutHome(); }
 // Equal tiles + fill the screen. When the visible count doesn't fill the last
 // row, the final tile spans the remaining columns (a thinner, wider tile).
+/* THE TILE GLITCH ON LOAD AND ON SWITCHING SITE.
+   This cleared gridColumn on EVERY visible tile and then re-set it on the last one, so each call
+   forced a full grid reflow — even when the answer was identical to what was already on screen.
+   Combined with the call being deferred (setTimeout(sz,0) from applySiteAccent), the browser painted
+   the grid once, then re-laid it out a tick later: the visible jump.
+   Now it computes the target span and only touches the DOM when something actually differs, so a
+   repeat call costs nothing and cannot produce a second layout pass. */
+var _lhSig=null;
 function layoutHome(){
   var grid=document.getElementById('home-grid');
   if(!grid) return;
@@ -4973,11 +4988,17 @@ function layoutHome(){
   for(var i=0;i<grid.children.length;i++){
     if(grid.children[i].style.display!=='none') tiles.push(grid.children[i]);
   }
-  tiles.forEach(function(t){t.style.gridColumn='';});
   var n=tiles.length;
-  if(!n) return;
-  var rem=n%cols;
-  if(rem!==0){ tiles[n-1].style.gridColumn='span '+(cols-rem+1); }
+  if(!n){ _lhSig=null; return; }
+  var rem=n%cols, span=(rem!==0)?('span '+(cols-rem+1)):'';
+  // Same tile count, same column count, same span => the DOM already says what we would say.
+  var sig=n+'/'+cols+'/'+span;
+  if(sig===_lhSig) return;
+  _lhSig=sig;
+  for(var j=0;j<tiles.length;j++){
+    var want=(j===n-1)?span:'';
+    if(tiles[j].style.gridColumn!==want) tiles[j].style.gridColumn=want;   // write only on a real change
+  }
 }
 function animTiles(){
   var t=document.getElementById('home-grid');
@@ -10332,7 +10353,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ER \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ES \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14147,7 +14168,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ER \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ES \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14616,7 +14637,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-ER';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-ES';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

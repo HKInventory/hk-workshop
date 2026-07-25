@@ -2600,7 +2600,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EJ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EK · ZXing raw</div>
       </div>
     </div>
 
@@ -2725,9 +2725,11 @@
           <button class="md-tab active" id="mdtab-overview" onclick="mdTab('overview')">Overview</button>
           <button class="md-tab" id="mdtab-notif" onclick="mdTab('notif')">Notifications<span class="md-tabct" id="mdNotifCt" style="display:none">0</span></button>
           <button class="md-tab" id="mdtab-todo" onclick="mdTab('todo')">To Do<span class="md-tabct" id="mdTodoCt" style="display:none">0</span></button>
+          <button class="md-tab" id="mdtab-health" onclick="mdTab('health')">Health</button>
         </div>
         <div id="md-pane-notif" style="display:none"></div>
         <div id="md-pane-todo" style="display:none"></div>
+        <div id="md-pane-health" style="display:none"></div>
         <div id="md-pane-overview">
         <!-- Quick stats row -->
         <div class="stats-grid">
@@ -4307,7 +4309,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EJ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EK</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5956,14 +5958,161 @@ function notifAgo(ts){ if(!ts) return ''; var s=Math.floor((Date.now()-ts)/1000)
 
 function mdTab(name){
   MD_TAB=name;
-  var panes={overview:'md-pane-overview',notif:'md-pane-notif',todo:'md-pane-todo'};
-  var tabs ={overview:'mdtab-overview', notif:'mdtab-notif', todo:'mdtab-todo'};
+  var panes={overview:'md-pane-overview',notif:'md-pane-notif',todo:'md-pane-todo',health:'md-pane-health'};
+  var tabs ={overview:'mdtab-overview', notif:'mdtab-notif', todo:'mdtab-todo', health:'mdtab-health'};
   Object.keys(panes).forEach(function(k){
     var pe=document.getElementById(panes[k]); if(pe) pe.style.display=(k===name)?'':'none';
     var te=document.getElementById(tabs[k]);  if(te) te.classList.toggle('active',k===name);
   });
   if(name==='notif') loadNotifications();
   if(name==='todo')  todoLoad();
+  if(name==='health') healthLoad();
+}
+
+/* ===== APP HEALTH (Manager Dashboard -> Health) ==================================
+   What this system costs, with history rather than a single instant.
+
+   Every number here is a MEASUREMENT, not an estimate. The runner writes one row a
+   day into app_health (see health.js): database size per table, the live rows/min
+   write rate, and — when the API tokens are set — Supabase and Render usage.
+
+   The write rate is the one to watch. Realtime cost is rows-written x subscribers,
+   so writes/min is the leading indicator: it moves days before a bill does. A bug
+   once wrote unchanged rows in a tight loop for six days and cost 324 MILLION
+   realtime messages against a 5M/month allowance, and nothing anywhere said a word.
+   This tab is the thing that would have said something.
+
+   Vendor figures are best-effort. A missing token shows as "not connected" rather
+   than as zero, because zero looks healthy and absent is not the same as fine. */
+var HEALTH_ROWS=null, HEALTH_BUSY=false;
+var HK_PLAN={ db_bytes:8*1024*1024*1024, realtime_msgs:5000000, egress_bytes:250*1024*1024*1024, render_bytes:100*1024*1024*1024 };
+
+function hBytes(n){
+  if(n==null||isNaN(n)) return '—';
+  var u=['B','KB','MB','GB','TB'],i=0,v=Number(n);
+  while(v>=1024&&i<u.length-1){ v/=1024; i++; }
+  return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2))+' '+u[i];
+}
+function hNum(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString(); }
+function hBar(used,cap,label,sub){
+  var pct=(cap&&used!=null)?Math.min(100,used/cap*100):null;
+  // Colour by headroom, not by taste: amber at 70%, red at 90% — early enough to act on.
+  var col=(pct==null)?'#475569':(pct>=90?'#FF5A52':(pct>=70?'#FFB020':'#34D399'));
+  return '<div style="margin-bottom:14px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px">'
+      +'<span style="font-weight:800;font-size:13px">'+acEsc(label)+'</span>'
+      +'<span style="font-size:12px;color:'+col+';font-weight:800">'+(pct==null?'not connected':pct.toFixed(1)+'%')+'</span>'
+    +'</div>'
+    +'<div style="height:9px;border-radius:6px;background:rgba(148,163,184,.16);overflow:hidden">'
+      +(pct!=null?'<i style="display:block;height:100%;width:'+Math.max(pct,1.2)+'%;background:'+col+';border-radius:6px"></i>':'')
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-top:4px">'+acEsc(sub||'')+'</div>'
+  +'</div>';
+}
+/* Inline sparkline — no chart library, so nothing to load and nothing to go stale.
+   Flat is the healthy shape; a climbing line is the warning. */
+function hSpark(vals,colour){
+  var v=(vals||[]).filter(function(x){ return x!=null&&!isNaN(x); });
+  if(v.length<2) return '<div style="font-size:11px;color:var(--t2)">Not enough history yet — one point per day.</div>';
+  var w=280,h=44,mx=Math.max.apply(null,v),mn=Math.min.apply(null,v),rng=(mx-mn)||1;
+  var pts=v.map(function(y,i){ return (i/(v.length-1)*w).toFixed(1)+','+(h-((y-mn)/rng)*(h-6)-3).toFixed(1); }).join(' ');
+  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="width:100%;height:44px;display:block">'
+    +'<polyline points="'+pts+'" fill="none" stroke="'+(colour||'#22D3EE')+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+  +'</svg>';
+}
+
+function healthLoad(){
+  if(HEALTH_BUSY) return; HEALTH_BUSY=true;
+  var host=document.getElementById('md-pane-health');
+  if(host&&!HEALTH_ROWS) host.innerHTML='<div class="emp" style="padding:14px 0">Loading health…</div>';
+  SBC.from('app_health').select('*').order('at',{ascending:false}).limit(60).then(function(r){
+    HEALTH_BUSY=false;
+    if(r&&r.error){ healthErr(r.error.message); return; }
+    HEALTH_ROWS=(r&&r.data)||[]; healthRender();
+  },function(e){ HEALTH_BUSY=false; healthErr((e&&e.message)||'could not load'); });
+}
+function healthErr(msg){
+  var host=document.getElementById('md-pane-health'); if(!host) return;
+  var missing=/app_health|does not exist|schema cache/i.test(String(msg||''));
+  host.innerHTML='<div class="mc"><div class="mct">App Health</div><div class="emp" style="padding:10px 0">'
+    +(missing?'Not set up yet &mdash; run the <b>app_health</b> SQL, then redeploy the runner. The first snapshot lands about a minute after it restarts.'
+             :'Could not load: '+acEsc(String(msg||'')))+'</div></div>';
+}
+function healthRender(){
+  var host=document.getElementById('md-pane-health'); if(!host) return;
+  var rows=HEALTH_ROWS||[];
+  if(!rows.length){
+    host.innerHTML='<div class="mc"><div class="mct">App Health</div><div class="emp" style="padding:10px 0">No snapshots yet. The runner writes one about a minute after it starts, then daily.</div></div>';
+    return;
+  }
+  var cur=rows[0], hist=rows.slice().reverse();   // oldest -> newest, for the sparklines
+  var when=cur.at?(new Date(cur.at)).toLocaleString():'';
+
+  // --- headline bars -------------------------------------------------------
+  var bars=hBar(cur.db_total_bytes,HK_PLAN.db_bytes,'Database size',
+      hBytes(cur.db_total_bytes)+' of '+hBytes(HK_PLAN.db_bytes)+' included'+(cur.db_note?' · '+cur.db_note:''));
+
+  // Realtime is the one that caused the refund, so it gets projected forward rather
+  // than only reported. writes/min is not the billed figure — it's the driver of it —
+  // so the projection is labelled as an estimate and never dressed up as an invoice.
+  var wpm=Number(cur.writes_per_min||0);
+  var projected=wpm*60*24*30;
+  bars+=hBar(projected,HK_PLAN.realtime_msgs,'Realtime messages (projected/month)',
+      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+hNum(wpm)+' rows/min now');
+
+  bars+=cur.render_available
+    ? hBar(null,null,'Render bandwidth','Connected — see the raw figures below')
+    : hBar(null,null,'Render bandwidth',cur.render_note||'not connected');
+  bars+=cur.supabase_available
+    ? hBar(null,null,'Supabase usage API','Connected — see the raw figures below')
+    : hBar(null,null,'Supabase usage API',cur.supabase_note||'not connected');
+
+  // --- what is actually being written -------------------------------------
+  var byT=cur.writes_by_table||{};
+  var tw=Object.keys(byT).sort(function(a,b){ return byT[b]-byT[a]; }).slice(0,8);
+  var writeRows=tw.length?tw.map(function(t){
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px">'
+      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(t)+'</span>'
+      +'<span style="font-weight:800;color:var(--t2)">'+hNum(byT[t])+'/min</span></div>';
+  }).join(''):'<div style="font-size:12px;color:var(--t2)">Nothing being written right now.</div>';
+
+  // --- biggest tables ------------------------------------------------------
+  var tbls=(cur.db_tables||[]).slice(0,8);
+  var tblRows=tbls.length?tbls.map(function(t){
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px">'
+      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(t.name)+'</span>'
+      +'<span style="color:var(--t2)">'+hNum(t.rows)+' rows</span>'
+      +'<span style="font-weight:800;margin-left:10px;min-width:64px;text-align:right">'+hBytes(t.bytes)+'</span></div>';
+  }).join(''):'<div style="font-size:12px;color:var(--t2)">No table sizes — run the hk_db_stats SQL.</div>';
+
+  // --- plain-English read of the numbers ----------------------------------
+  var advice=[];
+  if(projected>HK_PLAN.realtime_msgs) advice.push({s:'high',t:'Realtime is projected over the plan. Something is writing rows faster than real events happen — check the table list below and the Render log for [budget].'});
+  else if(projected>HK_PLAN.realtime_msgs*0.7) advice.push({s:'med',t:'Realtime is above 70% of the allowance. Worth watching which table is writing most.'});
+  if(cur.db_total_bytes&&cur.db_total_bytes>HK_PLAN.db_bytes*0.8) advice.push({s:'high',t:'Database is over 80% of included storage. rimo_bms_history is usually the cause — the retention job trims it to 7 days.'});
+  if(!cur.render_available) advice.push({s:'low',t:'Render bandwidth is not connected. Add RENDER_API_KEY to the runner’s environment to track the 100GB cap.'});
+  if(!cur.supabase_available) advice.push({s:'low',t:'Supabase usage API is not connected. Add SUPABASE_MGMT_TOKEN to the runner’s environment for billed figures.'});
+  if(!advice.length) advice.push({s:'ok',t:'Everything is inside plan limits and the write rate looks normal.'});
+  var ac={high:'#FF5A52',med:'#FFB020',low:'#94A3B8',ok:'#34D399'};
+
+  host.innerHTML=
+    '<div class="mc"><div class="mct">App Health</div>'
+      +'<div style="font-size:11px;color:var(--t2);margin:0 0 12px">Updated '+acEsc(when)+' · one snapshot a day</div>'
+      +bars
+    +'</div>'
+    +'<div class="mc"><div class="mct">What this means</div>'
+      +advice.map(function(a){ return '<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:1.5">'
+        +'<span style="color:'+ac[a.s]+'">●</span><span style="flex:1">'+acEsc(a.t)+'</span></div>'; }).join('')
+    +'</div>'
+    +'<div class="mc"><div class="mct">Write rate · last 60 snapshots</div>'
+      +hSpark(hist.map(function(x){ return Number(x.writes_per_min||0); }),'#22D3EE')
+      +'<div style="font-size:11px;color:var(--t2);margin-top:6px">Rows written per minute. Flat is healthy; a climbing line is the early warning.</div>'
+    +'</div>'
+    +'<div class="mc"><div class="mct">Database size · trend</div>'
+      +hSpark(hist.map(function(x){ return Number(x.db_total_bytes||0); }),'#A78BFA')
+    +'</div>'
+    +'<div class="mc"><div class="mct">Writing most right now</div>'+writeRows+'</div>'
+    +'<div class="mc"><div class="mct">Biggest tables</div>'+tblRows+'</div>';
 }
 
 /* ===== TO DO LIST (Manager Dashboard -> To Do) ==================================
@@ -9741,7 +9890,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13551,7 +13700,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14020,7 +14169,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EJ';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EK';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

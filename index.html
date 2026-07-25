@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EL · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EM · ZXing raw</div>
       </div>
     </div>
 
@@ -4319,7 +4319,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EL</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EM</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6070,13 +6070,22 @@ function healthRender(){
   var bars=hBar(cur.db_total_bytes,HK_PLAN.db_bytes,'Database size',
       hBytes(cur.db_total_bytes)+' of '+hBytes(HK_PLAN.db_bytes)+' included'+(cur.db_note?' · '+cur.db_note:''));
 
-  // Realtime is the one that caused the refund, so it gets projected forward rather
-  // than only reported. writes/min is not the billed figure — it's the driver of it —
-  // so the projection is labelled as an estimate and never dressed up as an invoice.
+  // REALTIME. Only writes to PUBLISHED tables can become realtime messages, and this used to
+  // project from the TOTAL write rate — which read 21,000,000/month while Supabase's own usage
+  // page showed 730 for the period. Most of the write volume is rimo_karts and rimo_bms_history,
+  // both deliberately kept out of the publication, so they cost nothing in realtime terms.
+  // An alarm that is always red gets ignored, including the day it is right, so the projection
+  // now uses only the writes that can actually bill — and says so when it cannot tell.
   var wpm=Number(cur.writes_per_min||0);
-  var projected=wpm*60*24*30;
-  bars+=hBar(projected,HK_PLAN.realtime_msgs,'Realtime messages (projected/month)',
-      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+hNum(wpm)+' rows/min now');
+  var rtw=(cur.realtime_writes_per_min==null)?null:Number(cur.realtime_writes_per_min);
+  if(rtw==null){
+    bars+=hBar(null,null,'Realtime messages',
+      'Cannot tell yet — run the hk_realtime_tables SQL so this counts only published tables. Total write rate is '+hNum(wpm)+'/min.');
+  } else {
+    var projected=rtw*60*24*30;
+    bars+=hBar(projected,HK_PLAN.realtime_msgs,'Realtime messages (projected/month)',
+      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+hNum(rtw)+' of '+hNum(wpm)+' rows/min going to published tables');
+  }
 
   bars+=cur.render_available
     ? hBar(null,null,'Render bandwidth','Connected — see the raw figures below')
@@ -6105,12 +6114,21 @@ function healthRender(){
 
   // --- plain-English read of the numbers ----------------------------------
   var advice=[];
-  if(projected>HK_PLAN.realtime_msgs) advice.push({s:'high',t:'Realtime is projected over the plan. Something is writing rows faster than real events happen — check the table list below and the Render log for [budget].'});
-  else if(projected>HK_PLAN.realtime_msgs*0.7) advice.push({s:'med',t:'Realtime is above 70% of the allowance. Worth watching which table is writing most.'});
+  if(rtw==null) advice.push({s:'low',t:'Realtime projection unavailable — run the hk_realtime_tables SQL so this counts only tables that are actually published.'});
+  else {
+    var proj2=rtw*60*24*30;
+    if(proj2>HK_PLAN.realtime_msgs) advice.push({s:'high',t:'Realtime is projected over the plan. A published table is being written faster than real events happen — check the write list below and the Render log for [budget].'});
+    else if(proj2>HK_PLAN.realtime_msgs*0.7) advice.push({s:'med',t:'Realtime is above 70% of the allowance. Worth watching which published table is writing most.'});
+    else advice.push({s:'ok',t:'Realtime is well inside the plan. Most write volume goes to tables that are not published (rimo_karts, rimo_bms_history), so it costs nothing in realtime terms.'});
+  }
   if(cur.db_total_bytes&&cur.db_total_bytes>HK_PLAN.db_bytes*0.8) advice.push({s:'high',t:'Database is over 80% of included storage. rimo_bms_history is usually the cause — the retention job trims it to 7 days.'});
   if(!cur.render_available) advice.push({s:'low',t:'Render bandwidth is not connected. Add RENDER_API_KEY to the runner’s environment to track the 100GB cap.'});
   if(!cur.supabase_available) advice.push({s:'low',t:'Supabase usage API is not connected. Add SUPABASE_MGMT_TOKEN to the runner’s environment for billed figures.'});
   if(!advice.length) advice.push({s:'ok',t:'Everything is inside plan limits and the write rate looks normal.'});
+  // Published tables are the ones that can bill, so name them — it is the difference between
+  // "487 rows/min" sounding alarming and being routine.
+  if(Array.isArray(cur.published_tables)&&cur.published_tables.length)
+    advice.push({s:'low',t:'Publishing to realtime: '+cur.published_tables.slice(0,12).join(', ')+(cur.published_tables.length>12?' +'+(cur.published_tables.length-12)+' more':'')+'.'});
   var ac={high:'#FF5A52',med:'#FFB020',low:'#94A3B8',ok:'#34D399'};
 
   host.innerHTML=
@@ -6129,7 +6147,7 @@ function healthRender(){
     +'<div class="mc"><div class="mct">Database size · trend</div>'
       +hSpark(hist.map(function(x){ return Number(x.db_total_bytes||0); }),'#A78BFA')
     +'</div>'
-    +'<div class="mc"><div class="mct">Writing most right now</div>'+writeRows+'</div>'
+    +'<div class="mc"><div class="mct">Writing most right now</div><div style="font-size:11px;color:var(--t2);margin:0 0 8px;line-height:1.5">Only tables in the realtime publication cost anything in messages. The busiest here (rimo_karts, rimo_bms_history) are deliberately not published.</div>'+writeRows+'</div>'
     +'<div class="mc"><div class="mct">Biggest tables</div>'+tblRows+'</div>';
 }
 
@@ -9908,7 +9926,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13718,7 +13736,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14187,7 +14205,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EL';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EM';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

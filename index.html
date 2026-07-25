@@ -1342,6 +1342,9 @@
     .m-add{background:var(--grad);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:14px;padding:11px 16px;cursor:pointer;white-space:normal;line-height:1.3}
     .ck-testbtn.ghost{background:transparent;border:1px dashed var(--b2);color:var(--t2)}
     .m-list{flex:1;overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 24px);-webkit-overflow-scrolling:touch}
+    /* A secondary list inside a pane that already has a .m-list. Must NOT flex:1 — two growing
+       scrollers split the pane between them and squeeze anything after them off-screen. */
+    .m-sublist{flex:0 0 auto;max-height:34vh;overflow-y:auto;padding:0 18px 2px;-webkit-overflow-scrolling:touch}
     .m-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:11px 12px;margin-bottom:8px}
     .m-row-main{flex:1;min-width:0;cursor:pointer}
     .m-row-desc{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2590,7 +2593,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ED · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EE · ZXing raw</div>
       </div>
     </div>
 
@@ -3438,7 +3441,7 @@
          RaceFacer on its own, so anything unassigned shows up in this list waiting for a venue. -->
     <div class="m-tools"><div class="m-pane-title">Kart types &rarr; venue</div><button class="m-add" onclick="mktLoad(1)">&#8635; Refresh</button></div>
     <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">New kart types are picked up from RaceFacer automatically and land here as <b>Unassigned</b>. A type with no venue is not synced anywhere &mdash; give it one to bring its karts in.</div>
-    <div class="m-list" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
+    <div class="m-sublist" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
     <div class="m-form-msg" id="mkt-msg" style="margin:0 18px 14px"></div>
 
     <div class="m-tools"><input class="m-search-in" id="mk-search" placeholder="Find a kart number or type…" oninput="mkSearch()" autocomplete="off"></div>
@@ -4289,7 +4292,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ED</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EE</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -9488,7 +9491,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ED \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -9515,7 +9518,7 @@ function mktMsg(t,col){ var m=document.getElementById('mkt-msg'); if(m){ m.textC
 function mktLoad(force){
   if(typeof SBC==='undefined'||!SBC) return;
   if(force) mktMsg('');
-  SBC.from('rf_kart_types').select('uuid,type,site,active,sort_order').order('sort_order',{nullsFirst:false}).order('type')
+  SBC.from('rf_kart_types').select('uuid,rf_type_id,type,site,active,sort_order').order('sort_order',{nullsFirst:false}).order('type')
     .then(function(r){
       if(r&&r.error){ mktRenderErr(r.error.message); return; }
       MKT_ROWS=(r&&r.data)||[]; mktRender();
@@ -9547,10 +9550,15 @@ function mktRender(){
   el.innerHTML=rows.map(function(t){
     var name=acEsc(t.type||'(unnamed type)');
     var warn=t.site?'':'<span style="color:#FFB020;font-weight:700">&#9888; unassigned</span>';
+    // Types found in RaceFacer's settings list have a numeric id but no garage uuid yet, so the
+    // runner can't sync them from a garage page. Say so rather than showing a meaningless key.
+    var linked=/^[0-9a-f]{8}-/i.test(String(t.uuid||''));
+    var ref=(t.rf_type_id!=null?('RaceFacer #'+acEsc(String(t.rf_type_id))):acEsc(String(t.uuid).slice(0,8)+'\u2026'))
+           +(linked?'':' &middot; <span style="color:#94A3B8">not linked to a garage page yet</span>');
     return '<div class="m-row" style="align-items:center;gap:10px">'
       +'<div style="flex:1;min-width:0">'
         +'<div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+name+'</div>'
-        +'<div style="font-size:10.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+warn+(warn?' &middot; ':'')+acEsc(String(t.uuid).slice(0,8))+'&hellip;</div>'
+        +'<div style="font-size:10.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+warn+(warn?' &middot; ':'')+ref+'</div>'
       +'</div>'
       +'<select class="m-search-in" style="flex:0 0 132px;padding:7px 8px" onchange="mktSet(\''+acEsc(t.uuid)+'\',this.value)"'+(MKT_BUSY?' disabled':'')+'>'
         +mktSiteOptions(t.site||'')
@@ -13233,7 +13241,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ED \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -13622,7 +13630,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-ED';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EE';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

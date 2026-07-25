@@ -96,3 +96,27 @@ create policy push_subs_update on public.push_subs
 --    from pg_policies where schemaname = 'public'
 --    order by tablename, policyname;
 -- ============================================================================
+
+-- ----------------------------------------------------------------------------
+--  FOLLOW-UP: link rows to RaceFacer's own numeric kart-type id.
+--
+--  The first cut keyed this table on the garage page's kart_type_uuid. That is
+--  not RaceFacer's identity for a kart type — Settings -> Karts lists them by a
+--  numeric id (Adult Track 1, Mini Track 6, Junior Track 7, Red Remotes 14,
+--  Twin 17, Lane 18, BattleKart 21, Intermediate Track 22, Melbourne Fleet 23).
+--
+--  It also showed the built-in seed labels were wrong: type 23 is "Melbourne
+--  Fleet", not a second "Adult Track", which is why two identical Adult Track
+--  rows appeared in Master Access.
+--
+--  The runner now discovers types from that authoritative list (via the copy the
+--  pusher already syncs into rf_kart_admin), stamps the numeric id onto matching
+--  rows and corrects their names. Types with no garage uuid yet are inert: the
+--  runner skips them, so they can never misdirect a sync.
+-- ----------------------------------------------------------------------------
+
+alter table public.rf_kart_types
+  add column if not exists rf_type_id int;
+
+create unique index if not exists rf_kart_types_type_id
+  on public.rf_kart_types (rf_type_id) where rf_type_id is not null;

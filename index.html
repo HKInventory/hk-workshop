@@ -3433,6 +3433,14 @@
     </div>
   </div>
   <div class="m-pane" id="m-pane-karts">
+    <!-- Venue assignment. Which venue a kart type belongs to used to be hardcoded in the runner;
+         it now lives in rf_kart_types and is set here. The runner discovers new types from
+         RaceFacer on its own, so anything unassigned shows up in this list waiting for a venue. -->
+    <div class="m-tools"><div class="m-pane-title">Kart types &rarr; venue</div><button class="m-add" onclick="mktLoad(1)">&#8635; Refresh</button></div>
+    <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">New kart types are picked up from RaceFacer automatically and land here as <b>Unassigned</b>. A type with no venue is not synced anywhere &mdash; give it one to bring its karts in.</div>
+    <div class="m-list" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
+    <div class="m-form-msg" id="mkt-msg" style="margin:0 18px 14px"></div>
+
     <div class="m-tools"><input class="m-search-in" id="mk-search" placeholder="Find a kart number or type…" oninput="mkSearch()" autocomplete="off"></div>
     <div class="mk-filters" id="mk-sites" style="display:none"></div>
     <div class="mk-filters" id="mk-types"></div>
@@ -9468,8 +9476,82 @@ function mTab(name){
    server). The kart keeps its real type but moves to the Long Term pile in Kart Info and
    drops out of the usable counts — a true reflection of how many karts we can fix. */
 function mkMsg(t,col){ var m=document.getElementById('mk-msg'); if(m){ m.textContent=t||''; m.style.color=col||'#FF5A52'; } }
+
+/* ===== Kart types -> venue (Master Access -> Karts) ================================
+   Which venue a kart type belongs to was a hardcoded map inside the runner
+   (racefacer-sync.js KART_TYPES), so re-pointing a type meant a code change and a
+   redeploy. It now lives in rf_kart_types; this panel is the editor.
+
+   The runner discovers types straight from RaceFacer and inserts anything new with
+   site = NULL, so a type you've never seen appears here as "Unassigned" instead of
+   needing its UUID typed in. An unassigned type is inert until you give it a venue. */
+var MKT_ROWS=null, MKT_BUSY=false;
+function mktMsg(t,col){ var m=document.getElementById('mkt-msg'); if(m){ m.textContent=t||''; m.style.color=col||'#FF5A52'; } }
+function mktLoad(force){
+  if(typeof SBC==='undefined'||!SBC) return;
+  if(force) mktMsg('');
+  SBC.from('rf_kart_types').select('uuid,type,site,active,sort_order').order('sort_order',{nullsFirst:false}).order('type')
+    .then(function(r){
+      if(r&&r.error){ mktRenderErr(r.error.message); return; }
+      MKT_ROWS=(r&&r.data)||[]; mktRender();
+    },function(e){ mktRenderErr((e&&e.message)||'could not load'); });
+}
+function mktRenderErr(msg){
+  var el=document.getElementById('m-kart-types'); if(!el) return;
+  // The table not existing yet is the common case — say exactly what to do about it.
+  var missing=/rf_kart_types|does not exist|schema cache/i.test(String(msg||''));
+  el.innerHTML='<div class="m-empty">'+(missing
+    ? 'Kart types table not set up yet &mdash; run <b>rf_kart_types.sql</b> in Supabase, then tap Refresh.'
+    : 'Could not load kart types: '+acEsc(String(msg||'')))+'</div>';
+}
+function mktSiteOptions(cur){
+  var sites=(typeof allSites!=='undefined'&&allSites&&allSites.length)?allSites:[{id:'sydney',label:'Sydney'}];
+  var out='<option value=""'+(!cur?' selected':'')+'>Unassigned</option>';
+  sites.forEach(function(s){ out+='<option value="'+acEsc(s.id)+'"'+((cur===s.id)?' selected':'')+'>'+acEsc(s.label||s.id)+'</option>'; });
+  return out;
+}
+function mktRender(){
+  var el=document.getElementById('m-kart-types'); if(!el) return;
+  var rows=MKT_ROWS||[];
+  if(!rows.length){ el.innerHTML='<div class="m-empty">No kart types yet &mdash; the runner adds them as it finds them in RaceFacer.</div>'; return; }
+  // Unassigned first: those are the ones needing attention.
+  rows=rows.slice().sort(function(a,b){
+    var au=a.site?1:0, bu=b.site?1:0; if(au!==bu) return au-bu;
+    return String(a.type||a.uuid).localeCompare(String(b.type||b.uuid));
+  });
+  el.innerHTML=rows.map(function(t){
+    var name=acEsc(t.type||'(unnamed type)');
+    var warn=t.site?'':'<span style="color:#FFB020;font-weight:700">&#9888; unassigned</span>';
+    return '<div class="m-row" style="align-items:center;gap:10px">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+name+'</div>'
+        +'<div style="font-size:10.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+warn+(warn?' &middot; ':'')+acEsc(String(t.uuid).slice(0,8))+'&hellip;</div>'
+      +'</div>'
+      +'<select class="m-search-in" style="flex:0 0 132px;padding:7px 8px" onchange="mktSet(\''+acEsc(t.uuid)+'\',this.value)"'+(MKT_BUSY?' disabled':'')+'>'
+        +mktSiteOptions(t.site||'')
+      +'</select>'
+    +'</div>';
+  }).join('');
+}
+function mktSet(uuid,site){
+  if(typeof SBC==='undefined'||!SBC||MKT_BUSY) return;
+  MKT_BUSY=true; mktMsg('Saving\u2026','var(--t2)');
+  var row=(MKT_ROWS||[]).filter(function(x){return x.uuid===uuid;})[0];
+  var prev=row?row.site:null;
+  if(row) row.site=site||null;
+  SBC.from('rf_kart_types').update({site:site||null,updated_at:new Date().toISOString(),updated_by:(cu&&cu.name)||''}).eq('uuid',uuid)
+    .then(function(r){
+      MKT_BUSY=false;
+      if(r&&r.error){ if(row) row.site=prev; mktRender(); mktMsg('Could not save: '+r.error.message); return; }
+      mktRender();
+      // The runner re-reads rf_kart_types on its own timer, so the change lands on the next pass
+      // rather than instantly — say so, otherwise it reads as "nothing happened".
+      mktMsg((site?'Assigned':'Unassigned')+' \u2014 the runner picks this up within ~2 minutes','#34D399');
+    },function(e){ MKT_BUSY=false; if(row) row.site=prev; mktRender(); mktMsg('Could not save: '+((e&&e.message)||'error')); });
+}
 var MK_SITE=null, MK_TYPE='', MK_KARTS=null;   // master karts list: active site, active type filter, other-site snapshot
 function mkOpen(){
+  try{ mktLoad(); }catch(e){}          // kart type -> venue assignment panel
   MK_SITE=MK_SITE||currentSite||'sydney';
   mkRender();
   if(MK_SITE===(currentSite||'sydney')) loadRfKarts(function(){ if(MK_SITE===(currentSite||'sydney')) mkRender(); });

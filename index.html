@@ -1099,6 +1099,16 @@
        Charts are inline SVG/CSS: nothing to load, nothing to go stale, and it draws
        the moment the data lands. Marks are thin, grid and axes recede, and every
        chart is direct-labelled so no value is ever carried by colour alone. */
+    .si-hours-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:7px;border:1px solid var(--b1);
+      background:var(--card2);color:var(--t2);font-size:11px;font-weight:700;text-align:left;cursor:pointer}
+    .si-hours{margin-top:8px;padding:10px;border-radius:10px;background:var(--card2);border:1px solid var(--b1)}
+    .si-hours-hint{font-size:10.5px;color:var(--t2);line-height:1.55;margin-bottom:8px}
+    .si-hrow{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11.5px}
+    .si-hd{flex:0 0 34px;font-weight:700;color:var(--t2)}
+    .si-ht{flex:1;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid var(--b1);background:var(--bg);color:var(--t1);font-size:11.5px}
+    .si-ht:disabled{opacity:.35}
+    .si-hdash{color:var(--t2);font-size:10.5px}
+    .si-hc{flex:0 0 auto;display:flex;align-items:center;gap:4px;color:var(--t2);font-size:10.5px;white-space:nowrap}
     .dev-badge{display:inline-block;vertical-align:middle;margin-left:9px;padding:3px 9px;border-radius:999px;
       background:rgba(201,133,0,.16);border:1px solid rgba(201,133,0,.45);color:#c98500;
       font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
@@ -2703,7 +2713,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FE · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FF · ZXing raw</div>
       </div>
     </div>
 
@@ -3732,7 +3742,7 @@ function loadSites(cb){
   Promise.all(qs).then(function(rs){
     // tz comes through with the rest of the site record. It is optional: a database that predates
     // the column simply returns undefined and siteTz() falls back, so nothing waits on a migration.
-    allSites=((rs[0]&&rs[0].data)||[]).map(function(r){return {id:r.id,label:r.label,accent:r.accent,position:r.position,tz:r.tz||null};});
+    allSites=((rs[0]&&rs[0].data)||[]).map(function(r){return {id:r.id,label:r.label,accent:r.accent,position:r.position,tz:r.tz||null,hours:r.hours||null};});
     if(!allSites.length) allSites=[{id:'sydney',label:'Sydney',accent:'#00CFFF',position:1,tz:'Australia/Sydney'}];
     // Cache each venue's zone so the FIRST paint after a cold start is already right. loadSites is
     // async; without this a Perth screen would render in Sydney time for a moment and then correct
@@ -4489,7 +4499,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FE</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FF</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11129,7 +11139,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11578,7 +11588,7 @@ function msToggleSite(i,sid){ var st=mStaffDraft[i]; if(!st||_isMgr(st.role)) re
 function siLoad(){
   var el=document.getElementById('m-sites-list'); el.innerHTML='<div class="m-empty">Loading sites\u2026</div>';
   mLoadSnap(function(res){
-      if(res&&res.success){ mSitesDraft=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent,position:s.position,active:s.active!==false,tz:s.tz||null,_existing:true};}); mSitesLoaded=true; siRender(); }
+      if(res&&res.success){ mSitesDraft=(res.sites||[]).map(function(s){return {id:s.id,label:s.label,accent:s.accent,position:s.position,active:s.active!==false,tz:s.tz||null,hours:s.hours||null,_existing:true};}); mSitesLoaded=true; siRender(); }
       else if(el){ el.innerHTML='<div class="m-empty">'+((res&&res.message)||'Could not load sites')+'</div>'; }
   });
 }
@@ -11599,6 +11609,88 @@ var TZ_CHOICES=[
   ['Asia/Dubai','Dubai'],
   ['Europe/London','London'],
 ];
+/* ===== OPENING HOURS ============================================================
+   Between about 10pm and 8am there is nobody on site: no kart moves, no note is
+   written, no race is run. The runner polls RaceFacer and RiMO around the clock
+   regardless, and every one of those polls costs Render outbound bandwidth and
+   Supabase rows for data that cannot have changed. Ten hours closed is 42% of the
+   day, and skipping it costs nothing in capability.
+
+   Set here rather than in SQL because a venue's hours are a property of the venue,
+   like its timezone and its accent colour — and they change (school holidays, a
+   private event) far more often than anyone wants to open a database console.
+
+   THREE THINGS THIS DELIBERATELY DOES NOT DO:
+     • It does not lock staff out of the app. Anyone can open it, read everything
+       and queue work at 3am; queued pushes to RaceFacer still drain.
+     • It does not stop a race being recorded. A session on track overrides the
+       clock entirely — sessions here run badly late and night events happen.
+     • It does not fail closed. A venue with no hours set, or an unreadable config,
+       polls around the clock. The failure mode must always be "collect too much". */
+var SI_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+function siHoursOf(site){
+  var h=site&&site.hours;
+  if(typeof h==='string'){ try{ h=JSON.parse(h); }catch(e){ h=null; } }
+  return (h&&typeof h==='object')?h:{};
+}
+function siHoursSummary(site){
+  var h=siHoursOf(site), closed=(h.closed||[]), set=0, sample='';
+  SI_DAYS.forEach(function(d){ var v=h[d[0]]; if(Array.isArray(v)&&v.length>1&&v[0]&&v[1]){ set++; if(!sample) sample=v[0]+'–'+v[1]; } });
+  if(!set&&!closed.length) return 'not set (runner polls 24/7)';
+  return set+' day'+(set===1?'':'s')+' set'+(sample?(', e.g. '+sample):'')+(closed.length?(' · '+closed.length+' closed'):'');
+}
+function siHoursToggle(i){
+  var el=document.getElementById('si-hours-'+i); if(!el) return;
+  el.style.display=(el.style.display==='none')?'':'none';
+}
+function siHoursRows(i,site){
+  var h=siHoursOf(site), closed=(h.closed||[]);
+  return '<div class="si-hours-hint">Leave a day blank to poll it around the clock. Tick <b>Closed</b> for a day the venue does not open. A race on track always wakes the runner, whatever is set here.</div>'
+    +SI_DAYS.map(function(d){
+      var v=h[d[0]]||[], isC=closed.indexOf(d[0])>=0;
+      return '<div class="si-hrow">'
+        +'<span class="si-hd">'+d[1]+'</span>'
+        +'<input type="time" class="si-ht" value="'+(v[0]||'')+'" '+(isC?'disabled':'')+' oninput="siHoursSet('+i+',\''+d[0]+'\',0,this.value)">'
+        +'<span class="si-hdash">to</span>'
+        +'<input type="time" class="si-ht" value="'+(v[1]||'')+'" '+(isC?'disabled':'')+' oninput="siHoursSet('+i+',\''+d[0]+'\',1,this.value)">'
+        +'<label class="si-hc"><input type="checkbox" '+(isC?'checked':'')+' onchange="siHoursClosed('+i+',\''+d[0]+'\',this.checked)"> Closed</label>'
+      +'</div>';
+    }).join('')
+    +'<div class="si-hours-hint" style="margin-top:8px">Saved with the site. The runner re-reads this every 5 minutes — no redeploy needed.</div>';
+}
+function siHoursSet(i,day,idx,val){
+  var st=mSitesDraft[i]; if(!st) return;
+  var h=siHoursOf(st); var v=Array.isArray(h[day])?h[day].slice():['',''];
+  v[idx]=val||'';
+  if(!v[0]&&!v[1]) delete h[day]; else h[day]=v;
+  st.hours=h;
+}
+function siHoursClosed(i,day,on){
+  var st=mSitesDraft[i]; if(!st) return;
+  var h=siHoursOf(st); var c=(h.closed||[]).filter(function(x){return x!==day;});
+  if(on) c.push(day);
+  h.closed=c; st.hours=h;
+  siRender();
+  var el=document.getElementById('si-hours-'+i); if(el) el.style.display='';
+}
+/* Written straight to the row for the same reason the timezone is: the sites-save Edge Function
+   predates the column and drops fields it does not know about. */
+function siSaveHours(msg){
+  if(typeof SBC==='undefined'||!SBC) return;
+  var rows=mSitesDraft.filter(function(s){ return s._existing&&s.id&&s.hours; });
+  if(!rows.length) return;
+  Promise.all(rows.map(function(s){
+    return SBC.from('sites').update({hours:siHoursOf(s)}).eq('id',s.id).then(function(r){return r;},function(e){return {error:e};});
+  })).then(function(rs){
+    var bad=rs.filter(function(r){ return r&&r.error; })[0];
+    if(bad&&msg){
+      var missing=/hours|column|schema cache|PGRST204/i.test(String((bad.error&&bad.error.message)||''));
+      msg.style.color='var(--red)';
+      msg.textContent=missing?'Site saved, but the opening-hours column is missing — run the sites.hours SQL.'
+                             :'Site saved, but the opening hours could not be stored.';
+    }
+  });
+}
 function siSaveTz(msg){
   if(typeof SBC==='undefined'||!SBC) return;
   var rows=mSitesDraft.filter(function(s){ return s._existing&&s.id&&_tzValid(siTzOf(s)); });
@@ -11641,7 +11733,10 @@ function siRender(){
       // site reports the wrong day, the wrong "before midday" and the wrong opening hours.
       +'<select class="site-tz" onchange="siField('+i+',\'tz\',this.value)" style="margin-top:5px;width:100%;font-size:11.5px;padding:4px 6px;border-radius:7px;background:var(--c2);color:var(--t1);border:1px solid var(--b1)">'
       +TZ_CHOICES.map(function(z){ return '<option value="'+z[0]+'"'+((siTzOf(s)===z[0])?' selected':'')+'>'+z[1]+'</option>'; }).join('')
-      +'</select></div>'
+      +'</select>'
+      +'<button type="button" class="si-hours-btn" onclick="siHoursToggle('+i+')">&#128340; Opening hours &mdash; '+acEsc(siHoursSummary(s))+'</button>'
+      +'<div class="si-hours" id="si-hours-'+i+'" style="display:none">'+siHoursRows(i,s)+'</div>'
+      +'</div>'
       +'<span class="site-dot" style="background:'+(s.accent||'#00CFFF')+';box-shadow:0 0 10px '+(s.accent||'#00CFFF')+'"></span>'
       +(canDel?'<button type="button" class="site-del" title="Delete venue" onclick="siDelete('+i+')">\u00d7</button>':'')
       +'</div>';
@@ -11683,7 +11778,7 @@ function siSave(){
         // picker looking like it works when it doesn't, the zone is written straight to the row here.
         // This screen is already behind the master PIN, so it is not a new privilege \u2014 and if the
         // column hasn't been added yet, it says so instead of failing silently.
-        siSaveTz(msg);
+        siSaveTz(msg); siSaveHours(msg);
         mSitesLoaded=false; siLoad(); mStaffLoaded=false; if(document.getElementById('m-staff-list')) msLoad(); loadSites(function(){ applySiteAccent(stk&&stk.length?stk[stk.length-1]:'home'); }); setTimeout(function(){if(msg.style.color!=='var(--red)'){msg.textContent='';msg.style.color='';}},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save sites'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
@@ -15025,7 +15120,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15494,7 +15589,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FE';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FF';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EW · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EX · ZXing raw</div>
       </div>
     </div>
 
@@ -4395,7 +4395,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EW</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EX</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6490,7 +6490,7 @@ function healthLoad(force){
   if(force) HEALTH_ROWS=null;
   var host=document.getElementById('health-body');
   if(host&&!HEALTH_ROWS) host.innerHTML='<div class="emp" style="padding:14px 0">Loading health…</div>';
-  SBC.from('app_health').select('*').order('at',{ascending:false}).limit(60).then(function(r){
+  SBC.from('app_health').select('*').order('at',{ascending:false}).limit(400).then(function(r){
     HEALTH_BUSY=false;
     if(r&&r.error){ healthErr(r.error.message); return; }
     HEALTH_ROWS=(r&&r.data)||[]; healthRender();
@@ -6529,15 +6529,28 @@ function healthRender(){
   // both deliberately kept out of the publication, so they cost nothing in realtime terms.
   // An alarm that is always red gets ignored, including the day it is right, so the projection
   // now uses only the writes that can actually bill — and says so when it cannot tell.
-  var wpm=Number(cur.writes_per_min||0);
-  var rtw=(cur.realtime_writes_per_min==null)?null:Number(cur.realtime_writes_per_min);
+  /* PROJECT FROM THE AVERAGE, NOT FROM THE LAST 60 SECONDS.
+     writes_per_min is a rolling 60-second window — the right shape for a smoke alarm, the wrong
+     shape for "what will this cost this month". A snapshot samples one minute in 1,440, and this
+     page duly reported "0 of 218 rows/min going to published tables" because that one minute
+     happened to contain only rimo writes. The runner now also records an average over its whole
+     uptime; use it when present and fall back to the instantaneous reading for older snapshots. */
+  var wpm=Number((cur.avg_writes_per_min!=null?cur.avg_writes_per_min:cur.writes_per_min)||0);
+  var rtSrc=(cur.avg_realtime_writes_per_min!=null)?cur.avg_realtime_writes_per_min:cur.realtime_writes_per_min;
+  var rtw=(rtSrc==null)?null:Number(rtSrc);
+  // An average over three minutes of uptime is not evidence of anything. Say so rather than
+  // projecting a month from it.
+  var upMin=Number(cur.uptime_min||0);
+  var thin=(cur.avg_writes_per_min!=null && upMin>0 && upMin<20);
   if(rtw==null){
     bars+=hBar(null,null,'Realtime messages',
       'Cannot tell yet — run the hk_realtime_tables SQL so this counts only published tables. Total write rate is '+hNum(wpm)+'/min.');
   } else {
     var projected=rtw*60*24*30;
     bars+=hBar(projected,HK_PLAN.realtime_msgs,'Realtime messages (projected/month)',
-      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+hNum(rtw)+' of '+hNum(wpm)+' rows/min going to published tables');
+      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+(Math.round(rtw*10)/10)+' of '+(Math.round(wpm))+' rows/min going to published tables'
+      +(upMin?(' · averaged over '+(upMin<120?Math.round(upMin)+' min':(Math.round(upMin/60)+'h'))+' of runner uptime'):'')
+      +(thin?' · still warming up, treat as provisional':''));
   }
 
   // hBar's right-hand slot showed "not connected" whenever it had no percentage to display, which
@@ -6585,15 +6598,15 @@ function healthRender(){
 
   host.innerHTML=
     '<div class="mc"><div class="mct">App Health</div>'
-      +'<div style="font-size:11px;color:'+(staleH>26?'#FFB020':'var(--t2)')+';margin:0 0 12px">Updated '+acEsc(when)+' · one snapshot a day'
-        +(staleH>26?' · <b>'+Math.round(staleH)+'h old — redeploy the runner to refresh</b>':'')+'</div>'
+      +'<div style="font-size:11px;color:'+(staleH>2?'#FFB020':'var(--t2)')+';margin:0 0 12px">Updated '+acEsc(when)+' · a snapshot every 30 minutes'
+        +(staleH>2?' · <b>'+(staleH<48?(Math.round(staleH*10)/10+'h'):(Math.round(staleH/24)+' days'))+' old — the runner isn\u2019t writing snapshots</b>':'')+'</div>'
       +bars
     +'</div>'
     +'<div class="mc"><div class="mct">What this means</div>'
       +advice.map(function(a){ return '<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:1.5">'
         +'<span style="color:'+ac[a.s]+'">●</span><span style="flex:1">'+acEsc(a.t)+'</span></div>'; }).join('')
     +'</div>'
-    +'<div class="mc"><div class="mct">Write rate · last 60 snapshots</div>'
+    +'<div class="mc"><div class="mct">Write rate · last '+(hist.length<2?'':(hist.length<48?(hist.length*30)+' minutes':(Math.round(hist.length/48)+' days')))+'</div>'
       +hSpark(hist.map(function(x){ return Number(x.writes_per_min||0); }),'#22D3EE')
       +'<div style="font-size:11px;color:var(--t2);margin-top:6px">Rows written per minute. Flat is healthy; a climbing line is the early warning.</div>'
     +'</div>'
@@ -9781,6 +9794,19 @@ function hkDeleteNote(noteId, rfKartId, ev){
   // Optimistic local state: mark closed in memory + drop from the feed rows, repaint now. Grab the
   // note's RaceFacer notification_id + text on the way so we can tell RaceFacer to clear it too.
   try{ Object.keys(RF_NOTES_BY_ID||{}).forEach(function(id){ (RF_NOTES_BY_ID[id]||[]).forEach(function(n){ if(n.id===noteId){ n.active=false; n.open=false; n.archivedIso=now; n.archivedBy=cu.name; if(n.notifId!=null)_notifId=n.notifId; if(n.note)_noteTxt=n.note; } }); }); }catch(e){}
+  /* WHY THE X APPEARED TO DO NOTHING.
+     rf_notification_id is what tells RaceFacer which notification to clear. It was only ever read
+     from RF_NOTES_BY_ID — the per-kart cache, which is populated by opening a KART. Press the X on
+     the Notifications / Kart Notes FEED without having opened that kart and the cache has no entry,
+     so _notifId stayed null, RaceFacer was never told, the note stayed open there, and the next
+     sync read it back as active. The note vanished for a second and came back — which is exactly
+     what "still doesn't delete them" looks like.
+     The feed rows already carry rf_notification_id (renderKartNotesFeed selects it), so read it
+     from there too. Done BEFORE the row is filtered out, or there would be nothing left to read. */
+  try{ if(KI_NOTES_ROWS){ var _fr=KI_NOTES_ROWS.filter(function(r){ return r.id===noteId; })[0];
+    if(_fr){ if(_notifId==null&&_fr.rf_notification_id!=null) _notifId=_fr.rf_notification_id;
+             if(!_noteTxt&&_fr.note) _noteTxt=_fr.note;
+             if(rfKartId==null&&_fr.rf_kart_id!=null) rfKartId=_fr.rf_kart_id; } } }catch(e){}
   try{ if(KI_NOTES_ROWS) KI_NOTES_ROWS=KI_NOTES_ROWS.filter(function(r){ return r.id!==noteId; }); }catch(e){}
   try{ var inner=document.getElementById('kn-tabinner'); if(inner&&KI_NOTES_ROWS&&KI_NKMAP) inner.innerHTML=kiNotesListHTML(KI_NOTES_ROWS,KI_NKMAP); }catch(e){}
   try{ var on=document.getElementById('kd-opennotes'); if(on&&KD_KART) on.innerHTML=kartOpenNotesHTML(KD_KART.rfId); }catch(e){}
@@ -10485,7 +10511,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14359,7 +14385,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14828,7 +14854,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EW';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EX';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

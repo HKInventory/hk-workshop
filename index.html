@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GN · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GP · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GN</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GP</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4835,6 +4835,27 @@ function _navFlush(){
   if(!q) return;
   if(q.kind==='back') back(); else go(q.id,q.mode);
 }
+/* NOTHING MAY HOLD THE NAVIGATION LOCK INDEFINITELY.
+   navLock is raised at the start of a screen slide and lowered by a timer at the end, and while it is
+   raised every tap is queued instead of acted on. That is correct for the 480ms of an animation and
+   catastrophic for anything longer: if the lowering ever fails to run, every subsequent tap is
+   swallowed and the app is frozen with no error and nothing on screen to explain it — exactly what a
+   kart tap that "freezes so you can't click anything" looks like.
+   A lock is a promise to release. This is the release that cannot be skipped: well past the longest
+   transition, if the lock is somehow still held, it is dropped and the queue is flushed. In normal
+   operation this never fires. */
+var _navWdT=null;
+function _navWatchdog(){
+  clearTimeout(_navWdT);
+  _navWdT=setTimeout(function(){
+    if(!navLock) return;
+    navLock=false;
+    try{ var a=document.getElementById('app'); if(a) a.classList.remove('nav-locked'); }catch(e){}
+    // Leave the screens in a sane state — whatever was mid-slide is snapped to its resting position.
+    try{ document.querySelectorAll('.scr').forEach(function(el){ el.style.transition='none'; el.style.zIndex=''; }); }catch(e){}
+    try{ _navFlush(); }catch(e){}
+  },1600);
+}
 function go(id,mode){
   // A screen can be opened in more than one mode — Beacons serves both Layouts and Dehaardt
   // Functions, which are the same map with a different job. Stashed before the transition so the
@@ -4845,6 +4866,7 @@ function go(id,mode){
   var curId=stk.length?stk[stk.length-1]:null,cur=curId?s(curId):null,nxt=s(id);
   if(!nxt||id===curId) return;
   navLock=true;
+  _navWatchdog();
   var appEl=document.getElementById('app');
   if(appEl) appEl.classList.add('nav-locked');
   stk.push(id);
@@ -4875,30 +4897,43 @@ function go(id,mode){
     cur.style.transition='transform 480ms '+ease;
     cur.style.transform='translate3d(-28%,0,0)';
   }
+  /* THE RELEASE GOES IN A `finally`, BECAUSE IT GATES EVERY TAP IN THE APP.
+     nav-locked applies `pointer-events:none` to #app and everything inside it. That is right for the
+     480ms of a slide and catastrophic for a millisecond longer: if anything in this callback threw
+     before the release ran, the class stayed on and the app was dead to touch — you could still
+     scroll, because scrolling is not a pointer event on the compositor, but nothing responded to a
+     tap and there was no error on screen to explain it. That is the frozen-after-tapping-a-kart
+     report, and its cause was that the release sat at the END of a block that can throw.
+     Nothing above it can skip it now. */
   setTimeout(function(){
-    // Align cascade BEFORE touching inline — prevents iOS Safari from briefly
-    // painting the wrong position if it drops the inline value during transition reset.
-    nxt.classList.add('active');                // nxt cascade: 100% → 0%
-    if(cur){
-      cur.classList.add('behind');               // cur cascade: 0% → -28%
-      cur.classList.remove('active');
+    try{
+      // Align cascade BEFORE touching inline — prevents iOS Safari from briefly
+      // painting the wrong position if it drops the inline value during transition reset.
+      nxt.classList.add('active');                // nxt cascade: 100% → 0%
+      if(cur){
+        cur.classList.add('behind');               // cur cascade: 0% → -28%
+        cur.classList.remove('active');
+      }
+      // Cascade now matches intended final values. Safe to refresh inline.
+      nxt.style.zIndex=''; if(cur) cur.style.zIndex='';
+      nxt.style.transition='none';
+      nxt.style.transform='translate3d(0,0,0)';
+      if(cur){
+        cur.style.transition='none';
+        cur.style.transform='translate3d(-28%,0,0)';
+      }
+      requestAnimationFrame(function(){ try{ updateUI(id); }catch(e){} });
+    } finally {
+      navLock=false;
+      if(appEl) appEl.classList.remove('nav-locked');
+      clearTimeout(_navWdT);
+      try{ _navFlush(); }catch(e){}
     }
-    // Cascade now matches intended final values. Safe to refresh inline.
-    nxt.style.zIndex=''; if(cur) cur.style.zIndex='';
-    nxt.style.transition='none';
-    nxt.style.transform='translate3d(0,0,0)';
-    if(cur){
-      cur.style.transition='none';
-      cur.style.transform='translate3d(-28%,0,0)';
-    }
-    requestAnimationFrame(function(){updateUI(id);});
-    navLock=false;
-    if(appEl) appEl.classList.remove('nav-locked');
-    _navFlush();
   },500);
 }
 function back(){
   if(navLock){ _navPending={kind:'back'}; return; }
+  _navWatchdog();
   if(stk.length&&stk[stk.length-1]==='chats'&&typeof chatGoBack==='function'&&chatGoBack()) return;
   if(stk.length&&stk[stk.length-1]==='beacons'&&window.BCN_FROM_GRID&&typeof bcnBackToGrid==='function'&&bcnBackToGrid()) return;
   if(stk.length<=1) return;
@@ -4923,27 +4958,35 @@ function back(){
   from.style.transform='translate3d(100%,0,0)';
   to.style.transition='transform 480ms '+ease;
   to.style.transform='translate3d(0,0,0)';
+  /* Same `finally` as go(), and this one had a live fuse in it: stopScan() tears down a camera
+     stream, which throws readily on iOS when a track has already ended or permission was revoked.
+     It sat two lines above the release, so a bad camera teardown on the way out of the scanner left
+     pointer-events:none on the whole app. */
   setTimeout(function(){
-    // CRITICAL FIX: align cascade (class state) BEFORE touching inline transforms.
-    // Throughout the animation, lowstock had class .active (cascade=0%) but inline 100%.
-    // If iOS Safari briefly drops the inline (e.g. during transition reset), the
-    // cascade's 0% wins and lowstock appears centered for one frame.
-    // Solution: remove .active first so the cascade ALSO says 100% (base .scr default).
-    // Then the inline change can't cause any rendering mismatch.
-    from.classList.remove('active','behind');  // cascade now = 100% (base)
-    to.classList.remove('behind');
-    to.classList.add('active');                 // cascade now = 0%
-    // Now inline and cascade agree. Safe to refresh inline values.
-    to.style.transition='none';
-    to.style.transform='translate3d(0,0,0)';
-    from.style.transition='none';
-    from.style.transform='translate3d(100%,0,0)';
-    if(fromId==='scan') stopScan();
-    requestAnimationFrame(function(){updateUI(toId);});
-    from.style.zIndex=''; to.style.zIndex='';
-    navLock=false;
-    if(appEl2) appEl2.classList.remove('nav-locked');
-    _navFlush();
+    try{
+      // CRITICAL FIX: align cascade (class state) BEFORE touching inline transforms.
+      // Throughout the animation, lowstock had class .active (cascade=0%) but inline 100%.
+      // If iOS Safari briefly drops the inline (e.g. during transition reset), the
+      // cascade's 0% wins and lowstock appears centered for one frame.
+      // Solution: remove .active first so the cascade ALSO says 100% (base .scr default).
+      // Then the inline change can't cause any rendering mismatch.
+      from.classList.remove('active','behind');  // cascade now = 100% (base)
+      to.classList.remove('behind');
+      to.classList.add('active');                 // cascade now = 0%
+      // Now inline and cascade agree. Safe to refresh inline values.
+      to.style.transition='none';
+      to.style.transform='translate3d(0,0,0)';
+      from.style.transition='none';
+      from.style.transform='translate3d(100%,0,0)';
+      try{ if(fromId==='scan') stopScan(); }catch(e){}
+      requestAnimationFrame(function(){ try{ updateUI(toId); }catch(e){} });
+      from.style.zIndex=''; to.style.zIndex='';
+    } finally {
+      navLock=false;
+      if(appEl2) appEl2.classList.remove('nav-locked');
+      clearTimeout(_navWdT);
+      try{ _navFlush(); }catch(e){}
+    }
   },500);
 }
 
@@ -11812,7 +11855,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13036,7 +13079,20 @@ function tvRepairTallies(){
   Object.keys(REPAIR_FLOOR).forEach(function(nm){ if(!by[nm]) by[nm]={user:nm,day:0,week:0,month:0,year:0,all:0,last:w.today}; });
   return Object.keys(by).map(function(u){ return _applyRepairFloor(by[u]); });
 }
-function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.all>0;}); }
+/* A NAME GETS ON THIS BOARD ONLY IF THE APP CAN SEE A DATED REPAIR FOR IT.
+   `all` comes from repair_totals_public, a stored total. When a repair is deleted in RaceFacer that
+   total is not recomputed, so it keeps counting work that no longer exists — which is how Kaedi held
+   a place on the leaderboard with zero repairs in RaceFacer under her name. Filtering on all>0 could
+   never catch that, because all>0 is exactly the stale number.
+   The board now requires corroboration: at least one repair dated in the current calendar year,
+   counted from rf_repairs rows the app has actually loaded. A stored total on its own is not
+   evidence. The bonus floors are exempt — those are deliberate and set by us. */
+function tvLeaderboard(){
+  return tvRepairTallies().filter(function(o){
+    if(REPAIR_FLOOR[o.user]) return true;                  // deliberate, not inherited
+    return (Number(o.year)||0)>0 || (Number(o.all)||0)>0 && (Number(o.month)||0)>0;
+  });
+}
 /* Phase-cycling leaderboard: while the slide is up it re-ranks Daily \u2192 Weekly \u2192 Monthly \u2192
    All-time, sliding rows to their new spots (FLIP) and highlighting the active column. */
 var TV_LB_PHASE=0,TV_LB_T=null,TV_LB_DATA=[],TV_LB_SEEN=0;   // SEEN: phase survives scene re-entry (see tvLbStart)
@@ -16234,7 +16290,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16703,7 +16759,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GN';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GP';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

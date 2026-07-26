@@ -1140,7 +1140,12 @@
        The bottom banner only appears when something is wrong, which means the normal state says
        nothing at all — you cannot tell "live" from "nobody has told me otherwise". A standing badge
        on the site bar answers it at a glance, every screen, without having to notice an absence. */
-    .sb-open{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;
+    /* Pinned to the right edge rather than pushed there with margin-left:auto. The bar centres its
+       children, so a badge that sits IN the flow eats the free space on one side only and shunts the
+       venue name off-centre — which is exactly what it did. Taking it out of the flow entirely means
+       the name is centred on the bar itself again, badge or no badge, whatever the badge says. */
+    .sb-open{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:2;
+      display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;
       font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
       border:1px solid transparent;transition:opacity .2s}
     .sb-open:empty{display:none}
@@ -1705,11 +1710,20 @@
 /* ===== Phase 2 multi-site (v2) ===== */
 #hdr{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;padding:0;}
 .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:11px;padding:max(env(safe-area-inset-top),18px) 20px 12px;}
-.sitebar{display:none;align-items:center;justify-content:center;gap:9px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--site,#00CFFF);position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+/* The 96px side padding is the gutter the hint and badge live in. It is symmetric, so the name still
+   centres on the BAR and not merely on the space left over — an asymmetric reserve would drift the
+   name every time the badge changed word. It also guarantees the name can never reach either gutter
+   on a 320px phone, which is the one width where the longest venue name and badge both have to fit. */
+.sitebar{display:none;align-items:center;justify-content:center;gap:9px;padding:7px 96px;cursor:pointer;font-weight:800;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--site,#00CFFF);position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
 .sitebar .sb-dot{width:8px;height:8px;border-radius:50%;background:var(--site,#00CFFF);box-shadow:0 0 10px var(--site,#00CFFF);animation:sbpulse 2.4s ease-in-out infinite;flex-shrink:0;}
 @keyframes sbpulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.62);}}
-.sitebar .sb-name{position:relative;z-index:2;}
-.sitebar .sb-hint{font-size:9.5px;letter-spacing:.05em;opacity:.5;font-weight:700;text-transform:none;}
+.sitebar .sb-name{position:relative;z-index:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Hint left, badge right, venue name dead centre. Both of these are asides — the name is the thing
+   staff read — so neither belongs in the centred flow. Left in it, they each shove the name toward
+   the opposite edge by half their own width, and on a phone the longest of each simply will not fit
+   on one centred line at all. Pinned to the gutters they can never move the name or collide with it. */
+.sitebar .sb-hint{position:absolute;left:14px;top:50%;transform:translateY(-50%);z-index:2;
+  font-size:9.5px;letter-spacing:.05em;opacity:.5;font-weight:700;text-transform:none;}
 .sitebar::after{content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;background:linear-gradient(90deg,transparent,var(--siteGlow,rgba(0,207,255,.2)),transparent);animation:sbsweep 5s ease-in-out infinite;}
 @keyframes sbsweep{0%{left:-45%;}55%,100%{left:130%;}}
 /* ----- site chooser ----- */
@@ -2808,7 +2822,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GC · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GD · ZXing raw</div>
       </div>
     </div>
 
@@ -4593,7 +4607,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GC</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GD</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11486,7 +11500,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12092,7 +12106,7 @@ function vhPaint(open){
     var pill=document.getElementById('sbOpen');
     if(pill){
       if(open){ pill.className='sb-open on'; pill.innerHTML='<i></i>Live'; }
-      else if(VH_CLOSED_REASON==='stopped'){ pill.className='sb-open dead'; pill.innerHTML='<i></i>Not syncing'; }
+      else if(VH_CLOSED_REASON==='stopped'){ pill.className='sb-open dead'; pill.innerHTML='<i></i>No sync'; }   /* short on purpose — the badge shares a phone-width bar with the venue name; the banner below carries the detail */
       else { pill.className='sb-open off'; pill.innerHTML='<i></i>Closed'; }
       pill.title=open?'Data is being collected right now'
         :(VH_CLOSED_REASON==='stopped'?'The runner has stopped collecting':'Outside opening hours — collection paused');
@@ -14727,25 +14741,27 @@ function sdEnter(){
          finished, because it IS finished — RaceFacer told us when.
          So the explicit signals are consulted first, and the 30-minute rule is only the fallback for
          a session that has no end time at all. */
-      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;  // RaceFacer says done
-      if(/progress|running|live|active|ongoing/.test(st)) return false;                 // RaceFacer says running
-      var endAt=s.ends_at?_sydParse(s.ends_at):0;
-      if(endAt&&endAt<nowMs) return true;                            // its recorded end time has passed
-      if(endAt&&endAt>=nowMs) return false;                          // still inside its own window
-      // No end time and no status we know: fall back to timing from the green flag.
-      if(greenMs) return (nowMs-greenMs)>SD_RACE_MS;
+      /* THE RULE, STATED PLAINLY:
+           chequered flag  -> show
+           still running   -> do not show
+           not started yet -> do not show, however far past its slot time it is
 
-      /* THE DAY BACKSTOP — and why it is six hours, not thirty minutes.
-         Tightening this to "green flag or explicit status" emptied the page: sessions stored before
-         started_at existed, or left stuck at a status we do not recognise, had no way to qualify and
-         every one of them disappeared. The old rule showed anything scheduled more than THIRTY
-         MINUTES ago, which is what made a 10:30 race listed as finished at 11:05 while it had not
-         turned a wheel — a delay of that size is routine here.
-         Six hours is not a delay, it is a different part of the day. A slot that old is over
-         whatever its stored status says. Same figure the runner uses to retire a slot (see
-         rf_sessions.js DAY_BACKSTOP_H), so the two agree about what "done" means. */
-      if(/not.?started|scheduled|upcoming|pending|waiting|new/.test(st) && startMs && (nowMs-startMs)<SD_DAY_OVER_MS) return false;
-      return !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
+         What broke it was ends_at. That is a SCHEDULED end — start time plus the booked duration —
+         so a 1:00pm race that has not turned a wheel still has an end time of 1:10pm, and at 1:14pm
+         the page treated it as finished and listed it. A scheduled end proves nothing about whether
+         a race happened; only a green flag does.
+         So ends_at is now only consulted for a session that ACTUALLY STARTED. Without a green flag
+         there is exactly one way in — the six-hour backstop, for old rows that predate started_at. */
+      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;   // chequered
+      if(/progress|running|live|active|ongoing/.test(st)) return false;                   // on track now
+      if(greenMs){
+        // It ran. Over when its recorded end has passed, or its race time has elapsed since green.
+        var endAt=s.ends_at?_sydParse(s.ends_at):0;
+        if(endAt) return endAt<nowMs;
+        return (nowMs-greenMs)>SD_RACE_MS;
+      }
+      // NO GREEN FLAG = IT HAS NOT RUN. Not late, not finished — not started.
+      return !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);   // backstop for rows older than started_at
     });
     if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over \u2014 measured from the green flag, so a delayed race still counts. If races HAVE run, the runner may not be capturing them: check the Render log for <b>[sessions]</b>.</div>'; return; }
     // load runs (karts) for all sessions
@@ -15780,7 +15796,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16249,7 +16265,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GC';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GD';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

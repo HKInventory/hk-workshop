@@ -1198,6 +1198,45 @@
 
     /* KPI row. A single value plus its trend is a stat tile — not a one-bar chart. */
     .sum-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+    /* ===== APP HEALTH =========================================================
+       Built on the Daily Summary's components rather than beside them: the same
+       tiles, the same ranked bars, the same validated palette on the same #111
+       surface. Two things this page needs that that one does not — a usage meter
+       whose colours run the other way (here a full bar is bad, not good) and a
+       two-series column chart, because "how much do we write" and "how much of it
+       can bill" only mean something read against each other. */
+    .hm{margin-bottom:13px}
+    .hm-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+    .hm-l{font-size:13px;font-weight:800;color:var(--t1)}
+    .hm-p{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+    .hm-t{height:8px;border-radius:5px;background:rgba(148,163,184,.16);overflow:hidden}
+    .hm-t>i{display:block;height:100%;border-radius:5px;transition:width .5s cubic-bezier(.22,.61,.36,1)}
+    .hm-s{font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5}
+    .h-cols{display:flex;align-items:flex-end;gap:2px;height:132px;padding-top:4px}
+    .h-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+    .h-col .h-colt{width:100%}
+    /* The billable slice is drawn INSIDE the total, anchored to the same baseline, so the eye reads
+       one bar with a portion filled rather than two bars to be mentally subtracted. */
+    .h-colt{position:relative;flex:1;min-height:0;display:flex;align-items:flex-end}
+    .h-colt>i{position:absolute;bottom:0;left:0;right:0;border-radius:2px 2px 0 0}
+    .h-all{background:rgba(57,135,229,.22)}
+    /* Minimum 3px so a genuinely small billable share still reads as a share rather than as
+       nothing — 12 rows/min against 583 is about 2% of the bar, and 2% of 120px is one pixel. */
+    .h-rt{background:#d95926;min-height:3px}
+    .h-axis{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--t2);
+      font-variant-numeric:tabular-nums}
+    .h-axis>span{flex:1;min-width:0;text-align:center;white-space:nowrap}
+    .h-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px}
+    .h-gi{background:var(--c1);border:1px solid var(--b1);border-radius:11px;padding:10px 11px}
+    .h-gv{font-size:16px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums;line-height:1.2}
+    .h-gl{font-size:10.5px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+    .h-proj{font-size:13px;line-height:1.65;color:var(--t1)}
+    .h-proj b{font-variant-numeric:tabular-nums}
+    /* A fault panel is not decoration — it is the one thing on the page that needs doing. */
+    .h-fault{border-color:rgba(201,133,0,.45);background:linear-gradient(180deg,rgba(201,133,0,.10),transparent)}
+    .h-fi+.h-fi{margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)}
+    .h-fh{font-size:13px;font-weight:800;color:#E8A33D;margin-bottom:4px}
+    .h-fb{font-size:12px;color:var(--t2);line-height:1.6}
     .sum-tile{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:13px 14px;position:relative;overflow:hidden}
     .sum-tilev{font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.5px}
     .sum-tilel{font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-top:3px}
@@ -2867,7 +2906,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GG · ZXing raw</div>
       </div>
     </div>
 
@@ -4652,7 +4691,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GF</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7420,6 +7459,57 @@ function healthErr(msg){
     +(missing?'Not set up yet &mdash; run the <b>app_health</b> SQL, then redeploy the runner. The first snapshot lands about a minute after it restarts.'
              :'Could not load: '+acEsc(String(msg||'')))+'</div></div>';
 }
+/* A usage meter, where MORE IS WORSE — the opposite polarity to _sumMeter, which is built for
+   "how much of the work got done". Green below 70% of the allowance, amber from 70, red from 90:
+   early enough to act on, and never colour alone — the percentage is written beside it. */
+function _hMeter(used,cap,label,sub,unit){
+  var pct=(cap&&used!=null&&isFinite(used))?Math.min(100,used/cap*100):null;
+  var col=(pct==null)?'var(--t2)':(pct>=90?SUMC.bad:(pct>=70?SUMC.warn:SUMC.good));
+  var fmt=(unit==='bytes')?hBytes:hNum;
+  return '<div class="hm">'
+    +'<div class="hm-top"><span class="hm-l">'+acEsc(label)+'</span>'
+      +'<span class="hm-p" style="color:'+col+'">'+(pct==null?'not measured':pct.toFixed(pct<10?1:0)+'%')+'</span></div>'
+    +'<div class="hm-t"><i style="width:'+(pct==null?0:Math.max(pct,1.2))+'%;background:'+col+'"></i></div>'
+    +'<div class="hm-s">'+(pct==null?acEsc(sub||'no figure in this snapshot')
+        :(fmt(used)+' of '+fmt(cap)+(sub?' · '+acEsc(sub):'')))+'</div>'
+  +'</div>';
+}
+/* Two series in one column chart: every row written, and the slice of it that can actually bill.
+   Those two numbers being far apart is the whole point of the page — it is the difference between
+   a busy worker and an expensive one — so they are drawn on the same axis rather than side by side
+   in separate cards where nobody would compare them. */
+function _hCols(rows){
+  if(rows.length<2) return '<div class="sum-empty">Not enough snapshots yet — one every 30 minutes.</div>';
+  var mx=Math.max.apply(null,rows.map(function(r){ return Math.max(r.total||0,r.rt||0); }))||1;
+  /* THE AXIS IS ITS OWN ROW, NOT A LABEL UNDER EVERY COLUMN.
+     Forty-eight columns across a phone is about six pixels each, and a time printed inside one of
+     those is clipped to its first character — the axis read "1 1 1 2 2 0 0 0" instead of clock
+     times. Three labels in a row of their own say the same thing and can be read. */
+  var ax=[rows[0],rows[Math.floor(rows.length/2)],rows[rows.length-1]]
+    .map(function(r,i){ return '<span style="'+(i===1?'':(i?'text-align:right':'text-align:left'))+'">'+acEsc((r&&r.label)||'')+'</span>'; }).join('');
+  return '<div class="h-cols">'+rows.map(function(r,i){
+    var ht=Math.max(1.5,(r.total||0)/mx*100), hr=(r.rt==null?null:Math.max(0,(r.rt||0)/mx*100));
+    return '<div class="h-col" title="'+acEsc(r.label+' \u2014 '+Math.round(r.total||0)+' rows/min'
+        +(r.rt==null?'':', '+Math.round(r.rt)+' to published tables'))+'">'
+      +'<div class="h-colt"><i class="h-all" style="height:'+ht+'%"></i>'
+        +(hr==null?'':'<i class="h-rt" style="height:'+hr+'%"></i>')+'</div>'
+    +'</div>';
+  }).join('')+'</div><div class="h-axis">'+ax+'</div>'
+  +'<div class="sum-legend" style="margin-top:8px">'
+    +'<span class="sum-lg"><i style="background:'+SUMC.accentDim+'"></i>all writes</span>'
+    +'<span class="sum-lg"><i style="background:'+SUMC.warm+'"></i>writes that can bill as realtime</span>'
+  +'</div>';
+}
+/* The figure grid. Every metric we managed to read, named and formatted, including the ones with no
+   plan allowance to compare against — a number with no cap is still worth seeing. */
+function _hGrid(pairs){
+  var live=pairs.filter(function(p){ return p[1]!=null&&p[1]!==''&&!(typeof p[1]==='number'&&isNaN(p[1])); });
+  if(!live.length) return '';
+  return '<div class="h-grid">'+live.map(function(p){
+    return '<div class="h-gi"><div class="h-gv">'+p[1]+'</div><div class="h-gl">'+acEsc(p[0])+'</div></div>';
+  }).join('')+'</div>';
+}
+
 function healthRender(){
   var host=document.getElementById('health-body'); if(!host) return;
   var rows=HEALTH_ROWS||[];
@@ -7427,131 +7517,143 @@ function healthRender(){
     host.innerHTML='<div class="mc"><div class="mct">App Health</div><div class="sum-empty">No snapshots yet. The runner writes one a few minutes after it starts, then every 30 minutes.</div></div>';
     return;
   }
-  var cur=rows[0], hist=rows.slice().reverse();   // oldest -> newest, for the trends
-  var staleH=cur.at?((Date.now()-(_sydParse(cur.at)||Date.now()))/3600000):0;
-  var _wt=cur.at?_sydParse(cur.at):null;
-  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return ''; } })();
+  var cur=rows[0], hist=rows.slice().reverse();     // oldest -> newest, for the trends
   var su=cur.supabase_usage||{}, ru=cur.render_usage||{};
-  var suEmpty=!Object.keys(su).filter(function(k){return k.charAt(0)!=='_';}).length;
-  var ruEmpty=!Object.keys(ru).length;
+  var _wt=cur.at?_sydParse(cur.at):null;
+  var staleMin=(_wt==null)?null:Math.round((Date.now()-_wt)/60000);
+  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return ''; } })();
 
-  /* THE PAGE LEADS WITH THE FOUR NUMBERS THAT DECIDE THE BILL, as headline tiles with their own
-     trend — the same shape as the Daily Summary, because it is the same job: a figure means little
-     without its allowance beside it and its direction underneath it. Everything below is detail. */
-  function pctOf(v,cap){ return (v==null||!cap)?null:Math.min(999,Math.round(v/cap*1000)/10); }
-  function tile(v,cap,label,fmt,spark){
-    var pct=pctOf(v,cap);
-    var col=(pct==null)?'var(--t2)':(pct>=90?SUMC.bad:(pct>=70?SUMC.warn:SUMC.good));
-    return '<div class="sum-tile">'
-      +'<div class="sum-tilev">'+(v==null?'—':fmt(v))+'</div>'
-      +'<div class="sum-tilel">'+acEsc(label)+'</div>'
-      +'<span class="sum-delta" style="color:'+col+'">'+(pct==null?'not measured':(pct+'% of '+fmt(cap)))+'</span>'
-      +(spark||'')
-    +'</div>';
+  /* WHAT IS ACTUALLY WRONG, SAID PLAINLY AND ONCE.
+     The old page had a single sentence for every kind of failure — "connected, but this snapshot
+     carries no figures, redeploy the runner" — which was shown even when the runner was fine and
+     the real fault was a missing database column. Each cause now names itself, and the banner only
+     appears when there IS a cause. */
+  var faults=[];
+  if(cur.db_note&&/missing/i.test(String(cur.db_note))){
+    faults.push(['The app_health table is missing columns','The runner fetched these figures and had nowhere to store them: <b>'
+      +acEsc(String(cur.db_note).replace(/^.*missing:\s*/i,''))+'</b>. Run <b>app_health_columns.sql</b> in the Supabase SQL editor — it adds them and nothing else.']);
   }
-  var rtBilled=(su.realtime_messages!=null)?su.realtime_messages:null;
+  if(cur.supabase_available===false) faults.push(['Supabase usage not connected',acEsc(cur.supabase_note||'the management API did not answer')]);
+  if(cur.render_available===false)   faults.push(['Render usage not connected',acEsc(cur.render_note||'the Render API did not answer')]);
+  if(staleMin!=null&&staleMin>90)    faults.push(['Collection has stopped','The newest snapshot is '+(staleMin<1440?(staleMin+' minutes'):(Math.round(staleMin/60)+' hours'))+' old. Snapshots are every 30 minutes while the venue is open, so this means the runner is down or standing down for opening hours.']);
+  var banner=faults.length?('<div class="mc h-fault"><div class="mct">Needs attention</div>'
+    +faults.map(function(f){ return '<div class="h-fi"><div class="h-fh">'+f[0]+'</div><div class="h-fb">'+f[1]+'</div></div>'; }).join('')+'</div>'):'';
+
+  /* ---- the four figures that decide the bill ------------------------------ */
+  var msgs=su.realtime_messages, dbB=(cur.db_total_bytes!=null?cur.db_total_bytes:su.db_size_bytes),
+      egr=su.egress_bytes, rnd=ru.bandwidth_bytes;
+  function pct(v,cap){ return (v==null||!cap)?null:(v/cap*100); }
+  function tile(v,cap,label,fmt,series,colour){
+    var p=pct(v,cap);
+    return _sumTile(v==null?'<span style="color:var(--t2)">—</span>':fmt(v), label, null,
+      _sumSpark(series,colour||SUMC.accent),
+      p==null?'not measured':(p.toFixed(p<10?1:0)+'% of '+fmt(cap)));
+  }
   var tiles='<div class="sum-tiles">'
-    +tile(rtBilled,HK_PLAN.realtime_msgs,'realtime messages',function(n){return hNum(Math.round(n));},
-          _sumSpark(hist.map(function(x){ return (x.supabase_usage&&x.supabase_usage.realtime_messages)||0; }),SUMC.accent))
-    +tile(cur.db_total_bytes,HK_PLAN.db_bytes,'database size',hBytes,
-          _sumSpark(hist.map(function(x){ return Number(x.db_total_bytes||0); }),'#A78BFA'))
-    +tile(su.egress_bytes,HK_PLAN.egress_bytes,'supabase egress',hBytes,'')
-    +tile(ru.bandwidth_bytes,HK_PLAN.render_bytes,'render bandwidth',hBytes,'')
+    +tile(msgs,HK_PLAN.realtime_msgs,'Realtime messages',hNum,hist.map(function(x){ return (x.supabase_usage||{}).realtime_messages; }),SUMC.warm)
+    +tile(dbB,HK_PLAN.db_bytes,'Database size',hBytes,hist.map(function(x){ return x.db_total_bytes!=null?x.db_total_bytes:((x.supabase_usage||{}).db_size_bytes); }))
+    +tile(egr,HK_PLAN.egress_bytes,'Supabase egress',hBytes,hist.map(function(x){ return (x.supabase_usage||{}).egress_bytes; }))
+    +tile(rnd,HK_PLAN.render_bytes,'Render bandwidth',hBytes,hist.map(function(x){ return (x.render_usage||{}).bandwidth_bytes; }))
   +'</div>';
 
-  var freshness='<div class="mc"><div class="mct">Measured</div>'
-    +'<div style="font-size:12.5px;line-height:1.6;color:'+(staleH>2?SUMC.warn:'var(--t2)')+'">'
-      +(when?('Last snapshot '+acEsc(when)+' · '+venueTzLabel(currentSite)):'No timestamp')
-      +' · one every 30 minutes'
-      +(staleH>2?('<br><b>'+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))
-        +' old — either the runner is not running, or it has stood down for the venue’s closing hours.</b>'):'')
-    +'</div></div>';
-
-  function row(label,v,cap,fmt,note){
-    if(v==null) return '';
-    var pct=cap?Math.min(100,v/cap*100):null;
-    var col=(pct==null)?SUMC.muted:(pct>=90?SUMC.bad:(pct>=70?SUMC.warn:SUMC.good));
-    return '<div class="hh-row">'
-      +'<div class="hh-top"><span class="hh-lbl">'+acEsc(label)+'</span>'
-        +'<span class="hh-val">'+fmt(v)+(cap?(' <span style="color:var(--t2);font-weight:600">of '+fmt(cap)+'</span>'):'')+'</span></div>'
-      +(cap?('<div class="hh-track"><i style="width:'+Math.max(pct,1.2)+'%;background:'+col+'"></i></div>'):'')
-      +(note?('<div class="hh-note">'+acEsc(note)+'</div>'):'')
-    +'</div>';
-  }
-  var sbDetail='';
-  if(!cur.supabase_available) sbDetail='<div class="sum-empty">Not connected. Add SUPABASE_MGMT_TOKEN to the runner’s environment.</div>';
-  else if(suEmpty) sbDetail='<div class="sum-empty" style="color:'+SUMC.warn+'">Connected, but this snapshot carries no figures — it predates the detailed collection. Redeploy the runner.</div>';
-  else sbDetail=
-     row('Realtime messages',su.realtime_messages,HK_PLAN.realtime_msgs,function(n){return hNum(Math.round(n));},'Supabase’s own billed count for this cycle — not a projection.')
-    +row('Peak connections',su.realtime_peak_connections,HK_PLAN.rt_conns,hNum,'Every open app, TV and browser tab counts as one.')
-    +row('Egress',su.egress_bytes,HK_PLAN.egress_bytes,hBytes,'Data leaving the database.')
-    +row('Cached egress',su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,hBytes,'')
-    +row('File storage',su.storage_bytes,HK_PLAN.storage_bytes,hBytes,'')
-    +row('Edge function calls',su.func_invocations,HK_PLAN.func_calls,hNum,'Push notifications, master access, staff saves.')
-    +row('Monthly active users',su.monthly_active_users,HK_PLAN.mau,hNum,'')
-    +(su.compute_hours!=null?('<div class="hh-row"><div class="hh-top"><span class="hh-lbl">Compute</span>'
-      +'<span class="hh-val">'+hNum(Math.round(su.compute_hours))+' hours'
-      +(su.compute_cost!=null?(' <span style="color:'+SUMC.warm+'">'+nfMoney(su.compute_cost)+'</span>'):'')+'</span></div></div>'):'');
-
-  var rdDetail='';
-  if(!cur.render_available) rdDetail='<div class="sum-empty">Not connected. Add RENDER_API_KEY to the runner’s environment.</div>';
-  else if(ruEmpty) rdDetail='<div class="sum-empty" style="color:'+SUMC.warn+'">Connected, but this snapshot carries no figures — redeploy the runner.</div>';
-  else rdDetail=
-     row('Bandwidth · 30 days',ru.bandwidth_bytes,HK_PLAN.render_bytes,hBytes,'The cap to stay under.')
-    // Peak, not average: a worker sitting at 90% for one minute is a restart waiting to happen, and
-    // an average hides exactly that.
-    +row('Memory · peak',ru.memory_peak,HK_PLAN.render_mem,hBytes,
-        ru.memory_latest!=null?(hBytes(ru.memory_latest)+' right now'):'')
-    +row('CPU · peak',ru.cpu_peak,HK_PLAN.render_cpu,function(n){return (Math.round(n*100)/100)+' cores';},
-        ru.cpu_latest!=null?((Math.round(ru.cpu_latest*100)/100)+' cores right now'):'');
-
-  var wpm=Number((cur.avg_writes_per_min!=null?cur.avg_writes_per_min:cur.writes_per_min)||0);
-  var rtSrc=(cur.avg_realtime_writes_per_min!=null)?cur.avg_realtime_writes_per_min:cur.realtime_writes_per_min;
-  var rtw=(rtSrc==null)?null:Number(rtSrc);
-  var byT=cur.writes_by_table||{};
-  var tw=Object.keys(byT).sort(function(a,b){ return byT[b]-byT[a]; }).slice(0,8);
-  var pubSet={}; (cur.published_tables||[]).forEach(function(t){ pubSet[t]=1; });
-  var writeRows=tw.length?_sumBars(tw.map(function(t){
-      return {label:t+(pubSet[t]?' · published':''),n:byT[t]};
-    }),function(r){ return hNum(r.n)+'/min'; }):'<div class="sum-empty">Nothing being written right now.</div>';
-
-  var tbls=(cur.db_tables||[]).slice(0,10);
-  var tblRows=tbls.length?_sumBars(tbls.map(function(t){ return {label:t.name,n:t.bytes,rows:t.rows}; }),
-      function(r){ return hBytes(r.n)+' · '+hNum(r.rows)+' rows'; })
-    :'<div class="sum-empty">No table sizes — run the hk_db_stats SQL.</div>';
-
-  var advice=[];
-  if(staleH>2) advice.push({s:'high',t:'This snapshot is '+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))+' old, so every figure here is from then, not now.'});
-  if(su.realtime_messages!=null){
-    var rp=su.realtime_messages/HK_PLAN.realtime_msgs;
-    if(rp>0.8) advice.push({s:'high',t:'Supabase’s own realtime count is over 80% of the allowance this cycle. This is the billed figure.'});
-    else advice.push({s:'ok',t:'Supabase bills '+hNum(su.realtime_messages)+' realtime messages this cycle — '+(Math.round(rp*1000)/10)+'% of the 5M allowance.'});
-  } else if(rtw==null){
-    advice.push({s:'low',t:'Realtime cannot be projected yet — run the hk_realtime_tables SQL so it counts only published tables.'});
+  /* ---- the projection, and why it is the number it is --------------------- */
+  var rtAvg=(cur.avg_realtime_writes_per_min!=null?cur.avg_realtime_writes_per_min:cur.realtime_writes_per_min);
+  var allAvg=(cur.avg_writes_per_min!=null?cur.avg_writes_per_min:cur.writes_per_min);
+  var proj=(rtAvg==null)?null:Math.round(rtAvg*60*24*30);
+  var projLine;
+  if(rtAvg==null){
+    projLine='The realtime publication could not be read, so there is no honest projection to show — a guess here would be the same mistake that cost us 324 million messages.';
   } else {
-    var proj=rtw*60*24*30;
-    advice.push({s:proj>HK_PLAN.realtime_msgs?'high':'ok',t:'Projected '+hNum(Math.round(proj))+' realtime messages a month from '+(Math.round(rtw*10)/10)+' of '+Math.round(wpm)+' rows/min going to published tables.'});
+    projLine='<b>'+hNum(proj)+'</b> realtime messages a month, projected from <b>'+hNum(rtAvg)+'</b> of '
+      +hNum(allAvg)+' rows/min going to published tables'
+      +(cur.uptime_min?(' (averaged over '+hNum(Math.round(cur.uptime_min))+' minutes of uptime, not a single sample)'):'')
+      +'. That is one message per subscribed client per row, so it multiplies by however many devices are connected — which is exactly how a modest write rate turned into a refund.';
   }
-  if(cur.db_total_bytes&&cur.db_total_bytes>HK_PLAN.db_bytes*0.8) advice.push({s:'high',t:'Database is over 80% of included storage. rimo_bms_history is usually the cause — the retention job trims it to 7 days.'});
-  if(ru.memory_peak!=null&&ru.memory_peak>HK_PLAN.render_mem*0.85) advice.push({s:'high',t:'The runner peaked above 85% of its 512MB limit. Render restarts a worker that hits the ceiling, which shows up as a gap in the data.'});
-  if(!advice.length) advice.push({s:'ok',t:'Everything is inside plan limits and the write rate looks normal.'});
-  var ac={high:SUMC.bad,med:SUMC.warn,low:'#94A3B8',ok:SUMC.good};
 
-  host.innerHTML=tiles
-    +freshness
-    +'<div class="mc"><div class="mct">What this means</div>'
-      +advice.map(function(a){ return '<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:1.55">'
-        +'<span style="color:'+ac[a.s]+'">●</span><span style="flex:1">'+acEsc(a.t)+'</span></div>'; }).join('')
+  /* ---- plan headroom ------------------------------------------------------ */
+  var meters=_hMeter(dbB,HK_PLAN.db_bytes,'Database','Pro plan includes 8 GB','bytes')
+    +_hMeter(msgs,HK_PLAN.realtime_msgs,'Realtime messages','this billing month','num')
+    +_hMeter(egr,HK_PLAN.egress_bytes,'Supabase egress','','bytes')
+    +_hMeter(su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,'Cached egress','','bytes')
+    +_hMeter(su.storage_bytes,HK_PLAN.storage_bytes,'File storage','','bytes')
+    +_hMeter(rnd,HK_PLAN.render_bytes,'Render bandwidth','the 100 GB/month cap','bytes')
+    +_hMeter(su.realtime_peak_connections,HK_PLAN.rt_conns,'Peak realtime connections','','num')
+    +_hMeter(su.func_invocations,HK_PLAN.func_calls,'Edge function calls','','num')
+    +_hMeter(su.monthly_active_users,HK_PLAN.mau,'Monthly active users','','num');
+
+  /* ---- write rate, with the billable slice on the same axis ---------------- */
+  var colRows=hist.slice(-48).map(function(x){
+    var t=x.at?_sydParse(x.at):null, lbl='';
+    if(t!=null){ try{ lbl=new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t)); }catch(e){} }
+    return { label:lbl, total:Number(x.avg_writes_per_min!=null?x.avg_writes_per_min:x.writes_per_min)||0,
+             rt:(x.avg_realtime_writes_per_min!=null?Number(x.avg_realtime_writes_per_min):(x.realtime_writes_per_min!=null?Number(x.realtime_writes_per_min):null)) };
+  });
+
+  /* ---- where the writes go ------------------------------------------------ */
+  var pubSet={}; (cur.published_tables||[]).forEach(function(t){ pubSet[t]=1; });
+  var wb=cur.writes_by_table||{};
+  var wRows=Object.keys(wb).map(function(t){ return {label:t,n:Number(wb[t])||0,pub:!!pubSet[t]}; })
+    .sort(function(a,b){ return b.n-a.n; }).slice(0,12);
+  var writeBars=wRows.length?_sumBars(wRows,function(r){ return r.n+'/min'+(r.pub?' <span style="color:'+SUMC.warm+';font-weight:800">bills</span>':''); })
+    :'<div class="sum-empty">No write activity recorded in this snapshot.</div>';
+
+  /* ---- biggest tables ----------------------------------------------------- */
+  var dt=cur.db_tables||{};
+  var tRows=(Array.isArray(dt)?dt.map(function(x){ return {label:x.name||x.table,n:Number(x.bytes||x.size)||0}; })
+                              :Object.keys(dt).map(function(k){ return {label:k,n:Number(dt[k])||0}; }))
+    .filter(function(r){ return r.label&&r.n; }).sort(function(a,b){ return b.n-a.n; }).slice(0,12);
+  var tblBars=tRows.length?_sumBars(tRows,function(r){ return hBytes(r.n); })
+    :'<div class="sum-empty">Table sizes were not recorded in this snapshot.</div>';
+
+  /* ---- Render ------------------------------------------------------------- */
+  var renderCard=(cur.render_available===false)
+    ? '<div class="sum-empty">'+acEsc(cur.render_note||'Not connected.')+'</div>'
+    : (_hMeter(ru.memory_peak,HK_PLAN.render_mem,'Memory · peak','a worker sitting near its ceiling is a restart waiting to happen','bytes')
+      +_hMeter(ru.memory_latest,HK_PLAN.render_mem,'Memory · now','','bytes')
+      +_hMeter(ru.cpu_peak,HK_PLAN.render_cpu,'CPU · peak','','num')
+      +_hMeter(ru.cpu_latest,HK_PLAN.render_cpu,'CPU · now','','num')
+      +_hGrid([['Plan',ru.plan?acEsc(String(ru.plan)):null],
+               ['Bandwidth, 30 days',rnd!=null?hBytes(rnd):null]]));
+
+  /* ---- everything else Supabase told us ----------------------------------- */
+  var sbGrid=_hGrid([
+    ['Realtime messages',msgs!=null?hNum(msgs):null],
+    ['Peak connections',su.realtime_peak_connections!=null?hNum(su.realtime_peak_connections):null],
+    ['Egress',su.egress_bytes!=null?hBytes(su.egress_bytes):null],
+    ['Cached egress',su.cached_egress_bytes!=null?hBytes(su.cached_egress_bytes):null],
+    ['File storage',su.storage_bytes!=null?hBytes(su.storage_bytes):null],
+    ['Edge function calls',su.func_invocations!=null?hNum(su.func_invocations):null],
+    ['Monthly active users',su.monthly_active_users!=null?hNum(su.monthly_active_users):null],
+    ['Compute hours',su.compute_hours!=null?hNum(su.compute_hours):null],
+    ['Compute cost',su.compute_cost!=null?('$'+Number(su.compute_cost).toFixed(2)):null]
+  ]);
+
+  host.innerHTML=banner
+    +'<div class="mc"><div class="mct">What this system costs</div>'
+      +'<div class="sum-note" style="margin:0 0 12px">Measured every 30 minutes while the venue is open'+(when?(' · last reading '+acEsc(when)+' '+acEsc(venueTzLabel(currentSite))):'')+'.</div>'
+      +tiles
     +'</div>'
-    +'<div class="mc"><div class="mct">Supabase</div>'+sbDetail+'</div>'
-    +'<div class="mc"><div class="mct">Render</div>'+rdDetail+'</div>'
-    +'<div class="mc"><div class="mct">Write rate · last '+(hist.length<2?'':(hist.length<48?(hist.length*30)+' minutes':(Math.round(hist.length/48)+' days')))+'</div>'
-      +_sumSpark(hist.map(function(x){ return Number(x.writes_per_min||0); }),SUMC.accent)
-      +'<div class="sum-note" style="margin:8px 0 0">Rows written per minute. Flat is healthy; a climbing line is the early warning — realtime cost is rows written times subscribers.</div>'
+    +'<div class="mc"><div class="mct">The realtime projection</div><div class="h-proj">'+projLine+'</div></div>'
+    +'<div class="mc"><div class="mct">Write rate · '+(colRows.length<2?'building history':(colRows.length<48?(colRows.length*30)+' minutes':'last 24 hours'))+'</div>'
+      +_hCols(colRows)
+      +'<div class="sum-note" style="margin:10px 0 0">Rows written per minute. Flat is healthy. The darker slice is the part landing on tables in the realtime publication — the only writes that can cost anything in messages.</div>'
     +'</div>'
-    +'<div class="mc"><div class="mct">Writing most</div>'
-      +'<div class="sum-note">Only tables in the realtime publication cost anything in messages; those are marked.</div>'+writeRows+'</div>'
-    +'<div class="mc"><div class="mct">Biggest tables</div>'+tblRows+'</div>';
+    +'<div class="mc"><div class="mct">Plan headroom</div>'
+      +'<div class="sum-note" style="margin:0 0 12px">Every allowance we can read, against what is left of it.</div>'+meters
+    +'</div>'
+    +'<div class="mc"><div class="mct">Where the writes go</div>'
+      +'<div class="sum-note" style="margin:0 0 10px">Marked tables are in the realtime publication, so their rows multiply by connected clients.</div>'+writeBars
+    +'</div>'
+    +'<div class="mc"><div class="mct">Biggest tables</div>'+tblBars+'</div>'
+    +'<div class="mc"><div class="mct">Render</div>'+renderCard+'</div>'
+    +(sbGrid?('<div class="mc"><div class="mct">Supabase, in full</div>'+sbGrid+'</div>'):'')
+    +'<div class="mc"><div class="mct">Collection</div>'
+      +_hGrid([['Last snapshot',when||null],
+               ['Snapshots held',hNum(rows.length)],
+               ['Worker uptime',cur.uptime_min!=null?(hNum(Math.round(cur.uptime_min))+' min'):null],
+               ['Published tables',(cur.published_tables||[]).length?hNum(cur.published_tables.length):null]])
+      +'<div class="sum-note" style="margin:10px 0 0">app_health is deliberately NOT in the realtime publication, so watching the cost does not add to it.</div>'
+    +'</div>';
 }
 
 /* ===== TO DO LIST (Manager Dashboard -> To Do) ==================================
@@ -11618,7 +11720,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15987,7 +16089,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16456,7 +16558,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GF';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

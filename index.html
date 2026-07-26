@@ -1161,6 +1161,13 @@
       background:rgba(201,133,0,.16);border:1px solid rgba(201,133,0,.45);color:#c98500;
       font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
     .dev-note{font-size:11.5px;color:var(--t2);line-height:1.6;margin:-4px 0 14px;max-width:62ch}
+    .hh-row{margin-bottom:13px}
+    .hh-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
+    .hh-lbl{font-size:13px;font-weight:800}
+    .hh-val{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .hh-track{height:8px;border-radius:5px;background:rgba(148,163,184,.14);overflow:hidden}
+    .hh-track>i{display:block;height:100%;border-radius:5px;transition:width .3s ease}
+    .hh-note{font-size:11px;color:var(--t2);margin-top:5px;line-height:1.5}
     .sum-days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch}
     .sum-days::-webkit-scrollbar{display:none}
     .sum-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--card2);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
@@ -2697,7 +2704,7 @@
         <button class="tk-chip" style="margin-left:auto" onclick="healthLoad(1)">&#8635; Refresh</button></div>
       <div class="sb">
         <div class="pgtitle">&#128147; App Health</div>
-        <div class="ki-sub">What this system is costing, measured daily</div>
+        <div class="ki-sub">What this system is costing, measured every 30 minutes</div>
         <div id="health-body"></div>
       </div>
     </div>
@@ -2785,7 +2792,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FT · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FV · ZXing raw</div>
       </div>
     </div>
 
@@ -4570,7 +4577,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FT</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FV</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6288,7 +6295,7 @@ function renderMechToday(){
     var med=['🥇','🥈','🥉'];
     box.innerHTML='<div style="font-size:12px;color:var(--t2);margin:0 0 8px">'+total+' repair'+(total===1?'':'s')+' completed today</div>'
       +names.map(function(n,i){
-        var sf=(typeof STAFF!=='undefined'&&STAFF.find)?STAFF.find(function(s){return s.name===n||s.name.split(' ')[0]===String(n).split(' ')[0];}):null;
+        var sf=(function(){ var r=_roster(); for(var q=0;q<r.length;q++){ if(r[q]&&(r[q].name===n||String(r[q].name).split(' ')[0]===String(n).split(' ')[0])) return r[q]; } return null; })();
         var emoji=(sf&&sf.emoji)?sf.emoji:'🔧';
         return '<div class="mr"><div class="mrl">'+(med[i]||'')+' '+emoji+' '+kEsc(n)+'</div><div class="mrr"><span class="bdg" style="background:rgba(34,197,94,.16);color:#22C55E;font-weight:700">'+by[n]+'</span></div></div>';
       }).join('');
@@ -6493,6 +6500,7 @@ function presStart(){
     if((++_pt % 3)===0){ presRefresh(); lastOnlineLoad(); } else presRepaint();
   },20000); }
   presRefresh();
+  try{ if(typeof loadRoster==='function') loadRoster(function(){ try{ presRepaint(); lastOnlineRender(); }catch(e){} }); }catch(e){}
   /* Active Today needs the sign-in history, not just live presence — someone who signed out has no
      presence row at all (see presRepaint). It used to load only when the Last online dropdown was
      opened, so until you expanded that panel the chips could not show anyone who had left. Loaded
@@ -6647,7 +6655,7 @@ function lastOnlineRender(){
   var today=_sydDayKey(Date.now()), yest=_sydDayKey(Date.now()-86400000);
   b.innerHTML=names.map(function(n){
     var e=last[n], x=e&&e.row;
-    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(y){return y.name===n;})||{emoji:'\ud83d\udd27'}):{emoji:'\ud83d\udd27'};
+    var sf={emoji:_staffEmoji(n)};
     var when, out;
     if(!x){ when='<span style="color:var(--t2);opacity:.7">never signed in</span>'; out=''; }
     else {
@@ -6657,7 +6665,7 @@ function lastOnlineRender(){
       out=x.signed_out_at?('out '+_sydTime(x.signed_out_at)):'<span style="color:#34D399">still on</span>';
     }
     return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px">'
-      +'<span>'+sf.emoji+'</span>'
+      +'<span>'+_staffEmoji(n)+'</span>'
       +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(n)+'</span>'
       +when
       +'<span style="margin-left:10px;min-width:82px;text-align:right">'+out+'</span></div>';
@@ -6700,12 +6708,11 @@ function presRepaint(){
   names.sort(function(a,b){ return seen[b].t-seen[a].t; });
   el.innerHTML=names.map(function(n){
     var t=seen[n].t, on=seen[n].live&&(nowMs-t)<300000;   // 5 min window, same as the dashboard's own rule
-    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'\ud83d\udd27'}):{emoji:'\ud83d\udd27'};
     // Someone who has left gets the TIME they were last seen rather than "2h ago" — a manager wants
     // to know when, not how long ago.
     var tail=on?_activeAgo(t):('last seen '+_sydTime(t));
     return '<div class="schip'+(on?' schip-on':'')+'"><span class="pres-dot'+(on?' on':'')+'"></span>'
-      +sf.emoji+' '+acEsc(n.split(' ')[0])+'<small class="pres-ago">'+acEsc(tail)+'</small></div>';
+      +_staffEmoji(n)+' '+acEsc(n.split(' ')[0])+'<small class="pres-ago">'+acEsc(tail)+'</small></div>';
   }).join('');
   var st=document.getElementById('st-staff');
   if(st) st.innerText=names.filter(function(n){ return seen[n].live&&(nowMs-seen[n].t)<300000; }).length;
@@ -7037,9 +7044,8 @@ function _sumShifts(list,day){
       if(a==null) return '';
       var end=(b==null)?frac(Date.now()):b;
       if(end==null||end<a) end=Math.min(1,a+0.02);
-      var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===s.name;})||{emoji:'🔧'}):{emoji:'🔧'};
       return '<div class="sum-shift">'
-        +'<span class="sum-shiftn">'+sf.emoji+' '+acEsc(s.name.split(' ')[0])+'</span>'
+        +'<span class="sum-shiftn">'+_staffEmoji(s.name)+' '+acEsc(s.name.split(' ')[0])+'</span>'
         +'<span class="sum-shifttrack"><i style="left:'+(a*100)+'%;width:'+Math.max(1.5,(end-a)*100)+'%;background:'
           +(live?SUMC.good:SUMC.accent)+'"></i></span>'
         +'<span class="sum-shiftt">'+_sydTime(s.in)+(s.out?('–'+_sydTime(s.out)):' →')+'</span>'
@@ -7245,171 +7251,133 @@ function healthRender(){
   var host=document.getElementById('health-body'); if(!host) return;
   var rows=HEALTH_ROWS||[];
   if(!rows.length){
-    host.innerHTML='<div class="mc"><div class="mct">App Health</div><div class="emp" style="padding:10px 0">No snapshots yet. The runner writes one about a minute after it starts, then daily.</div></div>';
+    host.innerHTML='<div class="mc"><div class="mct">App Health</div><div class="sum-empty">No snapshots yet. The runner writes one a few minutes after it starts, then every 30 minutes.</div></div>';
     return;
   }
-  var cur=rows[0], hist=rows.slice().reverse();   // oldest -> newest, for the sparklines
-  // New fields only appear in snapshots written by a runner that has them. A stale row would
-  // otherwise report "cannot tell" forever with no hint as to why.
+  var cur=rows[0], hist=rows.slice().reverse();   // oldest -> newest, for the trends
   var staleH=cur.at?((Date.now()-(_sydParse(cur.at)||Date.now()))/3600000):0;
-  // Sydney explicitly, and via _sydParse — an untagged timestamp from Postgres would otherwise be
-  // read as the viewer's local time, which is right only by accident.
   var _wt=cur.at?_sydParse(cur.at):null;
-  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return new Date(_wt).toLocaleString(); } })();
-
-  // --- headline bars -------------------------------------------------------
-  var bars=hBar(cur.db_total_bytes,HK_PLAN.db_bytes,'Database size',
-      hBytes(cur.db_total_bytes)+' of '+hBytes(HK_PLAN.db_bytes)+' included'+(cur.db_note?' · '+cur.db_note:''));
-
-  // REALTIME. Only writes to PUBLISHED tables can become realtime messages, and this used to
-  // project from the TOTAL write rate — which read 21,000,000/month while Supabase's own usage
-  // page showed 730 for the period. Most of the write volume is rimo_karts and rimo_bms_history,
-  // both deliberately kept out of the publication, so they cost nothing in realtime terms.
-  // An alarm that is always red gets ignored, including the day it is right, so the projection
-  // now uses only the writes that can actually bill — and says so when it cannot tell.
-  /* PROJECT FROM THE AVERAGE, NOT FROM THE LAST 60 SECONDS.
-     writes_per_min is a rolling 60-second window — the right shape for a smoke alarm, the wrong
-     shape for "what will this cost this month". A snapshot samples one minute in 1,440, and this
-     page duly reported "0 of 218 rows/min going to published tables" because that one minute
-     happened to contain only rimo writes. The runner now also records an average over its whole
-     uptime; use it when present and fall back to the instantaneous reading for older snapshots. */
-  var wpm=Number((cur.avg_writes_per_min!=null?cur.avg_writes_per_min:cur.writes_per_min)||0);
-  var rtSrc=(cur.avg_realtime_writes_per_min!=null)?cur.avg_realtime_writes_per_min:cur.realtime_writes_per_min;
-  var rtw=(rtSrc==null)?null:Number(rtSrc);
-  // An average over three minutes of uptime is not evidence of anything. Say so rather than
-  // projecting a month from it.
-  var upMin=Number(cur.uptime_min||0);
-  var thin=(cur.avg_writes_per_min!=null && upMin>0 && upMin<20);
-  if(rtw==null){
-    bars+=hBar(null,null,'Realtime messages',
-      'Cannot tell yet — run the hk_realtime_tables SQL so this counts only published tables. Total write rate is '+hNum(wpm)+'/min.');
-  } else {
-    var projected=rtw*60*24*30;
-    bars+=hBar(projected,HK_PLAN.realtime_msgs,'Realtime messages (projected/month)',
-      hNum(Math.round(projected))+' of '+hNum(HK_PLAN.realtime_msgs)+' included · from '+(Math.round(rtw*10)/10)+' of '+(Math.round(wpm))+' rows/min going to published tables'
-      +(upMin?(' · averaged over '+(upMin<120?Math.round(upMin)+' min':(Math.round(upMin/60)+'h'))+' of runner uptime'):'')
-      +(thin?' · still warming up, treat as provisional':''));
-  }
-
-  // hBar's right-hand slot showed "not connected" whenever it had no percentage to display, which
-  // contradicted its own subtitle on the connected rows. Connection state is not a percentage, so
-  // it gets its own row type.
-  /* EVERYTHING THE VENDOR PAGES SHOW, against the allowance it counts toward.
-     This used to reduce Supabase and Render to two "connected / not connected" badges, which told
-     you the tokens worked and nothing else — you still had to open two dashboards to learn anything.
-     Each figure below is a MEASUREMENT from their own API, shown against its plan limit. A metric
-     the API did not return is omitted entirely rather than drawn as zero: zero looks healthy, and
-     "we could not read it" is a different statement from "it is nothing". */
+  var when=(_wt==null)?'':(function(){ try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(_wt)); }catch(e){ return ''; } })();
   var su=cur.supabase_usage||{}, ru=cur.render_usage||{};
-  function bar(v,cap,label,sub){ return (v==null)?'':hBar(v,cap,label,sub); }
-  /* A SNAPSHOT THAT PREDATES THESE FIELDS RENDERED NOTHING AT ALL.
-     supabase_available says the TOKEN worked; supabase_usage holds the figures. A row written by an
-     older runner has the first and not the second, and every bar below is skipped when its value is
-     null — so the section silently vanished and the page looked like it had gone backwards. Say
-     which of the two is missing instead, because they need different fixes. */
-  function _stale(kind,note){
-    return '<div style="margin-bottom:14px"><div style="font-weight:800;font-size:13px;margin-bottom:4px">'+acEsc(kind)+'</div>'
-      +'<div style="font-size:11.5px;color:#FFB020;line-height:1.55">'+acEsc(note)+'</div></div>';
-  }
   var suEmpty=!Object.keys(su).filter(function(k){return k.charAt(0)!=='_';}).length;
   var ruEmpty=!Object.keys(ru).length;
 
-  if(cur.supabase_available && suEmpty){
-    bars+=_stale('Supabase usage','Connected, but this snapshot has no figures in it — it was written before the detailed usage was collected. Redeploy the runner, and if it persists run the app_health supabase_usage/render_usage SQL.');
-  } else if(cur.supabase_available){
-    bars+=bar(su.realtime_messages,HK_PLAN.realtime_msgs,'Realtime messages · billed',
-      hNum(su.realtime_messages)+' of '+hNum(HK_PLAN.realtime_msgs)+' this billing cycle — Supabase\u2019s own count');
-    bars+=bar(su.realtime_peak_connections,HK_PLAN.rt_conns,'Realtime peak connections',
-      hNum(su.realtime_peak_connections)+' of '+hNum(HK_PLAN.rt_conns)+' — every open app, TV and tab counts as one');
-    bars+=bar(su.egress_bytes,HK_PLAN.egress_bytes,'Supabase egress',
-      hBytes(su.egress_bytes)+' of '+hBytes(HK_PLAN.egress_bytes)+' — data leaving the database');
-    bars+=bar(su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,'Cached egress',hBytes(su.cached_egress_bytes)+' of '+hBytes(HK_PLAN.cached_egress_bytes));
-    bars+=bar(su.storage_bytes,HK_PLAN.storage_bytes,'File storage',hBytes(su.storage_bytes)+' of '+hBytes(HK_PLAN.storage_bytes));
-    bars+=bar(su.func_invocations,HK_PLAN.func_calls,'Edge function calls',
-      hNum(su.func_invocations)+' of '+hNum(HK_PLAN.func_calls)+' — push notifications, master access, staff saves');
-    bars+=bar(su.monthly_active_users,HK_PLAN.mau,'Monthly active users',hNum(su.monthly_active_users)+' of '+hNum(HK_PLAN.mau));
-    if(su.compute_hours!=null)
-      bars+='<div style="font-size:11.5px;color:var(--t2);margin:-4px 0 14px">Compute: '+hNum(Math.round(su.compute_hours))+' hours'
-        +(su.compute_cost!=null?(' &middot; <b style="color:var(--t1)">'+nfMoney(su.compute_cost)+'</b> this cycle'):'')+'</div>';
-  } else {
-    bars+=hStatus('Supabase usage API', false, cur.supabase_note);
+  /* THE PAGE LEADS WITH THE FOUR NUMBERS THAT DECIDE THE BILL, as headline tiles with their own
+     trend — the same shape as the Daily Summary, because it is the same job: a figure means little
+     without its allowance beside it and its direction underneath it. Everything below is detail. */
+  function pctOf(v,cap){ return (v==null||!cap)?null:Math.min(999,Math.round(v/cap*1000)/10); }
+  function tile(v,cap,label,fmt,spark){
+    var pct=pctOf(v,cap);
+    var col=(pct==null)?'var(--t2)':(pct>=90?SUMC.bad:(pct>=70?SUMC.warn:SUMC.good));
+    return '<div class="sum-tile">'
+      +'<div class="sum-tilev">'+(v==null?'—':fmt(v))+'</div>'
+      +'<div class="sum-tilel">'+acEsc(label)+'</div>'
+      +'<span class="sum-delta" style="color:'+col+'">'+(pct==null?'not measured':(pct+'% of '+fmt(cap)))+'</span>'
+      +(spark||'')
+    +'</div>';
   }
+  var rtBilled=(su.realtime_messages!=null)?su.realtime_messages:null;
+  var tiles='<div class="sum-tiles">'
+    +tile(rtBilled,HK_PLAN.realtime_msgs,'realtime messages',function(n){return hNum(Math.round(n));},
+          _sumSpark(hist.map(function(x){ return (x.supabase_usage&&x.supabase_usage.realtime_messages)||0; }),SUMC.accent))
+    +tile(cur.db_total_bytes,HK_PLAN.db_bytes,'database size',hBytes,
+          _sumSpark(hist.map(function(x){ return Number(x.db_total_bytes||0); }),'#A78BFA'))
+    +tile(su.egress_bytes,HK_PLAN.egress_bytes,'supabase egress',hBytes,'')
+    +tile(ru.bandwidth_bytes,HK_PLAN.render_bytes,'render bandwidth',hBytes,'')
+  +'</div>';
 
-  if(cur.render_available && ruEmpty){
-    bars+=_stale('Render usage','Connected, but this snapshot has no figures in it — redeploy the runner so it collects bandwidth, memory and CPU.');
-  } else if(cur.render_available){
-    bars+=bar(ru.bandwidth_bytes,HK_PLAN.render_bytes,'Render bandwidth',
-      hBytes(ru.bandwidth_bytes)+' of '+hBytes(HK_PLAN.render_bytes)+' over 30 days — the cap to stay under');
-    // Memory and CPU are shown as PEAK, not average. A worker sitting at 90% for one minute is a
-    // restart waiting to happen, and an average hides exactly that.
-    if(ru.memory_peak!=null)
-      bars+=hBar(ru.memory_peak,HK_PLAN.render_mem,'Runner memory · peak',
-        hBytes(ru.memory_peak)+' peak of '+hBytes(HK_PLAN.render_mem)+(ru.memory_latest!=null?(' · '+hBytes(ru.memory_latest)+' now'):''));
-    if(ru.cpu_peak!=null)
-      bars+=hBar(ru.cpu_peak,HK_PLAN.render_cpu,'Runner CPU · peak',
-        (Math.round(ru.cpu_peak*100)/100)+' of '+HK_PLAN.render_cpu+' cores'+(ru.cpu_latest!=null?(' · '+(Math.round(ru.cpu_latest*100)/100)+' now'):''));
-  } else {
-    bars+=hStatus('Render usage API', false, cur.render_note);
+  var freshness='<div class="mc"><div class="mct">Measured</div>'
+    +'<div style="font-size:12.5px;line-height:1.6;color:'+(staleH>2?SUMC.warn:'var(--t2)')+'">'
+      +(when?('Last snapshot '+acEsc(when)+' · '+venueTzLabel(currentSite)):'No timestamp')
+      +' · one every 30 minutes'
+      +(staleH>2?('<br><b>'+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))
+        +' old — either the runner is not running, or it has stood down for the venue’s closing hours.</b>'):'')
+    +'</div></div>';
+
+  function row(label,v,cap,fmt,note){
+    if(v==null) return '';
+    var pct=cap?Math.min(100,v/cap*100):null;
+    var col=(pct==null)?SUMC.muted:(pct>=90?SUMC.bad:(pct>=70?SUMC.warn:SUMC.good));
+    return '<div class="hh-row">'
+      +'<div class="hh-top"><span class="hh-lbl">'+acEsc(label)+'</span>'
+        +'<span class="hh-val">'+fmt(v)+(cap?(' <span style="color:var(--t2);font-weight:600">of '+fmt(cap)+'</span>'):'')+'</span></div>'
+      +(cap?('<div class="hh-track"><i style="width:'+Math.max(pct,1.2)+'%;background:'+col+'"></i></div>'):'')
+      +(note?('<div class="hh-note">'+acEsc(note)+'</div>'):'')
+    +'</div>';
   }
+  var sbDetail='';
+  if(!cur.supabase_available) sbDetail='<div class="sum-empty">Not connected. Add SUPABASE_MGMT_TOKEN to the runner’s environment.</div>';
+  else if(suEmpty) sbDetail='<div class="sum-empty" style="color:'+SUMC.warn+'">Connected, but this snapshot carries no figures — it predates the detailed collection. Redeploy the runner.</div>';
+  else sbDetail=
+     row('Realtime messages',su.realtime_messages,HK_PLAN.realtime_msgs,function(n){return hNum(Math.round(n));},'Supabase’s own billed count for this cycle — not a projection.')
+    +row('Peak connections',su.realtime_peak_connections,HK_PLAN.rt_conns,hNum,'Every open app, TV and browser tab counts as one.')
+    +row('Egress',su.egress_bytes,HK_PLAN.egress_bytes,hBytes,'Data leaving the database.')
+    +row('Cached egress',su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,hBytes,'')
+    +row('File storage',su.storage_bytes,HK_PLAN.storage_bytes,hBytes,'')
+    +row('Edge function calls',su.func_invocations,HK_PLAN.func_calls,hNum,'Push notifications, master access, staff saves.')
+    +row('Monthly active users',su.monthly_active_users,HK_PLAN.mau,hNum,'')
+    +(su.compute_hours!=null?('<div class="hh-row"><div class="hh-top"><span class="hh-lbl">Compute</span>'
+      +'<span class="hh-val">'+hNum(Math.round(su.compute_hours))+' hours'
+      +(su.compute_cost!=null?(' <span style="color:'+SUMC.warm+'">'+nfMoney(su.compute_cost)+'</span>'):'')+'</span></div></div>'):'');
 
-  // --- what is actually being written -------------------------------------
+  var rdDetail='';
+  if(!cur.render_available) rdDetail='<div class="sum-empty">Not connected. Add RENDER_API_KEY to the runner’s environment.</div>';
+  else if(ruEmpty) rdDetail='<div class="sum-empty" style="color:'+SUMC.warn+'">Connected, but this snapshot carries no figures — redeploy the runner.</div>';
+  else rdDetail=
+     row('Bandwidth · 30 days',ru.bandwidth_bytes,HK_PLAN.render_bytes,hBytes,'The cap to stay under.')
+    // Peak, not average: a worker sitting at 90% for one minute is a restart waiting to happen, and
+    // an average hides exactly that.
+    +row('Memory · peak',ru.memory_peak,HK_PLAN.render_mem,hBytes,
+        ru.memory_latest!=null?(hBytes(ru.memory_latest)+' right now'):'')
+    +row('CPU · peak',ru.cpu_peak,HK_PLAN.render_cpu,function(n){return (Math.round(n*100)/100)+' cores';},
+        ru.cpu_latest!=null?((Math.round(ru.cpu_latest*100)/100)+' cores right now'):'');
+
+  var wpm=Number((cur.avg_writes_per_min!=null?cur.avg_writes_per_min:cur.writes_per_min)||0);
+  var rtSrc=(cur.avg_realtime_writes_per_min!=null)?cur.avg_realtime_writes_per_min:cur.realtime_writes_per_min;
+  var rtw=(rtSrc==null)?null:Number(rtSrc);
   var byT=cur.writes_by_table||{};
   var tw=Object.keys(byT).sort(function(a,b){ return byT[b]-byT[a]; }).slice(0,8);
-  var writeRows=tw.length?tw.map(function(t){
-    return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px">'
-      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(t)+'</span>'
-      +'<span style="font-weight:800;color:var(--t2)">'+hNum(byT[t])+'/min</span></div>';
-  }).join(''):'<div style="font-size:12px;color:var(--t2)">Nothing being written right now.</div>';
+  var pubSet={}; (cur.published_tables||[]).forEach(function(t){ pubSet[t]=1; });
+  var writeRows=tw.length?_sumBars(tw.map(function(t){
+      return {label:t+(pubSet[t]?' · published':''),n:byT[t]};
+    }),function(r){ return hNum(r.n)+'/min'; }):'<div class="sum-empty">Nothing being written right now.</div>';
 
-  // --- biggest tables ------------------------------------------------------
-  var tbls=(cur.db_tables||[]).slice(0,8);
-  var tblRows=tbls.length?tbls.map(function(t){
-    return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12.5px">'
-      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEsc(t.name)+'</span>'
-      +'<span style="color:var(--t2)">'+hNum(t.rows)+' rows</span>'
-      +'<span style="font-weight:800;margin-left:10px;min-width:64px;text-align:right">'+hBytes(t.bytes)+'</span></div>';
-  }).join(''):'<div style="font-size:12px;color:var(--t2)">No table sizes — run the hk_db_stats SQL.</div>';
+  var tbls=(cur.db_tables||[]).slice(0,10);
+  var tblRows=tbls.length?_sumBars(tbls.map(function(t){ return {label:t.name,n:t.bytes,rows:t.rows}; }),
+      function(r){ return hBytes(r.n)+' · '+hNum(r.rows)+' rows'; })
+    :'<div class="sum-empty">No table sizes — run the hk_db_stats SQL.</div>';
 
-  // --- plain-English read of the numbers ----------------------------------
   var advice=[];
-  // A stale snapshot explains every other oddity on the page, so it is said first.
-  if(staleH>2) advice.push({s:'high',t:'This snapshot is '+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))
-    +' old, so every figure below is from then, not now. Either the runner is not running, or it has stood down for the venue\u2019s closing hours.'});
-  if(rtw==null) advice.push({s:'low',t:'Realtime projection unavailable — run the hk_realtime_tables SQL so this counts only tables that are actually published.'});
-  else {
-    var proj2=rtw*60*24*30;
-    if(proj2>HK_PLAN.realtime_msgs) advice.push({s:'high',t:'Realtime is projected over the plan. A published table is being written faster than real events happen — check the write list below and the Render log for [budget].'});
-    else if(proj2>HK_PLAN.realtime_msgs*0.7) advice.push({s:'med',t:'Realtime is above 70% of the allowance. Worth watching which published table is writing most.'});
-    else advice.push({s:'ok',t:'Realtime is well inside the plan. Most write volume goes to tables that are not published (rimo_karts, rimo_bms_history), so it costs nothing in realtime terms.'});
+  if(staleH>2) advice.push({s:'high',t:'This snapshot is '+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))+' old, so every figure here is from then, not now.'});
+  if(su.realtime_messages!=null){
+    var rp=su.realtime_messages/HK_PLAN.realtime_msgs;
+    if(rp>0.8) advice.push({s:'high',t:'Supabase’s own realtime count is over 80% of the allowance this cycle. This is the billed figure.'});
+    else advice.push({s:'ok',t:'Supabase bills '+hNum(su.realtime_messages)+' realtime messages this cycle — '+(Math.round(rp*1000)/10)+'% of the 5M allowance.'});
+  } else if(rtw==null){
+    advice.push({s:'low',t:'Realtime cannot be projected yet — run the hk_realtime_tables SQL so it counts only published tables.'});
+  } else {
+    var proj=rtw*60*24*30;
+    advice.push({s:proj>HK_PLAN.realtime_msgs?'high':'ok',t:'Projected '+hNum(Math.round(proj))+' realtime messages a month from '+(Math.round(rtw*10)/10)+' of '+Math.round(wpm)+' rows/min going to published tables.'});
   }
   if(cur.db_total_bytes&&cur.db_total_bytes>HK_PLAN.db_bytes*0.8) advice.push({s:'high',t:'Database is over 80% of included storage. rimo_bms_history is usually the cause — the retention job trims it to 7 days.'});
-  if(!cur.render_available) advice.push({s:'low',t:'Render bandwidth is not connected. Add RENDER_API_KEY to the runner’s environment to track the 100GB cap.'});
-  if(!cur.supabase_available) advice.push({s:'low',t:'Supabase usage API is not connected. Add SUPABASE_MGMT_TOKEN to the runner’s environment for billed figures.'});
+  if(ru.memory_peak!=null&&ru.memory_peak>HK_PLAN.render_mem*0.85) advice.push({s:'high',t:'The runner peaked above 85% of its 512MB limit. Render restarts a worker that hits the ceiling, which shows up as a gap in the data.'});
   if(!advice.length) advice.push({s:'ok',t:'Everything is inside plan limits and the write rate looks normal.'});
-  // Published tables are the ones that can bill, so name them — it is the difference between
-  // "487 rows/min" sounding alarming and being routine.
-  if(Array.isArray(cur.published_tables)&&cur.published_tables.length)
-    advice.push({s:'low',t:'Publishing to realtime: '+cur.published_tables.slice(0,12).join(', ')+(cur.published_tables.length>12?' +'+(cur.published_tables.length-12)+' more':'')+'.'});
-  var ac={high:'#FF5A52',med:'#FFB020',low:'#94A3B8',ok:'#34D399'};
+  var ac={high:SUMC.bad,med:SUMC.warn,low:'#94A3B8',ok:SUMC.good};
 
-  host.innerHTML=
-    '<div class="mc"><div class="mct">App Health</div>'
-      +'<div style="font-size:11px;color:'+(staleH>2?'#FFB020':'var(--t2)')+';margin:0 0 12px">Updated '+acEsc(when)+' · a snapshot every 30 minutes'
-        +(staleH>2?' · <b>'+(staleH<48?(Math.round(staleH*10)/10+'h'):(Math.round(staleH/24)+' days'))+' old — the runner isn\u2019t writing snapshots</b>':'')+'</div>'
-      +bars
-    +'</div>'
+  host.innerHTML=tiles
+    +freshness
     +'<div class="mc"><div class="mct">What this means</div>'
-      +advice.map(function(a){ return '<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:1.5">'
+      +advice.map(function(a){ return '<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;line-height:1.55">'
         +'<span style="color:'+ac[a.s]+'">●</span><span style="flex:1">'+acEsc(a.t)+'</span></div>'; }).join('')
     +'</div>'
+    +'<div class="mc"><div class="mct">Supabase</div>'+sbDetail+'</div>'
+    +'<div class="mc"><div class="mct">Render</div>'+rdDetail+'</div>'
     +'<div class="mc"><div class="mct">Write rate · last '+(hist.length<2?'':(hist.length<48?(hist.length*30)+' minutes':(Math.round(hist.length/48)+' days')))+'</div>'
-      +hSpark(hist.map(function(x){ return Number(x.writes_per_min||0); }),'#22D3EE')
-      +'<div style="font-size:11px;color:var(--t2);margin-top:6px">Rows written per minute. Flat is healthy; a climbing line is the early warning.</div>'
+      +_sumSpark(hist.map(function(x){ return Number(x.writes_per_min||0); }),SUMC.accent)
+      +'<div class="sum-note" style="margin:8px 0 0">Rows written per minute. Flat is healthy; a climbing line is the early warning — realtime cost is rows written times subscribers.</div>'
     +'</div>'
-    +'<div class="mc"><div class="mct">Database size · trend</div>'
-      +hSpark(hist.map(function(x){ return Number(x.db_total_bytes||0); }),'#A78BFA')
-    +'</div>'
-    +'<div class="mc"><div class="mct">Writing most right now</div><div style="font-size:11px;color:var(--t2);margin:0 0 8px;line-height:1.5">Only tables in the realtime publication cost anything in messages. The busiest here (rimo_karts, rimo_bms_history) are deliberately not published.</div>'+writeRows+'</div>'
+    +'<div class="mc"><div class="mct">Writing most</div>'
+      +'<div class="sum-note">Only tables in the realtime publication cost anything in messages; those are marked.</div>'+writeRows+'</div>'
     +'<div class="mc"><div class="mct">Biggest tables</div>'+tblRows+'</div>';
 }
 
@@ -7902,7 +7870,7 @@ function loadMgr(){
     document.getElementById('st-staff').innerText=activeNowCount||li.length;
     document.getElementById('st-soon').innerText=soon;
 
-    document.getElementById('mli').innerHTML=li.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No one logged in yet today</div>':li.map(function(u){var sf=STAFF.find(function(s){return s.name===u.name;})||{emoji:'🔧'};var ago=_activeAgo(u.lastMs);return '<div class="schip'+(u.activeNow?' schip-on':'')+'"><span class="pres-dot'+(u.activeNow?' on':'')+'"></span>'+sf.emoji+' '+u.name.split(' ')[0]+'<small class="pres-ago">'+ago+'</small></div>';}).join('');
+    document.getElementById('mli').innerHTML=li.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No one logged in yet today</div>':li.map(function(u){var sf={emoji:_staffEmoji(u.name)};var ago=_activeAgo(u.lastMs);return '<div class="schip'+(u.activeNow?' schip-on':'')+'"><span class="pres-dot'+(u.activeNow?' on':'')+'"></span>'+sf.emoji+' '+u.name.split(' ')[0]+'<small class="pres-ago">'+ago+'</small></div>';}).join('');
     var ts={};(d.todayLog||[]).forEach(function(r){if(!ts[r.name])ts[r.name]={t:0,r:0};if(r.action==='TAKEN')ts[r.name].t+=r.qty;if(r.action==='RESTOCK')ts[r.name].r+=r.qty;});
     var ns=Object.keys(ts);
     document.getElementById('mta').innerHTML=ns.length===0?'<div class="emp" style="padding:4px 0;font-size:13px">No activity today</div>':ns.map(function(n){return '<div class="mr"><div class="mrl">'+n+'</div><div class="mrr">'+(ts[n].t?'<span class="bdg bt">−'+ts[n].t+'</span> ':'')+( ts[n].r?'<span class="bdg br">+'+ts[n].r+'</span>':'')+'</div></div>';}).join('');
@@ -11424,7 +11392,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14517,7 +14485,22 @@ var TK_FILTER='mine',TK_LIST=[],TK_ROWS=[],TK_SEL=null,TK_VIEW='list',TKD_MSGS=[
 function _hkScr(){ return (typeof stk!=='undefined'&&stk.length)?stk[stk.length-1]:null; }
 function _chDmChannel(a,b){ var p=[String(a||''),String(b||'')].sort(); return 'dm:'+p[0]+'|'+p[1]; }
 var ROSTER=null,_CI_COLOR='';
+/* THE LIVE STAFF LIST. staff_public is what Master Access -> Staff maintains, so it is the truth;
+   the STAFF constant below is a seed for first paint and nothing more. Anywhere that reads STAFF
+   directly will show people who left and miss people who joined, which is what the Last online
+   panel was doing. Everything goes through here instead. */
 function _roster(){ return (ROSTER&&ROSTER.length)?ROSTER:(typeof STAFF!=='undefined'?STAFF:[]); }
+function _staffOf(name){
+  var r=_roster();
+  for(var i=0;i<r.length;i++) if(r[i]&&r[i].name===name) return r[i];
+  return null;
+}
+function _staffEmoji(name){
+  var st=_staffOf(name);
+  if(st&&st.emoji) return st.emoji;
+  if(st&&typeof roleEmojiFor==='function') return roleEmojiFor(st.role);
+  return '\ud83d\udd27';
+}
 function loadRoster(cb){ if(typeof SBC==='undefined'||!SBC){ if(cb)cb(); return; }
   SBC.from('staff_public').select('name,role,emoji').order('name').then(function(r){ if(r&&r.data&&r.data.length) ROSTER=r.data.map(function(x){ return {name:x.name,role:x.role,emoji:x.emoji}; }); if(cb)cb(); },function(){ if(cb)cb(); }); }
 function _grpAvatar(g){ var e=(g&&g.emoji)||'\ud83d\udc65'; if(g&&g.color) return '<span class="ch-av" style="background:'+g.color+';box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.2)">'+e+'</span>'; return '<span class="ch-av ch-grpav">'+e+'</span>'; }
@@ -15655,7 +15638,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16124,7 +16107,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FT';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FV';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

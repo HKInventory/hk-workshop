@@ -2612,7 +2612,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EX · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EY · ZXing raw</div>
       </div>
     </div>
 
@@ -4395,7 +4395,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EX</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EY</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -10511,7 +10511,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13331,6 +13331,8 @@ function hkNotify(toName,title,body,tag,url,allowSelf){
    the graph is down-sampled MIN-PRESERVING (keeps the lowest value in each bucket)
    so a momentary cell dropout still shows as a spike instead of being averaged away. */
 var SD_SESS=[], SD_RUNS={}, SD_SESSION=null, SD_KART=null, SD_ROWS=[], SD_BANK='R', _sdChart=null;
+// How long after the green flag a race is treated as over. Matches the runner's RF_SESS_RACE_MIN.
+var SD_RACE_MS=30*60000;
 var SD_FILT={date:null, track:null};   // active session filters
 var SD_CELL_NAMES=['L1','L2','L3','L4','L5','L6','L7','L8','R1','R2','R3','R4','R5','R6','R7','R8'];
 function _sdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -13340,7 +13342,7 @@ function sdEnter(){
   body.innerHTML='<div class="sd-empty">Loading sessions…</div>';
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="sd-empty">Not connected.</div>'; return; }
   var since=new Date(Date.now()-7*86400000).toISOString();
-  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(2000).then(function(r){
+  SBC.from('rf_sessions').select('uuid,label,track,scheduled_at,ends_at,status,started_at').gte('scheduled_at',since).order('scheduled_at',{ascending:false}).limit(2000).then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ body.innerHTML='<div class="sd-empty">Session data isn\u2019t set up yet.<br>Run hk_ai.sql and deploy the runner, then sessions will appear here after they run.</div>'; return; }
     var all=(r&&r.data)||[];
     // Only the RiMO-logged tracks carry cell data: Adult (RaceFacer reports its layout name, e.g.
@@ -13355,22 +13357,24 @@ function sdEnter(){
       // only a fallback when status is missing/odd.
       var st=(s.status||'').toLowerCase();
       var startMs=s.scheduled_at?Date.parse(s.scheduled_at):0;
-      var endMs=s.ends_at?Date.parse(s.ends_at):(startMs?startMs+13*60000:0);
-      // KEY FIX for "no sessions show": a race scheduled well in the past IS over, even if the runner left
-      // its status stuck at in_progress (RaceFacer's finished string doesn't always flip it). Show
-      // explicitly-finished OR clock-long-past races before the status guards below could hide them.
-      var longPast=startMs && (nowMs-startMs)>30*60000;
-      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;
-      if(longPast) return true;
-      if(/progress|running|live|active|ongoing/.test(st)) return false;          // RUNNING → hide
-      if(/not.?started|scheduled|upcoming|pending|waiting|new/.test(st)) return false; // NOT STARTED → hide
-      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true; // FINISHED → show (trust status)
-      // status unknown → fall back to the clock: hide if it hasn't started or its window hasn't closed
-      if(startMs && startMs>nowMs) return false;
-      if(endMs && endMs>nowMs) return false;
-      return true;
+      var greenMs=s.started_at?_sydParse(s.started_at):0;
+      /* "OVER" IS MEASURED FROM THE GREEN FLAG, NOT FROM THE SCHEDULE.
+         This used to treat any race scheduled more than 30 minutes ago as finished. Races here run
+         badly late — a 10:30 slot can go green at 11:17 — so at 11:05 that race was listed as a
+         finished session you could open, while it had not yet turned a wheel. It then showed one
+         kart, or none, and looked broken. Worse, the 30-minute rule was checked BEFORE the
+         in-progress guard, so a late race that WAS running got listed as finished too.
+         RaceFacer's status is the truth. The clock is only used once we know when the race actually
+         began, and a race with no green flag at all is simply not shown. */
+      if(/progress|running|live|active|ongoing/.test(st)) return false;                 // running now → hide
+      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;  // finished → show
+      if(greenMs) return (nowMs-greenMs)>SD_RACE_MS;                 // started: over once its race time has passed
+      if(/not.?started|scheduled|upcoming|pending|waiting|new/.test(st)) return false;   // never started → hide
+      // No status we recognise and no green flag: only trust an explicit end time that has passed.
+      var endMs=s.ends_at?_sydParse(s.ends_at):0;
+      return !!(endMs && endMs<nowMs);
     });
-    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over. Cell data shows for karts the logger recorded while on track.</div>'; return; }
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over \u2014 measured from the green flag, so a delayed race still counts. Cell data shows for karts the logger recorded while on track.</div>'; return; }
     // load runs (karts) for all sessions
     SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
       SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
@@ -14385,7 +14389,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14854,7 +14858,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EX';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-EY';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

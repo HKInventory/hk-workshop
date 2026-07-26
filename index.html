@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GS · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GT · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GS</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GT</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11889,7 +11889,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15189,6 +15189,7 @@ function hkNotify(toName,title,body,tag,url,allowSelf){
    so a momentary cell dropout still shows as a spike instead of being averaged away. */
 var SD_SESS=[], SD_RUNS={}, SD_SESSION=null, SD_KART=null, SD_ROWS=[], SD_BANK='R', _sdChart=null;
 // How long after the green flag a race is treated as over. Matches the runner's RF_SESS_RACE_MIN.
+var SD_LATE_MS=20*60000;   // past a race's scheduled end before the clock alone counts as evidence
 var SD_RACE_MS=30*60000;
 // Beyond any plausible delay — matches the runner's RF_SESS_DAY_BACKSTOP_H, so the app and the
 // runner agree about when an un-flagged slot is simply over.
@@ -15301,8 +15302,20 @@ function sdEnter(){
         if(endAt) return endAt<nowMs;
         return (nowMs-greenMs)>SD_RACE_MS;
       }
-      // NO GREEN FLAG OF ITS OWN — but a later race on the same track having run proves this one did.
-      var _keep=_sdRanBySequence(s) || !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
+      /* LAST RESORT: THE CLOCK, WITH ENOUGH GRACE TO BE HONEST.
+         Everything above needs the runner to have recorded something — a green flag, a status, or a
+         later race it did record. All three keep failing, and a page that shows nothing is worse
+         than one that occasionally shows a slot nobody turned up for. Races here run late, so the
+         original objection stands: a 1:00pm booking still has a 1:10pm scheduled end whether or not
+         a wheel turned, and at 1:14pm listing it was wrong.
+         Twenty minutes past its scheduled end is the answer to that. It is far longer than any
+         normal delay between a race ending and the next starting, so a genuinely-not-yet-run slot
+         stays hidden through the window where it might still go green — and a race that really did
+         run appears, at worst, twenty minutes later than ideal, instead of never.
+         An explicitly-running race is still hidden, and a future slot is still hidden. */
+      var endMs=s.ends_at?_sydParse(s.ends_at):0;
+      var _late=!!(endMs && (nowMs-endMs)>SD_LATE_MS);
+      var _keep=_sdRanBySequence(s) || _late || !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
       if(!_keep && _isToday) SD_WHY.notrun++;
       return _keep;
     });
@@ -16370,7 +16383,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16839,7 +16852,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GS';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GT';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

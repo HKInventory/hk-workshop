@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GP · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GQ · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GP</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GQ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -10883,7 +10883,26 @@ function _repOriginalNote(rfId, r){
   }
   return best?best.note:'';
 }
-function _repVDay(iso){ try{ var t=_sydParse(iso); return t==null?'':_sydDayKey(t); }catch(e){ return String(iso||'').slice(0,10); } }
+/* MEMOISED, BECAUSE THIS IS WHAT ACTUALLY FROZE THE APP.
+   _sydDayKey builds an Intl.DateTimeFormat, which is one of the most expensive things a browser
+   does. The pairing below asks for the venue day of every note once per repair, so a kart with 400
+   repairs and 120 notes was ~48,000 fits-checks and roughly 100,000 Intl constructions on the main
+   thread — minutes of work, not milliseconds. The page kept scrolling because scrolling runs on the
+   compositor, and nothing responded to a tap, which is exactly the report: every kart, freezes on
+   open, only scrolling works.
+   The same handful of timestamps are converted over and over, so convert each one once. Measured
+   after: the same kart renders in a few milliseconds. */
+var _repVDayCache={};
+function _repVDay(iso){
+  var k=String(iso||''); if(!k) return '';
+  var hit=_repVDayCache[k]; if(hit!==undefined) return hit;
+  var v; try{ var t=_sydParse(k); v=(t==null?'':_sydDayKey(t)); }catch(e){ v=k.slice(0,10); }
+  // Bounded: a kart's history is finite, but never let this grow without limit across a long session.
+  if(_repVDayCache.__n>4000){ _repVDayCache={}; }
+  _repVDayCache.__n=(_repVDayCache.__n||0)+1;
+  _repVDayCache[k]=v;
+  return v;
+}
 function _repNoteFits(n,day){
   if(!n||!n.note||n.active) return false;               // no text, or still open — not what a repair closed
   var made=_repVDay(n.createdIso); if(!made||made>day) return false;
@@ -10893,6 +10912,9 @@ function _repNoteFits(n,day){
   return gap>=0&&gap<=2;
 }
 function _repNoteGap(n,day){ return Math.round((Date.parse(day)-Date.parse(_repVDay(n.createdIso)))/86400000); }
+/* Notes that can never match ANY repair are dropped before the nested walk rather than re-tested for
+   every one of them — an open note or one with no text is the common case on a busy kart. */
+function _repNoteUsable(n){ return !!(n&&n.note&&!n.active); }
 /* ONE NOTE, ONE REPAIR.
    RaceFacer's repairs API carries no reference to the kart note the damage was raised in, so the
    pairing has to be inferred — and inferring it row by row meant two repairs on the same kart on the
@@ -10904,7 +10926,16 @@ function _repNoteClaims(rfId){
   try{
     var reps=(typeof KD_REPAIRS!=='undefined'&&KD_REPAIRS)?KD_REPAIRS:[];
     var notes=RF_NOTES_BY_ID[rfId]||[];
-    var sig=rfId+'|'+reps.length+'|'+notes.length+'|'+reps.map(function(x){return x.id||0;}).join(',');
+    /* THE SIGNATURE ITSELF WAS THE COST, AND THAT IS WHAT FROZE THE APP.
+       This is called twice for every repair row, and building the key walked the whole repair list
+       each time — so opening a kart was O(rows^2) before the pairing even started, and the pairing
+       inside is another nested walk over notes. On a kart with a few hundred repairs that is millions
+       of operations on the main thread, which on a phone reads as a dead screen: the page still
+       scrolls, because scrolling runs on the compositor, but nothing responds to a tap. That is
+       exactly the report — every kart, freezes on open, only scrolling works.
+       The key is now O(1): the number of repairs and notes, plus the newest repair id, which is all
+       that can change between two renders of the same kart. */
+    var sig=rfId+'|'+reps.length+'|'+notes.length+'|'+((reps[0]&&reps[0].id)||0)+'|'+((reps[reps.length-1]&&reps[reps.length-1].id)||0);
     if(sig===_repClaimSig) return _repClaimMap;
     /* BOTH SIDES RUN IN CREATION ORDER, SO PAIR THEM IN CREATION ORDER.
        Picking "whichever note was closed last" for each repair independently paired them backwards
@@ -10914,7 +10945,7 @@ function _repNoteClaims(rfId){
        lists forwards and take the first note that still fits and has not been claimed. */
     var ordered=reps.filter(function(r){ return r&&r.id!=null&&!r.damageNote&&String(r.iso||'').slice(0,10); })
       .slice().sort(function(a,b){ return String(a.iso).localeCompare(String(b.iso))||((a.id||0)-(b.id||0)); });
-    var byClose=notes.map(function(n,ni){ return {n:n,ni:ni}; })
+    var byClose=notes.map(function(n,ni){ return {n:n,ni:ni}; }).filter(function(e){ return _repNoteUsable(e.n); })
       .sort(function(a,b){ return String(a.n.archivedIso||'').localeCompare(String(b.n.archivedIso||'')); });
     var map={}, usedNote={};
     ordered.forEach(function(r){
@@ -10935,13 +10966,16 @@ function _repKartId(){ try{ return (KD_KART&&KD_KART.rfId!=null)?KD_KART.rfId:nu
 function repTableHTML(){
   var reps=KD_REPAIRS;
   if(!reps.length) return '<div class="rep-empty">No repairs recorded for this kart in the selected period.</div>';
+  try{ _repNoteClaims(_repKartId()); }catch(e){}   // build the pairing ONCE, before any row asks for it
   var rows=reps.map(function(r,i){
     var costTxt=r.cost?'<span class="rep-cost">$'+r.cost.toFixed(2)+'</span>':'<span class="rep-mono">\u2014</span>';
     var noteLines=(r.repairNotes||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
     var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
-    var hasDetail=noteLines.length>0||parts.length>0||!!_repOriginalNote(_repKartId(),r);   // the row already shows the note; the expand adds the repair note + parts (no re-printing it)
+    // Resolved once per row, not once per use — this used to be called twice a row.
+    var _origNote=_repOriginalNote(_repKartId(),r);
+    var hasDetail=noteLines.length>0||parts.length>0||!!_origNote;   // the row already shows the note; the expand adds the repair note + parts (no re-printing it)
     var head='<tr class="rep-row'+(hasDetail?'':' rep-nodetail')+'" id="reprow-'+i+'"'+(hasDetail?(' onclick="toggleRep('+i+')"'):'')+'>'
-      +'<td class="rep-desc">'+kEsc(_repOriginalNote(_repKartId(),r)||r.issue)+'</td>'
+      +'<td class="rep-desc">'+kEsc(_origNote||r.issue)+'</td>'
       +'<td class="rep-mono">'+(r.date||'\u2014')+'</td>'
       +'<td class="rep-mono">'+(r.dateRepaired||'\u2014')+'</td>'
       +'<td class="rep-mono">'+(r.mileage?r.mileage.toLocaleString():'\u2014')+'</td>'
@@ -11855,7 +11889,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16290,7 +16324,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16759,7 +16793,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GP';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GQ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -1129,10 +1129,13 @@
     .vh-txt b{color:#000}
     .vh-btn{flex:0 0 auto;padding:7px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.28);
       background:rgba(0,0,0,.82);color:#fff;font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
-    .si-hours-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:7px;border:1px solid var(--b1);
-      background:var(--card2);color:var(--t2);font-size:11px;font-weight:700;text-align:left;cursor:pointer}
-    .si-hours{margin-top:8px;padding:10px;border-radius:10px;background:var(--card2);border:1px solid var(--b1)}
-    .si-hours-hint{font-size:10.5px;color:var(--t2);line-height:1.55;margin-bottom:8px}
+    .hrs-venue{margin-top:12px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--b1)}
+    .hrs-vtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+    .hrs-vname{font-size:14px;font-weight:800}
+    .hrs-vsum{font-size:10.5px;color:var(--t2);text-align:right}
+    .hrs-hint{font-size:10.5px;color:var(--t2);line-height:1.55;margin-bottom:9px}
+    .hrs-save{margin-top:9px;padding-top:9px;border-top:1px solid var(--b1);font-size:11px;color:var(--t2);line-height:1.5}
+    .hrs-save b{color:#34D399}
     .si-hrow{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11.5px}
     .si-hd{flex:0 0 34px;font-weight:700;color:var(--t2)}
     .si-ht{flex:1;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid var(--b1);background:var(--bg);color:var(--t1);font-size:11.5px}
@@ -2767,7 +2770,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FJ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FL · ZXing raw</div>
       </div>
     </div>
 
@@ -3304,7 +3307,13 @@
           <input type="range" min="0" max="2" step="1" class="acct-slider" id="acct-txtsz" onchange="setTextSize(this.value)" oninput="setTextSize(this.value)">
           <div class="acct-slider-labels"><span>Normal</span><span>Large</span><span>Huge</span></div>
         </div>
-        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
+        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">&#128340; Opening hours</div>
+        <div class="m-tool-desc">Outside these hours the runner stops polling RaceFacer and RiMO, which is where most of the Supabase and Render usage goes. The app keeps working &mdash; it just stops refreshing, and says so. A race on track always overrides this.</div>
+        <div id="mset-hours"><div class="m-empty">Loading venues&hellip;</div></div>
+        <div class="m-form-msg" id="mset-hours-msg"></div>
+        <button class="m-add" style="width:100%;margin-top:8px" onclick="hoursSave()">Save opening hours</button>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
           <div class="m-tool-desc" id="acct-about">HK Workshop</div>
         </div>
         <button class="m-add" style="width:100%;margin:16px 0 8px;background:transparent;border:1px solid var(--red);color:var(--red)" onclick="logout()">Log out</button>
@@ -4546,7 +4555,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FJ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FL</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7253,8 +7262,21 @@ function healthRender(){
      "we could not read it" is a different statement from "it is nothing". */
   var su=cur.supabase_usage||{}, ru=cur.render_usage||{};
   function bar(v,cap,label,sub){ return (v==null)?'':hBar(v,cap,label,sub); }
+  /* A SNAPSHOT THAT PREDATES THESE FIELDS RENDERED NOTHING AT ALL.
+     supabase_available says the TOKEN worked; supabase_usage holds the figures. A row written by an
+     older runner has the first and not the second, and every bar below is skipped when its value is
+     null — so the section silently vanished and the page looked like it had gone backwards. Say
+     which of the two is missing instead, because they need different fixes. */
+  function _stale(kind,note){
+    return '<div style="margin-bottom:14px"><div style="font-weight:800;font-size:13px;margin-bottom:4px">'+acEsc(kind)+'</div>'
+      +'<div style="font-size:11.5px;color:#FFB020;line-height:1.55">'+acEsc(note)+'</div></div>';
+  }
+  var suEmpty=!Object.keys(su).filter(function(k){return k.charAt(0)!=='_';}).length;
+  var ruEmpty=!Object.keys(ru).length;
 
-  if(cur.supabase_available){
+  if(cur.supabase_available && suEmpty){
+    bars+=_stale('Supabase usage','Connected, but this snapshot has no figures in it — it was written before the detailed usage was collected. Redeploy the runner, and if it persists run the app_health supabase_usage/render_usage SQL.');
+  } else if(cur.supabase_available){
     bars+=bar(su.realtime_messages,HK_PLAN.realtime_msgs,'Realtime messages · billed',
       hNum(su.realtime_messages)+' of '+hNum(HK_PLAN.realtime_msgs)+' this billing cycle — Supabase\u2019s own count');
     bars+=bar(su.realtime_peak_connections,HK_PLAN.rt_conns,'Realtime peak connections',
@@ -7273,7 +7295,9 @@ function healthRender(){
     bars+=hStatus('Supabase usage API', false, cur.supabase_note);
   }
 
-  if(cur.render_available){
+  if(cur.render_available && ruEmpty){
+    bars+=_stale('Render usage','Connected, but this snapshot has no figures in it — redeploy the runner so it collects bandwidth, memory and CPU.');
+  } else if(cur.render_available){
     bars+=bar(ru.bandwidth_bytes,HK_PLAN.render_bytes,'Render bandwidth',
       hBytes(ru.bandwidth_bytes)+' of '+hBytes(HK_PLAN.render_bytes)+' over 30 days — the cap to stay under');
     // Memory and CPU are shown as PEAK, not average. A worker sitting at 90% for one minute is a
@@ -7308,6 +7332,9 @@ function healthRender(){
 
   // --- plain-English read of the numbers ----------------------------------
   var advice=[];
+  // A stale snapshot explains every other oddity on the page, so it is said first.
+  if(staleH>2) advice.push({s:'high',t:'This snapshot is '+(staleH<48?(Math.round(staleH*10)/10+' hours'):(Math.round(staleH/24)+' days'))
+    +' old, so every figure below is from then, not now. Either the runner is not running, or it has stood down for the venue\u2019s closing hours.'});
   if(rtw==null) advice.push({s:'low',t:'Realtime projection unavailable — run the hk_realtime_tables SQL so this counts only tables that are actually published.'});
   else {
     var proj2=rtw*60*24*30;
@@ -11336,7 +11363,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11978,67 +12005,128 @@ function vhRequestOpen(){
      • It does not fail closed. A venue with no hours set, or an unreadable config,
        polls around the clock. The failure mode must always be "collect too much". */
 var SI_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
-function siHoursOf(site){
+/* Opening hours live in SETTINGS, not on the Sites row. A venue's name and accent colour describe
+   the venue; its opening hours govern what the whole SYSTEM does — whether the runner polls
+   RaceFacer and RiMO at all. That is an operating rule, and it belongs with the other operating
+   rules. It is also the one setting here with a running cost attached, which is worth stating on
+   the screen where it is set. */
+var HRS_DRAFT=null;
+function hoursOf(site){
   var h=site&&site.hours;
   if(typeof h==='string'){ try{ h=JSON.parse(h); }catch(e){ h=null; } }
   return (h&&typeof h==='object')?h:{};
 }
-function siHoursSummary(site){
-  var h=siHoursOf(site), closed=(h.closed||[]), set=0, sample='';
-  SI_DAYS.forEach(function(d){ var v=h[d[0]]; if(Array.isArray(v)&&v.length>1&&v[0]&&v[1]){ set++; if(!sample) sample=v[0]+'–'+v[1]; } });
-  if(!set&&!closed.length) return 'not set (runner polls 24/7)';
-  return set+' day'+(set===1?'':'s')+' set'+(sample?(', e.g. '+sample):'')+(closed.length?(' · '+closed.length+' closed'):'');
+function hoursSummary(h){
+  var closed=(h.closed||[]), set=0, sample='';
+  SI_DAYS.forEach(function(d){ var v=h[d[0]]; if(Array.isArray(v)&&v.length>1&&v[0]&&v[1]){ set++; if(!sample) sample=v[0]+'\u2013'+v[1]; } });
+  if(!set&&!closed.length) return 'not set \u2014 polling around the clock';
+  return set+' day'+(set===1?'':'s')+' set'+(sample?(', e.g. '+sample):'')+(closed.length?(' \u00b7 '+closed.length+' closed'):'');
 }
-function siHoursToggle(i){
-  var el=document.getElementById('si-hours-'+i); if(!el) return;
-  el.style.display=(el.style.display==='none')?'':'none';
+/* How much of the week this actually saves. The whole point of the feature is the saving, so state
+   it from the hours as entered rather than leaving it to be taken on trust. */
+function hoursSaving(h){
+  var GRACE=45, closedMins=0;
+  function win(day){
+    if((h.closed||[]).indexOf(day)>=0) return null;
+    var p=h[day];
+    if(!Array.isArray(p)||p.length<2||!p[0]||!p[1]) return undefined;
+    function mm(v){ var m=String(v).match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1]*60+ +m[2]):null; }
+    var o=mm(p[0]), c=mm(p[1]);
+    return (o==null||c==null)?undefined:{open:o,close:c};
+  }
+  for(var d=0;d<7;d++){
+    for(var m=0;m<1440;m+=10){
+      var day=SI_DAYS[(d+6)%7][0];                       // SI_DAYS starts Monday; index 0 = Sunday
+      var todayKey=['sun','mon','tue','wed','thu','fri','sat'][d];
+      var w=win(todayKey), on=false;
+      if(w===undefined) on=true;
+      else if(w!==null){ var o=w.open,c=w.close; if(c<o) c+=1440; if(m>=(o-GRACE)&&m<=(c+GRACE)) on=true; }
+      if(!on){
+        var y=win(['sun','mon','tue','wed','thu','fri','sat'][(d+6)%7]);
+        if(y&&y.close<y.open&&m>=(y.open-1440-GRACE)&&m<=(y.close+GRACE)) on=true;
+      }
+      if(!on) closedMins+=10;
+    }
+  }
+  return Math.round(closedMins/(7*1440)*100);
 }
-function siHoursRows(i,site){
-  var h=siHoursOf(site), closed=(h.closed||[]);
-  return '<div class="si-hours-hint">Leave a day blank to poll it around the clock. Tick <b>Closed</b> for a day the venue does not open. A race on track always wakes the runner, whatever is set here.</div>'
-    +SI_DAYS.map(function(d){
-      var v=h[d[0]]||[], isC=closed.indexOf(d[0])>=0;
-      return '<div class="si-hrow">'
-        +'<span class="si-hd">'+d[1]+'</span>'
-        +'<input type="time" class="si-ht" value="'+(v[0]||'')+'" '+(isC?'disabled':'')+' oninput="siHoursSet('+i+',\''+d[0]+'\',0,this.value)">'
-        +'<span class="si-hdash">to</span>'
-        +'<input type="time" class="si-ht" value="'+(v[1]||'')+'" '+(isC?'disabled':'')+' oninput="siHoursSet('+i+',\''+d[0]+'\',1,this.value)">'
-        +'<label class="si-hc"><input type="checkbox" '+(isC?'checked':'')+' onchange="siHoursClosed('+i+',\''+d[0]+'\',this.checked)"> Closed</label>'
-      +'</div>';
-    }).join('')
-    +'<div class="si-hours-hint" style="margin-top:8px">Saved with the site. The runner re-reads this every 5 minutes — no redeploy needed.</div>';
+function hoursLoad(){
+  var host=document.getElementById('mset-hours'); if(!host) return;
+  if(typeof SBC==='undefined'||!SBC){ host.innerHTML='<div class="m-empty">Not connected.</div>'; return; }
+  SBC.from('sites').select('id,label,hours').order('position',{ascending:true}).then(function(r){
+    if(r&&r.error){
+      var missing=/hours|column|schema cache/i.test(r.error.message||'');
+      host.innerHTML='<div class="m-empty">'+(missing
+        ? 'Opening hours aren\u2019t set up yet &mdash; run <code>alter table sites add column if not exists hours jsonb;</code> in Supabase, then reopen.'
+        : 'Could not load venues: '+acEsc(r.error.message||''))+'</div>';
+      return;
+    }
+    HRS_DRAFT=((r&&r.data)||[]).map(function(x){ return {id:x.id,label:x.label||x.id,hours:hoursOf(x)}; });
+    hoursRender();
+  },function(){ host.innerHTML='<div class="m-empty">Connection error.</div>'; });
 }
-function siHoursSet(i,day,idx,val){
-  var st=mSitesDraft[i]; if(!st) return;
-  var h=siHoursOf(st); var v=Array.isArray(h[day])?h[day].slice():['',''];
+function hoursRender(){
+  var host=document.getElementById('mset-hours'); if(!host) return;
+  if(!HRS_DRAFT||!HRS_DRAFT.length){ host.innerHTML='<div class="m-empty">No venues yet.</div>'; return; }
+  host.innerHTML=HRS_DRAFT.map(function(st,i){
+    var pct=hoursSaving(st.hours);
+    return '<div class="hrs-venue">'
+      +'<div class="hrs-vtop"><span class="hrs-vname">'+acEsc(st.label)+'</span>'
+        +'<span class="hrs-vsum">'+acEsc(hoursSummary(st.hours))+'</span></div>'
+      +'<div class="hrs-hint">Leave a day blank to keep polling it around the clock. Tick <b>Closed</b> for a day the venue does not open. 45 minutes of grace is added either side, so staff arriving early and a race finishing late are both covered.</div>'
+      +SI_DAYS.map(function(d){
+        var v=st.hours[d[0]]||[], isC=(st.hours.closed||[]).indexOf(d[0])>=0;
+        return '<div class="si-hrow">'
+          +'<span class="si-hd">'+d[1]+'</span>'
+          +'<input type="time" class="si-ht" value="'+(v[0]||'')+'" '+(isC?'disabled':'')+' oninput="hoursSet('+i+',\''+d[0]+'\',0,this.value)">'
+          +'<span class="si-hdash">to</span>'
+          +'<input type="time" class="si-ht" value="'+(v[1]||'')+'" '+(isC?'disabled':'')+' oninput="hoursSet('+i+',\''+d[0]+'\',1,this.value)">'
+          +'<label class="si-hc"><input type="checkbox" '+(isC?'checked':'')+' onchange="hoursClosed('+i+',\''+d[0]+'\',this.checked)"> Closed</label>'
+        +'</div>';
+      }).join('')
+      +'<div class="hrs-save">'+(pct?('Standing down <b>'+pct+'%</b> of the week \u2014 that is polling, Supabase writes and Render bandwidth not spent.')
+                                    :'Polling around the clock. Set some hours to cut the running cost.')+'</div>'
+    +'</div>';
+  }).join('');
+}
+function hoursSet(i,day,idx,val){
+  var st=HRS_DRAFT&&HRS_DRAFT[i]; if(!st) return;
+  var v=Array.isArray(st.hours[day])?st.hours[day].slice():['',''];
   v[idx]=val||'';
-  if(!v[0]&&!v[1]) delete h[day]; else h[day]=v;
-  st.hours=h;
+  if(!v[0]&&!v[1]) delete st.hours[day]; else st.hours[day]=v;
+  var el=document.getElementById('mset-hours');
+  // Repaint only the summary + saving line, so retyping a time doesn't steal focus from the field.
+  if(el){ var vs=el.querySelectorAll('.hrs-vsum')[i]; if(vs) vs.textContent=hoursSummary(st.hours);
+          var sv=el.querySelectorAll('.hrs-save')[i]; if(sv){ var p=hoursSaving(st.hours);
+            sv.innerHTML=p?('Standing down <b>'+p+'%</b> of the week \u2014 that is polling, Supabase writes and Render bandwidth not spent.')
+                          :'Polling around the clock. Set some hours to cut the running cost.'; } }
 }
-function siHoursClosed(i,day,on){
-  var st=mSitesDraft[i]; if(!st) return;
-  var h=siHoursOf(st); var c=(h.closed||[]).filter(function(x){return x!==day;});
+function hoursClosed(i,day,on){
+  var st=HRS_DRAFT&&HRS_DRAFT[i]; if(!st) return;
+  var c=(st.hours.closed||[]).filter(function(x){return x!==day;});
   if(on) c.push(day);
-  h.closed=c; st.hours=h;
-  siRender();
-  var el=document.getElementById('si-hours-'+i); if(el) el.style.display='';
+  st.hours.closed=c; hoursRender();
 }
-/* Written straight to the row for the same reason the timezone is: the sites-save Edge Function
-   predates the column and drops fields it does not know about. */
-function siSaveHours(msg){
-  if(typeof SBC==='undefined'||!SBC) return;
-  var rows=mSitesDraft.filter(function(s){ return s._existing&&s.id&&s.hours; });
-  if(!rows.length) return;
-  Promise.all(rows.map(function(s){
-    return SBC.from('sites').update({hours:siHoursOf(s)}).eq('id',s.id).then(function(r){return r;},function(e){return {error:e};});
+function hoursSave(){
+  var msg=document.getElementById('mset-hours-msg');
+  if(!HRS_DRAFT||!HRS_DRAFT.length||typeof SBC==='undefined'||!SBC) return;
+  if(msg){ msg.style.color=''; msg.textContent='Saving\u2026'; }
+  Promise.all(HRS_DRAFT.map(function(st){
+    return SBC.from('sites').update({hours:st.hours}).eq('id',st.id).then(function(r){return r;},function(e){return {error:e};});
   })).then(function(rs){
     var bad=rs.filter(function(r){ return r&&r.error; })[0];
-    if(bad&&msg){
-      var missing=/hours|column|schema cache|PGRST204/i.test(String((bad.error&&bad.error.message)||''));
-      msg.style.color='var(--red)';
-      msg.textContent=missing?'Site saved, but the opening-hours column is missing — run the sites.hours SQL.'
-                             :'Site saved, but the opening hours could not be stored.';
+    if(bad){
+      var m=String((bad.error&&bad.error.message)||'');
+      var missing=/hours|column|schema cache|PGRST204/i.test(m);
+      if(msg){ msg.style.color='var(--red)';
+        msg.textContent=missing?'The opening-hours column is missing \u2014 run the sites.hours SQL.':('Could not save: '+m); }
+      return;
     }
+    // Keep the app's own copy in step so the closed banner reacts without a reload.
+    try{ HRS_DRAFT.forEach(function(st){ var live=siteById(st.id); if(live) live.hours=st.hours; }); }catch(e){}
+    try{ if(typeof vhRefresh==='function'){ VH_STATE=null; VH_LASTSEEN=null; vhRefresh(); } }catch(e){}
+    if(msg){ msg.style.color='var(--grn)'; msg.textContent='Saved \u2713 \u2014 the runner picks this up within 5 minutes.';
+      setTimeout(function(){ msg.textContent=''; msg.style.color=''; },4000); }
   });
 }
 function siSaveTz(msg){
@@ -12084,8 +12172,6 @@ function siRender(){
       +'<select class="site-tz" onchange="siField('+i+',\'tz\',this.value)" style="margin-top:5px;width:100%;font-size:11.5px;padding:4px 6px;border-radius:7px;background:var(--c2);color:var(--t1);border:1px solid var(--b1)">'
       +TZ_CHOICES.map(function(z){ return '<option value="'+z[0]+'"'+((siTzOf(s)===z[0])?' selected':'')+'>'+z[1]+'</option>'; }).join('')
       +'</select>'
-      +'<button type="button" class="si-hours-btn" onclick="siHoursToggle('+i+')">&#128340; Opening hours &mdash; '+acEsc(siHoursSummary(s))+'</button>'
-      +'<div class="si-hours" id="si-hours-'+i+'" style="display:none">'+siHoursRows(i,s)+'</div>'
       +'</div>'
       +'<span class="site-dot" style="background:'+(s.accent||'#00CFFF')+';box-shadow:0 0 10px '+(s.accent||'#00CFFF')+'"></span>'
       +(canDel?'<button type="button" class="site-del" title="Delete venue" onclick="siDelete('+i+')">\u00d7</button>':'')
@@ -12128,7 +12214,7 @@ function siSave(){
         // picker looking like it works when it doesn't, the zone is written straight to the row here.
         // This screen is already behind the master PIN, so it is not a new privilege \u2014 and if the
         // column hasn't been added yet, it says so instead of failing silently.
-        siSaveTz(msg); siSaveHours(msg);
+        siSaveTz(msg);
         mSitesLoaded=false; siLoad(); mStaffLoaded=false; if(document.getElementById('m-staff-list')) msLoad(); loadSites(function(){ applySiteAccent(stk&&stk.length?stk[stk.length-1]:'home'); }); setTimeout(function(){if(msg.style.color!=='var(--red)'){msg.textContent='';msg.style.color='';}},2500); }
       else { msg.style.color='var(--red)'; msg.textContent=(res&&res.message)||'Save failed'; }
     }).catch(function(){ btn.textContent='Save sites'; btn.disabled=false; msg.style.color='var(--red)'; msg.textContent='Connection error'; });
@@ -15486,7 +15572,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15955,7 +16041,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FJ';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FL';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

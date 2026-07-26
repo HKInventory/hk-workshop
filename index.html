@@ -1095,14 +1095,67 @@
        an invisible home screen is far worse than a glitchy one. */
     #home-grid.settling{opacity:0}
     #home-grid{opacity:1;transition:opacity .18s ease}
-    .sum-days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch}
+    /* ---- DAILY SUMMARY -------------------------------------------------------
+       Charts are inline SVG/CSS: nothing to load, nothing to go stale, and it draws
+       the moment the data lands. Marks are thin, grid and axes recede, and every
+       chart is direct-labelled so no value is ever carried by colour alone. */
+    .sum-days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch}
     .sum-days::-webkit-scrollbar{display:none}
-    .sum-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--c2);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
-    .sum-chip.on{background:linear-gradient(145deg,#8B5CF6,#4C1D95);border-color:rgba(167,139,250,.6);color:#fff}
-    .sum-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
-    .sum-stat{background:var(--c2);border:1px solid var(--b1);border-radius:12px;padding:10px 12px}
-    .sum-statn{font-size:22px;font-weight:800;line-height:1.1}
-    .sum-statl{font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+    .sum-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--card2);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .sum-chip.on{background:#16A34A;border-color:#16A34A;color:#fff}
+    .sum-note{font-size:11px;color:var(--t2);line-height:1.5;margin:-2px 0 12px}
+    .sum-empty{font-size:12.5px;color:var(--t2);padding:4px 0}
+
+    /* KPI row. A single value plus its trend is a stat tile — not a one-bar chart. */
+    .sum-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+    .sum-tile{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:13px 14px;position:relative;overflow:hidden}
+    .sum-tilev{font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.5px}
+    .sum-tilel{font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-top:3px}
+    .sum-delta{display:block;font-size:11px;font-weight:700;margin-top:6px}
+    .sum-spark{display:block;width:100%;height:22px;margin-top:8px;opacity:.9}
+
+    /* Column chart. Bars are anchored to the baseline with rounded data-ends. */
+    .sum-cols{display:flex;align-items:flex-end;gap:3px;height:132px}
+    .sum-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;height:100%}
+    .sum-colv{font-size:10px;color:var(--t2);height:13px;line-height:13px;font-variant-numeric:tabular-nums}
+    .sum-colbar{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
+    .sum-colbar>i{display:block;width:100%;max-width:26px;border-radius:4px 4px 0 0;transition:height .25s ease}
+    .sum-collbl{font-size:9.5px;color:var(--t2);margin-top:6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+    /* Ranked magnitude. Sorted, direct-labelled, top rank in the accent. */
+    .sum-hbars{display:flex;flex-direction:column;gap:7px}
+    .sum-hbar{display:flex;align-items:center;gap:10px;font-size:12.5px}
+    .sum-hbl{flex:0 0 34%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sum-hbt{flex:1;height:9px;border-radius:5px;background:rgba(148,163,184,.12);overflow:hidden}
+    .sum-hbt>i{display:block;height:100%;border-radius:5px;transition:width .3s ease}
+    .sum-hbv{flex:0 0 auto;font-weight:800;font-size:11.5px;color:var(--t2);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+    /* Part-to-whole. A 2px surface gap keeps adjacent fills readable. */
+    .sum-stack{display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg)}
+    .sum-stack>i{display:block;min-width:3px}
+    .sum-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    .sum-lg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t2)}
+    .sum-lg>i{width:9px;height:9px;border-radius:3px;display:inline-block}
+    .sum-lg b{color:var(--t1)}
+
+    /* A single ratio against a limit is a meter, never a two-slice pie. */
+    .sum-meter{height:10px;border-radius:6px;background:rgba(148,163,184,.14);overflow:hidden}
+    .sum-meter>i{display:block;height:100%;border-radius:6px;transition:width .3s ease}
+
+    .sum-lrow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.04)}
+    .sum-lrow:last-child{border-bottom:0}
+    .sum-lrl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sum-lrr{flex:0 0 auto;color:var(--t2);white-space:nowrap;font-variant-numeric:tabular-nums}
+    .sum-kdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle}
+
+    /* Shift bars across the venue day — overlap between people is the actual question. */
+    .sum-axis{position:relative;height:14px;margin:0 0 6px 86px;font-size:9.5px;color:var(--t2)}
+    .sum-axis>span{position:absolute;transform:translateX(-50%);font-variant-numeric:tabular-nums}
+    .sum-shift{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+    .sum-shiftn{flex:0 0 78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sum-shifttrack{flex:1;position:relative;height:11px;border-radius:6px;background:rgba(148,163,184,.10)}
+    .sum-shifttrack>i{position:absolute;top:0;height:100%;border-radius:6px;min-width:3px}
+    .sum-shiftt{flex:0 0 auto;font-size:10.5px;color:var(--t2);white-space:nowrap;font-variant-numeric:tabular-nums}
     .kn-title{color:var(--t1);font-weight:600;line-height:1.45}
     .kn-star{color:#FFD600;margin-right:8px}
     .kn-note{color:var(--t1);font-weight:600;max-width:440px;line-height:1.45}
@@ -1731,7 +1784,7 @@
     .tile.tc .ti{filter:drop-shadow(0 0 9px rgba(52,211,153,.75))}
     .tile.tc .tl{font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.4)}
     /* TV Display — distinct violet vs Kart Info/Sessions */
-    .tile.ttv{background:linear-gradient(150deg,#5B21B6,#2E1065)!important;border-color:#8B5CF655!important}
+    .tile.ttv{background:linear-gradient(150deg,#D40000,#6B0000)!important;border-color:#FF3B3B66!important}
     .tile.kicpu{background:linear-gradient(150deg,#155E75,#083344)!important;border-color:#22D3EE55!important}
     .tile.kidh{background:linear-gradient(150deg,#A3E635,#4D7C0F)!important;border:1.5px solid rgba(190,242,100,0.9)!important;box-shadow:0 0 0 1px rgba(132,204,22,0.3),0 8px 24px rgba(132,204,22,0.28)!important}
     .tile.kidh .ti{filter:drop-shadow(0 0 8px rgba(163,230,53,.7))}
@@ -2558,7 +2611,7 @@
           <div class="tile gord"     id="wgord" style="display:none;background:linear-gradient(145deg,#6366F1,#4338CA);border-color:rgba(129,140,248,.55)" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
           <div class="tile health"   id="whealth" style="display:none;background:linear-gradient(145deg,#0EA5E9,#075985);border-color:rgba(56,189,248,.55)" onclick="go('health')"><div class="ti">💓</div><div class="tl">App Health</div><div class="ts">Usage &amp; running costs</div></div>
-          <div class="tile summary"  id="wsummary" style="display:none;background:linear-gradient(145deg,#8B5CF6,#4C1D95);border-color:rgba(167,139,250,.55)" onclick="go('summary')"><div class="ti">&#128203;</div><div class="tl">Daily Summary</div><div class="ts">What got done, day by day</div></div>
+          <div class="tile summary"  id="wsummary" style="display:none;background:linear-gradient(145deg,#16A34A,#064E3B);border-color:rgba(52,211,153,.55)" onclick="go('summary')"><div class="ti">&#128203;</div><div class="tl">Daily Summary</div><div class="ts">What got done, day by day</div></div>
           <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
         </div>
       </div>
@@ -2646,7 +2699,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FB · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FD · ZXing raw</div>
       </div>
     </div>
 
@@ -4429,7 +4482,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FB</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FD</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6172,8 +6225,8 @@ function _sydParts(ms){
     var p=new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
       .formatToParts(new Date(ms)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
     var h=(p.hour==='24')?0:parseInt(p.hour,10);
-    return {day:p.year+'-'+p.month+'-'+p.day, hour:h};
-  }catch(e){ var d=new Date(ms); return {day:d.toISOString().slice(0,10), hour:d.getUTCHours()}; }
+    return {day:p.year+'-'+p.month+'-'+p.day, hour:h, minute:parseInt(p.minute,10)||0};
+  }catch(e){ var d=new Date(ms); return {day:d.toISOString().slice(0,10), hour:d.getUTCHours(), minute:d.getUTCMinutes()}; }
 }
 function tyreAnalyse(){
   var byDay={};
@@ -6526,44 +6579,62 @@ function presRepaint(){
 
 /* ===== DAILY SUMMARY ============================================================
    One venue-day of work, read back from what actually happened rather than from
-   anyone remembering to fill something in. Every figure here already exists in a
-   table — this screen just asks the question nobody had time to ask.
+   anyone remembering to fill something in. Every figure already exists in a table —
+   this screen asks the question nobody had time to ask.
 
-   Five sources, each answering a different question:
-     rf_repairs        what was fixed, by whom, for how much
+   Sources, each answering something different:
+     rf_repairs        what was fixed, by whom, on which kart, for how much
      rf_repair_parts   which parts went into those repairs
-     kart_check_runs   which kart checks were completed
-     logs              what came out of the store
-     staff_sessions    who was on
+     kart_check_runs   which checks were completed, and what they found
+     logs              what came out of the store, WITH times
+     staff_sessions    who was on, and between which hours
 
-   Days are VENUE days (venueTz), not the browser's, so a manager reading this from
-   home at 11pm sees the day the venue just had. And a repair's day is the day it was
-   REPAIRED — the work is what this page is about, not when the damage was noticed. */
-var SUM_DAY=null, SUM_CACHE={}, SUM_BUSY=false;
-var SUM_DAYS_BACK=7;
+   TWO RULES THAT SHAPE EVERYTHING BELOW.
 
-function _sumDayList(){
-  var out=[], now=Date.now();
-  for(var i=0;i<SUM_DAYS_BACK;i++) out.push(_sumKey(now-i*86400000));
-  return out;
-}
-function _sumKey(ms){ return _sydDayKey(ms); }         // venue calendar day (see venueTz)
+   1. A number without context is not information. "9 repairs" means nothing until
+      you know the fortnight's average is 4. Every headline figure carries its delta
+      against the trailing 14-day average, so the page answers "is today unusual?"
+      rather than merely "what happened?".
+
+   2. Never draw a resolution the data does not have. rf_repairs stores a DATE, not a
+      timestamp — so there is no honest hourly chart of repairs, and this page does
+      not invent one. The hourly view is built from stock movements and kart checks,
+      which genuinely carry times, and it says so.
+
+   Days are VENUE days (venueTz), so a manager reading this from home at 11pm sees
+   the day the venue just had. */
+var SUM_DAY=null, SUM_CACHE={}, SUM_BUSY=false, SUM_HIST=null;
+var SUM_DAYS_BACK=7;              // day chips
+var SUM_TREND_DAYS=14;            // history behind the averages and the trend chart
+
+/* Chart palette. Validated for this app's #111 card surface with the data-viz
+   validator: lightness band, chroma floor, CVD separation (worst adjacent pair
+   ΔE 8.4 protan), normal-vision separation (ΔE 19.8) and ≥3:1 contrast all pass.
+   Magnitude charts use ONE hue — more-is-darker is the safe default and is hard to
+   misread. Categorical hues appear only where the series ARE the subject. */
+var SUMC={ accent:'#3987e5', accentDim:'rgba(57,135,229,.22)', warm:'#d95926',
+           good:'#199e70', warn:'#c98500', bad:'#e66767', muted:'rgba(148,163,184,.35)' };
+
+function _sumKey(ms){ return _sydDayKey(ms); }
+function _sumDayList(){ var out=[],n=Date.now(); for(var i=0;i<SUM_DAYS_BACK;i++) out.push(_sumKey(n-i*86400000)); return out; }
 function _sumLabel(key){
   var today=_sumKey(Date.now()), yest=_sumKey(Date.now()-86400000);
   if(key===today) return 'Today';
   if(key===yest) return 'Yesterday';
-  var p=key.split('-'), d=new Date(+p[0],+p[1]-1,+p[2]);
+  var p=String(key).split('-'), d=new Date(+p[0],+p[1]-1,+p[2]);
   return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+d.getDate()+' '+_CH_MO[d.getMonth()];
 }
-/* A timestamp column -> the venue day it falls in. Untagged values from Postgres are UTC (see
-   _sydParse), which matters most at exactly the times people work: an 8am repair is 22:00 the
-   previous day in UTC, and reading it raw would file it under yesterday. */
+function _sumShort(key){ var p=String(key).split('-'); return (+p[2])+'/'+(+p[1]); }
+/* A timestamp column -> the venue day it falls in. Untagged values from Postgres are UTC, which
+   matters most at exactly the times people work: an 8am action is 22:00 the previous day in UTC,
+   and reading it raw would file it under yesterday. */
 function _sumDayOf(v){ var t=_sydParse(v); return t==null?null:_sydDayKey(t); }
-/* rf_repairs stores plain dates (YYYY-MM-DD), which are already venue days — no conversion. */
-function _sumDateOnly(v){ var m=String(v||'').match(/^(\d{4}-\d{2}-\d{2})/); return m?m[1]:null; }
+/* The venue hour (0-23) an instant falls in. */
+function _sumHourOf(v){ var t=_sydParse(v); if(t==null) return null; var p=_sydParts(t); return p?p.hour:null; }
+function _sumPct(a,b){ if(!b) return null; return Math.round((a-b)/b*100); }
+function _sumN(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString(); }
 
 function sumSetDay(key){ if(key===SUM_DAY) return; SUM_DAY=key; sumRenderDays(); sumLoad(); }
-
 function sumRenderDays(){
   var host=document.getElementById('sum-days'); if(!host) return;
   var days=_sumDayList();
@@ -6572,174 +6643,359 @@ function sumRenderDays(){
     return '<button class="sum-chip'+(k===SUM_DAY?' on':'')+'" onclick="sumSetDay(\''+k+'\')">'+acEsc(_sumLabel(k))+'</button>';
   }).join('');
   var sub=document.getElementById('sum-sub');
-  if(sub) sub.textContent='What got done · '+siteLabel(currentSite)+' · '+venueTzLabel(currentSite);
+  if(sub) sub.textContent=siteLabel(currentSite)+' · '+venueTzLabel(currentSite)+' · compared with the last '+SUM_TREND_DAYS+' days';
 }
 
+/* ---- data ---------------------------------------------------------------- */
 function sumLoad(force){
   sumRenderDays();
   var body=document.getElementById('sum-body'); if(!body) return;
   if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="emp" style="padding:14px 0">Not connected.</div>'; return; }
   var day=SUM_DAY;
-  if(force) delete SUM_CACHE[day];
+  if(force){ SUM_CACHE={}; SUM_HIST=null; }
   if(SUM_CACHE[day]){ sumRender(SUM_CACHE[day]); return; }
   if(SUM_BUSY) return; SUM_BUSY=true;
   body.innerHTML='<div class="emp" style="padding:14px 0">Loading '+acEsc(_sumLabel(day))+'…</div>';
   var site=currentSite||'sydney';
-  /* A venue day is not a UTC day, so timestamp columns are queried on a WIDER window (the day
-     +/- 14h covers every timezone this could run in) and filtered precisely in JS. Filtering in
-     SQL on a UTC date would silently drop the first and last hours of the venue's day. */
+  /* A venue day is not a UTC day, so timestamp columns are queried on a WIDER window and filtered
+     precisely in JS. Filtering in SQL on a UTC date would silently drop the first and last hours of
+     the venue's day — which are exactly the hours people work. */
   var p=day.split('-'), mid=Date.UTC(+p[0],+p[1]-1,+p[2],12,0,0);
   var lo=new Date(mid-26*3600000).toISOString(), hi=new Date(mid+26*3600000).toISOString();
+  var histFrom=_sumKey(Date.now()-SUM_TREND_DAYS*86400000);
+
   Promise.all([
-    SBC.from('rf_repairs').select('id,rf_kart_id,kart_name,kart_type,description,notes,cost,mechanic,date_repaired,date_discovered')
+    SBC.from('rf_repairs').select('id,rf_kart_id,kart_name,kart_type,description,notes,damage_note,cost,mechanic,date_repaired')
       .eq('date_repaired',day).limit(2000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
-    SBC.from('kart_check_runs').select('id,kart_type,started_at,completed_at,status,ok_count,fm_count,damaged_count,started_by,site')
+    SBC.from('kart_check_runs').select('id,kart_type,started_at,completed_at,status,ok_count,fm_count,damaged_count,started_by')
       .eq('site',site).gte('started_at',lo).lte('started_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
-    SBC.from('logs').select('action,sku,qty,ts,name,site').eq('site',site)
+    SBC.from('logs').select('action,sku,qty,ts,name').eq('site',site)
       .gte('ts',lo).lte('ts',hi).limit(3000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
     SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at')
       .gte('signed_in_at',lo).lte('signed_in_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
-    SBC.from('parts').select('sku,desc,price').limit(4000).then(function(r){return (r&&r.data)||[];},function(){return [];})
+    SBC.from('parts').select('sku,desc,price').limit(4000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    // The trailing fortnight, for the deltas and the trend chart. Cached across day switches — it
+    // is the same window whichever day you are looking at.
+    SUM_HIST?Promise.resolve(SUM_HIST):
+      SBC.from('rf_repairs').select('date_repaired,cost,rf_kart_id').gte('date_repaired',histFrom).limit(8000)
+        .then(function(r){return (r&&r.data)||[];},function(){return [];})
   ]).then(function(res){
-    var reps=res[0], checks=res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
+    SUM_HIST=res[5];
+    var reps=res[0],
+        checks=res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
         logs=res[2].filter(function(l){ return _sumDayOf(l.ts)===day; }),
         sess=res[3].filter(function(x){ return _sumDayOf(x.signed_in_at)===day; }),
         parts=res[4];
     var ids=reps.map(function(r){return r.id;}).filter(function(x){return x!=null;});
-    // Parts used come from the repairs themselves, so an empty repair day means no query at all.
-    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts); return; }
+    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5]); return; }
     SBC.from('rf_repair_parts').select('part_name,qty,price,repair_id').in('repair_id',ids.slice(0,600)).limit(5000)
-      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts); },
-            function(){ sumFinish(day,reps,[],checks,logs,sess,parts); });
+      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts,res[5]); },
+            function(){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5]); });
   },function(){ SUM_BUSY=false; body.innerHTML='<div class="emp" style="padding:14px 0">Couldn’t load that day.</div>'; });
 }
 
-function sumFinish(day,reps,rparts,checks,logs,sess,parts){
+function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist){
   SUM_BUSY=false;
   var pMap={}; parts.forEach(function(p){ pMap[p.sku]={desc:p.desc,price:+p.price||0}; });
 
-  // --- repairs, by mechanic -------------------------------------------------
-  var byMech={}, cost=0, kartsFixed={};
+  // --- repairs: by mechanic, by type, by kart ------------------------------
+  var byMech={}, byType={}, byKart={}, cost=0;
   reps.forEach(function(r){
     var c=+r.cost||0; cost+=c;
-    if(r.rf_kart_id!=null) kartsFixed[r.rf_kart_id]=true;
     var m=(r.mechanic||'').trim()||'Unattributed';
-    if(!byMech[m]) byMech[m]={name:m,n:0,cost:0};
-    byMech[m].n++; byMech[m].cost+=c;
+    if(!byMech[m]) byMech[m]={name:m,n:0,cost:0}; byMech[m].n++; byMech[m].cost+=c;
+    var t=r.kart_type?rfTypeShort(r.kart_type):'Unknown';
+    if(!byType[t]) byType[t]={name:t,n:0}; byType[t].n++;
+    var kk=(r.kart_name!=null&&r.kart_name!=='')?String(r.kart_name):('#'+(r.rf_kart_id||'?'));
+    if(!byKart[kk]) byKart[kk]={kart:kk,type:t,n:0,cost:0,notes:[]};
+    byKart[kk].n++; byKart[kk].cost+=c;
+    var txt=String(r.damage_note||r.description||'').trim(); if(txt) byKart[kk].notes.push(txt);
   });
-  var mechs=Object.keys(byMech).map(function(k){return byMech[k];})
-    .sort(function(a,b){ return (b.n-a.n)||(b.cost-a.cost); });
+  var mechs=Object.keys(byMech).map(function(k){return byMech[k];}).sort(function(a,b){return (b.n-a.n)||(b.cost-a.cost);});
+  var types=Object.keys(byType).map(function(k){return byType[k];}).sort(function(a,b){return b.n-a.n;});
+  var karts=Object.keys(byKart).map(function(k){return byKart[k];}).sort(function(a,b){return (b.n-a.n)||(b.cost-a.cost);});
 
-  // --- parts used -----------------------------------------------------------
+  // --- parts ----------------------------------------------------------------
   var byPart={}, partQty=0;
-  rparts.forEach(function(p){
-    var n=p.part_name||'Part', q=+p.qty||0;
-    if(!byPart[n]) byPart[n]={name:n,qty:0,cost:0};
-    byPart[n].qty+=q; byPart[n].cost+=q*(+p.price||0); partQty+=q;
-  });
-  // Stock taken from the store is a second, independent record of parts consumed — it catches work
-  // logged in the app that never made it onto a RaceFacer repair.
-  var taken={}, takenQty=0, restocked=0;
+  rparts.forEach(function(p){ var n=p.part_name||'Part', q=+p.qty||0;
+    if(!byPart[n]) byPart[n]={name:n,qty:0,cost:0}; byPart[n].qty+=q; byPart[n].cost+=q*(+p.price||0); partQty+=q; });
+  var taken={}, takenQty=0, restocked=0, hourly=new Array(24).fill(0), hourlyChk=new Array(24).fill(0);
   logs.forEach(function(l){
-    var q=Math.abs(+l.qty||0);
-    if(/take|use|out/i.test(l.action||'')){ var k=l.sku||'?'; if(!taken[k]) taken[k]={sku:k,desc:(pMap[k]&&pMap[k].desc)||k,qty:0,cost:0};
-      taken[k].qty+=q; taken[k].cost+=q*((pMap[k]&&pMap[k].price)||0); takenQty+=q; }
-    else if(/restock|add|in\b/i.test(l.action||'')) restocked+=q;
+    var q=Math.abs(+l.qty||0), h=_sumHourOf(l.ts);
+    if(/take|use|out/i.test(l.action||'')){
+      var k=l.sku||'?'; if(!taken[k]) taken[k]={sku:k,desc:(pMap[k]&&pMap[k].desc)||k,qty:0,cost:0};
+      taken[k].qty+=q; taken[k].cost+=q*((pMap[k]&&pMap[k].price)||0); takenQty+=q;
+      if(h!=null) hourly[h]+=q;
+    } else if(/restock|add|in\b/i.test(l.action||'')) restocked+=q;
   });
   var partList=Object.keys(byPart).map(function(k){return byPart[k];}).sort(function(a,b){return b.qty-a.qty;});
   var takenList=Object.keys(taken).map(function(k){return taken[k];}).sort(function(a,b){return b.qty-a.qty;});
 
-  // --- kart checks ----------------------------------------------------------
+  // --- checks ---------------------------------------------------------------
   var done=checks.filter(function(c){ return String(c.status||'')==='done'; });
+  done.forEach(function(c){ var h=_sumHourOf(c.completed_at||c.started_at); if(h!=null) hourlyChk[h]++; });
   var checked=done.reduce(function(a,c){ return a+(+c.ok_count||0)+(+c.fm_count||0)+(+c.damaged_count||0); },0);
   var dmgFound=done.reduce(function(a,c){ return a+(+c.damaged_count||0); },0);
+  var fmFound=done.reduce(function(a,c){ return a+(+c.fm_count||0); },0);
+  var fleet=(typeof KART_LIST!=='undefined'&&KART_LIST)?KART_LIST.length:0;
 
-  // --- who was on -----------------------------------------------------------
-  var who={};
-  sess.forEach(function(x){ if(!x.name) return; var t=_sydParse(x.signed_in_at)||0;
-    if(!who[x.name]||t<who[x.name].t) who[x.name]={t:t,role:x.role||'',out:x.signed_out_at}; });
+  // --- shifts ---------------------------------------------------------------
+  var shifts={};
+  sess.forEach(function(x){
+    if(!x.name) return;
+    var i=_sydParse(x.signed_in_at)||0, o=x.signed_out_at?(_sydParse(x.signed_out_at)||0):0;
+    if(!shifts[x.name]) shifts[x.name]={name:x.name,role:x.role||'',in:i,out:o};
+    else { if(i&&i<shifts[x.name].in) shifts[x.name].in=i; if(o>shifts[x.name].out) shifts[x.name].out=o; }
+  });
+  var shiftList=Object.keys(shifts).map(function(k){return shifts[k];}).sort(function(a,b){return a.in-b.in;});
 
-  var data={day:day,reps:reps,mechs:mechs,cost:cost,kartsFixed:Object.keys(kartsFixed).length,
+  // --- the trailing fortnight, for context ---------------------------------
+  var perDay={}, perDayCost={};
+  (hist||[]).forEach(function(r){
+    var d=String(r.date_repaired||'').slice(0,10); if(!d) return;
+    perDay[d]=(perDay[d]||0)+1; perDayCost[d]=(perDayCost[d]||0)+(+r.cost||0);
+  });
+  var trend=[];
+  for(var i=SUM_TREND_DAYS-1;i>=0;i--){ var k=_sumKey(Date.now()-i*86400000); trend.push({day:k,n:perDay[k]||0,cost:perDayCost[k]||0}); }
+  // The average EXCLUDES the day being viewed, so today is never compared against itself.
+  var others=trend.filter(function(t){ return t.day!==day; });
+  var avgN=others.length?others.reduce(function(a,t){return a+t.n;},0)/others.length:0;
+  var avgCost=others.length?others.reduce(function(a,t){return a+t.cost;},0)/others.length:0;
+
+  var data={day:day,reps:reps,mechs:mechs,types:types,karts:karts,cost:cost,
             partList:partList,partQty:partQty,takenList:takenList,takenQty:takenQty,restocked:restocked,
-            checks:done,checked:checked,dmgFound:dmgFound,who:who};
+            checks:done,checked:checked,dmgFound:dmgFound,fmFound:fmFound,fleet:fleet,
+            hourly:hourly,hourlyChk:hourlyChk,shifts:shiftList,
+            trend:trend,avgN:avgN,avgCost:avgCost};
   SUM_CACHE[day]=data;
   sumRender(data);
 }
 
-function _sumStat(n,label,colour){
-  return '<div class="sum-stat" style="border-left:3px solid '+colour+'"><div class="sum-statn">'+n+'</div>'
-    +'<div class="sum-statl">'+acEsc(label)+'</div></div>';
-}
-function _sumCard(title,inner){ return '<div class="mc"><div class="mct">'+acEsc(title)+'</div>'+inner+'</div>'; }
-function _sumRow(left,right,strong){
-  return '<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px">'
-    +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+left+'</span>'
-    +'<span style="'+(strong?'font-weight:800':'color:var(--t2)')+';white-space:nowrap">'+right+'</span></div>';
-}
-function _sumEmpty(t){ return '<div style="font-size:12.5px;color:var(--t2);padding:2px 0">'+acEsc(t)+'</div>'; }
+/* ---- chart primitives ------------------------------------------------------
+   Inline SVG, no library: nothing to load, nothing to go stale, and it renders the
+   moment the data lands. Every chart below carries direct labels, so identity and
+   value are never conveyed by colour alone. */
 
+/* A stat tile: the value, how it compares with the fortnight, and the shape of that
+   fortnight. A single number with a trend is a stat tile — not a one-bar chart. */
+function _sumTile(value,label,delta,spark,sub){
+  var d='';
+  // '≈ in line with average' was appearing on tiles that have no history to compare against,
+  // because an empty string passes isFinite(). A tile with no comparison says what it does know
+  // instead of inventing a reassurance.
+  if(delta!=null&&delta!==''&&isFinite(delta)){
+    var up=delta>0, flat=Math.abs(delta)<5;
+    var col=flat?'var(--t2)':(up?SUMC.warm:SUMC.good);
+    // More repairs is not "good news" — it is more breakage. Colour reads as change, and the
+    // arrow plus the word carry the meaning so it is never colour alone.
+    d='<span class="sum-delta" style="color:'+col+'">'+(flat?'≈':(up?'▲':'▼'))+' '
+      +(flat?'in line with':(Math.abs(delta)+'% '+(up?'above':'below')))+' average</span>';
+  }
+  return '<div class="sum-tile">'
+    +'<div class="sum-tilev">'+value+'</div>'
+    +'<div class="sum-tilel">'+acEsc(label)+'</div>'
+    +(d||(sub?'<span class="sum-delta" style="color:var(--t2)">'+acEsc(sub)+'</span>':'<span class="sum-delta">&nbsp;</span>'))
+    +(spark||'')
+  +'</div>';
+}
+function _sumSpark(vals,colour){
+  var v=(vals||[]).map(Number).filter(function(x){return !isNaN(x);});
+  if(v.length<2) return '';
+  var w=100,h=22,mx=Math.max.apply(null,v),mn=Math.min.apply(null,v),rng=(mx-mn)||1;
+  var pts=v.map(function(y,i){ return (i/(v.length-1)*w).toFixed(1)+','+(h-((y-mn)/rng)*(h-4)-2).toFixed(1); }).join(' ');
+  return '<svg class="sum-spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
+    +'<polyline points="'+pts+'" fill="none" stroke="'+(colour||SUMC.accent)+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+/* Column chart, one hue. The day in focus is drawn in the accent and everything else
+   recedes — emphasis, not eight colours competing for attention. */
+function _sumColumns(rows,focusKey,fmt){
+  if(!rows.length) return '';
+  var mx=Math.max.apply(null,rows.map(function(r){return r.n;}))||1;
+  return '<div class="sum-cols">'+rows.map(function(r){
+    var on=(r.key===focusKey), pct=Math.max(2,Math.round(r.n/mx*100));
+    return '<div class="sum-col" title="'+acEsc(r.label+': '+(fmt?fmt(r.n):r.n))+'">'
+      +'<div class="sum-colv"'+(on?' style="color:var(--t1);font-weight:800"':'')+'>'+(r.n||'')+'</div>'
+      +'<div class="sum-colbar"><i style="height:'+pct+'%;background:'+(on?SUMC.accent:SUMC.accentDim)+'"></i></div>'
+      +'<div class="sum-collbl"'+(on?' style="color:var(--t1);font-weight:700"':'')+'>'+acEsc(r.label)+'</div>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+
+/* Horizontal bars for ranked magnitude. Bars sorted, values direct-labelled, top rank
+   in the accent — the reader's eye lands on the answer, not on a legend. */
+function _sumBars(rows,fmt){
+  if(!rows.length) return '';
+  var mx=Math.max.apply(null,rows.map(function(r){return r.n;}))||1;
+  return '<div class="sum-hbars">'+rows.map(function(r,i){
+    return '<div class="sum-hbar">'
+      +'<span class="sum-hbl">'+acEsc(r.label)+'</span>'
+      +'<span class="sum-hbt"><i style="width:'+Math.max(2,Math.round(r.n/mx*100))+'%;background:'+(i===0?SUMC.accent:SUMC.accentDim)+'"></i></span>'
+      +'<span class="sum-hbv">'+(fmt?fmt(r):r.n)+'</span>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+
+/* Part-to-whole as a single stacked bar. Kart types keep the colours they already
+   have everywhere else in the app — colour follows the entity, never its rank — and
+   every segment is direct-labelled beneath, so the colours are a convenience, not
+   the only way to read it. A 2px surface gap separates the fills. */
+function _sumStack(rows,total){
+  if(!rows.length||!total) return '';
+  return '<div class="sum-stack">'+rows.map(function(r){
+    return '<i style="flex:'+r.n+';background:'+(r.colour||SUMC.accent)+'" title="'+acEsc(r.label+': '+r.n)+'"></i>';
+  }).join('')+'</div>'
+  +'<div class="sum-legend">'+rows.map(function(r){
+    return '<span class="sum-lg"><i style="background:'+(r.colour||SUMC.accent)+'"></i>'+acEsc(r.label)
+      +' <b>'+r.n+'</b> <span style="color:var(--t2)">'+Math.round(r.n/total*100)+'%</span></span>';
+  }).join('')+'</div>';
+}
+
+/* A single ratio against a limit is a meter, not a pie of two slices. */
+function _sumMeter(used,cap,label,sub){
+  var pct=cap?Math.min(100,Math.round(used/cap*100)):0;
+  var col=pct>=80?SUMC.good:(pct>=40?SUMC.warn:SUMC.muted);
+  return '<div style="margin-bottom:4px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
+    +'<span style="font-size:13px;font-weight:800">'+acEsc(label)+'</span>'
+    +'<span style="font-size:12px;font-weight:800;color:'+col+'">'+pct+'%</span></div>'
+    +'<div class="sum-meter"><i style="width:'+Math.max(pct,1.5)+'%;background:'+col+'"></i></div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-top:5px">'+acEsc(sub||'')+'</div></div>';
+}
+
+/* Shift bars across the venue day. Each person's row is their time on site, so the
+   overlap between people is readable at a glance — which is the actual question a
+   manager has about a day's cover. */
+function _sumShifts(list,day){
+  if(!list.length) return '<div class="sum-empty">No sign-ins recorded.</div>';
+  var p=day.split('-'), open=6, close=24, span=close-open;
+  function frac(ms){
+    if(!ms) return null;
+    var pt=_sydParts(ms); if(!pt) return null;
+    var hh=pt.hour+(pt.minute!=null?pt.minute/60:0);
+    return Math.max(0,Math.min(1,(hh-open)/span));
+  }
+  var ticks='';
+  for(var h=open;h<=close;h+=3) ticks+='<span style="left:'+((h-open)/span*100)+'%">'+(h===24?'00':(h<10?'0':'')+h)+'</span>';
+  return '<div class="sum-axis">'+ticks+'</div>'
+    +list.map(function(s){
+      var a=frac(s.in), b=s.out?frac(s.out):null, live=!s.out;
+      if(a==null) return '';
+      var end=(b==null)?frac(Date.now()):b;
+      if(end==null||end<a) end=Math.min(1,a+0.02);
+      var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===s.name;})||{emoji:'🔧'}):{emoji:'🔧'};
+      return '<div class="sum-shift">'
+        +'<span class="sum-shiftn">'+sf.emoji+' '+acEsc(s.name.split(' ')[0])+'</span>'
+        +'<span class="sum-shifttrack"><i style="left:'+(a*100)+'%;width:'+Math.max(1.5,(end-a)*100)+'%;background:'
+          +(live?SUMC.good:SUMC.accent)+'"></i></span>'
+        +'<span class="sum-shiftt">'+_sydTime(s.in)+(s.out?('–'+_sydTime(s.out)):' →')+'</span>'
+      +'</div>';
+    }).join('');
+}
+
+function _sumCard(title,inner,note){
+  return '<div class="mc"><div class="mct">'+acEsc(title)+'</div>'
+    +(note?'<div class="sum-note">'+acEsc(note)+'</div>':'')+inner+'</div>';
+}
+function _sumRow(left,right,strong){
+  return '<div class="sum-lrow"><span class="sum-lrl">'+left+'</span>'
+    +'<span class="sum-lrr"'+(strong?' style="font-weight:800;color:var(--t1)"':'')+'>'+right+'</span></div>';
+}
+function _sumEmpty(t){ return '<div class="sum-empty">'+acEsc(t)+'</div>'; }
+
+/* ---- render ---------------------------------------------------------------- */
 function sumRender(d){
   var host=document.getElementById('sum-body'); if(!host) return;
-  var names=Object.keys(d.who).sort(function(a,b){ return d.who[a].t-d.who[b].t; });
-  var nothing=(!d.reps.length && !d.checks.length && !d.takenList.length && !names.length);
+  var isToday=(d.day===_sumKey(Date.now()));
+  var nothing=(!d.reps.length && !d.checks.length && !d.takenList.length && !d.shifts.length);
   if(nothing){
-    host.innerHTML='<div class="mc"><div class="mct">'+acEsc(_sumLabel(d.day))+'</div>'
-      +_sumEmpty('Nothing recorded for this day. If the venue was open, work may not have been logged — repairs, kart checks and stock movements all feed this page.')+'</div>';
+    host.innerHTML=_sumCard(_sumLabel(d.day),
+      _sumEmpty(isToday?'Nothing recorded yet today. Repairs, kart checks and stock movements all feed this page.'
+                       :'Nothing recorded for this day. If the venue was open, the work was not logged.'));
     return;
   }
-  var stats='<div class="sum-stats">'
-    +_sumStat(d.reps.length,'repairs','#34D399')
-    +_sumStat(d.checks.length,'kart checks','#22D3EE')
-    +_sumStat(d.partQty+d.takenQty,'parts used','#A78BFA')
-    +_sumStat(names.length,'staff on','#FFB020')
+
+  // --- headline row --------------------------------------------------------
+  var trendN=d.trend.map(function(t){return t.n;});
+  var tiles='<div class="sum-tiles">'
+    +_sumTile(_sumN(d.reps.length),'repairs completed',_sumPct(d.reps.length,d.avgN),_sumSpark(trendN,SUMC.accent))
+    +_sumTile(_sumN(d.partQty+d.takenQty),'parts used',null,'',
+        d.partQty+' fitted · '+d.takenQty+' from the store')
+    +_sumTile(_sumN(d.checks.length),'kart checks',null,'',
+        d.fleet?(d.checked+' of '+d.fleet+' karts checked'):(d.checked+' karts checked'))
+    +_sumTile(d.cost?nfMoney(d.cost):'—','parts cost',_sumPct(d.cost,d.avgCost),_sumSpark(d.trend.map(function(t){return t.cost;}),SUMC.warm))
   +'</div>';
 
-  // REPAIR LEADERBOARD — the point of the page for most people.
-  var lead=d.mechs.length?d.mechs.map(function(m,i){
-    var medal=['🥇','🥈','🥉'][i]||('<span style="color:var(--t2)">'+(i+1)+'</span>');
-    return _sumRow(medal+' '+acEsc(m.name), m.n+' repair'+(m.n===1?'':'s')+(m.cost?(' · '+nfMoney(m.cost)):''), i===0);
-  }).join(''):_sumEmpty('No repairs logged.');
+  // --- fortnight trend, today emphasised -----------------------------------
+  var trendRows=d.trend.map(function(t){ return {key:t.day,label:_sumShort(t.day),n:t.n}; });
+  var trendCard=_sumCard('Repairs · last '+SUM_TREND_DAYS+' days',
+    _sumColumns(trendRows,d.day)
+    +'<div class="sum-note" style="margin:10px 0 0">Average '+(Math.round(d.avgN*10)/10)+' a day across the other '
+      +(d.trend.length-1)+' days. '+acEsc(_sumLabel(d.day))+' is highlighted.</div>');
 
-  var work=d.reps.length?d.reps.slice(0,25).map(function(r){
-    var k=(r.kart_name!=null&&r.kart_name!=='')?('Kart '+r.kart_name):('#'+(r.rf_kart_id||'?'));
-    var txt=String(r.description||r.notes||'').slice(0,90)||'Repair';
-    return _sumRow('<b>'+acEsc(k)+'</b> · '+acEsc(txt), acEsc((r.mechanic||'—').split(' ')[0]));
-  }).join('')+(d.reps.length>25?_sumEmpty('+'+(d.reps.length-25)+' more'):''):_sumEmpty('No repairs logged.');
+  // --- through the day -----------------------------------------------------
+  // rf_repairs stores a DATE, not a timestamp, so there is no honest hourly repairs chart and this
+  // does not pretend otherwise. Stock movements and kart checks DO carry times.
+  var hourRows=[];
+  for(var h=6;h<=23;h++) hourRows.push({key:h,label:(h<10?'0':'')+h,n:d.hourly[h]+d.hourlyChk[h]});
+  var anyHour=hourRows.some(function(r){return r.n>0;});
+  var hourCard=anyHour?_sumCard('Through the day',_sumColumns(hourRows,null),
+    'Stock movements and kart checks by the hour. Repairs are not here because RaceFacer records them against a date, not a time — so an hourly repairs chart would be invented, not measured.'):'';
 
-  var partsHtml=d.partList.length?d.partList.slice(0,15).map(function(p){
-    return _sumRow(acEsc(p.name), p.qty+'×'+(p.cost?(' · '+nfMoney(p.cost)):''));
-  }).join(''):_sumEmpty('No parts recorded against repairs.');
+  // --- repair leaderboard --------------------------------------------------
+  var leadCard=_sumCard('Repair leaderboard',
+    d.mechs.length?_sumBars(d.mechs.map(function(m){return {label:m.name,n:m.n,cost:m.cost};}),
+        function(r){ return r.n+(r.cost?(' · '+nfMoney(r.cost)):''); })
+      :_sumEmpty('No repairs logged.'));
 
-  var takenHtml=d.takenList.length?d.takenList.slice(0,15).map(function(p){
-    return _sumRow(acEsc(p.desc), p.qty+'×'+(p.cost?(' · '+nfMoney(p.cost)):''));
-  }).join(''):_sumEmpty('Nothing taken from the store.');
+  // --- by kart type --------------------------------------------------------
+  var typeRows=d.types.map(function(t){ return {label:t.name,n:t.n,colour:(KART_TYPE_COLOR[t.name]||SUMC.accent)}; });
+  var typeCard=d.reps.length?_sumCard('Where the work went',
+    _sumStack(typeRows,d.reps.length),'Repairs by kart type.'):'';
 
-  var checkHtml=d.checks.length?d.checks.map(function(c){
-    var bits=[];
-    if(+c.ok_count) bits.push((+c.ok_count)+' ok');
-    if(+c.fm_count) bits.push((+c.fm_count)+' maint');
-    if(+c.damaged_count) bits.push('<span style="color:#FF5A52">'+(+c.damaged_count)+' damaged</span>');
-    return _sumRow('<b>'+acEsc(c.kart_type||'Check')+'</b> · '+acEsc((c.started_by||'—').split(' ')[0])
-      +' <span style="color:var(--t2)">'+_sydTime(c.completed_at||c.started_at)+'</span>', bits.join(' · ')||'—');
-  }).join(''):_sumEmpty('No kart checks completed.');
+  // --- karts worked on -----------------------------------------------------
+  // More than a handful of classes that all carry meaning is a table, not more colours.
+  var kartCard=d.karts.length?_sumCard('Karts worked on',
+    d.karts.slice(0,12).map(function(k){
+      var col=KART_TYPE_COLOR[k.type]||SUMC.accent;
+      return _sumRow('<span class="sum-kdot" style="background:'+col+'"></span><b>'+acEsc(k.kart)+'</b>'
+        +' <span style="color:var(--t2)">'+acEsc(k.notes[0]||k.type||'')+'</span>',
+        k.n+(k.n>1?' repairs':' repair')+(k.cost?(' · '+nfMoney(k.cost)):''), k.n>1);
+    }).join('')+(d.karts.length>12?_sumEmpty('+'+(d.karts.length-12)+' more'):''),
+    d.karts.filter(function(k){return k.n>1;}).length
+      ? d.karts.filter(function(k){return k.n>1;}).length+' kart(s) needed more than one repair today.'
+      : ''):'';
 
-  var whoHtml=names.length?names.map(function(n){
-    var w=d.who[n], sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'🔧'}):{emoji:'🔧'};
-    return _sumRow(sf.emoji+' '+acEsc(n), 'in '+_sydTime(w.t)+(w.out?(' · out '+_sydTime(w.out)):''));
-  }).join(''):_sumEmpty('No sign-ins recorded.');
+  // --- checks --------------------------------------------------------------
+  var checkCard=_sumCard('Kart checks',
+    (d.fleet?_sumMeter(d.checked,d.fleet,'Fleet checked',d.checked+' of '+d.fleet+' karts'
+      +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+(d.fmFound?(' · '+d.fmFound+' for maintenance'):'')):'')
+    +(d.checks.length?d.checks.map(function(c){
+        var bits=[];
+        if(+c.ok_count) bits.push((+c.ok_count)+' ok');
+        if(+c.fm_count) bits.push('<span style="color:'+SUMC.warn+'">'+(+c.fm_count)+' maint</span>');
+        if(+c.damaged_count) bits.push('<span style="color:'+SUMC.bad+'">'+(+c.damaged_count)+' damaged</span>');
+        return _sumRow('<b>'+acEsc(c.kart_type||'Check')+'</b> · '+acEsc((c.started_by||'—').split(' ')[0])
+          +' <span style="color:var(--t2)">'+_sydTime(c.completed_at||c.started_at)+'</span>', bits.join(' · ')||'—');
+      }).join(''):_sumEmpty('No kart checks completed.')));
 
-  host.innerHTML=stats
-    +_sumCard('Repair leaderboard', lead
-      +'<div style="margin-top:8px;font-size:11px;color:var(--t2)">'
-      +d.kartsFixed+' kart'+(d.kartsFixed===1?'':'s')+' worked on'+(d.cost?(' · '+nfMoney(d.cost)+' in parts'):'')+'</div>')
-    +_sumCard('Kart checks', checkHtml
-      +(d.checks.length?('<div style="margin-top:8px;font-size:11px;color:var(--t2)">'+d.checked+' kart'+(d.checked===1?'':'s')+' checked'
-        +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+'</div>'):''))
-    +_sumCard('Work completed', work)
-    +_sumCard('Parts fitted (from repairs)', partsHtml)
-    +_sumCard('Taken from the store', takenHtml
-      +(d.restocked?('<div style="margin-top:8px;font-size:11px;color:var(--t2)">'+d.restocked+' restocked</div>'):''))
-    +_sumCard('Who was on', whoHtml);
+  // --- parts ---------------------------------------------------------------
+  var partsCard=_sumCard('Parts fitted',
+    d.partList.length?_sumBars(d.partList.slice(0,10).map(function(p){return {label:p.name,n:p.qty,cost:p.cost};}),
+      function(r){ return r.n+'×'+(r.cost?(' · '+nfMoney(r.cost)):''); })
+    :_sumEmpty('No parts recorded against repairs.'),
+    'From the repairs themselves.');
+
+  var storeCard=_sumCard('Taken from the store',
+    d.takenList.length?_sumBars(d.takenList.slice(0,10).map(function(p){return {label:p.desc,n:p.qty,cost:p.cost};}),
+      function(r){ return r.n+'×'+(r.cost?(' · '+nfMoney(r.cost)):''); })
+    :_sumEmpty('Nothing taken from the store.'),
+    d.restocked?(d.restocked+' item(s) restocked.'):'A second, independent record of what was consumed.');
+
+  // --- who was on ----------------------------------------------------------
+  var shiftCard=_sumCard('Who was on',_sumShifts(d.shifts,d.day),
+    d.shifts.length?'Time on site, from sign-in to sign-out.':'');
+
+  host.innerHTML=tiles+trendCard+hourCard+leadCard+typeCard+kartCard+checkCard+partsCard+storeCard+shiftCard;
 }
 
 /* ===== APP HEALTH (Manager Dashboard -> Health) ==================================
@@ -10828,7 +11084,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14706,7 +14962,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15175,7 +15431,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FB';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FD';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

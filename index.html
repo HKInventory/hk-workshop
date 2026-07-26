@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GU · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GV · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GU</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GV</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11911,7 +11911,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15261,6 +15261,23 @@ function sdEnter(){
       var key=(_sdTrackLabel(x.track)||'?')+'|'+_sdDayKey(x.scheduled_at);
       if(!_sdAfter[key]||ms>_sdAfter[key]) _sdAfter[key]=ms;
     });
+    /* HOW LATE IS TODAY, MEASURED RATHER THAN ASSUMED.
+       The clock fallback below needs to know how far behind the timetable the venue is running, and
+       a fixed allowance cannot know that: on a bad day the 1:00pm race goes green at 2:04pm, so any
+       fixed grace short of an hour lists it as finished while its karts are still in the pits — the
+       original complaint — and any grace long enough to be safe would hide genuinely-finished races
+       for over an hour on a normal day.
+       Every session that HAS gone green tells us the answer directly: green time minus scheduled
+       time. Take the worst of those today and the fallback stretches on a late day and tightens on a
+       punctual one, automatically, with no setting for anyone to get wrong. */
+    var SD_DRIFT=0;
+    all.forEach(function(x){
+      if(!x.started_at||!x.scheduled_at) return;
+      if(_sdDayKey(x.scheduled_at)!==_tk) return;
+      var d=(_sydParse(x.started_at)||0)-(Date.parse(x.scheduled_at)||0);
+      if(d>SD_DRIFT) SD_DRIFT=d;
+    });
+    SD_DRIFT=Math.max(0,Math.min(SD_DRIFT,3*3600000));   // cap at three hours; beyond that something is wrong
     function _sdRanBySequence(x){
       var ms=x.scheduled_at?Date.parse(x.scheduled_at):0; if(!ms) return false;
       // A slot whose own time has not arrived cannot have run, whatever else is on the board.
@@ -15336,7 +15353,7 @@ function sdEnter(){
          run appears, at worst, twenty minutes later than ideal, instead of never.
          An explicitly-running race is still hidden, and a future slot is still hidden. */
       var endMs=s.ends_at?_sydParse(s.ends_at):0;
-      var _late=!!(endMs && (nowMs-endMs)>SD_LATE_MS);
+      var _late=!!(endMs && (nowMs-endMs)>(SD_LATE_MS+SD_DRIFT));   // + however late the venue is actually running
       var _keep=_sdRanBySequence(s) || _late || !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
       if(!_keep && _isToday) SD_WHY.notrun++;
       return _keep;
@@ -15372,7 +15389,8 @@ function sdEnter(){
         if(_d) _d.innerHTML='<b>'+SD_WHY.today+'</b> session(s) stored for today \u2014 shown '+SD_WHY.kept
           +' \u00b7 wrong track '+SD_WHY.track+' \u00b7 still running '+SD_WHY.running
           +' \u00b7 no green flag '+SD_WHY.notrun+' \u00b7 no karts recorded '+SD_WHY.noruns
-          +' \u00b7 '+SD_WHY.total+' rows in the last 7 days';
+          +' \u00b7 '+SD_WHY.total+' rows in the last 7 days'
+          +(SD_DRIFT>60000?('<br>Running <b>'+Math.round(SD_DRIFT/60000)+' min</b> behind the timetable today \u2014 a race is only counted as over once that long has passed on top of its slot.'):'');
       }catch(e){}
       if(!SD_SESS.length){ document.getElementById('sd-body').innerHTML='<div class="sd-empty">No sessions with karts recorded in the last 7 days.</div>'; return; }
       SD_SESSION=null; SD_KART=null;   // user picks via the filter list
@@ -16405,7 +16423,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16874,7 +16892,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GU';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GV';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -2646,7 +2646,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FB · ZXing raw</div>
       </div>
     </div>
 
@@ -4429,7 +4429,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FA</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FB</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6303,9 +6303,14 @@ function presStart(){
   // cannot see (a browser closed without signing out, a missed event, a dropped socket).
   if(!_presTick){ var _pt=0; _presTick=setInterval(function(){
     if(document.hidden) return;
-    if((++_pt % 3)===0) presRefresh(); else presRepaint();
+    if((++_pt % 3)===0){ presRefresh(); lastOnlineLoad(); } else presRepaint();
   },20000); }
   presRefresh();
+  /* Active Today needs the sign-in history, not just live presence — someone who signed out has no
+     presence row at all (see presRepaint). It used to load only when the Last online dropdown was
+     opened, so until you expanded that panel the chips could not show anyone who had left. Loaded
+     up front now: one read, and it is the same data the dropdown wants anyway. */
+  lastOnlineLoad();
 }
 function presStop(){
   try{ if(_presSub&&SBC&&SBC.removeChannel) SBC.removeChannel(_presSub); }catch(e){}
@@ -6330,26 +6335,43 @@ var PRES_ROWS=null, LO_OPEN=false, LO_ROWS=null;
    and closed on sign-out. Two writes per person per shift, which is nothing, and it is what the
    Last online list reads. */
 function sessionOpen(){
+  var me=(cu&&cu.name)||''; if(!me||typeof SBC==='undefined'||!SBC||window.TRAINING) return;
+  var role=(cu.role||''), site=(currentSite||'sydney');
+  function insert(){
+    try{
+      SBC.from('staff_sessions').insert({name:me,role:role,site:site,signed_in_at:new Date().toISOString()})
+        .select('id').then(function(r){
+          try{ var id=r&&r.data&&r.data[0]&&r.data[0].id; if(id!=null) sessionStorage.setItem('hk_sess_id',String(id)); }catch(e){}
+        },function(){});
+    }catch(e){}
+  }
+  /* THE SIGN-IN MUST BE RECORDED. THE DE-DUPLICATION IS A NICETY.
+     The previous version read the table first and only inserted if that read came back saying there
+     was no open shift today. That made recording a sign-in CONDITIONAL on a read succeeding — so any
+     failure in the read path (a select policy, a network blip, or an unparseable timestamp throwing
+     inside the day comparison) meant the sign-in was never written at all, silently. Signing in as
+     Raf recorded nothing, and "never signed in" is a much worse answer than a duplicate row.
+     Now: only a POSITIVE confirmation of an existing open shift today skips the insert. Everything
+     else — an error, no rows, a timestamp we can't read — falls through and writes the row. */
+  var done=false;
+  function once(fn){ if(done) return; done=true; try{ fn(); }catch(e){ insert(); } }
   try{
-    if(!cu||!cu.name||typeof SBC==='undefined'||!SBC||window.TRAINING) return;
-    // ONE ROW PER SHIFT, NOT ONE PER PAGE LOAD.
-    // This inserted unconditionally, so a reload, a site switch or a second tab each opened another
-    // row — Harvey showed six times in one morning, all "still on". A shift that is already open for
-    // this person TODAY is the same shift, so it is reused: the sign-in time stays the real one and
-    // the row count stops climbing. Only a genuinely new day (or a closed shift) opens a new row.
-    SBC.from('staff_sessions').select('id,signed_in_at').eq('name',cu.name).is('signed_out_at',null)
+    SBC.from('staff_sessions').select('id,signed_in_at').eq('name',me).is('signed_out_at',null)
       .order('signed_in_at',{ascending:false}).limit(1).then(function(r){
-        var open=(r&&r.data&&r.data[0])||null;
-        if(open&&_sydDayKey(Date.parse(String(open.signed_in_at).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(open.signed_in_at))?'':'Z')))===_sydDayKey(Date.now())){
-          try{ sessionStorage.setItem('hk_sess_id',String(open.id)); }catch(e){}
-          return;
-        }
-        SBC.from('staff_sessions').insert({name:cu.name,role:(cu.role||''),site:(currentSite||'sydney'),signed_in_at:new Date().toISOString()})
-          .select('id').then(function(r2){
-            try{ var id=r2&&r2.data&&r2.data[0]&&r2.data[0].id; if(id!=null) sessionStorage.setItem('hk_sess_id',String(id)); }catch(e){}
-          },function(){});
-      },function(){});
-  }catch(e){}
+        once(function(){
+          if(r&&r.error){ insert(); return; }
+          var open=(r&&r.data&&r.data[0])||null;
+          var t=open?_sydParse(open.signed_in_at):null;
+          if(open&&t!=null&&_sydDayKey(t)===_sydDayKey(Date.now())){
+            try{ sessionStorage.setItem('hk_sess_id',String(open.id)); }catch(e){}
+            return;                                   // same shift, already open — reuse it
+          }
+          insert();
+        });
+      },function(){ once(insert); });
+  }catch(e){ once(insert); }
+  // Belt and braces: if the read never settles at all, record the sign-in anyway.
+  setTimeout(function(){ once(insert); },4000);
 }
 function sessionClose(){
   try{
@@ -6368,14 +6390,18 @@ function sessionClose(){
 /* Sydney calendar day for an instant. The venue's day is what staff mean by "today" — a browser
    in another timezone (or a laptop left open past midnight UTC) must not shift the boundary. */
 function _sydDayKey(ms){
+  // new Date(NaN).toISOString() THROWS, so the old fallback could raise out of this function and
+  // kill whatever was calling it — which is how one unreadable timestamp stopped a sign-in being
+  // recorded at all. A day key we cannot compute is '', never an exception.
   try{ return new Intl.DateTimeFormat('en-CA',{timeZone:venueTz(),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms)); }
-  catch(e){ return new Date(ms).toISOString().slice(0,10); }
+  catch(e){ try{ return new Date(ms).toISOString().slice(0,10); }catch(e2){ return ''; } }
 }
 function _sydTime(v){
   if(!v) return '—';
   var t=(typeof v==='number')?v:Date.parse(String(v).replace(' ','T')+(/[zZ]|[+-]\d{2}:?\d{2}$/.test(String(v))?'':'Z'));
   if(!t||isNaN(t)) return '—';
-  try{ return new Intl.DateTimeFormat('en-AU',{timeZone:venueTz(),hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(t)); }
+  // 24-hour clock — asked for, and it removes the am/pm ambiguity on a venue that runs past midnight.
+  try{ return new Intl.DateTimeFormat('en-GB',{timeZone:venueTz(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t)); }
   catch(e){ return ''; }
 }
 function _sydDate(v){
@@ -6391,20 +6417,23 @@ function lastOnlineToggle(){
   if(LO_OPEN) lastOnlineLoad();
 }
 function lastOnlineLoad(){
-  var b=document.getElementById('lo-body'); if(!b) return;
+  var b=document.getElementById('lo-body');
   if(typeof SBC==='undefined'||!SBC) return;
-  if(!LO_ROWS) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Loading\u2026</div>';
+  // Runs whether or not the dropdown is open, because Active Today reads the same rows.
+  if(b&&LO_OPEN&&!LO_ROWS) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Loading\u2026</div>';
   SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at').order('signed_in_at',{ascending:false}).limit(300)
     .then(function(r){
       if(r&&r.error){
         var missing=/staff_sessions|does not exist|schema cache/i.test(r.error.message||'');
-        b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">'+(missing
+        if(b) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">'+(missing
           ?'Not set up yet &mdash; run the <b>staff_sessions</b> SQL. Sign-ins from then on are recorded here.'
           :'Could not load: '+acEsc(r.error.message||''))+'</div>';
         return;
       }
       LO_ROWS=(r&&r.data)||[]; lastOnlineRender();
-    },function(){ b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Connection error.</div>'; });
+      // The chips read these rows too, so repaint them the moment fresh history lands.
+      try{ presRepaint(); }catch(e){}
+    },function(){ if(b) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Connection error.</div>'; });
 }
 function lastOnlineRender(){
   var b=document.getElementById('lo-body'); if(!b) return;
@@ -6452,27 +6481,47 @@ function presRepaint(){
   if(!PRES_ROWS) return;
   var nowMs=Date.now(), seen={};
   function parse(v){ var t=String(v==null?'':v); if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(t)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(t)) t=t.replace(' ','T')+'Z'; return Date.parse(t)||0; }
-  PRES_ROWS.forEach(function(p){ var n=String(p.name||''); if(!n) return; var t=parse(p.last_seen); if(!seen[n]||t>seen[n].t) seen[n]={t:t,role:p.role||''}; });
+  PRES_ROWS.forEach(function(p){ var n=String(p.name||''); if(!n) return; var t=parse(p.last_seen); if(!seen[n]||t>seen[n].t) seen[n]={t:t,role:p.role||'',live:true}; });
   // You are active by definition — your own heartbeat may not have landed yet.
-  try{ if(cu&&cu.name) seen[cu.name]={t:nowMs,role:(cu.role||'')}; }catch(e){}
-  // TODAY MEANS THE SYDNEY CALENDAR DAY, NOT A ROLLING WINDOW.
-  // At 8:13am Sunday the list was still showing people last seen at 6:35pm and 4:55pm — Saturday.
-  // The heading says "Active Today", so the list resets at Sydney midnight rather than trailing the
-  // previous evening into the next morning. Anyone from before that is history, and history now has
-  // its own place to live (Last online, below).
+  try{ if(cu&&cu.name) seen[cu.name]={t:nowMs,role:(cu.role||''),live:true}; }catch(e){}
+
+  /* PRESENCE ANSWERS "WHO IS HERE NOW". IT CANNOT ANSWER "WHO HAS BEEN IN TODAY".
+     A presence row is DELETED on sign-out, so the moment Ross signed out he vanished from this list
+     entirely — even though he had been in twenty seconds earlier. The heading says Active Today, and
+     someone who worked this morning was in today whether or not they are still on.
+     staff_sessions survives a sign-out, so it is merged in: anyone who signed in today but is not
+     currently live shows as a GREY chip with the time they were last seen. Green still means here
+     right now. */
+  try{
+    (LO_ROWS||[]).forEach(function(x){
+      if(!x||!x.name) return;
+      var inT=_sydParse(x.signed_in_at)||0; if(!inT||_sydDayKey(inT)!==_sydDayKey(nowMs)) return;
+      var outT=x.signed_out_at?(_sydParse(x.signed_out_at)||0):0;
+      var last=Math.max(inT,outT);
+      if(seen[x.name]&&seen[x.name].live) return;                    // live presence wins
+      if(!seen[x.name]||last>seen[x.name].t) seen[x.name]={t:last,role:x.role||'',live:false};
+    });
+  }catch(e){}
+
+  // TODAY MEANS THE VENUE'S CALENDAR DAY, NOT A ROLLING WINDOW. At 8:13am Sunday the list was still
+  // showing people last seen at 6:35pm Saturday. Anyone from before midnight is history, and history
+  // has its own place to live (Last online, below).
   var today=_sydDayKey(nowMs);
   Object.keys(seen).forEach(function(n){ if(_sydDayKey(seen[n].t)!==today) delete seen[n]; });
   var names=Object.keys(seen);
   if(!names.length){ el.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px">No one signed in today yet</div>'; return; }
   names.sort(function(a,b){ return seen[b].t-seen[a].t; });
   el.innerHTML=names.map(function(n){
-    var t=seen[n].t, on=(nowMs-t)<300000;   // 5 min window, same as the dashboard's own rule
-    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'🔧'}):{emoji:'🔧'};
+    var t=seen[n].t, on=seen[n].live&&(nowMs-t)<300000;   // 5 min window, same as the dashboard's own rule
+    var sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'\ud83d\udd27'}):{emoji:'\ud83d\udd27'};
+    // Someone who has left gets the TIME they were last seen rather than "2h ago" — a manager wants
+    // to know when, not how long ago.
+    var tail=on?_activeAgo(t):('last seen '+_sydTime(t));
     return '<div class="schip'+(on?' schip-on':'')+'"><span class="pres-dot'+(on?' on':'')+'"></span>'
-      +sf.emoji+' '+acEsc(n.split(' ')[0])+'<small class="pres-ago">'+_activeAgo(t)+'</small></div>';
+      +sf.emoji+' '+acEsc(n.split(' ')[0])+'<small class="pres-ago">'+acEsc(tail)+'</small></div>';
   }).join('');
   var st=document.getElementById('st-staff');
-  if(st) st.innerText=names.filter(function(n){ return (nowMs-seen[n].t)<300000; }).length;
+  if(st) st.innerText=names.filter(function(n){ return seen[n].live&&(nowMs-seen[n].t)<300000; }).length;
 }
 
 /* ===== DAILY SUMMARY ============================================================
@@ -10779,7 +10828,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14657,7 +14706,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15126,7 +15175,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FA';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FB';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

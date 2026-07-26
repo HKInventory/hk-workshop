@@ -2770,7 +2770,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FL · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FM · ZXing raw</div>
       </div>
     </div>
 
@@ -4555,7 +4555,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FL</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FM</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -10447,7 +10447,7 @@ function kartOpenNotesHTML(rfId){
   if(!open.length) return '';
   var CAP=6, shown=open.slice(0,CAP), extra=open.length-shown.length;
   var rows=shown.map(function(n){
-    var act=(n.id!=null&&cu)?'<div class="kn-actbtns"><button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button><button class="kn-editbtn" title="Edit note" onclick="hkEditNote('+n.id+',event)">\u270e Edit</button><button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button></div>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
+    var act=(n.id!=null&&cu)?'<div class="kn-actbtns"><button class="kn-newrep" onclick="rfqRepairForNote('+n.id+')">\ud83d\udd25 New repair</button><button class="kn-editbtn" title="Edit note" onclick="hkEditNote('+n.id+',event)">\u270e Edit</button><button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+','+(rfId!=null?rfId:'null')+',event)">\u2715</button></div>':(n._pending?'<span class="kn-sync">syncing\u2026</span>':'');
     return '<tr><td class="kn-date">'+fmtNoteDate(n.createdIso)+'</td><td class="kn-title"><span class="kn-star">\u2605</span>'+kEsc(n.note)+'</td><td class="kn-act">'+act+'</td></tr>';
   }).join('');
   if(extra>0) rows+='<tr class="kn-more" onclick="ktTab(\'Kart Notes\')"><td></td><td colspan="2">+ '+extra+' more active '+(extra===1?'note':'notes')+' \u2014 view all in Kart Notes</td></tr>';
@@ -10459,7 +10459,7 @@ function notesTabHTML(){
   var notes=(KD_KART&&KD_KART.rfId!=null&&RF_NOTES_BY_ID[KD_KART.rfId])||[];
   if(!notes.length) return '<div class="rep-empty">No kart notes synced for this kart yet.</div>';
   var rows=notes.map(function(n){
-    var arch=n.archivedIso?fmtNoteWhen(n.archivedIso,n.archivedBy):('<span class="kn-open-tag">Open</span>'+((n.id!=null&&cu)?(' <button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+',null,event)">\u2715</button>'):''));
+    var arch=n.archivedIso?fmtNoteWhen(n.archivedIso,n.archivedBy):('<span class="kn-open-tag">Open</span>'+((n.id!=null&&cu)?(' <button class="kn-x" title="Delete note" onclick="hkDeleteNote('+n.id+','+(rfId!=null?rfId:'null')+',event)">\u2715</button>'):''));
     return '<tr><td class="kn-note">'+kEsc(n.note)+'</td><td class="rep-mono">'+fmtNoteWhen(n.createdIso,n.createdBy)+'</td><td class="rep-mono">'+arch+'</td></tr>';
   }).join('');
   return '<div class="rep-tablewrap"><table class="rep-table"><thead><tr><th>Note</th><th>Created</th><th>Archived</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
@@ -10622,6 +10622,11 @@ function _noteDelFail(what, detail){
 function hkDeleteNote(noteId, rfKartId, ev){
   try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
   if(noteId==null||typeof SBC==='undefined'||!SBC||!cu) return;
+  /* rf_note_queue.rf_kart_id is NOT NULL, and both kart-screen callers used to hard-code null — so
+     the RaceFacer half of every delete made from a kart page was rejected by the database before it
+     could be queued. The note vanished locally and RaceFacer was never told, which is precisely the
+     "deletes here but comes back" behaviour. Fall back to whichever kart is on screen. */
+  if(rfKartId==null){ try{ if(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.rfId!=null) rfKartId=KD_KART.rfId; }catch(e){} }
   if(!confirm('Delete this note?')) return;
   var now=new Date().toISOString();
   var _notifId=null, _noteTxt='';
@@ -10659,7 +10664,13 @@ function hkDeleteNote(noteId, rfKartId, ev){
       if(r&&r.error){ _noteDelFail('The note could not be archived in the database.', r.error.message); return; }
       // A write that succeeds but matches NO rows is the quiet killer: the id is wrong, or a policy
       // is filtering the row out of the update's view. Either way nothing was archived.
-      if(!r||!r.data||!r.data.length){ _noteDelFail('Nothing was archived — the note row was not found or is not writable.','id='+noteId); }
+      if(!r||!r.data||!r.data.length){
+        // A write that errors tells you what is wrong. A write that succeeds and changes NOTHING is
+        // almost always row-level security: the row is readable but the UPDATE policy does not admit
+        // it, so PostgREST reports success over an empty set. Name that, with the check to run.
+        _noteDelFail('The note was not archived — the database accepted the request but changed no rows.',
+          'Note id '+noteId+'. This is almost always a row-level security policy: rf_kart_notes is readable but not updatable.\n\nCheck with:\n  select polname, cmd from pg_policies where tablename = \'rf_kart_notes\';');
+      }
     },function(e){ _noteDelFail('The note could not be archived in the database.',(e&&e.message)||'connection error'); });
   // Tell RaceFacer to clear it too — the same thing RF's own X on the note does — so it's gone from the
   // kart, the notifications and the kart-notes list, and the runner's read-back can't resurrect it.
@@ -11363,7 +11374,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15572,7 +15583,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16041,7 +16052,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FL';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FM';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

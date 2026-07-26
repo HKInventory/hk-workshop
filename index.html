@@ -121,6 +121,13 @@
 
         /* During screen transitions, block all taps to prevent multi-tab opening */
     #app.nav-locked, #app.nav-locked * { pointer-events: none !important; }
+    /* A TILE LEFT MID-ANIMATION DURING A SCREEN SLIDE GETS STRANDED.
+       Tiles carry their own transform animation (tileIn, staggered, fill-mode both) and a
+       transform transition for the tap press. If one is still running when its screen starts
+       sliding, the two transforms compose and the tile paints somewhere its screen is not — a
+       single Generate Order card floating over the home grid, which is the sticking glitch.
+       nav-locked already marks exactly the transition window, so nothing animates inside it. */
+    #app.nav-locked .tile, #app.nav-locked .tile::after { animation: none !important; transition: none !important; }
     /* ── Shell ── */
     #app{position:fixed;top:0;left:0;right:0;bottom:0;   /* Desktop/default: top:0+bottom:0 = the browser window (correct on Mac). The PHYSICAL-height sizing that reaches past the iOS letterbox is applied ONLY on touch devices below — on desktop --shpx is the whole monitor, which pushed everything down. */
       display:flex;flex-direction:column;overflow:hidden}
@@ -2778,7 +2785,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FR · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FT · ZXing raw</div>
       </div>
     </div>
 
@@ -4563,7 +4570,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FR</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FT</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6792,7 +6799,7 @@ function sumLoad(force){
   var histFrom=_sumKey(Date.now()-SUM_TREND_DAYS*86400000);
 
   Promise.all([
-    SBC.from('rf_repairs').select('id,rf_kart_id,kart_name,kart_type,description,notes,damage_note,cost,mechanic,date_repaired')
+    SBC.from('rf_repairs').select('id,rf_kart_id,kart_name,kart_type,type_color,description,notes,damage_note,cost,mechanic,date_repaired')
       .eq('date_repaired',day).limit(2000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
     SBC.from('kart_check_runs').select('id,kart_type,started_at,completed_at,status,ok_count,fm_count,damaged_count,started_by')
       .eq('site',site).gte('started_at',lo).lte('started_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
@@ -6801,6 +6808,13 @@ function sumLoad(force){
     SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at')
       .gte('signed_in_at',lo).lte('signed_in_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
     SBC.from('parts').select('sku,desc,price').limit(4000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    /* THE FLEET SIZE HAS TO BE COUNTED, NOT BORROWED.
+       This read KART_LIST.length — whatever the Kart Info screen happened to be holding, which is a
+       single type's worth if you were last looking at one, and empty if you had never opened it. That
+       is how "69 of 44 karts checked" happened: 69 karts really were checked, against a denominator
+       of 44 that meant nothing. Count the site's fleet directly; it is one cheap head request. */
+    SBC.from('rf_karts').select('rf_id',{count:'exact',head:true}).eq('site',site)
+      .then(function(r){ return (r&&typeof r.count==='number')?r.count:null; },function(){ return null; }),
     // The trailing fortnight, for the deltas and the trend chart. Cached across day switches — it
     // is the same window whichever day you are looking at.
     SUM_HIST?Promise.resolve(SUM_HIST):
@@ -6808,20 +6822,21 @@ function sumLoad(force){
         .then(function(r){return (r&&r.data)||[];},function(){return [];})
   ]).then(function(res){
     SUM_HIST=res[5];
+    var fleetN=res[6];
     var reps=res[0],
         checks=res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
         logs=res[2].filter(function(l){ return _sumDayOf(l.ts)===day; }),
         sess=res[3].filter(function(x){ return _sumDayOf(x.signed_in_at)===day; }),
         parts=res[4];
     var ids=reps.map(function(r){return r.id;}).filter(function(x){return x!=null;});
-    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5]); return; }
+    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5],fleetN); return; }
     SBC.from('rf_repair_parts').select('part_name,qty,price,repair_id').in('repair_id',ids.slice(0,600)).limit(5000)
-      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts,res[5]); },
-            function(){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5]); });
+      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts,res[5],fleetN); },
+            function(){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5],fleetN); });
   },function(){ SUM_BUSY=false; body.innerHTML='<div class="emp" style="padding:14px 0">Couldn’t load that day.</div>'; });
 }
 
-function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist){
+function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist,fleetN){
   SUM_BUSY=false;
   var pMap={}; parts.forEach(function(p){ pMap[p.sku]={desc:p.desc,price:+p.price||0}; });
 
@@ -6832,9 +6847,15 @@ function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist){
     var m=(r.mechanic||'').trim()||'Unattributed';
     if(!byMech[m]) byMech[m]={name:m,n:0,cost:0}; byMech[m].n++; byMech[m].cost+=c;
     var t=r.kart_type?rfTypeShort(r.kart_type):'Unknown';
-    if(!byType[t]) byType[t]={name:t,n:0}; byType[t].n++;
+    // RaceFacer's own colour for the type, carried on the repair row. KART_TYPE_COLOR holds seed
+    // values until the kart list loads and applyTypeColors replaces them — and this screen never
+    // loads the kart list, so it was painting Adult cyan when the fleet has it green.
+    var tc=String(r.type_color||''); if(tc&&tc.charAt(0)!=='#') tc='#'+tc;
+    if(!/^#[0-9a-fA-F]{3,8}$/.test(tc)) tc='';
+    if(!byType[t]) byType[t]={name:t,n:0,colour:''};
+    byType[t].n++; if(tc&&!byType[t].colour) byType[t].colour=tc;
     var kk=(r.kart_name!=null&&r.kart_name!=='')?String(r.kart_name):('#'+(r.rf_kart_id||'?'));
-    if(!byKart[kk]) byKart[kk]={kart:kk,type:t,n:0,cost:0,notes:[]};
+    if(!byKart[kk]) byKart[kk]={kart:kk,type:t,colour:tc,n:0,cost:0,notes:[]};
     byKart[kk].n++; byKart[kk].cost+=c;
     var txt=String(r.damage_note||r.description||'').trim(); if(txt) byKart[kk].notes.push(txt);
   });
@@ -6864,7 +6885,10 @@ function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist){
   var checked=done.reduce(function(a,c){ return a+(+c.ok_count||0)+(+c.fm_count||0)+(+c.damaged_count||0); },0);
   var dmgFound=done.reduce(function(a,c){ return a+(+c.damaged_count||0); },0);
   var fmFound=done.reduce(function(a,c){ return a+(+c.fm_count||0); },0);
-  var fleet=(typeof KART_LIST!=='undefined'&&KART_LIST)?KART_LIST.length:0;
+  // Counted for this site. Falls back to the kart screen's list only if the count could not be read,
+  // and to zero rather than a wrong denominator — "69 karts checked" alone beats "69 of 44".
+  var fleet=(typeof fleetN==='number'&&fleetN>0)?fleetN
+            :((typeof KART_LIST!=='undefined'&&KART_LIST&&KART_LIST.length)?KART_LIST.length:0);
 
   // --- shifts ---------------------------------------------------------------
   var shifts={};
@@ -6905,16 +6929,20 @@ function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist){
 
 /* A stat tile: the value, how it compares with the fortnight, and the shape of that
    fortnight. A single number with a trend is a stat tile — not a one-bar chart. */
-function _sumTile(value,label,delta,spark,sub){
+/* WHICH DIRECTION IS GOOD DEPENDS ON THE MEASURE, and it is not the same for all of them.
+   Every delta used to read "down is green". Fewer repairs COMPLETED is less work done, which is not
+   good news — it should read as a drop. Less money spent is. `goodWhen` states it per tile rather
+   than letting the page assume one polarity for everything. */
+function _sumTile(value,label,delta,spark,sub,goodWhen){
   var d='';
   // '≈ in line with average' was appearing on tiles that have no history to compare against,
   // because an empty string passes isFinite(). A tile with no comparison says what it does know
   // instead of inventing a reassurance.
   if(delta!=null&&delta!==''&&isFinite(delta)){
     var up=delta>0, flat=Math.abs(delta)<5;
-    var col=flat?'var(--t2)':(up?SUMC.warm:SUMC.good);
-    // More repairs is not "good news" — it is more breakage. Colour reads as change, and the
-    // arrow plus the word carry the meaning so it is never colour alone.
+    var good=(goodWhen==='down')?!up:up;              // default: up is the good direction
+    var col=flat?'var(--t2)':(good?SUMC.good:SUMC.bad);
+    // The arrow and the words carry the meaning too, so it is never colour alone.
     d='<span class="sum-delta" style="color:'+col+'">'+(flat?'≈':(up?'▲':'▼'))+' '
       +(flat?'in line with':(Math.abs(delta)+'% '+(up?'above':'below')))+' average</span>';
   }
@@ -7044,12 +7072,12 @@ function sumRender(d){
   // --- headline row --------------------------------------------------------
   var trendN=d.trend.map(function(t){return t.n;});
   var tiles='<div class="sum-tiles">'
-    +_sumTile(_sumN(d.reps.length),'repairs completed',_sumPct(d.reps.length,d.avgN),_sumSpark(trendN,SUMC.accent))
+    +_sumTile(_sumN(d.reps.length),'repairs completed',_sumPct(d.reps.length,d.avgN),_sumSpark(trendN,SUMC.accent),null,'up')
     +_sumTile(_sumN(d.partQty+d.takenQty),'parts used',null,'',
         d.partQty+' fitted · '+d.takenQty+' from the store')
     +_sumTile(_sumN(d.checks.length),'kart checks',null,'',
-        d.fleet?(d.checked+' of '+d.fleet+' karts checked'):(d.checked+' karts checked'))
-    +_sumTile(d.cost?nfMoney(d.cost):'—','parts cost',_sumPct(d.cost,d.avgCost),_sumSpark(d.trend.map(function(t){return t.cost;}),SUMC.warm))
+        d.fleet?(d.checked+(d.checked>d.fleet?' checks across ':' of ')+d.fleet+' karts'):(d.checked+' karts checked'))
+    +_sumTile(d.cost?nfMoney(d.cost):'—','parts cost',_sumPct(d.cost,d.avgCost),_sumSpark(d.trend.map(function(t){return t.cost;}),SUMC.warm),null,'down')
   +'</div>';
 
   // --- fortnight trend, today emphasised -----------------------------------
@@ -7075,7 +7103,7 @@ function sumRender(d){
       :_sumEmpty('No repairs logged.'));
 
   // --- by kart type --------------------------------------------------------
-  var typeRows=d.types.map(function(t){ return {label:t.name,n:t.n,colour:(KART_TYPE_COLOR[t.name]||SUMC.accent)}; });
+  var typeRows=d.types.map(function(t){ return {label:t.name,n:t.n,colour:(t.colour||KART_TYPE_COLOR[t.name]||SUMC.accent)}; });
   var typeCard=d.reps.length?_sumCard('Where the work went',
     _sumStack(typeRows,d.reps.length),'Repairs by kart type.'):'';
 
@@ -7083,7 +7111,7 @@ function sumRender(d){
   // More than a handful of classes that all carry meaning is a table, not more colours.
   var kartCard=d.karts.length?_sumCard('Karts worked on',
     d.karts.slice(0,12).map(function(k){
-      var col=KART_TYPE_COLOR[k.type]||SUMC.accent;
+      var col=k.colour||KART_TYPE_COLOR[k.type]||SUMC.accent;
       return _sumRow('<span class="sum-kdot" style="background:'+col+'"></span><b>'+acEsc(k.kart)+'</b>'
         +' <span style="color:var(--t2)">'+acEsc(k.notes[0]||k.type||'')+'</span>',
         k.n+(k.n>1?' repairs':' repair')+(k.cost?(' · '+nfMoney(k.cost)):''), k.n>1);
@@ -7094,8 +7122,13 @@ function sumRender(d){
 
   // --- checks --------------------------------------------------------------
   var checkCard=_sumCard('Kart checks',
-    (d.fleet?_sumMeter(d.checked,d.fleet,'Fleet checked',d.checked+' of '+d.fleet+' karts'
-      +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+(d.fmFound?(' · '+d.fmFound+' for maintenance'):'')):'')
+    (d.fleet?_sumMeter(Math.min(d.checked,d.fleet),d.fleet,'Fleet checked',
+        (d.checked>d.fleet
+          ? (d.checked+' checks across '+d.fleet+' karts — some were checked more than once')
+          : (d.checked+' of '+d.fleet+' karts'))
+      +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+(d.fmFound?(' · '+d.fmFound+' for maintenance'):''))
+     :('<div class="sum-note">'+d.checked+' kart check'+(d.checked===1?'':'s')+' recorded'
+       +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+'</div>'))
     +(d.checks.length?d.checks.map(function(c){
         var bits=[];
         if(+c.ok_count) bits.push((+c.ok_count)+' ok');
@@ -9617,22 +9650,28 @@ function renderFnRef(q){
    numeric run. Forty-odd rows sorted 9, 10, 11, 12 tells you nothing about which of
    them are speed limits and which are pit control; grouping does, and it means the
    number you want is usually on screen without scrolling. */
-/* ORDER IS SIGNIFICANT: the first matching rule wins, so the most specific goes first.
-   F/N 9 is "Maintain start-up limit — keeps the current speed limit. Recommended for finish / timing
-   loops". It contains "speed limit", so a speed-first ordering claimed it and filed the timing
-   function under Speed limits. */
+/* GROUPED BY NUMBER RANGE, BECAUSE THAT IS HOW THE MANUAL IS ORGANISED.
+   The first version matched words in the description, which produced nonsense: F/N 48, 49 and 51
+   landed under "Start & timing" because their text happens to contain the word "finish", while F/N
+   50 — the same family, Emulate remote control: Speed 2 — did not contain it and fell out to Other.
+   Neighbouring functions from one block ended up in three different groups.
+   Dehaardt allocates these in contiguous blocks, so the block IS the grouping. Ranges are exact,
+   need no guessing, and cannot split a family. Anything outside a known block falls to Other rather
+   than being forced into the nearest one. */
 var DFN_GROUPS=[
-  {key:'startup',label:'Start &amp; timing', hint:'Lap timing and the start-up limit.',                        test:/start-?up|timing|finish/i},
-  {key:'speed',  label:'Speed limits',      hint:'Set the kart\u2019s speed for the sector it is entering.', test:/speed limit|speed \d|stop \(speed/i},
-  {key:'pit',    label:'Pit &amp; return',   hint:'Bringing a kart in, or releasing it.',                      test:/pit|return|box|park/i},
-  {key:'signal', label:'Signals &amp; flags',hint:'What the kart shows or sounds.',                            test:/flag|light|horn|sound|signal|beep/i}
+  {key:'startup',label:'Start &amp; timing',    hint:'Keeps the current limit through a timing loop.',        lo:9,  hi:9},
+  {key:'speed',  label:'Sector speed limits',   hint:'Set the kart\u2019s speed for the sector it is entering. Cleared by the next sector.', lo:10, hi:18},
+  {key:'remote', label:'Remote control',        hint:'Persists PAST the finish loop \u2014 this is what pit-in and pit-out use.', lo:48, hi:56},
+  {key:'group',  label:'Kart groups',           hint:'After this loop a kart only obeys its new group\u2019s commands.', lo:20, hi:24},
+  {key:'track',  label:'Tracks',                hint:'After this loop a kart only obeys its new track\u2019s commands.', lo:25, hi:28}
 ];
-var DFN_FILTER='';
 function _dfnGroupOf(f){
-  var t=String(f.desc||'');
-  for(var i=0;i<DFN_GROUPS.length;i++) if(DFN_GROUPS[i].test.test(t)) return DFN_GROUPS[i].key;
+  var n=parseInt(f&&f.fn,10);
+  if(!isFinite(n)) return 'other';
+  for(var i=0;i<DFN_GROUPS.length;i++){ var g=DFN_GROUPS[i]; if(n>=g.lo&&n<=g.hi) return g.key; }
   return 'other';
 }
+var DFN_FILTER='';
 function dfnSetGroup(k){ DFN_FILTER=(DFN_FILTER===k)?'':k; dfnRender((document.getElementById('dfn-q')||{}).value||''); }
 function dfnRender(q){
   var list=document.getElementById('dfn-list'); if(!list) return;
@@ -11385,7 +11424,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15616,7 +15655,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16085,7 +16124,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FR';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FT';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

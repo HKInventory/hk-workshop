@@ -2792,7 +2792,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FV · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FX · ZXing raw</div>
       </div>
     </div>
 
@@ -4577,7 +4577,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FV</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FX</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4685,13 +4685,26 @@ function logoTap(){
   if(cur!=='home') goHome();                        // elsewhere -> slide home first
   playSplash(false);                                // replay the HK logo animation, nothing else
 }
+/* A TAP DURING A TRANSITION USED TO BE THROWN AWAY.
+   Both go() and back() open with `if(navLock) return;` — a 500ms window after every navigation in
+   which the app looks responsive, accepts the tap, and does nothing with it. That is what "sticking"
+   is: you press a tab, nothing happens, you press again. On a phone, half a second is easily inside
+   a normal double-tap.
+   The request is remembered instead and run the moment the lock lifts. Only the LAST one is kept —
+   someone jabbing at three tabs means they want the third, not a queue of three animations. */
+var _navPending=null;
+function _navFlush(){
+  var q=_navPending; _navPending=null;
+  if(!q) return;
+  if(q.kind==='back') back(); else go(q.id,q.mode);
+}
 function go(id,mode){
   // A screen can be opened in more than one mode — Beacons serves both Layouts and Dehaardt
   // Functions, which are the same map with a different job. Stashed before the transition so the
   // renderer sees the right mode on its first paint rather than correcting itself after.
   if(mode) try{ window._scrMode=mode; }catch(e){}
   try{ _resetTabView(id); }catch(e){}
-  if(navLock) return;  // block spam taps during in-flight transition
+  if(navLock){ _navPending={kind:'go',id:id,mode:mode}; return; }   // remembered, not dropped
   var curId=stk.length?stk[stk.length-1]:null,cur=curId?s(curId):null,nxt=s(id);
   if(!nxt||id===curId) return;
   navLock=true;
@@ -4737,10 +4750,11 @@ function go(id,mode){
     requestAnimationFrame(function(){updateUI(id);});
     navLock=false;
     if(appEl) appEl.classList.remove('nav-locked');
+    _navFlush();
   },500);
 }
 function back(){
-  if(navLock) return;
+  if(navLock){ _navPending={kind:'back'}; return; }
   if(stk.length&&stk[stk.length-1]==='chats'&&typeof chatGoBack==='function'&&chatGoBack()) return;
   if(stk.length&&stk[stk.length-1]==='beacons'&&window.BCN_FROM_GRID&&typeof bcnBackToGrid==='function'&&bcnBackToGrid()) return;
   if(stk.length<=1) return;
@@ -4781,6 +4795,7 @@ function back(){
     requestAnimationFrame(function(){updateUI(toId);});
     navLock=false;
     if(appEl2) appEl2.classList.remove('nav-locked');
+    _navFlush();
   },500);
 }
 
@@ -11392,7 +11407,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11894,7 +11909,7 @@ var TZ_CHOICES=[
    The request goes to whoever holds Master Access, because they are the only people
    who can change the hours. It is a push notification, not a support ticket: they
    either act on it in ten seconds or they do not. */
-var VH_STATE=null, VH_LASTSEEN=null, VH_ASKED=false, _vhTimer=null;
+var VH_STATE=null, VH_LASTSEEN=null, VH_ASKED=false, _vhTimer=null, VH_LOADING=false, VH_LASTHIT=0, VH_CLOSED_REASON='';
 var VH_DAYS=['sun','mon','tue','wed','thu','fri','sat'];
 var VH_GRACE_MIN=45;    // matches the runner's HOURS_GRACE_MIN — the two must agree or the banner lies
 
@@ -11962,18 +11977,33 @@ function vhStart(){
   // A minute is plenty — the boundary only moves once a day, and this costs nothing.
   _vhTimer=setInterval(vhRefresh,60000);
 }
+/* Is data actually flowing? The runner writes a health snapshot every 30 minutes while it is awake
+   and stops when it stands down, so a snapshot older than that means collection has stopped —
+   whether because the venue is closed, the runner is off, or it crashed. All three matter equally
+   to someone reading a kart's status, and none of them are visible otherwise. */
+var VH_STALE_MS=70*60000;   // two missed snapshots plus a margin
 function vhRefresh(){
-  var open=venueIsOpen();
-  if(open===VH_STATE&&open) { vhPaint(open); return; }
-  VH_STATE=open;
-  if(!open&&VH_LASTSEEN==null&&typeof SBC!=='undefined'&&SBC){
-    // When did collection actually stop? The health snapshot is the runner's own heartbeat — it
-    // writes every 30 minutes while awake and stops when it stands down, so its newest row is the
-    // last moment we know data was being gathered. Stating a real time beats "a while ago".
+  var closed=!venueIsOpen();
+  var stale=(VH_LASTSEEN!=null)&&((Date.now()-VH_LASTSEEN)>VH_STALE_MS);
+  var open=!(closed||stale);
+  // Always know when data was last collected, not just once we already suspect a problem — that is
+  // what lets a stopped runner raise the banner on its own.
+  if(VH_LASTSEEN==null&&typeof SBC!=='undefined'&&SBC&&!VH_LOADING){
+    VH_LOADING=true;
     SBC.from('app_health').select('at').order('at',{ascending:false}).limit(1)
-      .then(function(r){ var row=r&&r.data&&r.data[0]; VH_LASTSEEN=row?_sydParse(row.at):null; vhPaint(false); },
-            function(){ vhPaint(false); });
+      .then(function(r){ VH_LOADING=false; var row=r&&r.data&&r.data[0];
+        VH_LASTSEEN=row?_sydParse(row.at):0; if(VH_LASTSEEN) vhRefresh(); },
+            function(){ VH_LOADING=false; VH_LASTSEEN=0; });
   }
+  // Re-read the heartbeat periodically so the banner clears once collection resumes.
+  if(VH_LASTSEEN&&(Date.now()-VH_LASTHIT)>300000&&typeof SBC!=='undefined'&&SBC&&!VH_LOADING){
+    VH_LASTHIT=Date.now(); VH_LOADING=true;
+    SBC.from('app_health').select('at').order('at',{ascending:false}).limit(1)
+      .then(function(r){ VH_LOADING=false; var row=r&&r.data&&r.data[0];
+        var t=row?_sydParse(row.at):0; if(t&&t!==VH_LASTSEEN){ VH_LASTSEEN=t; vhRefresh(); } },
+            function(){ VH_LOADING=false; });
+  }
+  VH_STATE=open; VH_CLOSED_REASON=closed?'hours':(stale?'stopped':'');
   vhPaint(open);
 }
 function vhPaint(open){
@@ -11987,12 +12017,18 @@ function vhPaint(open){
   el.style.display='';
   var last=VH_LASTSEEN?_sydTime(VH_LASTSEEN):null;
   var nxt=_vhNextOpen();
+  // The two causes need different actions from whoever reads this, so they are not blurred together.
+  var head=(VH_CLOSED_REASON==='stopped')
+    ? '<b>Live data has stopped.</b>'
+    : '<b>Closed &mdash; live data paused.</b>';
+  var tail=(VH_CLOSED_REASON==='stopped')
+    ? ' Kart status, notes and checks on this screen are from then. The runner is not collecting &mdash; tell a manager.'
+    : ((nxt?(' Back '+acEsc(nxt)+'.'):'')+' Everything here still works &mdash; it just is not refreshing.');
   el.innerHTML='<div class="vh-in">'
     +'<span class="vh-dot"></span>'
-    +'<span class="vh-txt"><b>Closed &mdash; live data paused.</b> '
+    +'<span class="vh-txt">'+head+' '
       +(last?('Last recorded '+acEsc(last)+'.'):'Collection is paused.')
-      +(nxt?(' Back '+acEsc(nxt)+'.'):'')
-      +' Everything here still works &mdash; it just is not refreshing.</span>'
+      +tail+'</span>'
     +'<button class="vh-btn" id="vh-ask" onclick="vhRequestOpen()">'+(VH_ASKED?'Requested \u2713':'Request data on')+'</button>'
   +'</div>';
 }
@@ -12006,7 +12042,9 @@ function vhRequestOpen(){
   var site=siteLabel(currentSite);
   who.forEach(function(n){
     try{ hkNotify(n,'\u23f0 Data collection requested',
-      me+' needs live data at '+site+' outside opening hours. Turn it on in Master Access \u2192 Sites \u2192 Opening hours.',
+      me+' needs live data at '+site+'. '+(VH_CLOSED_REASON==='stopped'
+        ? 'The runner has stopped collecting \u2014 check Render.'
+        : 'It is outside opening hours \u2014 Master Access \u2192 Settings \u2192 Opening hours.'),
       'hkws-hours','./',true); }catch(e){}
   });
   VH_ASKED=true; vhPaint(false);
@@ -12141,11 +12179,22 @@ function hoursSave(){
   if(!HRS_DRAFT||!HRS_DRAFT.length||typeof SBC==='undefined'||!SBC) return;
   if(msg){ msg.style.color=''; msg.textContent='Saving\u2026'; }
   Promise.all(HRS_DRAFT.map(function(st){
-    return SBC.from('sites').update({hours:st.hours}).eq('id',st.id).then(function(r){return r;},function(e){return {error:e};});
+    return SBC.from('sites').update({hours:st.hours}).eq('id',st.id).select('id')
+      .then(function(r){
+        if(r&&!r.error&&(!r.data||!r.data.length)) return {error:{message:'__norows__'}};
+        return r;
+      },function(e){return {error:e};});
   })).then(function(rs){
     var bad=rs.filter(function(r){ return r&&r.error; })[0];
     if(bad){
       var m=String((bad.error&&bad.error.message)||'');
+      if(m==='__norows__'){
+        // Accepted, changed nothing. The row is readable but the UPDATE policy does not admit it —
+        // the hours look saved and the runner never sees them, which is the worst of both.
+        if(msg){ msg.style.color='var(--red)';
+          msg.textContent='Not saved — the database accepted the change but updated no rows. sites needs an UPDATE policy (run the sites_update SQL).'; }
+        return;
+      }
       var missing=/hours|column|schema cache|PGRST204/i.test(m);
       if(msg){ msg.style.color='var(--red)';
         msg.textContent=missing?'The opening-hours column is missing \u2014 run the sites.hours SQL.':('Could not save: '+m); }
@@ -12163,7 +12212,9 @@ function siSaveTz(msg){
   var rows=mSitesDraft.filter(function(s){ return s._existing&&s.id&&_tzValid(siTzOf(s)); });
   if(!rows.length) return;
   Promise.all(rows.map(function(s){
-    return SBC.from('sites').update({tz:siTzOf(s)}).eq('id',s.id).then(function(r){ return r; },function(e){ return {error:e}; });
+    return SBC.from('sites').update({tz:siTzOf(s)}).eq('id',s.id).select('id')
+      .then(function(r){ if(r&&!r.error&&(!r.data||!r.data.length)) return {error:{message:'sites has no UPDATE policy — run the sites_update SQL'}}; return r; },
+            function(e){ return {error:e}; });
   })).then(function(rs){
     var bad=rs.filter(function(r){ return r&&r.error; })[0];
     if(bad&&msg){
@@ -15638,7 +15689,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16107,7 +16158,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FV';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FX';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

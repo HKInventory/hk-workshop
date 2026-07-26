@@ -332,8 +332,16 @@
     /* During an interactive swipe, drop paint containment on the moving screen so its left-edge
        drop shadow can render OVER the screen behind it (contain:paint would clip it). */
     .scr.swiping{contain:layout style;z-index:5}
-    .scr.active{pointer-events:auto}
-    .scr.behind{pointer-events:none}
+    /* PAINT ORDER MUST NOT DEPEND ON DOM ORDER.
+       Screens are absolutely stacked with an opaque background, so with no z-index the one LATER in
+       the document wins — which made a new screen's position in the file decide whether it was
+       visible. Adding the Dehaardt Functions screen near the top of the file put it underneath the
+       Beacons hub: it was active, at x=0, full width, and simply painted over. The hub sits at -28%
+       while it is behind, so the only part of the new screen you could see was its right-hand 28%.
+       The active screen is on top and the one behind it is below, stated explicitly. .swiping stays
+       above both so its drop shadow still falls across the screen behind during a drag. */
+    .scr.active{pointer-events:auto;z-index:2}
+    .scr.behind{pointer-events:none;z-index:1}
     .scr.active{transform:translate3d(0,0,0)}
     .scr.behind{transform:translate3d(-28%,0,0)}
     
@@ -2689,7 +2697,7 @@
 
     <!-- DEHAARDT FUNCTIONS: what each F/N tells a kart to do at a beacon -->
     <div class="scr" id="s-dehfn">
-      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button></div>
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
         <div class="pgtitle">&#9889; Dehaardt Functions</div>
         <div class="ki-sub">What each Function Number tells a kart to do when it crosses a beacon.</div>
@@ -2701,7 +2709,7 @@
 
     <!-- DAILY SUMMARY: one day's work, read back from what actually happened -->
     <div class="scr" id="s-summary">
-      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button>
+      <div class="phdr"><button class="back" onclick="back()"> Back</button>
         <button class="tk-chip" style="margin-left:auto" onclick="sumLoad(1)">&#8635; Refresh</button></div>
       <div class="sb">
         <div class="pgtitle">&#128203; Daily Summary</div>
@@ -2770,7 +2778,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FP · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FR · ZXing raw</div>
       </div>
     </div>
 
@@ -2851,7 +2859,7 @@
 
     <!-- RACEFACER -->
     <div class="scr" id="s-race">
-      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button></div>
+      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
         <div class="pgtitle">Intelligence</div>
         <!-- CLOSED ON PURPOSE. The layout comparisons attribute damage to whichever layout was live
@@ -4555,7 +4563,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FP</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FR</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -9609,9 +9617,13 @@ function renderFnRef(q){
    numeric run. Forty-odd rows sorted 9, 10, 11, 12 tells you nothing about which of
    them are speed limits and which are pit control; grouping does, and it means the
    number you want is usually on screen without scrolling. */
+/* ORDER IS SIGNIFICANT: the first matching rule wins, so the most specific goes first.
+   F/N 9 is "Maintain start-up limit — keeps the current speed limit. Recommended for finish / timing
+   loops". It contains "speed limit", so a speed-first ordering claimed it and filed the timing
+   function under Speed limits. */
 var DFN_GROUPS=[
-  {key:'speed',  label:'Speed limits',      hint:'Set the kart\u2019s speed for the sector it is entering.', test:/speed limit|speed \d|stop \(speed/i},
   {key:'startup',label:'Start &amp; timing', hint:'Lap timing and the start-up limit.',                        test:/start-?up|timing|finish/i},
+  {key:'speed',  label:'Speed limits',      hint:'Set the kart\u2019s speed for the sector it is entering.', test:/speed limit|speed \d|stop \(speed/i},
   {key:'pit',    label:'Pit &amp; return',   hint:'Bringing a kart in, or releasing it.',                      test:/pit|return|box|park/i},
   {key:'signal', label:'Signals &amp; flags',hint:'What the kart shows or sounds.',                            test:/flag|light|horn|sound|signal|beep/i}
 ];
@@ -11373,7 +11385,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15604,7 +15616,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16073,7 +16085,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FP';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FR';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

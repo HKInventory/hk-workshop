@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GR · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GS · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GR</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GS</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11889,7 +11889,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15215,6 +15215,35 @@ function sdEnter(){
        each one keeps a tally and the page prints it. One look answers it. */
     var SD_WHY={total:0,today:0,track:0,running:0,notrun:0,noruns:0,kept:0};
     var _tk=_sdDayKey(new Date().toISOString());
+    /* RACES RUN IN ORDER, AND THAT IS EVIDENCE THE APP CAN READ FOR ITSELF.
+       Every rule so far has depended on the runner telling us a race finished — a green flag it
+       observed live, or a status it wrote. Both are single points of failure, and both have failed
+       today: restarts lose the green flag, and a status written by one pass was being overwritten by
+       another. Thirty races that plainly ran sat marked as never started.
+       But a track runs one race at a time, in order. If the 4:20pm Adult race is on track now, every
+       Adult race scheduled before 4:20pm today has necessarily finished — there is no arrangement of
+       karts in which it has not. That fact is already in the rows we have loaded, and it needs
+       nothing from the runner at all.
+       So: per track, find the latest race we KNOW is running or finished. Anything on that track
+       scheduled earlier, on the same day, has run. This is a backstop, not a replacement — an
+       explicit chequered flag is still believed first, and a race with nothing after it still waits
+       for one, so a booked slot that never ran is never counted as finished. */
+    var _sdAfter={};
+    all.forEach(function(x){
+      var xs=(x.status||'').toLowerCase();
+      var known=/finish|complete|closed|ended|done|checker|chequer|progress|running|live|active|ongoing/.test(xs)
+                || !!x.started_at;
+      if(!known) return;
+      var ms=x.scheduled_at?Date.parse(x.scheduled_at):0; if(!ms) return;
+      var key=(_sdTrackLabel(x.track)||'?')+'|'+_sdDayKey(x.scheduled_at);
+      if(!_sdAfter[key]||ms>_sdAfter[key]) _sdAfter[key]=ms;
+    });
+    function _sdRanBySequence(x){
+      var ms=x.scheduled_at?Date.parse(x.scheduled_at):0; if(!ms) return false;
+      var key=(_sdTrackLabel(x.track)||'?')+'|'+_sdDayKey(x.scheduled_at);
+      var latest=_sdAfter[key]||0;
+      return latest>ms;      // something later on this track has already gone green
+    }
     SD_SESS=all.filter(function(s){
       SD_WHY.total++;
       var _isToday=(_sdDayKey(s.scheduled_at)===_tk); if(_isToday) SD_WHY.today++;
@@ -15270,8 +15299,8 @@ function sdEnter(){
         if(endAt) return endAt<nowMs;
         return (nowMs-greenMs)>SD_RACE_MS;
       }
-      // NO GREEN FLAG = IT HAS NOT RUN. Not late, not finished — not started.
-      var _keep=!!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);   // backstop for rows older than started_at
+      // NO GREEN FLAG OF ITS OWN — but a later race on the same track having run proves this one did.
+      var _keep=_sdRanBySequence(s) || !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
       if(!_keep && _isToday) SD_WHY.notrun++;
       return _keep;
     });
@@ -16339,7 +16368,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16808,7 +16837,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GR';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GS';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

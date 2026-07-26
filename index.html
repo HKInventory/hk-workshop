@@ -1082,6 +1082,27 @@
     .kn-opentable td{padding:11px 14px;border-bottom:1px solid var(--b1);vertical-align:top}
     .kn-opentable tr:last-child td{border-bottom:none}
     .kn-date{white-space:nowrap;color:var(--t2);font-variant-numeric:tabular-nums;width:1%}
+    /* THE TILES GLITCHING ON THE WAY IN.
+       The home grid is in the HTML with a default set of tiles visible. applyRoleVisibility then
+       hides whatever this account may not see, and that runs AFTER the access config and site list
+       have loaded — which is after the first paint. So the grid painted one arrangement and then
+       visibly rearranged into another: tiles appearing, disappearing and re-flowing, every single
+       entry. Making layoutHome cheaper reduced it but could never remove it, because the reflow is
+       not a performance problem — it is a correctness one. The grid is simply showing an answer it
+       does not have yet.
+       So it does not show at all until the first visibility pass has run. Reserved space, no
+       flash, no rearrangement. A timeout reveals it regardless if the config never arrives, because
+       an invisible home screen is far worse than a glitchy one. */
+    #home-grid.settling{opacity:0}
+    #home-grid{opacity:1;transition:opacity .18s ease}
+    .sum-days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch}
+    .sum-days::-webkit-scrollbar{display:none}
+    .sum-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--c2);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .sum-chip.on{background:linear-gradient(145deg,#8B5CF6,#4C1D95);border-color:rgba(167,139,250,.6);color:#fff}
+    .sum-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+    .sum-stat{background:var(--c2);border:1px solid var(--b1);border-radius:12px;padding:10px 12px}
+    .sum-statn{font-size:22px;font-weight:800;line-height:1.1}
+    .sum-statl{font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
     .kn-title{color:var(--t1);font-weight:600;line-height:1.45}
     .kn-star{color:#FFD600;margin-right:8px}
     .kn-note{color:var(--t1);font-weight:600;max-width:440px;line-height:1.45}
@@ -2498,7 +2519,7 @@
     <div class="scr" id="s-home">
       <div class="sf">
         <div class="home-inner" id="home-inner">
-          <div class="home-grid" id="home-grid">
+          <div class="settling home-grid" id="home-grid">
             <div class="tile tse"      id="thubparts" onclick="go('parts')"><div class="ti">📦</div><div class="tl">Inventory</div><div class="ts">Scan · search · stock</div></div>
             <div class="tile mgr"      id="thubdash" style="display:none" onclick="go('dash')"><div class="ti">⭐</div><div class="tl">Dashboard</div><div class="ts">Data · finance · admin</div></div>
             <div class="tile fin"      id="thubcomms" onclick="go('comms')"><div class="ti">💬</div><div class="tl">Comms</div><div class="ts">Tasks · chats · handovers</div></div>
@@ -2537,6 +2558,7 @@
           <div class="tile gord"     id="wgord" style="display:none;background:linear-gradient(145deg,#6366F1,#4338CA);border-color:rgba(129,140,248,.55)" onclick="go('genorder');loadGenOrder()"><div class="ti">📦</div><div class="tl">Generate Order</div><div class="ts">Order from RIMO</div></div>
           <div class="tile ttv"      id="wtv" style="display:none" onclick="go('tvcast');loadTvCast()"><div class="ti">📺</div><div class="tl">TV Display</div><div class="ts">Cast to the big screen</div></div>
           <div class="tile health"   id="whealth" style="display:none;background:linear-gradient(145deg,#0EA5E9,#075985);border-color:rgba(56,189,248,.55)" onclick="go('health')"><div class="ti">💓</div><div class="tl">App Health</div><div class="ts">Usage &amp; running costs</div></div>
+          <div class="tile summary"  id="wsummary" style="display:none;background:linear-gradient(145deg,#8B5CF6,#4C1D95);border-color:rgba(167,139,250,.55)" onclick="go('summary')"><div class="ti">&#128203;</div><div class="tl">Daily Summary</div><div class="ts">What got done, day by day</div></div>
           <div class="tile maccess"  id="wmaccess" style="display:none" onclick="masterAccessOpen()"><div class="ti">🔐</div><div class="tl">Master Access</div><div class="ts">Admin controls</div></div>
         </div>
       </div>
@@ -2550,6 +2572,18 @@
         <div class="pgtitle">&#128147; App Health</div>
         <div class="ki-sub">What this system is costing, measured daily</div>
         <div id="health-body"></div>
+      </div>
+    </div>
+
+    <!-- DAILY SUMMARY: one day's work, read back from what actually happened -->
+    <div class="scr" id="s-summary">
+      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button>
+        <button class="tk-chip" style="margin-left:auto" onclick="sumLoad(1)">&#8635; Refresh</button></div>
+      <div class="sb">
+        <div class="pgtitle">&#128203; Daily Summary</div>
+        <div class="ki-sub" id="sum-sub">What got done</div>
+        <div class="sum-days" id="sum-days"></div>
+        <div id="sum-body"></div>
       </div>
     </div>
 
@@ -2612,7 +2646,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-EY · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FA · ZXing raw</div>
       </div>
     </div>
 
@@ -4395,7 +4429,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-EY</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FA</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4814,6 +4848,7 @@ var TAB_DEFS=[
   {key:'sessions', id:'wsess',   label:'Sessions'},
   {key:'tvcast',   id:'wtv',     label:'TV Display'},
   {key:'health',   id:'whealth', label:'App Health'},
+  {key:'summary',  id:'wsummary',label:'Daily Summary'},
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
@@ -4895,10 +4930,10 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 // and pulled out of the top home-tab row. Beacons' Layouts & Dehaardt Functions are new default-on keys.
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
 var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
-var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
+var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
 var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
-var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
+var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -4956,14 +4991,28 @@ function applyRoleVisibility(force){
   // Inventory, Dashboard, Comms and Beacons straight from their section tiles.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
-  vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wmaccess']));
+  vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
   vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
   vis('wbeacon',   anyVis(['bcnlayouts','wrace','bcndeh','bcnpickups','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
   if(typeof applyKiSectionVis==='function'){try{applyKiSectionVis();}catch(e){}}
+  homeGridReveal();
 }
+/* Reveal the home grid once it holds the right tiles. Idempotent — later visibility passes just
+   find it already revealed. See the .settling rule for why it starts hidden. */
+function homeGridReveal(){
+  var g=document.getElementById('home-grid');
+  if(g&&g.classList.contains('settling')){
+    // One frame after the layout write, so the reveal cannot race the reflow it is hiding.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ g.classList.remove('settling'); }); });
+  }
+}
+/* SAFETY NET. If the access config never loads, applyRoleVisibility never completes and the grid
+   would stay invisible forever. An empty home screen is a far worse failure than a glitchy one, so
+   reveal regardless after a moment. */
+setTimeout(homeGridReveal, 2500);
 
 // Reopening a tab returns it to its default view (top of list, default filters) rather than
 // wherever it was left. Scroll is reset after render; per-tab view state is cleared here.
@@ -5009,6 +5058,7 @@ function updateUI(id){
     else stopRimoLive();
   }
   if(id==='health' && typeof healthLoad==='function'){ try{ healthLoad(); }catch(e){} }
+  if(id==='summary' && typeof sumLoad==='function'){ try{ sumLoad(); }catch(e){} }
   // Live staff dots: hold the presence feed only while the dashboard showing them is open.
   if(typeof presStart==='function'){ if(id==='manager'){ try{ presStart(); }catch(e){} } else { try{ presStop(); }catch(e){} } }
   if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
@@ -6423,6 +6473,224 @@ function presRepaint(){
   }).join('');
   var st=document.getElementById('st-staff');
   if(st) st.innerText=names.filter(function(n){ return (nowMs-seen[n].t)<300000; }).length;
+}
+
+/* ===== DAILY SUMMARY ============================================================
+   One venue-day of work, read back from what actually happened rather than from
+   anyone remembering to fill something in. Every figure here already exists in a
+   table — this screen just asks the question nobody had time to ask.
+
+   Five sources, each answering a different question:
+     rf_repairs        what was fixed, by whom, for how much
+     rf_repair_parts   which parts went into those repairs
+     kart_check_runs   which kart checks were completed
+     logs              what came out of the store
+     staff_sessions    who was on
+
+   Days are VENUE days (venueTz), not the browser's, so a manager reading this from
+   home at 11pm sees the day the venue just had. And a repair's day is the day it was
+   REPAIRED — the work is what this page is about, not when the damage was noticed. */
+var SUM_DAY=null, SUM_CACHE={}, SUM_BUSY=false;
+var SUM_DAYS_BACK=7;
+
+function _sumDayList(){
+  var out=[], now=Date.now();
+  for(var i=0;i<SUM_DAYS_BACK;i++) out.push(_sumKey(now-i*86400000));
+  return out;
+}
+function _sumKey(ms){ return _sydDayKey(ms); }         // venue calendar day (see venueTz)
+function _sumLabel(key){
+  var today=_sumKey(Date.now()), yest=_sumKey(Date.now()-86400000);
+  if(key===today) return 'Today';
+  if(key===yest) return 'Yesterday';
+  var p=key.split('-'), d=new Date(+p[0],+p[1]-1,+p[2]);
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+d.getDate()+' '+_CH_MO[d.getMonth()];
+}
+/* A timestamp column -> the venue day it falls in. Untagged values from Postgres are UTC (see
+   _sydParse), which matters most at exactly the times people work: an 8am repair is 22:00 the
+   previous day in UTC, and reading it raw would file it under yesterday. */
+function _sumDayOf(v){ var t=_sydParse(v); return t==null?null:_sydDayKey(t); }
+/* rf_repairs stores plain dates (YYYY-MM-DD), which are already venue days — no conversion. */
+function _sumDateOnly(v){ var m=String(v||'').match(/^(\d{4}-\d{2}-\d{2})/); return m?m[1]:null; }
+
+function sumSetDay(key){ if(key===SUM_DAY) return; SUM_DAY=key; sumRenderDays(); sumLoad(); }
+
+function sumRenderDays(){
+  var host=document.getElementById('sum-days'); if(!host) return;
+  var days=_sumDayList();
+  if(!SUM_DAY) SUM_DAY=days[0];
+  host.innerHTML=days.map(function(k){
+    return '<button class="sum-chip'+(k===SUM_DAY?' on':'')+'" onclick="sumSetDay(\''+k+'\')">'+acEsc(_sumLabel(k))+'</button>';
+  }).join('');
+  var sub=document.getElementById('sum-sub');
+  if(sub) sub.textContent='What got done · '+siteLabel(currentSite)+' · '+venueTzLabel(currentSite);
+}
+
+function sumLoad(force){
+  sumRenderDays();
+  var body=document.getElementById('sum-body'); if(!body) return;
+  if(typeof SBC==='undefined'||!SBC){ body.innerHTML='<div class="emp" style="padding:14px 0">Not connected.</div>'; return; }
+  var day=SUM_DAY;
+  if(force) delete SUM_CACHE[day];
+  if(SUM_CACHE[day]){ sumRender(SUM_CACHE[day]); return; }
+  if(SUM_BUSY) return; SUM_BUSY=true;
+  body.innerHTML='<div class="emp" style="padding:14px 0">Loading '+acEsc(_sumLabel(day))+'…</div>';
+  var site=currentSite||'sydney';
+  /* A venue day is not a UTC day, so timestamp columns are queried on a WIDER window (the day
+     +/- 14h covers every timezone this could run in) and filtered precisely in JS. Filtering in
+     SQL on a UTC date would silently drop the first and last hours of the venue's day. */
+  var p=day.split('-'), mid=Date.UTC(+p[0],+p[1]-1,+p[2],12,0,0);
+  var lo=new Date(mid-26*3600000).toISOString(), hi=new Date(mid+26*3600000).toISOString();
+  Promise.all([
+    SBC.from('rf_repairs').select('id,rf_kart_id,kart_name,kart_type,description,notes,cost,mechanic,date_repaired,date_discovered')
+      .eq('date_repaired',day).limit(2000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    SBC.from('kart_check_runs').select('id,kart_type,started_at,completed_at,status,ok_count,fm_count,damaged_count,started_by,site')
+      .eq('site',site).gte('started_at',lo).lte('started_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    SBC.from('logs').select('action,sku,qty,ts,name,site').eq('site',site)
+      .gte('ts',lo).lte('ts',hi).limit(3000).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    SBC.from('staff_sessions').select('name,role,signed_in_at,signed_out_at')
+      .gte('signed_in_at',lo).lte('signed_in_at',hi).limit(200).then(function(r){return (r&&r.data)||[];},function(){return [];}),
+    SBC.from('parts').select('sku,desc,price').limit(4000).then(function(r){return (r&&r.data)||[];},function(){return [];})
+  ]).then(function(res){
+    var reps=res[0], checks=res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
+        logs=res[2].filter(function(l){ return _sumDayOf(l.ts)===day; }),
+        sess=res[3].filter(function(x){ return _sumDayOf(x.signed_in_at)===day; }),
+        parts=res[4];
+    var ids=reps.map(function(r){return r.id;}).filter(function(x){return x!=null;});
+    // Parts used come from the repairs themselves, so an empty repair day means no query at all.
+    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts); return; }
+    SBC.from('rf_repair_parts').select('part_name,qty,price,repair_id').in('repair_id',ids.slice(0,600)).limit(5000)
+      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts); },
+            function(){ sumFinish(day,reps,[],checks,logs,sess,parts); });
+  },function(){ SUM_BUSY=false; body.innerHTML='<div class="emp" style="padding:14px 0">Couldn’t load that day.</div>'; });
+}
+
+function sumFinish(day,reps,rparts,checks,logs,sess,parts){
+  SUM_BUSY=false;
+  var pMap={}; parts.forEach(function(p){ pMap[p.sku]={desc:p.desc,price:+p.price||0}; });
+
+  // --- repairs, by mechanic -------------------------------------------------
+  var byMech={}, cost=0, kartsFixed={};
+  reps.forEach(function(r){
+    var c=+r.cost||0; cost+=c;
+    if(r.rf_kart_id!=null) kartsFixed[r.rf_kart_id]=true;
+    var m=(r.mechanic||'').trim()||'Unattributed';
+    if(!byMech[m]) byMech[m]={name:m,n:0,cost:0};
+    byMech[m].n++; byMech[m].cost+=c;
+  });
+  var mechs=Object.keys(byMech).map(function(k){return byMech[k];})
+    .sort(function(a,b){ return (b.n-a.n)||(b.cost-a.cost); });
+
+  // --- parts used -----------------------------------------------------------
+  var byPart={}, partQty=0;
+  rparts.forEach(function(p){
+    var n=p.part_name||'Part', q=+p.qty||0;
+    if(!byPart[n]) byPart[n]={name:n,qty:0,cost:0};
+    byPart[n].qty+=q; byPart[n].cost+=q*(+p.price||0); partQty+=q;
+  });
+  // Stock taken from the store is a second, independent record of parts consumed — it catches work
+  // logged in the app that never made it onto a RaceFacer repair.
+  var taken={}, takenQty=0, restocked=0;
+  logs.forEach(function(l){
+    var q=Math.abs(+l.qty||0);
+    if(/take|use|out/i.test(l.action||'')){ var k=l.sku||'?'; if(!taken[k]) taken[k]={sku:k,desc:(pMap[k]&&pMap[k].desc)||k,qty:0,cost:0};
+      taken[k].qty+=q; taken[k].cost+=q*((pMap[k]&&pMap[k].price)||0); takenQty+=q; }
+    else if(/restock|add|in\b/i.test(l.action||'')) restocked+=q;
+  });
+  var partList=Object.keys(byPart).map(function(k){return byPart[k];}).sort(function(a,b){return b.qty-a.qty;});
+  var takenList=Object.keys(taken).map(function(k){return taken[k];}).sort(function(a,b){return b.qty-a.qty;});
+
+  // --- kart checks ----------------------------------------------------------
+  var done=checks.filter(function(c){ return String(c.status||'')==='done'; });
+  var checked=done.reduce(function(a,c){ return a+(+c.ok_count||0)+(+c.fm_count||0)+(+c.damaged_count||0); },0);
+  var dmgFound=done.reduce(function(a,c){ return a+(+c.damaged_count||0); },0);
+
+  // --- who was on -----------------------------------------------------------
+  var who={};
+  sess.forEach(function(x){ if(!x.name) return; var t=_sydParse(x.signed_in_at)||0;
+    if(!who[x.name]||t<who[x.name].t) who[x.name]={t:t,role:x.role||'',out:x.signed_out_at}; });
+
+  var data={day:day,reps:reps,mechs:mechs,cost:cost,kartsFixed:Object.keys(kartsFixed).length,
+            partList:partList,partQty:partQty,takenList:takenList,takenQty:takenQty,restocked:restocked,
+            checks:done,checked:checked,dmgFound:dmgFound,who:who};
+  SUM_CACHE[day]=data;
+  sumRender(data);
+}
+
+function _sumStat(n,label,colour){
+  return '<div class="sum-stat" style="border-left:3px solid '+colour+'"><div class="sum-statn">'+n+'</div>'
+    +'<div class="sum-statl">'+acEsc(label)+'</div></div>';
+}
+function _sumCard(title,inner){ return '<div class="mc"><div class="mct">'+acEsc(title)+'</div>'+inner+'</div>'; }
+function _sumRow(left,right,strong){
+  return '<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px">'
+    +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+left+'</span>'
+    +'<span style="'+(strong?'font-weight:800':'color:var(--t2)')+';white-space:nowrap">'+right+'</span></div>';
+}
+function _sumEmpty(t){ return '<div style="font-size:12.5px;color:var(--t2);padding:2px 0">'+acEsc(t)+'</div>'; }
+
+function sumRender(d){
+  var host=document.getElementById('sum-body'); if(!host) return;
+  var names=Object.keys(d.who).sort(function(a,b){ return d.who[a].t-d.who[b].t; });
+  var nothing=(!d.reps.length && !d.checks.length && !d.takenList.length && !names.length);
+  if(nothing){
+    host.innerHTML='<div class="mc"><div class="mct">'+acEsc(_sumLabel(d.day))+'</div>'
+      +_sumEmpty('Nothing recorded for this day. If the venue was open, work may not have been logged — repairs, kart checks and stock movements all feed this page.')+'</div>';
+    return;
+  }
+  var stats='<div class="sum-stats">'
+    +_sumStat(d.reps.length,'repairs','#34D399')
+    +_sumStat(d.checks.length,'kart checks','#22D3EE')
+    +_sumStat(d.partQty+d.takenQty,'parts used','#A78BFA')
+    +_sumStat(names.length,'staff on','#FFB020')
+  +'</div>';
+
+  // REPAIR LEADERBOARD — the point of the page for most people.
+  var lead=d.mechs.length?d.mechs.map(function(m,i){
+    var medal=['🥇','🥈','🥉'][i]||('<span style="color:var(--t2)">'+(i+1)+'</span>');
+    return _sumRow(medal+' '+acEsc(m.name), m.n+' repair'+(m.n===1?'':'s')+(m.cost?(' · '+nfMoney(m.cost)):''), i===0);
+  }).join(''):_sumEmpty('No repairs logged.');
+
+  var work=d.reps.length?d.reps.slice(0,25).map(function(r){
+    var k=(r.kart_name!=null&&r.kart_name!=='')?('Kart '+r.kart_name):('#'+(r.rf_kart_id||'?'));
+    var txt=String(r.description||r.notes||'').slice(0,90)||'Repair';
+    return _sumRow('<b>'+acEsc(k)+'</b> · '+acEsc(txt), acEsc((r.mechanic||'—').split(' ')[0]));
+  }).join('')+(d.reps.length>25?_sumEmpty('+'+(d.reps.length-25)+' more'):''):_sumEmpty('No repairs logged.');
+
+  var partsHtml=d.partList.length?d.partList.slice(0,15).map(function(p){
+    return _sumRow(acEsc(p.name), p.qty+'×'+(p.cost?(' · '+nfMoney(p.cost)):''));
+  }).join(''):_sumEmpty('No parts recorded against repairs.');
+
+  var takenHtml=d.takenList.length?d.takenList.slice(0,15).map(function(p){
+    return _sumRow(acEsc(p.desc), p.qty+'×'+(p.cost?(' · '+nfMoney(p.cost)):''));
+  }).join(''):_sumEmpty('Nothing taken from the store.');
+
+  var checkHtml=d.checks.length?d.checks.map(function(c){
+    var bits=[];
+    if(+c.ok_count) bits.push((+c.ok_count)+' ok');
+    if(+c.fm_count) bits.push((+c.fm_count)+' maint');
+    if(+c.damaged_count) bits.push('<span style="color:#FF5A52">'+(+c.damaged_count)+' damaged</span>');
+    return _sumRow('<b>'+acEsc(c.kart_type||'Check')+'</b> · '+acEsc((c.started_by||'—').split(' ')[0])
+      +' <span style="color:var(--t2)">'+_sydTime(c.completed_at||c.started_at)+'</span>', bits.join(' · ')||'—');
+  }).join(''):_sumEmpty('No kart checks completed.');
+
+  var whoHtml=names.length?names.map(function(n){
+    var w=d.who[n], sf=(typeof STAFF!=='undefined'&&STAFF.find)?(STAFF.find(function(x){return x.name===n;})||{emoji:'🔧'}):{emoji:'🔧'};
+    return _sumRow(sf.emoji+' '+acEsc(n), 'in '+_sydTime(w.t)+(w.out?(' · out '+_sydTime(w.out)):''));
+  }).join(''):_sumEmpty('No sign-ins recorded.');
+
+  host.innerHTML=stats
+    +_sumCard('Repair leaderboard', lead
+      +'<div style="margin-top:8px;font-size:11px;color:var(--t2)">'
+      +d.kartsFixed+' kart'+(d.kartsFixed===1?'':'s')+' worked on'+(d.cost?(' · '+nfMoney(d.cost)+' in parts'):'')+'</div>')
+    +_sumCard('Kart checks', checkHtml
+      +(d.checks.length?('<div style="margin-top:8px;font-size:11px;color:var(--t2)">'+d.checked+' kart'+(d.checked===1?'':'s')+' checked'
+        +(d.dmgFound?(' · '+d.dmgFound+' found damaged'):'')+'</div>'):''))
+    +_sumCard('Work completed', work)
+    +_sumCard('Parts fitted (from repairs)', partsHtml)
+    +_sumCard('Taken from the store', takenHtml
+      +(d.restocked?('<div style="margin-top:8px;font-size:11px;color:var(--t2)">'+d.restocked+' restocked</div>'):''))
+    +_sumCard('Who was on', whoHtml);
 }
 
 /* ===== APP HEALTH (Manager Dashboard -> Health) ==================================
@@ -10511,7 +10779,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-EY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14389,7 +14657,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-EY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -14858,7 +15126,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-EY';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FA';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

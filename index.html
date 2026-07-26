@@ -1971,9 +1971,19 @@
        all-time column next to it. Two changes: the hero columns now scale from the SAME variable
        that drives the font, so the box always grows with the digits; and overflow is clipped rather
        than visible, so no future size can ever let one column paint over another. */
+    /* COLUMNS THAT ACTUALLY LINE UP WITH THEIR HEADING.
+       The header row and the data rows each set their own column widths, and the hero row overrode
+       them again with a width derived from its font size. Three different track widths in one table,
+       so nothing sat under its heading — and because only the rows carry a 1px border, every row was
+       also offset one pixel from the header.
+       Column widths are now ONE set of variables used by the header, the normal rows and the hero
+       row alike. Fonts still scale; the tracks never move. The header gets a transparent border so
+       it shares the rows' box model exactly. */
+    .tv-lb{--lbc:6.4vmin;--lbc-last:9.2vmin}   /* five periods now: Today / Week / Month / Year / All-time */
+    .tv-lbhdr{border:1px solid transparent}
     .tv-ct4{flex:0 0 auto;display:flex;gap:1vmin;align-items:baseline}
-    .tv-ct4>span,.tv-ct4>b{flex:none;display:block;width:7.2vmin;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;box-sizing:border-box}
-    .tv-ct4>span:last-child,.tv-ct4>b:last-child{width:9.6vmin}
+    .tv-ct4>span,.tv-ct4>b{flex:none;display:block;width:var(--lbc);text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+    .tv-ct4>span:last-child,.tv-ct4>b:last-child{width:var(--lbc-last)}
     .tv-lbhdr .tv-ct4>span{font-size:1.1vmin;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--mut)}
     .tv-lbrow .tv-ct4>b{font-size:var(--lb-num,2.1vmin);font-weight:800;color:var(--dim);transition:font-size .8s ease}
     .tv-lbrow .tv-ct4>b.hi{font-size:2.7vmin;color:var(--tvac)}
@@ -1983,7 +1993,7 @@
     .tv-lbrow.hero{flex:2.5 1 0;background:linear-gradient(100deg,rgba(0,207,255,.16),rgba(0,207,255,.02));border-color:rgba(0,207,255,.55);box-shadow:0 0 3vmin rgba(0,207,255,.14)}
     .tv-lbrow.hero .rk{font-size:var(--lb-hrk,5vmin)}
     .tv-lbrow.hero .nm{font-size:var(--lb-hnm,4.4vmin);font-weight:800;color:#fff}
-    .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-hnum,2.4vmin);width:calc(var(--lb-hnumon,4vmin) * 2.05)}
+    .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-hnum,2.4vmin)}   /* width stays on the shared track — see .tv-lb */
     .tv-lbrow.hero .tv-ct4>b:last-child{width:calc(var(--lb-hnumon,4vmin) * 2.7)}
     .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-hnumon,4vmin)}
     /* fleet online scene — one row per kart type, green pills = online karts */
@@ -2721,7 +2731,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FG · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FI · ZXing raw</div>
       </div>
     </div>
 
@@ -4507,7 +4517,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FG</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FI</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7083,7 +7093,12 @@ function sumRender(d){
    Vendor figures are best-effort. A missing token shows as "not connected" rather
    than as zero, because zero looks healthy and absent is not the same as fine. */
 var HEALTH_ROWS=null, HEALTH_BUSY=false;
-var HK_PLAN={ db_bytes:8*1024*1024*1024, realtime_msgs:5000000, egress_bytes:250*1024*1024*1024, render_bytes:100*1024*1024*1024 };
+/* The Pro plan's included allowances, so every figure is shown against the number that actually
+   matters rather than as a bare count. Taken from the Supabase usage page and the Render plan. */
+var HK_PLAN={ db_bytes:8*1024*1024*1024, realtime_msgs:5000000, egress_bytes:250*1024*1024*1024,
+              render_bytes:100*1024*1024*1024, storage_bytes:100*1024*1024*1024,
+              cached_egress_bytes:250*1024*1024*1024, rt_conns:500, func_calls:2000000,
+              mau:100000, render_mem:512*1024*1024, render_cpu:0.5 };
 
 function hBytes(n){
   if(n==null||isNaN(n)) return '—';
@@ -7198,8 +7213,48 @@ function healthRender(){
   // hBar's right-hand slot showed "not connected" whenever it had no percentage to display, which
   // contradicted its own subtitle on the connected rows. Connection state is not a percentage, so
   // it gets its own row type.
-  bars+=hStatus('Render bandwidth', cur.render_available, cur.render_note);
-  bars+=hStatus('Supabase usage API', cur.supabase_available, cur.supabase_note);
+  /* EVERYTHING THE VENDOR PAGES SHOW, against the allowance it counts toward.
+     This used to reduce Supabase and Render to two "connected / not connected" badges, which told
+     you the tokens worked and nothing else — you still had to open two dashboards to learn anything.
+     Each figure below is a MEASUREMENT from their own API, shown against its plan limit. A metric
+     the API did not return is omitted entirely rather than drawn as zero: zero looks healthy, and
+     "we could not read it" is a different statement from "it is nothing". */
+  var su=cur.supabase_usage||{}, ru=cur.render_usage||{};
+  function bar(v,cap,label,sub){ return (v==null)?'':hBar(v,cap,label,sub); }
+
+  if(cur.supabase_available){
+    bars+=bar(su.realtime_messages,HK_PLAN.realtime_msgs,'Realtime messages · billed',
+      hNum(su.realtime_messages)+' of '+hNum(HK_PLAN.realtime_msgs)+' this billing cycle — Supabase\u2019s own count');
+    bars+=bar(su.realtime_peak_connections,HK_PLAN.rt_conns,'Realtime peak connections',
+      hNum(su.realtime_peak_connections)+' of '+hNum(HK_PLAN.rt_conns)+' — every open app, TV and tab counts as one');
+    bars+=bar(su.egress_bytes,HK_PLAN.egress_bytes,'Supabase egress',
+      hBytes(su.egress_bytes)+' of '+hBytes(HK_PLAN.egress_bytes)+' — data leaving the database');
+    bars+=bar(su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,'Cached egress',hBytes(su.cached_egress_bytes)+' of '+hBytes(HK_PLAN.cached_egress_bytes));
+    bars+=bar(su.storage_bytes,HK_PLAN.storage_bytes,'File storage',hBytes(su.storage_bytes)+' of '+hBytes(HK_PLAN.storage_bytes));
+    bars+=bar(su.func_invocations,HK_PLAN.func_calls,'Edge function calls',
+      hNum(su.func_invocations)+' of '+hNum(HK_PLAN.func_calls)+' — push notifications, master access, staff saves');
+    bars+=bar(su.monthly_active_users,HK_PLAN.mau,'Monthly active users',hNum(su.monthly_active_users)+' of '+hNum(HK_PLAN.mau));
+    if(su.compute_hours!=null)
+      bars+='<div style="font-size:11.5px;color:var(--t2);margin:-4px 0 14px">Compute: '+hNum(Math.round(su.compute_hours))+' hours'
+        +(su.compute_cost!=null?(' &middot; <b style="color:var(--t1)">'+nfMoney(su.compute_cost)+'</b> this cycle'):'')+'</div>';
+  } else {
+    bars+=hStatus('Supabase usage API', false, cur.supabase_note);
+  }
+
+  if(cur.render_available){
+    bars+=bar(ru.bandwidth_bytes,HK_PLAN.render_bytes,'Render bandwidth',
+      hBytes(ru.bandwidth_bytes)+' of '+hBytes(HK_PLAN.render_bytes)+' over 30 days — the cap to stay under');
+    // Memory and CPU are shown as PEAK, not average. A worker sitting at 90% for one minute is a
+    // restart waiting to happen, and an average hides exactly that.
+    if(ru.memory_peak!=null)
+      bars+=hBar(ru.memory_peak,HK_PLAN.render_mem,'Runner memory · peak',
+        hBytes(ru.memory_peak)+' peak of '+hBytes(HK_PLAN.render_mem)+(ru.memory_latest!=null?(' · '+hBytes(ru.memory_latest)+' now'):''));
+    if(ru.cpu_peak!=null)
+      bars+=hBar(ru.cpu_peak,HK_PLAN.render_cpu,'Runner CPU · peak',
+        (Math.round(ru.cpu_peak*100)/100)+' of '+HK_PLAN.render_cpu+' cores'+(ru.cpu_latest!=null?(' · '+(Math.round(ru.cpu_latest*100)/100)+' now'):''));
+  } else {
+    bars+=hStatus('Render usage API', false, cur.render_note);
+  }
 
   // --- what is actually being written -------------------------------------
   var byT=cur.writes_by_table||{};
@@ -11168,7 +11223,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12225,7 +12280,7 @@ function tvDayWindows(){
   var now=new Date(), today=tvLocalYMD(now);
   var off=(now.getDay()+6)%7;                       // days since Monday (Mon=0 … Sun=6)
   var mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-off);
-  return {today:today, weekStart:tvLocalYMD(mon), month:today.slice(0,7)};
+  return {today:today, weekStart:tvLocalYMD(mon), month:today.slice(0,7), year:today.slice(0,4)};
 }
 // Leaderboard base bonus: this many repairs are ADDED on top of the mechanic's real count.
 // Ross shows 1900 + whatever he's actually done, and it keeps climbing as he logs more.
@@ -12234,7 +12289,7 @@ function _applyRepairFloor(rec){ var b=REPAIR_FLOOR[rec.user]; if(b) rec.all+=b;
 function tvRepairTallies(){
   var w=tvDayWindows(), by={};
   var at=RF_ALLTIME||{}, atL=RF_ALLTIME_LAST||{};
-  Object.keys(at).forEach(function(raw){ if(!raw||raw==='\u2014'||raw==='-') return; var u=_repairName(raw); var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0,last:''}); rec.all+=(at[raw]||0); var la=atL[raw]; if(la&&(!rec.last||la>rec.last)) rec.last=la; });
+  Object.keys(at).forEach(function(raw){ if(!raw||raw==='\u2014'||raw==='-') return; var u=_repairName(raw); var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,year:0,all:0,last:''}); rec.all+=(at[raw]||0); var la=atL[raw]; if(la&&(!rec.last||la>rec.last)) rec.last=la; });
   Object.keys(RF_REPAIRS_BY_ID||{}).forEach(function(id){
     (RF_REPAIRS_BY_ID[id]||[]).forEach(function(r){
       if(!r) return;   // EVERY RaceFacer repair counts on the leaderboard (fixed or not)
@@ -12248,26 +12303,31 @@ function tvRepairTallies(){
       // who has only logged damage still shows as recently active.
       var done=(r.isoRepaired||'').slice(0,10);
       var seen=((r.isoRepaired||r.iso)||'').slice(0,10);
-      var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,all:0,last:''});
+      var rec=by[u]||(by[u]={user:u,day:0,week:0,month:0,year:0,all:0,last:''});
       if(seen&&(!rec.last||seen>rec.last)) rec.last=seen;
       if(!done) return;                       // raised but not completed — not a repair yet
       if(done===w.today) rec.day++;
       if(done>=w.weekStart&&done<=w.today) rec.week++;
       if(done.slice(0,7)===w.month) rec.month++;
+      if(done.slice(0,4)===w.year) rec.year++;
     });
   });
   // Apply base floors AFTER counting real repairs, and lift `last` so a floored mechanic ranks
   // as recently active (their card shows in the last-90-days boards even before a real repair).
-  Object.keys(REPAIR_FLOOR).forEach(function(nm){ if(!by[nm]) by[nm]={user:nm,day:0,week:0,month:0,all:0,last:w.today}; });
+  Object.keys(REPAIR_FLOOR).forEach(function(nm){ if(!by[nm]) by[nm]={user:nm,day:0,week:0,month:0,year:0,all:0,last:w.today}; });
   return Object.keys(by).map(function(u){ return _applyRepairFloor(by[u]); });
 }
 function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.all>0;}); }
 /* Phase-cycling leaderboard: while the slide is up it re-ranks Daily \u2192 Weekly \u2192 Monthly \u2192
    All-time, sliding rows to their new spots (FLIP) and highlighting the active column. */
 var TV_LB_PHASE=0,TV_LB_T=null,TV_LB_DATA=[],TV_LB_SEEN=0;   // SEEN: phase survives scene re-entry (see tvLbStart)
-var TV_LB_KEYS=['day','week','month','all'];
+var TV_LB_KEYS=['day','week','month','year','all'];   // Daily / Weekly / Monthly / Yearly / All-time
 function tvLbSort(list,key){
-  var pri={day:['day','week','month','all'],week:['week','month','all','day'],month:['month','all','week','day'],all:['all','month','week','day']}[key];
+  // Ties break down the periods either side of the one being ranked, so a tie on Monthly is settled
+  // by Yearly then All-time rather than by name.
+  var pri={day:['day','week','month','year','all'],week:['week','month','year','all','day'],
+           month:['month','year','all','week','day'],year:['year','all','month','week','day'],
+           all:['all','year','month','week','day']}[key]||['all'];
   var out=list.slice();
   out.sort(function(a,b){ for(var i=0;i<pri.length;i++){ var d=(b[pri[i]]||0)-(a[pri[i]]||0); if(d) return d; } return a.user<b.user?-1:1; });
   return out;
@@ -12280,8 +12340,8 @@ function tvLbRows(key){
   return tvLbSort(pool.filter(function(o){return _lb90(o.last);}),key).slice(0,14);
 }
 function tvLbRowHtml(o,rank,phase){
-  var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=[o.day,o.week,o.month,o.all], cells='';
-  for(var c=0;c<4;c++){ cells+='<b'+(c===phase?' class="on"':'')+'>'+(vals[c]||0)+'</b>'; }
+  var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=[o.day,o.week,o.month,o.year,o.all], cells='';
+  for(var c=0;c<TV_LB_KEYS.length;c++){ cells+='<b'+(c===phase?' class="on"':'')+'>'+(vals[c]||0)+'</b>'; }
   return '<div class="tv-lbrow" data-name="'+tvEsc(o.user)+'"><span class="rk" style="color:'+rc+'">'+(rank+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct4">'+cells+'</span></div>';
 }
 function tvLbApply(animate){
@@ -12301,7 +12361,7 @@ function tvLbApply(animate){
     if(!r){ var t=document.createElement('div'); t.innerHTML=tvLbRowHtml(o,i,phase); r=t.firstChild; byN[o.user]=r; enter.push(r); }
     else {
       var rk=r.querySelector('.rk'); if(rk){ rk.textContent=(i+1); rk.style.color=(i<3?medal[i]:'var(--tvac)'); }
-      var cells=r.querySelectorAll('.tv-ct4>b'), vals=[o.day,o.week,o.month,o.all];
+      var cells=r.querySelectorAll('.tv-ct4>b'), vals=[o.day,o.week,o.month,o.year,o.all];
       for(var c=0;c<cells.length;c++){ cells[c].textContent=(vals[c]||0); cells[c].className=(c===phase?'on':''); }
     }
     r.classList.toggle('hero',i===0);
@@ -12338,10 +12398,17 @@ function tvLbStart(){
   // continues the cycle, and keep stepping every 10s while it is showing.
   if(TV_LB_SEEN) TV_LB_PHASE=(TV_LB_PHASE+1)%4; else TV_LB_SEEN=1;
   tvLbApply(false);
-  var step=10000;   // 10s on each of Daily / Week / Month / All-time
+  /* THE FLASH BACK TO DAILY AT THE END.
+     Four phases at 10s each fill 40 seconds, but the rotation held the scene for 41 — so at the
+     40-second mark the phase wrapped round to Daily, showed it for one second, and only then did
+     the board hand over to Adult karts. That one-second stutter is what it looks like from the
+     floor. The timer now runs a FIXED number of steps and stops on the last phase instead of
+     wrapping, so the board simply rests on All-time until the rotation moves on. */
+  var step=10000, shown=1;   // 10s on each of Daily / Week / Month / All-time
   TV_LB_T=setInterval(function(){
     if(!document.getElementById('tv-lb-wrap')){ clearInterval(TV_LB_T); TV_LB_T=null; return; }
-    TV_LB_PHASE=(TV_LB_PHASE+1)%4; tvLbApply(true);
+    if(shown>=TV_LB_KEYS.length){ clearInterval(TV_LB_T); TV_LB_T=null; return; }   // rest here, don't wrap
+    TV_LB_PHASE=(TV_LB_PHASE+1)%TV_LB_KEYS.length; shown++; tvLbApply(true);
   },step);
 }
 // Data-only refresh: update each visible row's numbers in place WITHOUT reordering, so a background
@@ -12363,7 +12430,7 @@ function tvSceneLeaderboard(){
   var rows=tvLbRows('day').map(function(o,i){ return tvLbRowHtml(o,i,0); }).join('');
   clearTimeout(window._tvLbBoot); window._tvLbBoot=setTimeout(tvLbStart,120);
   return tvEyebrow('Repair Leaderboard','Last 90 days \u00b7 all-time leaders')+
-    '<div class="tv-lb" id="tv-lb-wrap"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct4"><span class="on">Today</span><span>Week</span><span>Month</span><span>All-time</span></span></div>'+rows+'</div>';
+    '<div class="tv-lb" id="tv-lb-wrap"><div class="tv-lbhdr"><span class="rk"></span><span class="nm"></span><span class="tv-ct4"><span class="on">Today</span><span>Week</span><span>Month</span><span>Year</span><span>All-time</span></span></div>'+rows+'</div>';
 }
 function _repairName(u){
   u=String(u||'').trim(); if(!u) return '';
@@ -12594,7 +12661,11 @@ function tvScheduleNext(){
   if(tvOverlayActive()) return;
   var list=tvEnabledScenes(); if(list.length<2) return;
   var secs=Math.max(5,Number(tvState&&tvState.rotate_seconds)||18);
-  try{ var _cl=list[((tvIdx%list.length)+list.length)%list.length]; if(_cl&&_cl.key==='leaderboard') secs=Math.max(secs,41); }catch(e){}   // hold for the 4\u00d710s ranking phases
+  // Hold the leaderboard for exactly its phases plus a beat to read the last one. It used to hold
+  // for 41s against 40s of phases, which is precisely the one second the board spent flashing back
+  // to Daily before handing over.
+  try{ var _cl=list[((tvIdx%list.length)+list.length)%list.length];
+    if(_cl&&_cl.key==='leaderboard') secs=Math.max(secs, TV_LB_KEYS.length*10+4); }catch(e){}
   _tvRotT=setTimeout(tvAdvance,secs*1000);
 }
 function tvStartRotation(){ try{ tvRenderCurrent(true); }catch(e){} try{ tvScheduleNext(); }catch(e){} }
@@ -15283,7 +15354,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15752,7 +15823,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FG';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FI';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

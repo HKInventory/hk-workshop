@@ -1099,6 +1099,14 @@
        Charts are inline SVG/CSS: nothing to load, nothing to go stale, and it draws
        the moment the data lands. Marks are thin, grid and axes recede, and every
        chart is direct-labelled so no value is ever carried by colour alone. */
+    .vh-banner{position:fixed;left:0;right:0;bottom:0;z-index:9000;background:linear-gradient(180deg,rgba(201,133,0,.96),rgba(146,96,0,.98));
+      box-shadow:0 -6px 22px rgba(0,0,0,.42);padding:9px 12px calc(max(env(safe-area-inset-bottom),0px) + 9px)}
+    .vh-in{display:flex;align-items:center;gap:9px;max-width:820px;margin:0 auto}
+    .vh-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#111;opacity:.55}
+    .vh-txt{flex:1;min-width:0;font-size:11.5px;line-height:1.45;color:#1a1200}
+    .vh-txt b{color:#000}
+    .vh-btn{flex:0 0 auto;padding:7px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.28);
+      background:rgba(0,0,0,.82);color:#fff;font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
     .si-hours-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:7px;border:1px solid var(--b1);
       background:var(--card2);color:var(--t2);font-size:11px;font-weight:700;text-align:left;cursor:pointer}
     .si-hours{margin-top:8px;padding:10px;border-radius:10px;background:var(--card2);border:1px solid var(--b1)}
@@ -2713,7 +2721,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FG · ZXing raw</div>
       </div>
     </div>
 
@@ -4499,7 +4507,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FF</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4558,6 +4566,7 @@ var stk=[];
     try{
       cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');playSplash(false);loadSites(function(){applySiteAccent('home');});
       try{ startPresence(); }catch(e){}   // resumed session still counts as active (records presence)
+      try{ if(typeof vhStart==='function') vhStart(); }catch(e){}
       // Preload parts from sessionStorage cache, then refresh in background.
       // Ensures scanning is INSTANT — no network wait on first scan after app open.
       var pc=sessionStorage.getItem('hk_p');
@@ -4949,6 +4958,17 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
 var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
+/* DESELECTING APP HEALTH DID NOTHING, AND HERE IS WHY.
+   Two mechanisms had grown up side by side. Most tabs are a plain allow-list: the key is in the
+   array or it is not. A few are default-ON and store a 'hide:<key>' token instead, so a config
+   saved before the tab existed still shows it. App Health used the SECOND rule in effectiveTabs
+   (managers get it unless 'hide:health' is present) but the FIRST rule in the editor (the chip
+   just removed 'health' from the array). So turning it off removed a key nothing was reading, the
+   force-add fired anyway, and the tab came straight back.
+   These are the default-on-for-managers keys. Listing them makes the editor toggle the same token
+   the resolver looks for, so the two can no longer disagree. */
+var MGR_DEFAULT_TABS=['health','summary'];
+function _isDefaultOnTab(k){ return NEW_DEFAULT_TABS.indexOf(k)>=0 || MGR_DEFAULT_TABS.indexOf(k)>=0; }
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic','Facility','Office'];   // role names for the Staff dropdown; refreshed from the config
 function _isMgrRole(role){ return role==='Manager'||role==='Assistant Manager'; }
@@ -4978,7 +4998,15 @@ function effectiveTabs(user){
   // would grandfather it in for everyone. Managers get it unless explicitly hidden (otherwise a role
   // config saved before this tab existed would silently withhold it from them); anyone else needs it
   // granted in Master Access -> Access, like any other tab.
-  if((user.name===MASTER_OWNER || _isMgrRole(user.role)) && keys.indexOf('hide:health')<0 && keys.indexOf('health')<0) keys.push('health');
+  // Manager-default-on tabs (App Health, Daily Summary): infrastructure cost and daily reporting are
+  // manager material, so they are not grandfathered in for everyone via NEW_DEFAULT_TABS. Managers
+  // get them unless explicitly hidden — otherwise a role config saved before these tabs existed would
+  // silently withhold them. Anyone else needs them granted in Master Access, like any other tab.
+  // The owner keeps them regardless: the owner cannot be locked out of the app's own health.
+  MGR_DEFAULT_TABS.forEach(function(k){
+    if(user.name===MASTER_OWNER){ if(keys.indexOf(k)<0) keys.push(k); return; }
+    if(_isMgrRole(user.role) && keys.indexOf('hide:'+k)<0 && keys.indexOf(k)<0) keys.push(k);
+  });
   keys=keys.filter(function(k){ return String(k).indexOf('hide:')!==0; });
   // Master Access is never granted by role/override — only by the owner-controlled master_admins list.
   keys=keys.filter(function(k){return k!=='masteraccess';});
@@ -5240,6 +5268,7 @@ function onLoginOk(m,entered){
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
   try{ if(!TRAINING) startPresence(); }catch(e){}
+  try{ if(!TRAINING&&typeof vhStart==='function') vhStart(); }catch(e){}
   document.getElementById('we').innerText=(typeof roleEmojiFor==='function'?roleEmojiFor(m.role):(m.emoji||'\ud83d\udd27'));
   document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
   document.getElementById('wr').innerText=m.role;
@@ -11139,7 +11168,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11609,6 +11638,140 @@ var TZ_CHOICES=[
   ['Asia/Dubai','Dubai'],
   ['Europe/London','London'],
 ];
+/* ===== "THE APP IS CLOSED" BANNER ==============================================
+   The runner stands down outside opening hours, which is the point — it is 44% of
+   the week's polling gone. But a mechanic opening the app at 7am to check a kart has
+   no way of knowing that the status in front of them is nine hours old. Silence
+   looks identical to freshness, and stale data that looks live is worse than no data.
+
+   So when the venue is closed the app says so, states WHEN collection stopped, and
+   offers a way to ask for it to be turned back on — which is the honest answer to
+   "I need this now and I cannot wait for opening".
+
+   The request goes to whoever holds Master Access, because they are the only people
+   who can change the hours. It is a push notification, not a support ticket: they
+   either act on it in ten seconds or they do not. */
+var VH_STATE=null, VH_LASTSEEN=null, VH_ASKED=false, _vhTimer=null;
+var VH_DAYS=['sun','mon','tue','wed','thu','fri','sat'];
+var VH_GRACE_MIN=45;    // matches the runner's HOURS_GRACE_MIN — the two must agree or the banner lies
+
+function _vhHours(site){
+  var st=siteById(site||currentSite), h=st&&st.hours;
+  if(typeof h==='string'){ try{ h=JSON.parse(h); }catch(e){ h=null; } }
+  return (h&&typeof h==='object')?h:null;
+}
+function _vhMins(v){ var m=String(v||'').match(/^(\d{1,2}):(\d{2})$/); if(!m) return null;
+  var hh=+m[1], mm=+m[2]; return (hh<0||hh>24||mm<0||mm>59)?null:(hh*60+mm); }
+/* Venue-local weekday + minute-of-day. Same clock the runner uses, so the two agree. */
+function _vhNow(ms){
+  try{
+    var p=new Intl.DateTimeFormat('en-US',{timeZone:venueTz(),hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'})
+      .formatToParts(new Date(ms==null?Date.now():ms)).reduce(function(a,x){a[x.type]=x.value;return a;},{});
+    var dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(String(p.weekday).slice(0,3));
+    if(dow<0) return null;
+    return {dow:dow, mins:((p.hour==='24')?0:parseInt(p.hour,10))*60+parseInt(p.minute,10)};
+  }catch(e){ return null; }
+}
+function _vhWithin(w,mins){
+  if(w===undefined) return true;      // day not configured -> collecting all day
+  if(w===null) return false;          // explicitly closed
+  var open=w.open, close=w.close;
+  if(close<open) close+=1440;         // trades past midnight
+  return mins>=(open-VH_GRACE_MIN) && mins<=(close+VH_GRACE_MIN);
+}
+function _vhWin(h,day){
+  if((h.closed||[]).indexOf(day)>=0) return null;
+  var p=h[day];
+  if(!Array.isArray(p)||p.length<2) return undefined;
+  var o=_vhMins(p[0]), c=_vhMins(p[1]);
+  return (o==null||c==null)?undefined:{open:o,close:c};
+}
+/* Mirrors hours.js exactly, including the grace and the past-midnight rule. If these two ever
+   disagree the banner becomes a liar, so they are written to the same shape deliberately. */
+function venueIsOpen(ms){
+  var h=_vhHours(); if(!h) return true;              // no hours set -> collecting around the clock
+  var n=_vhNow(ms); if(!n) return true;
+  if(_vhWithin(_vhWin(h,VH_DAYS[n.dow]),n.mins)) return true;
+  var y=_vhWin(h,VH_DAYS[(n.dow+6)%7]);
+  if(y&&y.close<y.open&&_vhWithin({open:y.open-1440,close:y.close},n.mins)) return true;
+  return false;
+}
+/* When does collection resume? Stated plainly, because "closed" without "back at 08:15" just
+   invites the request button. */
+function _vhNextOpen(){
+  var h=_vhHours(); if(!h) return '';
+  var n=_vhNow(); if(!n) return '';
+  for(var d=0;d<8;d++){
+    var w=_vhWin(h,VH_DAYS[(n.dow+d)%7]);
+    if(w===null) continue;
+    if(w===undefined) return '';
+    var start=w.open-VH_GRACE_MIN;
+    if(d===0&&n.mins>start) continue;
+    var hh=Math.floor(((start%1440)+1440)%1440/60), mm=((start%60)+60)%60;
+    var when=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+    return d===0?('at '+when):(d===1?('tomorrow at '+when):('on '+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][(n.dow+d)%7]+' at '+when));
+  }
+  return '';
+}
+function vhStart(){
+  if(_vhTimer) return;
+  vhRefresh();
+  // A minute is plenty — the boundary only moves once a day, and this costs nothing.
+  _vhTimer=setInterval(vhRefresh,60000);
+}
+function vhRefresh(){
+  var open=venueIsOpen();
+  if(open===VH_STATE&&open) { vhPaint(open); return; }
+  VH_STATE=open;
+  if(!open&&VH_LASTSEEN==null&&typeof SBC!=='undefined'&&SBC){
+    // When did collection actually stop? The health snapshot is the runner's own heartbeat — it
+    // writes every 30 minutes while awake and stops when it stands down, so its newest row is the
+    // last moment we know data was being gathered. Stating a real time beats "a while ago".
+    SBC.from('app_health').select('at').order('at',{ascending:false}).limit(1)
+      .then(function(r){ var row=r&&r.data&&r.data[0]; VH_LASTSEEN=row?_sydParse(row.at):null; vhPaint(false); },
+            function(){ vhPaint(false); });
+  }
+  vhPaint(open);
+}
+function vhPaint(open){
+  var el=document.getElementById('vh-banner');
+  if(!el){
+    if(open) return;
+    el=document.createElement('div'); el.id='vh-banner'; el.className='vh-banner';
+    var app=document.getElementById('app')||document.body; app.appendChild(el);
+  }
+  if(open){ el.style.display='none'; VH_ASKED=false; return; }
+  el.style.display='';
+  var last=VH_LASTSEEN?_sydTime(VH_LASTSEEN):null;
+  var nxt=_vhNextOpen();
+  el.innerHTML='<div class="vh-in">'
+    +'<span class="vh-dot"></span>'
+    +'<span class="vh-txt"><b>Closed &mdash; live data paused.</b> '
+      +(last?('Last recorded '+acEsc(last)+'.'):'Collection is paused.')
+      +(nxt?(' Back '+acEsc(nxt)+'.'):'')
+      +' Everything here still works &mdash; it just is not refreshing.</span>'
+    +'<button class="vh-btn" id="vh-ask" onclick="vhRequestOpen()">'+(VH_ASKED?'Requested \u2713':'Request data on')+'</button>'
+  +'</div>';
+}
+/* Ask the people who can actually change it. Master Access holders are the only accounts that can
+   edit opening hours, so there is no point routing this anywhere else. */
+function vhRequestOpen(){
+  if(VH_ASKED) return;
+  var who=(MASTER_ADMINS||[]).filter(Boolean);
+  if(!who.length){ alert('No one with Master Access is set up to receive this yet.'); return; }
+  var me=(cu&&cu.name)?cu.name.split(' ')[0]:'Someone';
+  var site=siteLabel(currentSite);
+  who.forEach(function(n){
+    try{ hkNotify(n,'\u23f0 Data collection requested',
+      me+' needs live data at '+site+' outside opening hours. Turn it on in Master Access \u2192 Sites \u2192 Opening hours.',
+      'hkws-hours','./',true); }catch(e){}
+  });
+  VH_ASKED=true; vhPaint(false);
+  // The banner is the receipt. Saying "sent" and nothing else leaves the asker wondering whether
+  // anyone will see it, so name who was asked.
+  setTimeout(function(){ alert('Sent to '+who.join(', ')+'.\n\nThey can switch collection back on in Master Access \u2192 Sites \u2192 Opening hours.'); },60);
+}
+
 /* ===== OPENING HOURS ============================================================
    Between about 10pm and 8am there is nobody on site: no kart moves, no note is
    written, no race is run. The runner polls RaceFacer and RiMO around the clock
@@ -11856,8 +12019,8 @@ function acChips(sel, fnName, idx){
   sel=sel||[];
   function chipRow(defs, fn, cls){
     return '<div class="ac-chips">'+defs.map(function(d){
-      var isNew=NEW_DEFAULT_TABS.indexOf(d.key)>=0;
-      var on=isNew?(sel.indexOf('hide:'+d.key)<0):(sel.indexOf(d.key)>=0);   // new keys: on unless explicitly hidden
+      var isNew=_isDefaultOnTab(d.key);
+      var on=isNew?(sel.indexOf('hide:'+d.key)<0):(sel.indexOf(d.key)>=0);   // default-on keys: on unless explicitly hidden
       return '<button type="button" class="ac-chip'+(cls?(' '+cls):'')+(on?' on':'')+'" onclick="'+fn+'('+idx+',\''+d.key+'\')">'+acEsc(d.label)+'</button>';
     }).join('')+'</div>';
   }
@@ -11920,7 +12083,7 @@ function userEmoji(u){ u=u||cu; if(!u) return '🔧';
   try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var r=rs.find(function(x){return x.name===u.role;}); if(r&&r.emoji) return r.emoji; }catch(e){}
   return u.emoji||'🔧'; }
 function _acHomeToggle(arr,key){
-  if(NEW_DEFAULT_TABS.indexOf(key)>=0){   // default-on tab: toggle a 'hide:<key>' token instead of the positive key
+  if(_isDefaultOnTab(key)){   // default-on tab: toggle a 'hide:<key>' token instead of the positive key
     var tok='hide:'+key, ti=arr.indexOf(tok);
     if(ti>=0){ arr.splice(ti,1); }                                              // was hidden -> show
     else { arr.push(tok); var pi=arr.indexOf(key); if(pi>=0) arr.splice(pi,1); }  // was shown -> hide
@@ -15120,7 +15283,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15589,7 +15752,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FF';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

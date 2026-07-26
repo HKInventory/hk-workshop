@@ -1959,7 +1959,13 @@
     /* ===================== TV DISPLAY (#tv kiosk board) — race-control / pit-wall ===================== */
     #tvroot{position:fixed;inset:0;z-index:9000;display:none;flex-direction:column;
       --ink:#EAF2F8;--mut:#7E8C9A;--dim:#54626E;--line:rgba(255,255,255,.08);--panel:rgba(255,255,255,.035);
-      --ok:#3DD68C;--warn:#FBBF24;--bad:#FF5470;--lt:#8A97A6;--tvac:#00CFFF;
+      /* THE SAME THREE COLOURS THE FLEET USES.
+         The board had its own greens and reds — close to the kart screen's but not the same, so a
+         mechanic looking up from a tablet showing #22C55E saw #3DD68C on the wall and had to
+         re-read it. Status colour is a shared language across this system; there is one set of it,
+         and this is the set on the kart grid. */
+      --ok:#22C55E;--ok2:#34d977;--warn:#FFD600;--warn2:#ffe34d;--bad:#FF3B30;--bad2:#ff5c52;
+      --lt:#8A97A6;--tvac:#00CFFF;
       background:radial-gradient(120% 80% at 50% -25%,rgba(0,207,255,.10),transparent 55%),radial-gradient(110% 100% at 50% 125%,rgba(123,92,255,.06),transparent 60%),#070A0F;
       color:var(--ink);font-family:'Inter',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
     #tvroot.on{display:flex}
@@ -2003,11 +2009,21 @@
     .tv-ready .pct{margin-left:auto;font-size:4.2vmin;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ok);letter-spacing:-.02em}
     .tv-gauge{height:2.2vmin;border-radius:1.1vmin;overflow:hidden;display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line)}
     .tv-gauge i{height:100%}
-    .tv-gauge .g-ok{background:linear-gradient(90deg,#34D399,#3DD68C)}
-    .tv-gauge .g-warn{background:#FBBF24}.tv-gauge .g-bad{background:#FF5470}.tv-gauge .g-lt{background:#54616E}
+    /* Top-lit gradients, exactly as the kart screen's usable bar draws them. */
+    .tv-gauge .g-ok{background:linear-gradient(180deg,var(--ok2),var(--ok))}
+    .tv-gauge .g-warn{background:linear-gradient(180deg,var(--warn2),var(--warn))}
+    .tv-gauge .g-bad{background:linear-gradient(180deg,var(--bad2),var(--bad))}
+    .tv-gauge .g-lt{background:#54616E}
     .tv-stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8vmin}
     .tv-stat{position:relative;border-radius:1.7vmin;padding:2.2vmin 2.4vmin;background:var(--panel);border:1px solid var(--line);overflow:hidden}
-    .tv-stat::before{content:'';position:absolute;left:2.4vmin;right:2.4vmin;top:0;height:2px;background:var(--c,var(--tvac));opacity:.85}
+    /* Each card wears its status the way a kart tile does: a full-width colour cap, a wash of the
+       same hue behind it and the figure itself in that colour. A 2px hairline read as decoration
+       from ten metres; this reads as the status at a glance, which is the only job the board has. */
+    .tv-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:.7vmin;background:linear-gradient(180deg,var(--c2,var(--tvac)),var(--c,var(--tvac)))}
+    .tv-stat.ok  {--c:var(--ok);  --c2:var(--ok2);  background:rgba(34,197,94,.09);  border-color:rgba(34,197,94,.34)}
+    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,214,0,.09);  border-color:rgba(255,214,0,.34)}
+    .tv-stat.bad {--c:var(--bad); --c2:var(--bad2); background:rgba(255,59,48,.09);  border-color:rgba(255,59,48,.34)}
+    .tv-stat.ok .n,.tv-stat.warn .n,.tv-stat.bad .n{color:var(--c)}
     .tv-stat .n{font-size:6.2vmin;font-weight:800;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)}
     .tv-stat .l{font-size:1.45vmin;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-top:.8vmin}
     .tv-byrow{display:flex;flex-wrap:wrap;gap:1vmin}
@@ -2016,8 +2032,8 @@
     .tv-attn{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:1vmin}
     .tv-attn .lab{font-size:1.35vmin;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin-right:.6vmin}
     .tv-kn{min-width:4.4vmin;text-align:center;font-size:2vmin;font-weight:800;padding:.7vmin 1.2vmin;border-radius:.9vmin;font-variant-numeric:tabular-nums;
-      background:rgba(255,84,112,.14);border:1px solid rgba(255,84,112,.42);color:#FF8FA3}
-    .tv-kn.maint{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.42);color:#FCD34D}
+      background:rgba(255,59,48,.16);border:1px solid rgba(255,59,48,.45);color:var(--bad2)}
+    .tv-kn.maint{background:rgba(255,214,0,.16);border-color:rgba(255,214,0,.45);color:var(--warn2)}
     /* per-type fleet extras */
     .tv-ready .den{font-size:.5em;color:var(--mut);font-weight:800;letter-spacing:-.02em}
     .tv-ready .rl{display:flex;flex-direction:column;gap:.5vmin}
@@ -2030,7 +2046,7 @@
     .tv-dmg{display:flex;align-items:center;gap:1.4vmin;padding:1.1vmin 1.6vmin;border-radius:1.1vmin;background:var(--panel);border:1px solid var(--line)}
     .tv-dmg .di{flex:1;min-width:0;font-size:1.95vmin;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tv-dmg .dd{font-size:1.6vmin;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;flex:0 0 auto}
-    .tv-allok{margin-top:auto;padding:1.8vmin;border-radius:1.3vmin;background:rgba(61,214,140,.08);border:1px solid rgba(61,214,140,.3);color:#7BE8B5;font-size:2.1vmin;font-weight:700;text-align:center}
+    .tv-allok{margin-top:auto;padding:1.8vmin;border-radius:1.3vmin;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.34);color:var(--ok2);font-size:2.1vmin;font-weight:700;text-align:center}
     /* repair leaderboard (today / week / month) */
     .tv-lb{display:flex;flex-direction:column;gap:.7vmin;flex:1;min-height:0;justify-content:stretch}
     .tv-lbhdr{display:flex;align-items:center;gap:1.8vmin;padding:0 2.2vmin .4vmin}
@@ -2058,7 +2074,11 @@
        Column widths are now ONE set of variables used by the header, the normal rows and the hero
        row alike. Fonts still scale; the tracks never move. The header gets a transparent border so
        it shares the rows' box model exactly. */
-    .tv-lb{--lbc:6.4vmin;--lbc-last:9.2vmin}   /* five periods now: Today / Week / Month / Year / All-time */
+    /* COLUMN WIDTH IS SET BY THE WIDEST NUMBER, NOT BY WHAT LOOKS TIDY WHEN EMPTY.
+       At 6.4vmin a four-figure all-time count simply did not fit, so it overflowed its cell and ran
+       into the one beside it. Every column is now wide enough for four digits at the largest size a
+       cell is ever drawn, and the all-time column — the only one that reaches five — wider still. */
+    .tv-lb{--lbc:8.6vmin;--lbc-last:12.4vmin}   /* Today / Week / Month / Year / All-time */
     .tv-lbhdr{border:1px solid transparent}
     .tv-ct4{flex:0 0 auto;display:flex;gap:1vmin;align-items:baseline}
     .tv-ct4>span,.tv-ct4>b{flex:none;display:block;width:var(--lbc);text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;box-sizing:border-box}
@@ -2069,12 +2089,22 @@
     .tv-lbrow{transition:transform 2.6s cubic-bezier(.22,.86,.24,1),flex-grow 1s ease,background .8s ease,border-color .8s ease}
     .tv-lbhdr .tv-ct4>span.on{color:var(--tvac)}
     .tv-lbrow .tv-ct4>b.on{color:var(--tvac);font-size:var(--lb-numon,2.7vmin)}
-    .tv-lbrow.hero{flex:2.5 1 0;background:linear-gradient(100deg,rgba(0,207,255,.16),rgba(0,207,255,.02));border-color:rgba(0,207,255,.55);box-shadow:0 0 3vmin rgba(0,207,255,.14)}
+    /* THE LEADER'S NUMBERS SIT ON THE SAME BASELINE AS EVERYONE ELSE'S.
+       The hero row scaled its figures up along with its name, so the top line's columns no longer
+       lined up with the fourteen below it — the one row you actually compare the others against was
+       the one row you could not read across. The name and rank still grow, because that is the
+       reward; the numbers do not, because they are a table. The row is also no longer two and a half
+       times the height of its neighbours: at that size it stopped reading as first place and started
+       reading as a banner that had swallowed the list. */
+    .tv-lbrow.hero{flex:1.45 1 0;background:linear-gradient(100deg,rgba(34,197,94,.16),rgba(34,197,94,.02));border-color:rgba(34,197,94,.55);box-shadow:0 0 3vmin rgba(34,197,94,.14)}
+    .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-num,2.1vmin)}
+    .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-numon,2.7vmin)}
     .tv-lbrow.hero .rk{font-size:var(--lb-hrk,5vmin)}
     .tv-lbrow.hero .nm{font-size:var(--lb-hnm,4.4vmin);font-weight:800;color:#fff}
-    .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-hnum,2.4vmin)}   /* width stays on the shared track — see .tv-lb */
-    .tv-lbrow.hero .tv-ct4>b:last-child{width:calc(var(--lb-hnumon,4vmin) * 2.7)}
-    .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-hnumon,4vmin)}
+    /* The hero's figures and its last column deliberately use the SHARED sizes and the SHARED width.
+       They used to have their own — a bigger font and an all-time cell 2.7x the standard track — and
+       that is what knocked the top row's columns out of line with the fourteen beneath it. The name
+       and the rank still grow; the table does not. */
     /* fleet online scene — one row per kart type, green pills = online karts */
     .tv-onl{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:2vmin;margin-top:1vmin;min-height:0}
     .tv-onl-row{display:flex;align-items:center;gap:2vmin;flex:1;min-height:0}
@@ -2166,10 +2196,25 @@
       background:radial-gradient(circle at 50% 45%,#0A1018,#04070A 72%);opacity:0;pointer-events:none;transition:opacity .55s ease}
     .tv-pulse{transition:opacity 1.3s cubic-bezier(.4,0,.2,1)}
     #tvroot.pulsing .tv-pulse{opacity:1}
-    #tvroot.pulse-out .tv-pulse{opacity:0;transition:opacity 1.4s cubic-bezier(.4,0,.2,1)}
-    .tv-pulse .badge{width:24vmin;height:24vmin;min-width:150px;min-height:150px;filter:drop-shadow(0 0 4vmin rgba(0,207,255,.45));transition:transform 1.4s cubic-bezier(.4,0,.2,1)}
+    /* THE LOGO LEFT THE SCREEN WITHOUT MOVING, WHICH IS WHY IT READ AS A GLITCH.
+       The entry animation carries `both`, so its fill held the badge at scale(1) for as long as the
+       .pulsing class was present — and .pulsing was only removed at the very END of the exit. The
+       exit transform therefore never applied: measured through the whole fade, the badge's transform
+       stayed exactly `matrix(1,0,0,1,0,0)` from first frame to last. So the panel cross-faded a
+       completely motionless image against a background almost the same colour as itself, which is
+       invisible for most of its duration and then simply stops being there.
+       Cancelling the animation on the way out lets the transition own the transform again, so the
+       badge lifts and grows as the panel goes — an exit you can see, ending where the eye expects. */
+    #tvroot.pulse-out .tv-pulse{opacity:0;transition:opacity 1.5s cubic-bezier(.33,0,.2,1)}
+    .tv-pulse .badge{width:24vmin;height:24vmin;min-width:150px;min-height:150px;filter:drop-shadow(0 0 4vmin rgba(0,207,255,.45));
+      transition:transform 1.5s cubic-bezier(.33,0,.2,1),filter 1.5s ease}
     #tvroot.pulsing .tv-pulse .badge{animation:tvpulse 2.4s cubic-bezier(.33,0,.16,1) both}
-    #tvroot.pulse-out .tv-pulse .badge{transform:scale(1.07)}
+    /* The exit TRANSFORM is applied inline by tvHkPulse, not here — a transition cannot
+       interpolate away from an animation's fill value, so the badge has to adopt its current
+       transform explicitly before the new one is set. See tvHkPulse. */
+    #tvroot.pulse-out .tv-pulse .badge{animation:none;filter:drop-shadow(0 0 6vmin rgba(0,207,255,.12))}
+    #tvroot.pulse-out .tv-pulse .wm{opacity:0;transform:translateY(1vmin);transition:opacity .9s ease,transform 1.2s cubic-bezier(.33,0,.2,1)}
+    .tv-pulse .wm{transition:opacity .9s ease,transform 1.2s ease}
     @keyframes tvpulse{0%{transform:scale(.8);opacity:0}34%{opacity:1}58%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
     .tv-pulse .wm{font-size:1.8vmin;font-weight:800;letter-spacing:.46em;text-transform:uppercase;color:var(--mut)}
 
@@ -2822,7 +2867,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GE · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GF · ZXing raw</div>
       </div>
     </div>
 
@@ -4607,7 +4652,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GE</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GF</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11573,7 +11618,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12743,9 +12788,9 @@ function tvSceneType(type){
       '<div class="tv-ready"><div class="big" style="color:'+ac+'">'+ready+'<span class="den">/'+tot+'</span></div><div class="rl"><div class="of">KARTS READY</div>'+(s.dmg.length?'<div class="of2">'+s.dmg.length+' damaged \u00b7 out of service</div>':'<div class="of2">none out of service</div>')+(s.lt.length?'<div class="of2">'+s.lt.length+' long-term parked</div>':'')+'</div><div class="pct">'+pReady+'%</div></div>'+
       '<div class="tv-gauge">'+(wOk?'<i class="g-ok" style="width:'+wOk+'%"></i>':'')+(wWarn?'<i class="g-warn" style="width:'+wWarn+'%"></i>':'')+(wBad?'<i class="g-bad" style="width:'+wBad+'%"></i>':'')+'</div>'+
       '<div class="tv-stats3">'+
-        '<div class="tv-stat" style="--c:#3DD68C"><div class="n">'+s.ok.length+'</div><div class="l">OK \u00b7 '+pOk+'%</div></div>'+
-        '<div class="tv-stat" style="--c:#FBBF24"><div class="n">'+s.maint.length+'</div><div class="l">For maint \u00b7 '+pFm+'%</div></div>'+
-        '<div class="tv-stat" style="--c:#FF5470"><div class="n">'+s.dmg.length+'</div><div class="l">Damaged \u00b7 '+pDmg+'%</div></div>'+
+        '<div class="tv-stat ok"><div class="n">'+s.ok.length+'</div><div class="l">OK \u00b7 '+pOk+'%</div></div>'+
+        '<div class="tv-stat warn"><div class="n">'+s.maint.length+'</div><div class="l">For maint \u00b7 '+pFm+'%</div></div>'+
+        '<div class="tv-stat bad"><div class="n">'+s.dmg.length+'</div><div class="l">Damaged \u00b7 '+pDmg+'%</div></div>'+
       '</div>'+
       (s.dmg.length?'<div class="tv-dmglist"><div class="tv-dmghdr">Damaged \u00b7 newest first</div>'+dmgRows+'</div>':'<div class="tv-allok">No '+tvEsc(type)+' karts damaged \ud83c\udfc1</div>')+
     '</div>';
@@ -12854,13 +12899,14 @@ function tvLbApply(animate){
   void wrap.offsetWidth;
   enter.forEach(function(e){ e.style.transition='opacity 1s ease, transform 1s ease'; e.style.opacity=''; e.style.transform=''; });
   try{
-    var N=order.length||1, wh=wrap.clientHeight||600, hero=2.5, units=(N-1)+hero, u=wh/Math.max(units,1);
+    var N=order.length||1, wh=wrap.clientHeight||600, hero=1.45, units=(N-1)+hero, u=wh/Math.max(units,1);
     function _px(v,mn,mx){ return Math.round(Math.max(mn,Math.min(v,mx)))+'px'; }
     wrap.style.setProperty('--lb-nm',_px(u*0.40,14,42)); wrap.style.setProperty('--lb-rk',_px(u*0.42,14,46));
     wrap.style.setProperty('--lb-num',_px(u*0.30,11,32)); wrap.style.setProperty('--lb-numon',_px(u*0.40,14,42));
     var hh=u*hero;
     wrap.style.setProperty('--lb-hnm',_px(hh*0.30,22,76)); wrap.style.setProperty('--lb-hrk',_px(hh*0.30,22,80));
-    wrap.style.setProperty('--lb-hnum',_px(hh*0.16,14,46)); wrap.style.setProperty('--lb-hnumon',_px(hh*0.26,20,66));
+    // --lb-hnum/--lb-hnumon deliberately no longer set: the hero's figures use the shared column
+    // sizes so the table reads straight down. See .tv-lbrow.hero .tv-ct4>b.
   }catch(e){}
 }
 function tvLbStart(){
@@ -12872,7 +12918,9 @@ function tvLbStart(){
   // daily" bug: an in-place data refresh was already guarded against (see tvSyncView), but
   // re-ENTERING the scene still reset it. Carry the phase across visits so each appearance
   // continues the cycle, and keep stepping every 10s while it is showing.
-  if(TV_LB_SEEN) TV_LB_PHASE=(TV_LB_PHASE+1)%4; else TV_LB_SEEN=1;
+  // %4 when there are FIVE periods: on re-entry the cycle wrapped before All-time and that column
+  // was only ever reached on the board's very first appearance after a reload.
+  if(TV_LB_SEEN) TV_LB_PHASE=(TV_LB_PHASE+1)%TV_LB_KEYS.length; else TV_LB_SEEN=1;
   tvLbApply(false);
   /* THE FLASH BACK TO DAILY AT THE END.
      Four phases at 10s each fill 40 seconds, but the rotation held the scene for 41 — so at the
@@ -12880,7 +12928,7 @@ function tvLbStart(){
      the board hand over to Adult karts. That one-second stutter is what it looks like from the
      floor. The timer now runs a FIXED number of steps and stops on the last phase instead of
      wrapping, so the board simply rests on All-time until the rotation moves on. */
-  var step=10000, shown=1;   // 10s on each of Daily / Week / Month / All-time
+  var step=10000, shown=1;   // 10s on each of Daily / Week / Month / Year / All-time
   TV_LB_T=setInterval(function(){
     if(!document.getElementById('tv-lb-wrap')){ clearInterval(TV_LB_T); TV_LB_T=null; return; }
     if(shown>=TV_LB_KEYS.length){ clearInterval(TV_LB_T); TV_LB_T=null; return; }   // rest here, don't wrap
@@ -13051,7 +13099,10 @@ function tvSceneOnline(){
 function tvScenes(){
   var list=[{key:'morning',render:tvSceneMorning}];
   tvTypesPresent().forEach(function(t){ list.push({key:'type:'+t,render:(function(tt){return function(){return tvSceneType(tt);};})(t)}); });
-  list.push({key:'online',render:tvSceneOnline});
+  /* "Karts Online" removed from the rotation. It told the room how many karts had a live RiMO
+     link, which is a diagnostic about our own telemetry rather than anything a driver, a mechanic
+     or a manager standing in front of the screen can act on. tvSceneOnline and tvOnlineByType are
+     kept — the data still feeds the kart-type scenes — but the slide itself is not shown. */
   list.push({key:'leaderboard',render:tvSceneLeaderboard});
   list.push({key:'tasks',render:tvSceneTasks});
   list.push({key:'items',render:tvSceneItems});
@@ -13062,7 +13113,7 @@ function tvEnabledScenes(){
     if(s.key==='morning') return tvMorningActive();
     if(tvState&&tvState.scenes&&tvState.scenes[s.key]===false) return false;
     if(s.key==='items') return tvLiveItems().length>0;
-    if(s.key==='online') return tvOnlineByType().rows.length>0;
+    if(s.key==='online') return false;   // retired from the rotation — see tvScenes
     if(s.key==='tasks') return tvShiftTasks().length>0;
     if(s.key==='leaderboard') return tvLeaderboard().length>0;
     return true;
@@ -13191,8 +13242,15 @@ function tvLoadFleet(){
   if(typeof SBC==='undefined'||!SBC) return;
   try{ tvLoadAllTime(); }catch(e){}
   var site=currentSite||'sydney';
-  var w=tvDayWindows(), ms=w.month+'-01';
-  var from=(w.weekStart<ms)?w.weekStart:ms;     // earliest date the leaderboard needs (covers week spanning a month edge)
+  /* WHY THE YEAR COLUMN READ THE SAME AS THE MONTH.
+     It was not the tally — that always counted calendar-year rows correctly. It was this window.
+     The board only ever FETCHED repairs from the 1st of the current month, so by the time the year
+     column was summed there was nothing older than the month in memory to sum, and the two figures
+     were identical by construction. On the 1st of a month they would have agreed with the day, too.
+     A year board needs a year of repairs, so the window starts on 1 January — stepping back only
+     further than that in the first days of January, when the current week began in December. */
+  var w=tvDayWindows(), ys=w.year+'-01-01';
+  var from=(w.weekStart<ys)?w.weekStart:ys;
   // 1) Karts for THIS site only, lean columns
   try{
     SBC.from('rf_karts').select('rf_id,name,type,status,status_code,kart_id_label,brand,model,total_km,total_laps,total_hours,total_cost,long_term,type_color,site').eq('site',site).then(function(r){
@@ -13214,16 +13272,38 @@ function tvLoadFleet(){
       // 2) ALL repairs since the start of this week/month (every RaceFacer repair counts on the
       //    leaderboard — fixed or not; dated by repair date, falling back to discovery date).
       var keep={}; (KART_LIST||[]).forEach(function(k){ if(k.rfId!=null) keep[k.rfId]=true; });
+      /* FETCHED IN PAGES, BECAUSE A YEAR NO LONGER FITS IN ONE.
+         A month of repairs came back in a single response and this asked for one. A year does not:
+         PostgREST caps a response server-side, and a capped response is not an error — it is simply
+         a short answer that looks complete. Exactly the failure that was quietly emptying Session
+         Data. Page until a page comes back short, so "all of this year" means all of it.
+         The columns stay lean (five fields), so a year costs a fraction of what the board already
+         spends on the fleet. */
       try{
-        SBC.from('rf_repairs').select('rf_kart_id,date_repaired,date_discovered,mechanic,id').or('date_repaired.gte.'+from+',date_discovered.gte.'+from).then(function(rr){
-          var rows2=(rr&&rr.data)||[]; RF_REPAIRS_BY_ID={};
-          rows2.forEach(function(x){
-            var iso=x.date_repaired||x.date_discovered;
-            if(!iso||!keep[x.rf_kart_id]) return;
-            (RF_REPAIRS_BY_ID[x.rf_kart_id]=RF_REPAIRS_BY_ID[x.rf_kart_id]||[]).push({ id:Number(x.id)||0, status:'fixed', isoRepaired:iso, user:x.mechanic||'\u2014' });
-          });
-          tvRerender();
-        },function(){});
+        (function(){
+          var PAGE=1000, MAXP=25, acc=[];
+          function page(i){
+            if(i>=MAXP){ apply(); return; }
+            SBC.from('rf_repairs').select('rf_kart_id,date_repaired,date_discovered,mechanic,id')
+              .or('date_repaired.gte.'+from+',date_discovered.gte.'+from)
+              .order('id',{ascending:false}).range(i*PAGE,(i+1)*PAGE-1)
+              .then(function(rr){
+                var got=(rr&&rr.data)||[];
+                acc=acc.concat(got);
+                if(got.length>=PAGE) page(i+1); else apply();
+              },function(){ apply(); });
+          }
+          function apply(){
+            RF_REPAIRS_BY_ID={};
+            acc.forEach(function(x){
+              var iso=x.date_repaired||x.date_discovered;
+              if(!iso||!keep[x.rf_kart_id]) return;
+              (RF_REPAIRS_BY_ID[x.rf_kart_id]=RF_REPAIRS_BY_ID[x.rf_kart_id]||[]).push({ id:Number(x.id)||0, status:'fixed', isoRepaired:iso, user:x.mechanic||'\u2014' });
+            });
+            tvRerender();
+          }
+          page(0);
+        })();
       }catch(e){}
     },function(){});
   }catch(e){}
@@ -13294,11 +13374,32 @@ function tvHeal(){
 function tvHkPulse(){
   var root=document.getElementById('tvroot'); if(!root) return;
   if(tvOverlayActive()) return;     // don't cover an emergency/message/standby with the logo
+  var _badge=root.querySelector('.tv-pulse .badge');
+  if(_badge){ _badge.style.animation=''; _badge.style.transition=''; _badge.style.transform=''; }
   root.classList.remove('pulse-out'); root.classList.add('pulsing');
   if(root._pulseT) clearTimeout(root._pulseT); if(root._pulseT2) clearTimeout(root._pulseT2);
   root._pulseT=setTimeout(function(){
-    root.classList.add('pulse-out');                 // begin the smooth exit
-    root._pulseT2=setTimeout(function(){ root.classList.remove('pulsing'); root.classList.remove('pulse-out'); },1500);
+    /* .pulsing comes off HERE, at the start of the exit rather than the end, so the entry
+       animation's fill stops pinning the badge and the exit transition can move it. Both classes
+       are dropped 1600ms later — comfortably past the 1500ms fade, so nothing is cut short. */
+    /* HANDING OVER FROM THE ANIMATION TO THE TRANSITION, IN THAT ORDER.
+       Dropping .pulsing releases the entry animation's fill, and the badge's transform reverts in
+       the SAME frame — a transition has nothing to interpolate from, so it snapped straight to its
+       end value. Measured: 1.0 at 2942ms, 1.16 at 3000ms, then motionless for the whole fade.
+       So the badge is told to hold exactly where the animation left it, that value is committed
+       with a reflow, and only then is the target set. Now it grows and lifts across the fade. */
+    if(_badge){
+      _badge.style.animation='none';
+      _badge.style.transform='scale(1)';
+      void _badge.offsetWidth;
+      _badge.style.transform='scale(1.16) translateY(-1.6vmin)';
+    }
+    root.classList.remove('pulsing');
+    root.classList.add('pulse-out');
+    root._pulseT2=setTimeout(function(){
+      root.classList.remove('pulse-out');
+      if(_badge){ _badge.style.animation=''; _badge.style.transition='none'; _badge.style.transform=''; void _badge.offsetWidth; _badge.style.transition=''; }
+    },1600);
   },3000);
 }
 /* Best-effort: ask the browser to keep the screen awake (re-acquired when the
@@ -15886,7 +15987,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16355,7 +16456,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GE';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GF';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

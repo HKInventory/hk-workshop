@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GQ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GR · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GQ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GR</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11889,7 +11889,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15219,7 +15219,17 @@ function sdEnter(){
       SD_WHY.total++;
       var _isToday=(_sdDayKey(s.scheduled_at)===_tk); if(_isToday) SD_WHY.today++;
       var trk=(s.track||'').toLowerCase();
-      if(!/adult|sprint|inter|twin/.test(trk)){ if(_isToday) SD_WHY.track++; return false; }   // Adult / Intermediate / Twin only
+      /* NAME THE TRACKS THAT HAVE NO LOGGERS, NOT THE ONES THAT DO.
+         This allowed a session in only if its track name contained adult, sprint, inter or twin —
+         a guess at what the Adult track would be called. But Adult races run on whichever LAYOUT is
+         set that day, and today that included "The Icon, Clockwise" and "The Pursuit, Clockwise".
+         Neither contains any of those words, so a full day of Adult racing was classified as the
+         wrong track and thrown away. The allow-list had to be right about every layout name anyone
+         will ever create; it was already wrong about two of them.
+         Junior, Mini and BattleKart are the karts with no battery loggers, and those names are ours
+         and stable. Exclude those, keep everything else. A new Adult layout now works on the day it
+         is created instead of the day someone notices it is missing. */
+      if(/junior|mini|battle|kids|cadet/.test(trk)){ if(_isToday) SD_WHY.track++; return false; }
       // FINISHED ONLY — never show a race before it starts or while it's running. RaceFacer reports a
       // real status (finished / in_progress / not_started), which is the source of truth; the clock is
       // only a fallback when status is missing/odd.
@@ -15315,11 +15325,16 @@ function _sdDayLabel(key){ // key is YYYY-MM-DD
 }
 function _sdTrackLabel(t){ var s=(t||'').toLowerCase();
   if(/inter/.test(s)) return 'Intermediate';
-  if(/adult|sprint/.test(s)) return 'Adult';       // Adult track sessions carry the LAYOUT name, e.g. "The Sprint, Clockwise"
+  if(/twin/.test(s)) return 'Twin';
+  // Adult sessions carry the LAYOUT name — "The Sprint, Clockwise", "The Icon, Clockwise",
+  // "The Pursuit, Clockwise" — so anything not otherwise named is Adult, same rule as the filter.
   if(/junior/.test(s)) return 'Junior';
   if(/mini/.test(s)) return 'Mini';
-  if(/twin/.test(s)) return 'Twin';
-  return (t||'').replace(/\s*track\s*$/i,'').trim()||'Other'; }
+  if(/battle/.test(s)) return 'BattleKart';
+  // Anything left is an Adult layout, by the same reasoning as the filter: the named exceptions are
+  // ours and stable, the layout names are not. Labelling a new layout "Other" would put it in the
+  // track filter as its own useless option and hide the races under it.
+  return 'Adult'; }
 function sdRenderShell(){
   var body=document.getElementById('sd-body'); if(!body) return;
   // build the available filter values from the loaded sessions
@@ -16324,7 +16339,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16793,7 +16808,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GQ';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GR';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

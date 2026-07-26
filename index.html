@@ -1099,6 +1099,28 @@
        Charts are inline SVG/CSS: nothing to load, nothing to go stale, and it draws
        the moment the data lands. Marks are thin, grid and axes recede, and every
        chart is direct-labelled so no value is ever carried by colour alone. */
+    .dfn-search{margin-bottom:10px}
+    .dfn-search input{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:12px;color:var(--t1);padding:12px 14px;font-size:15px;outline:none}
+    .dfn-search input:focus{border-color:var(--acc)}
+    .dfn-groups{display:flex;gap:6px;overflow-x:auto;padding:0 0 14px;-webkit-overflow-scrolling:touch}
+    .dfn-groups::-webkit-scrollbar{display:none}
+    .dfn-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--card2);
+      color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .dfn-chip b{color:var(--t1);margin-left:3px}
+    .dfn-chip.on{background:#3987e5;border-color:#3987e5;color:#fff}
+    .dfn-chip.on b{color:#fff}
+    .dfn-hint{font-size:11.5px;color:var(--t2);line-height:1.5;margin:-4px 0 10px}
+    .dfn-row{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9px 4px;background:transparent;
+      border:none;border-bottom:1px solid rgba(255,255,255,.05);color:var(--t1);cursor:pointer;font:inherit}
+    .dfn-row:last-child{border-bottom:0}
+    .dfn-row:active{background:rgba(255,255,255,.04)}
+    .dfn-num{flex:0 0 auto;min-width:62px;text-align:center;padding:5px 9px;border-radius:8px;background:rgba(57,135,229,.16);
+      border:1px solid rgba(57,135,229,.42);color:#7CC0FF;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+    .dfn-act{flex:1;min-width:0;font-size:13px;line-height:1.45}
+    .dfn-copy{flex:0 0 auto;font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;opacity:.55}
+    .dfn-copy.on{color:#34D399;opacity:1}
+    .dfn-empty{font-size:13px;color:var(--t2);padding:16px 2px;line-height:1.6}
+    .dfn-note{font-size:11px;color:var(--t2);line-height:1.6;margin-top:6px}
     .vh-banner{position:fixed;left:0;right:0;bottom:0;z-index:9000;background:linear-gradient(180deg,rgba(201,133,0,.96),rgba(146,96,0,.98));
       box-shadow:0 -6px 22px rgba(0,0,0,.42);padding:9px 12px calc(max(env(safe-area-inset-bottom),0px) + 9px)}
     .vh-in{display:flex;align-items:center;gap:9px;max-width:820px;margin:0 auto}
@@ -1437,10 +1459,10 @@
     *{overflow-wrap:break-word}
     .m-add{background:var(--grad);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:14px;padding:11px 16px;cursor:pointer;white-space:normal;line-height:1.3}
     .ck-testbtn.ghost{background:transparent;border:1px dashed var(--b2);color:var(--t2)}
-    .m-list{flex:1;overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 24px);-webkit-overflow-scrolling:touch}
+    .m-list{flex:1;min-height:40vh;overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 24px);-webkit-overflow-scrolling:touch}
     /* A secondary list inside a pane that already has a .m-list. Must NOT flex:1 — two growing
        scrollers split the pane between them and squeeze anything after them off-screen. */
-    .m-sublist{flex:0 0 auto;max-height:34vh;overflow-y:auto;padding:0 18px 2px;-webkit-overflow-scrolling:touch}
+    .m-sublist{flex:0 0 auto;max-height:30vh;overflow-y:auto;padding:0 18px 2px;-webkit-overflow-scrolling:touch}
     .m-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:11px 12px;margin-bottom:8px}
     .m-row-main{flex:1;min-width:0;cursor:pointer}
     .m-row-desc{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1460,6 +1482,8 @@
     #kt-tabbody>*, .kt-tabbody>*{animation:hkFadeUp .22s ease both}
     .rfq-card, .mc:has(#rfq-note){animation:hkFadeUp .24s ease both}
     .m-pane{display:none;flex:1;flex-direction:column;min-height:0}
+    .mkt-toggle{cursor:pointer}
+    .mkt-count{font-size:10.5px;font-weight:800;color:#c98500;margin-left:6px;vertical-align:middle}
     .m-pane.active{display:flex}
     .m-pane-title{flex:1;font-size:15px;font-weight:800;align-self:center}
     /* Beacon Designer */
@@ -2660,6 +2684,18 @@
       </div>
     </div>
 
+    <!-- DEHAARDT FUNCTIONS: what each F/N tells a kart to do at a beacon -->
+    <div class="scr" id="s-dehfn">
+      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button></div>
+      <div class="sb">
+        <div class="pgtitle">&#9889; Dehaardt Functions</div>
+        <div class="ki-sub">What each Function Number tells a kart to do when it crosses a beacon.</div>
+        <div class="dfn-search"><input id="dfn-q" placeholder="Search a function number or an action&hellip;" oninput="dfnRender(this.value)" autocomplete="off"></div>
+        <div class="dfn-groups" id="dfn-groups"></div>
+        <div id="dfn-list"></div>
+      </div>
+    </div>
+
     <!-- DAILY SUMMARY: one day's work, read back from what actually happened -->
     <div class="scr" id="s-summary">
       <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button>
@@ -2693,9 +2729,9 @@
         <div class="pgtitle">Facility</div>
         <div class="ki-sub">Track layouts, damage intelligence &amp; tools</div>
         <div class="ki-tiles">
-          <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons','layouts')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
+          <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
-          <div class="tile gord"     id="bcndeh" onclick="go('beacons','dehaardt')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile gord"     id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
           <div class="tile kcheck"   id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
           <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
@@ -2731,7 +2767,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FI · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FJ · ZXing raw</div>
       </div>
     </div>
 
@@ -2812,43 +2848,26 @@
 
     <!-- RACEFACER -->
     <div class="scr" id="s-race">
-      <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
+      <div class="phdr"><button class="back" onclick="back()">&#8592; Back</button></div>
       <div class="sb">
-        <div class="pgtitle">Intelligence <span class="dev-badge">In development</span></div>
-        <div class="dev-note">The layout comparisons need the beacon layouts drawn before the numbers
-          mean anything &mdash; without them the engine is attributing damage to layouts it can only
-          half identify. What is here is real, but treat it as indicative until the layouts land.</div>
-        <div class="md-tabs">
-          <button class="md-tab active" id="inteltab-today" onclick="intelTab('today')">Today</button>
-          <button class="md-tab" id="inteltab-layouts" onclick="intelTab('layouts')">Layouts</button>
-          <button class="md-tab" id="inteltab-ai" onclick="intelTab('ai')">🧠 AI Insights</button>
-        </div>
-        <div id="intel-pane-today">
-          <div id="raceTrack" class="rcard" style="text-align:left;padding:20px"><div style="font-size:13px;color:var(--t2)">Loading track…</div></div>
-          <div id="raceStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"></div>
-          <div id="raceTyre"></div>
-          <div id="raceDisc"></div>
-          <div id="raceWork"></div>
-        </div>
-        <div id="intel-pane-layouts" style="display:none">
-          <div id="intel-reco"></div>
-          <div id="intel-layouts"><div class="m-empty">Loading layout history…</div></div>
-          <div id="intel-weekdays"></div>
-        </div>
-        <div id="intel-pane-ai" style="display:none">
-          <div class="mc" style="text-align:left">
-            <div class="mct">AI deep analysis</div>
-            <div class="m-tool-desc">The engine's numbers get handed to HK AI along with your question. It reads the layout damage rates, part usage, damage types and corner mentions and writes an analysis — what's causing damage, which layout looks safest, and what to run next.</div>
-            <input class="m-search-in" id="intel-ai-q" style="margin-top:10px;width:100%" placeholder="Optional question — e.g. why is the hairpin layout so rough on bumpers?" autocomplete="off">
-            <button class="m-add" id="intel-ai-btn" style="width:100%;margin-top:10px" onclick="intelAiRun()">🧠 Run deep analysis</button>
+        <div class="pgtitle">Intelligence</div>
+        <!-- CLOSED ON PURPOSE. The layout comparisons attribute damage to whichever layout was live
+             when it happened, and until the beacon layouts are drawn the engine can only half
+             identify them — so every number it produced was suspect. A page that looks like analysis
+             but is not gets trusted, which is worse than a page that admits it is not ready. The
+             engine and its data are untouched; only the entry point is closed. -->
+        <div class="mc" style="text-align:center;padding:44px 20px">
+          <div style="font-size:52px;margin-bottom:14px">&#129504;</div>
+          <div style="font-size:19px;font-weight:800;margin-bottom:10px">Coming soon</div>
+          <div style="font-size:13.5px;color:var(--t2);line-height:1.8;max-width:44ch;margin:0 auto">
+            Damage prediction needs the beacon layouts drawn before it can tell one layout from
+            another. Until then the numbers would look like analysis without being it, so it is
+            switched off rather than left half-working.
           </div>
-          <div id="intel-ai-out"></div>
         </div>
       </div>
     </div>
 
-
-    <!-- MANAGER -->
     <div class="scr" id="s-manager">
       <div class="phdr">
         <button class="back" onclick="back()"> Back</button>
@@ -2948,7 +2967,7 @@
             </div>
           </div>
         </div>
-        <div class="bcnhint" id="bcnHint">Tap a beacon for its sector (S/N) and function (F/N).</div>
+        <div class="bcnhint">Tap a beacon for its sector (S/N) and function (F/N).</div>
         <div class="bcnbody">
           <div class="bcnmap"><div id="bcnHost"></div></div>
           <aside class="bcnside" id="bcnSide">
@@ -2956,7 +2975,7 @@
             <div class="bcnsidelist" id="bcnSideList"></div>
           </aside>
         </div>
-        <div class="bcnleg" id="bcnLeg">
+        <div class="bcnleg">
           <span class="bcnlg"><i style="background:#00C853"></i> Finish / go</span>
           <span class="bcnlg"><i style="background:#FFD600"></i> Slow zone</span>
           <span class="bcnlg"><i style="background:#00CFFF"></i> Caution</span>
@@ -3597,10 +3616,20 @@
     <!-- Venue assignment. Which venue a kart type belongs to used to be hardcoded in the runner;
          it now lives in rf_kart_types and is set here. The runner discovers new types from
          RaceFacer on its own, so anything unassigned shows up in this list waiting for a venue. -->
-    <div class="m-tools"><div class="m-pane-title">Kart types &rarr; venue</div><button class="m-add" onclick="mktLoad(1)">&#8635; Refresh</button></div>
-    <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">New kart types are picked up from RaceFacer automatically and land here as <b>Unassigned</b>. A type with no venue is not synced anywhere &mdash; give it one to bring its karts in.</div>
-    <div class="m-sublist" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
-    <div class="m-form-msg" id="mkt-msg" style="margin:0 18px 14px"></div>
+    <!-- COLLAPSED BY DEFAULT. This section had max-height:34vh, so a third of the screen went to a
+         list you touch when a new kart type appears — perhaps monthly — while the karts themselves,
+         which is what the page is FOR, were squeezed into the two rows left at the bottom. It is
+         still one tap away, and it announces how many types need a venue so a genuinely urgent one
+         cannot hide behind the fold. -->
+    <div class="m-tools mkt-toggle" onclick="mktToggle()">
+      <div class="m-pane-title"><span id="mkt-caret">&#9656;</span> Kart types &rarr; venue <span id="mkt-count" class="mkt-count"></span></div>
+      <button class="m-add" onclick="event.stopPropagation();mktLoad(1)">&#8635; Refresh</button>
+    </div>
+    <div id="mkt-wrap" style="display:none">
+      <div style="font-size:11px;color:var(--t2);line-height:1.5;margin:0 18px 10px">New kart types are picked up from RaceFacer automatically and land here as <b>Unassigned</b>. A type with no venue is not synced anywhere &mdash; give it one to bring its karts in.</div>
+      <div class="m-sublist" id="m-kart-types"><div class="m-empty">Loading kart types&hellip;</div></div>
+      <div class="m-form-msg" id="mkt-msg" style="margin:0 18px 14px"></div>
+    </div>
 
     <div class="m-tools"><input class="m-search-in" id="mk-search" placeholder="Find a kart number or type…" oninput="mkSearch()" autocomplete="off"></div>
     <div class="mk-filters" id="mk-sites" style="display:none"></div>
@@ -4517,7 +4546,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FI</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FJ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4960,6 +4989,7 @@ var TAB_DEFS=[
   {key:'tvcast',   id:'wtv',     label:'TV Display'},
   {key:'health',   id:'whealth', label:'App Health'},
   {key:'summary',  id:'wsummary',label:'Daily Summary'},
+  {key:'dehfn',    id:'bcndeh',  label:'Dehaardt Functions'},
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
@@ -5189,16 +5219,18 @@ function updateUI(id){
   }
   if(id==='health' && typeof healthLoad==='function'){ try{ healthLoad(); }catch(e){} }
   if(id==='summary' && typeof sumLoad==='function'){ try{ sumLoad(); }catch(e){} }
+  if(id==='dehfn' && typeof dfnRender==='function'){ try{ dfnRender(''); }catch(e){} }
   // Live staff dots: hold the presence feed only while the dashboard showing them is open.
   if(typeof presStart==='function'){ if(id==='manager'){ try{ presStart(); }catch(e){} } else { try{ presStop(); }catch(e){} } }
-  if(id==='beacons'){ try{ bcnApplyMode(window._scrMode||'layouts'); }catch(e){}
-    if(typeof loadBeacons==='function') loadBeacons(); }
+  if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
   if(id==='sessdata' && typeof sdEnter==='function'){ try{sdEnter();}catch(e){} }
   if(id==='kartcheck' && typeof kcEnter==='function'){ try{kcEnter();}catch(e){} }
   if(id==='tasks' && typeof tasksEnter==='function'){ try{tasksEnter();}catch(e){} }
-  if(id==='race' && typeof loadRace==='function'){ loadRace(); if(typeof intelReset==='function') intelReset(); if(typeof intelLayoutsLoad==='function' && !INTEL.summary && !INTEL.loading) intelLayoutsLoad(); }
+  // Intelligence is a placeholder for now (see s-race). Nothing to load, and skipping it also
+  // stops the layout-history query that ran on every open.
+  if(id==='race'){ /* placeholder — no data load */ }
   // sz() removed from nav path — only runs on resize/orientation now (was causing layout thrash on every transition)
 }
 function sizeTiles(){ layoutHome(); }
@@ -9172,21 +9204,6 @@ function loadRace(){
     var rows=(res&&res.data)||[]; renderRaceStats(null,null,rows.length); renderRaceDisc(rows);
   }, function(){ renderRaceStats(null,null,0); renderRaceDisc([]); });
 }
-/* LAYOUTS vs DEHAARDT FUNCTIONS.
-   These are one screen doing two jobs. The beacon map, the per-beacon sector/function side list and
-   the function legend are DEHAARDT's — signal positions, slow zones, finish lines — and they had all
-   ended up on the Layouts tile, leaving the Dehaardt Functions tile as an empty "awaiting
-   integration" placeholder. Layouts is about the shape of the track that is live; Dehaardt is about
-   what the beacons on it do. Same map, different question, so the Dehaardt-only furniture is shown
-   or hidden rather than the screen being duplicated. */
-function bcnApplyMode(mode){
-  var deh=(mode==='dehaardt');
-  var set=function(id,on){ var e=document.getElementById(id); if(e) e.style.display=on?'':'none'; };
-  set('bcnHint',deh); set('bcnSide',deh); set('bcnLeg',deh);
-  var t=document.getElementById('bcnTrk');
-  try{ document.querySelector('#s-beacons .bcnmap').style.maxWidth=deh?'':'100%'; }catch(e){}
-  window._bcnMode=mode;
-}
 /* ===================== INTELLIGENCE ENGINE =====================
    Attributes repairs + kart notes to the layout that was LIVE when they happened (track_history,
    written by a DB trigger whenever tracks.live changes), then computes per-layout damage rates,
@@ -9554,6 +9571,77 @@ function renderFnRef(q){
     : '<div class="bcnfnempty">No matching function.</div>';
   html += '<div class="bcnfnnote">'+DEHAARDT_FN.length+' Dehaardt sector functions \u00b7 from the Xtra.Sector manual. Sector S/N 1\u20133 are lap-timing loops by factory default.</div>';
   list.innerHTML=html;
+}
+/* ===== DEHAARDT FUNCTIONS, AS A SCREEN ==========================================
+   This list only existed as a bottom sheet buried behind the Layouts map, which is
+   an odd home for the one piece of pure reference material in the app — you go
+   looking for "what does F/N 22 do" while standing at a beacon, not while reading a
+   track map.
+
+   It is a lookup table, so it is built like one: search that matches the number or
+   the wording, and grouped by what the functions DO rather than left as one long
+   numeric run. Forty-odd rows sorted 9, 10, 11, 12 tells you nothing about which of
+   them are speed limits and which are pit control; grouping does, and it means the
+   number you want is usually on screen without scrolling. */
+var DFN_GROUPS=[
+  {key:'speed',  label:'Speed limits',      hint:'Set the kart\u2019s speed for the sector it is entering.', test:/speed limit|speed \d|stop \(speed/i},
+  {key:'startup',label:'Start &amp; timing', hint:'Lap timing and the start-up limit.',                        test:/start-?up|timing|finish/i},
+  {key:'pit',    label:'Pit &amp; return',   hint:'Bringing a kart in, or releasing it.',                      test:/pit|return|box|park/i},
+  {key:'signal', label:'Signals &amp; flags',hint:'What the kart shows or sounds.',                            test:/flag|light|horn|sound|signal|beep/i}
+];
+var DFN_FILTER='';
+function _dfnGroupOf(f){
+  var t=String(f.desc||'');
+  for(var i=0;i<DFN_GROUPS.length;i++) if(DFN_GROUPS[i].test.test(t)) return DFN_GROUPS[i].key;
+  return 'other';
+}
+function dfnSetGroup(k){ DFN_FILTER=(DFN_FILTER===k)?'':k; dfnRender((document.getElementById('dfn-q')||{}).value||''); }
+function dfnRender(q){
+  var list=document.getElementById('dfn-list'); if(!list) return;
+  q=String(q||'').trim().toLowerCase();
+  var all=(typeof DEHAARDT_FN!=='undefined'&&DEHAARDT_FN)?DEHAARDT_FN:[];
+
+  // Group chips, with counts — so the shape of the reference is visible before you read a word.
+  var counts={}; all.forEach(function(f){ var g=_dfnGroupOf(f); counts[g]=(counts[g]||0)+1; });
+  var gh=document.getElementById('dfn-groups');
+  if(gh){
+    var defs=DFN_GROUPS.filter(function(g){ return counts[g.key]; });
+    if(counts.other) defs=defs.concat([{key:'other',label:'Other',hint:''}]);
+    gh.innerHTML='<button class="dfn-chip'+(DFN_FILTER?'':' on')+'" onclick="dfnSetGroup(\'\')">All <b>'+all.length+'</b></button>'
+      +defs.map(function(g){
+        return '<button class="dfn-chip'+(DFN_FILTER===g.key?' on':'')+'" onclick="dfnSetGroup(\''+g.key+'\')">'+g.label+' <b>'+counts[g.key]+'</b></button>';
+      }).join('');
+  }
+
+  var rows=all.filter(function(f){
+    if(DFN_FILTER && _dfnGroupOf(f)!==DFN_FILTER) return false;
+    return !q || ('fn '+f.fn+' '+f.desc).toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return String(a.fn).localeCompare(String(b.fn),undefined,{numeric:true}); });
+
+  if(!rows.length){ list.innerHTML='<div class="dfn-empty">Nothing matches \u201c'+acEsc(q)+'\u201d. Try a number, or a word like <b>speed</b>, <b>pit</b> or <b>stop</b>.</div>'; return; }
+
+  // Bucket the visible rows so a search still lands inside a labelled section rather than a flat run.
+  var order=DFN_GROUPS.map(function(g){return g.key;}).concat(['other']);
+  var byG={}; rows.forEach(function(f){ var g=_dfnGroupOf(f); (byG[g]=byG[g]||[]).push(f); });
+  list.innerHTML=order.filter(function(k){return byG[k]&&byG[k].length;}).map(function(k){
+    var g=DFN_GROUPS.filter(function(x){return x.key===k;})[0]||{label:'Other',hint:''};
+    return '<div class="mc"><div class="mct">'+g.label+'</div>'
+      +(g.hint?'<div class="dfn-hint">'+g.hint+'</div>':'')
+      +byG[k].map(function(f){
+        // Tapping a row copies the number — you are usually about to type it into the beacon editor.
+        return '<button class="dfn-row" onclick="dfnCopy(\''+acEsc(f.fn)+'\',this)">'
+          +'<span class="dfn-num">F/N '+acEsc(f.fn)+'</span>'
+          +'<span class="dfn-act">'+acEsc(f.desc)+'</span>'
+          +'<span class="dfn-copy">copy</span></button>';
+      }).join('')
+    +'</div>';
+  }).join('')
+  +'<div class="dfn-note">'+all.length+' Dehaardt sector functions \u00b7 from the Xtra.Sector manual. Sector S/N 1\u20133 are lap-timing loops by factory default.</div>';
+}
+function dfnCopy(fn,btn){
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(String(fn)); }catch(e){}
+  if(btn){ var c=btn.querySelector('.dfn-copy'); if(c){ var was=c.textContent; c.textContent='copied \u2713'; c.classList.add('on');
+    setTimeout(function(){ c.textContent=was; c.classList.remove('on'); },1200); } }
 }
 function openFnRef(){ var m=document.getElementById('bcnFn'); var s=document.getElementById('bcnFnSearch'); if(s)s.value=''; renderFnRef(''); if(m)m.classList.add('on'); }
 function closeFnRef(){ var m=document.getElementById('bcnFn'); if(m)m.classList.remove('on'); }
@@ -10497,6 +10585,13 @@ function hkEditNote(noteId, ev){
 // Archives the row in Supabase (active=false) so it vanishes instantly from Notifications,
 // Kart Notes and the kart page on every device. RaceFacer still holds the note; if the next
 // sync finds it still open there, it reappears — same eventual-consistency model as repairs.
+/* One place to report a failed delete, so the reason reaches the person who pressed the button
+   instead of the browser console. Deliberately an alert: a note that looks deleted and is not is
+   exactly the kind of wrong that gets acted on. */
+function _noteDelFail(what, detail){
+  try{ console.warn('[note delete]', what, detail||''); }catch(e){}
+  try{ alert(what+(detail?('\n\n'+detail):'')); }catch(e){}
+}
 function hkDeleteNote(noteId, rfKartId, ev){
   try{ if(ev){ ev.stopPropagation(); ev.preventDefault(); } }catch(e){}
   if(noteId==null||typeof SBC==='undefined'||!SBC||!cu) return;
@@ -10527,13 +10622,31 @@ function hkDeleteNote(noteId, rfKartId, ev){
   // in-memory state we just updated — same path the realtime echo uses, but now, so nothing waits on
   // the round-trip. kartRerenderNow reads the caches (no refetch), so the note can't flash back.
   try{ if(typeof kartRerenderNow==='function') kartRerenderNow(); }catch(e){}
-  SBC.from('rf_kart_notes').update({active:false,archived_at:now,archived_by:cu.name}).eq('id',noteId).then(function(){},function(){});
+  /* THE DELETE HAS BEEN REPORTED AS BROKEN THREE TIMES, AND EVERY FAILURE WAS SILENT.
+     Both of these calls swallowed their errors — `function(){}` — so a rejected write (an RLS
+     policy, a missing column, a network drop) looked exactly like a successful one: the note
+     disappeared optimistically, came back on the next sync, and nothing anywhere said why.
+     Guessing at the cause from that is what has cost three rounds. Now it reports. */
+  SBC.from('rf_kart_notes').update({active:false,archived_at:now,archived_by:cu.name}).eq('id',noteId).select('id')
+    .then(function(r){
+      if(r&&r.error){ _noteDelFail('The note could not be archived in the database.', r.error.message); return; }
+      // A write that succeeds but matches NO rows is the quiet killer: the id is wrong, or a policy
+      // is filtering the row out of the update's view. Either way nothing was archived.
+      if(!r||!r.data||!r.data.length){ _noteDelFail('Nothing was archived — the note row was not found or is not writable.','id='+noteId); }
+    },function(e){ _noteDelFail('The note could not be archived in the database.',(e&&e.message)||'connection error'); });
   // Tell RaceFacer to clear it too — the same thing RF's own X on the note does — so it's gone from the
   // kart, the notifications and the kart-notes list, and the runner's read-back can't resurrect it.
   // Carries the note's RaceFacer notification_id. Wrapped so, if the queue columns aren't migrated yet,
   // the local delete above still stands (see rf_note_queue_action.sql).
   try{
-    SBC.from('rf_note_queue').insert({ site:(currentSite||'sydney'), rf_kart_id:(rfKartId!=null?rfKartId:null), user_name:cu.name, note:String(_noteTxt||'').slice(0,1000), action:'delete', rf_notification_id:(_notifId!=null?_notifId:null) }).then(function(r){},function(){});
+    SBC.from('rf_note_queue').insert({ site:(currentSite||'sydney'), rf_kart_id:(rfKartId!=null?rfKartId:null), user_name:cu.name, note:String(_noteTxt||'').slice(0,1000), action:'delete', rf_notification_id:(_notifId!=null?_notifId:null) })
+      .then(function(r){
+        if(r&&r.error){ _noteDelFail('RaceFacer was not told to clear this note, so it will come back.', r.error.message); return; }
+        // Without a notification id RaceFacer cannot be told WHICH notification to clear, so the
+        // push will not resolve it there and the next sync reads it back as open. Better to say so
+        // than to let it silently reappear ten minutes later.
+        if(_notifId==null) _noteDelFail('This note has no RaceFacer notification id, so it can only be cleared here — it will reappear when RaceFacer is next read.','the runner backfills this id; if it persists, that sync is not running');
+      },function(e){ _noteDelFail('RaceFacer was not told to clear this note, so it will come back.',(e&&e.message)||'connection error'); });
   }catch(e){}
 }
 function renderKartNotesFeed(silent){
@@ -11223,7 +11336,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -11271,8 +11384,10 @@ function mktSiteOptions(cur){
   return out;
 }
 function mktRender(){
+  var rowsAll=MKT_ROWS||[];
+  try{ mktBadge(rowsAll.filter(function(r){ return !r.site; }).length); }catch(e){}
   var el=document.getElementById('m-kart-types'); if(!el) return;
-  var rows=MKT_ROWS||[];
+  var rows=rowsAll;
   if(!rows.length){ el.innerHTML='<div class="m-empty">No kart types yet &mdash; the runner adds them as it finds them in RaceFacer.</div>'; return; }
   // Unassigned first: those are the ones needing attention.
   rows=rows.slice().sort(function(a,b){
@@ -11325,7 +11440,24 @@ function mktSet(uuid,site){
     },function(e){ MKT_BUSY=false; if(row) row.site=prev; mktRender(); mktMsg('Could not save: '+((e&&e.message)||'error')); });
 }
 var MK_SITE=null, MK_TYPE='', MK_KARTS=null;   // master karts list: active site, active type filter, other-site snapshot
+var MKT_OPEN=false;
+function mktToggle(){
+  MKT_OPEN=!MKT_OPEN;
+  var w=document.getElementById('mkt-wrap'); if(w) w.style.display=MKT_OPEN?'':'none';
+  var c=document.getElementById('mkt-caret'); if(c) c.innerHTML=MKT_OPEN?'\u25BE':'\u25B8';
+  if(MKT_OPEN&&typeof mktLoad==='function'){ try{ mktLoad(); }catch(e){} }
+}
+/* Announce unassigned types on the collapsed header. A type with no venue syncs nowhere, so it is
+   the one thing in this section that is genuinely urgent — it must not be able to hide behind a
+   fold that exists to keep the karts visible. */
+function mktBadge(n){
+  var b=document.getElementById('mkt-count'); if(!b) return;
+  b.textContent=n?(n+' unassigned'):'';
+}
 function mkOpen(){
+  // Load the type list even while the section is collapsed — the unassigned badge has to be right
+  // before you decide whether to open it.
+  try{ if(typeof mktLoad==='function') mktLoad(); }catch(e){}
   try{ mktLoad(); }catch(e){}          // kart type -> venue assignment panel
   MK_SITE=MK_SITE||currentSite||'sydney';
   mkRender();
@@ -15354,7 +15486,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FI \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FJ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15823,7 +15955,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FI';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FJ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

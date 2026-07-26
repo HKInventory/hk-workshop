@@ -2822,7 +2822,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GD · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GE · ZXing raw</div>
       </div>
     </div>
 
@@ -4607,7 +4607,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GD</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GE</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5200,6 +5200,23 @@ function applyKiSectionVis(){
 var _accessSettled=false;
 function loadAccessCfg(cb){
   if(typeof SBC==='undefined'||!SBC){ _accessSettled=true; try{ homeGridReveal(); }catch(e){} if(cb)cb(); return; }
+  /* A WATCHDOG, BECAUSE THIS GATE HELD THE WHOLE APP.
+     The home grid stays hidden until _accessSettled is true, and the only two things that set it are
+     this request's success and failure handlers. A request that does NEITHER — which is what a phone
+     on weak mobile data does, where a fetch can sit open indefinitely rather than erroring — left the
+     flag false forever and the app showing nothing at all. On desk wifi the request always returns,
+     which is why this only ever happened on a phone.
+     Waiting a moment to avoid a visible tile reshuffle is worth it. Waiting without limit is not.
+     After 2.5s the app opens on the cached access set; if the real config lands later it is applied
+     then, and a one-off reshuffle on a bad connection is a far better outcome than a dead screen. */
+  var _accessTimer=setTimeout(function(){
+    if(_accessSettled) return;
+    _accessSettled=true;
+    try{ if(cu) applyRoleVisibility(true); }catch(e){}
+    try{ homeGridReveal(true); }catch(e){}
+    if(cb){ var f=cb; cb=null; try{ f(); }catch(e){} }
+  }, 2500);
+  function _settle(){ clearTimeout(_accessTimer); _accessSettled=true; }
   SBC.from('app_access').select('roles,overrides,master_admins').eq('id',1).maybeSingle().then(function(res){
     if(res&&res.data){
       ACCESS_CFG={roles:Array.isArray(res.data.roles)?res.data.roles:[], overrides:(res.data.overrides&&typeof res.data.overrides==='object')?res.data.overrides:{}};
@@ -5207,10 +5224,10 @@ function loadAccessCfg(cb){
       if(rn.length) MROLES=rn;
       if(Array.isArray(res.data.master_admins)){ MASTER_ADMINS=res.data.master_admins.slice(); if(MASTER_ADMINS.indexOf(MASTER_OWNER)<0) MASTER_ADMINS.unshift(MASTER_OWNER); }
     }
-    _accessSettled=true;
+    _settle();
     if(cu) applyRoleVisibility();   // re-apply once real access lands — this is the pass that reveals
     if(cb) cb();
-  }, function(){ _accessSettled=true; try{ homeGridReveal(); }catch(e){} if(cb) cb(); });
+  }, function(){ _settle(); try{ homeGridReveal(); }catch(e){} if(cb) cb(); });
 }
 var _rvSig=null;
 function applyRoleVisibility(force){
@@ -6697,6 +6714,24 @@ function lastOnlineLoad(){
       try{ presRepaint(); }catch(e){}
     },function(){ if(b) b.innerHTML='<div class="emp" style="padding:4px 0;font-size:12px">Connection error.</div>'; });
 }
+/* ONE TEST FOR "IS THIS PERSON HERE", SHARED BY BOTH VIEWS.
+   The chips and the Last-online list were answering that question differently and contradicting each
+   other on screen: the chip greyed Alex out as "last seen 12:19" while the row beside it said, in
+   green, "still on". The row was reading signed_out_at alone — so it meant "has not tapped sign out",
+   which is not the same thing as being here, and after a shift where somebody forgets to sign out it
+   is not even close. Presence is the only column that knows; both now ask it. */
+function _presLiveMs(name){
+  try{
+    if(cu&&cu.name===name) return Date.now();       // you are here by definition
+    var best=0;
+    (PRES_ROWS||[]).forEach(function(p){
+      if(String(p.name||'')!==String(name)) return;
+      var t=_sydParse(p.last_seen)||0; if(t>best) best=t;
+    });
+    return best;
+  }catch(e){ return 0; }
+}
+function _presIsOn(name){ var t=_presLiveMs(name); return !!t && (Date.now()-t)<300000; }   // 5 min, the app's one presence window
 function lastOnlineRender(){
   var b=document.getElementById('lo-body'); if(!b) return;
   var rows=LO_ROWS||[];
@@ -6729,7 +6764,12 @@ function lastOnlineRender(){
       var dk=_sydDayKey(e.t);
       var day=(dk===today)?'Today':(dk===yest?'Yesterday':_sydDate(e.t));
       when='<span style="color:var(--t2)">'+acEsc(day)+' \u00b7 '+_sydTime(e.t)+'</span>';
-      out=x.signed_out_at?('out '+_sydTime(x.signed_out_at)):'<span style="color:#34D399">still on</span>';
+      /* Three real states, not two. "Still on" is reserved for a live heartbeat; someone signed in
+         with no heartbeat has simply not signed out, and saying so is the useful thing to show a
+         manager — it is the line they need to go and close. */
+      if(x.signed_out_at) out='out '+_sydTime(x.signed_out_at);
+      else if(_presIsOn(n)) out='<span style="color:#34D399">still on</span>';
+      else out='<span style="color:#E8A33D">no sign-out</span>';
     }
     return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px">'
       +'<span>'+_staffEmoji(n)+'</span>'
@@ -6895,21 +6935,42 @@ function sumLoad(force){
       SBC.from('rf_repairs').select('date_repaired,cost,rf_kart_id').gte('date_repaired',histFrom).limit(8000)
         .then(function(r){return (r&&r.data)||[];},function(){return [];})
   ]).then(function(res){
-    SUM_HIST=res[5];
-    var fleetN=res[6];
-    var reps=res[0],
-        checks=res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
-        logs=res[2].filter(function(l){ return _sumDayOf(l.ts)===day; }),
-        sess=res[3].filter(function(x){ return _sumDayOf(x.signed_in_at)===day; }),
-        parts=res[4];
+    /* NAMED, NOT NUMBERED. This screen showed "Loading Today…" forever, and the reason was that the
+       fleet-count query was added to this list in the middle without shifting the indices that read
+       it: SUM_HIST took res[5] (the fleet COUNT, a number) and fleetN took res[6] (the history
+       ARRAY). sumFinish then called hist.forEach on a number, threw, and left the loading message on
+       screen with no error anywhere a user could see. Reading positions out of an array by hand is
+       what made that possible, so the positions are now written down once, next to the queries they
+       belong to, and never counted again. */
+    var reps    = res[0],
+        checks  = res[1].filter(function(c){ return _sumDayOf(c.started_at)===day; }),
+        logs    = res[2].filter(function(l){ return _sumDayOf(l.ts)===day; }),
+        sess    = res[3].filter(function(x){ return _sumDayOf(x.signed_in_at)===day; }),
+        parts   = res[4],
+        fleetN  = res[5],
+        hist    = Array.isArray(res[6]) ? res[6] : [];
+    SUM_HIST = hist;
     var ids=reps.map(function(r){return r.id;}).filter(function(x){return x!=null;});
-    if(!ids.length){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5],fleetN); return; }
+    if(!ids.length){ _sumDraw(day,reps,[],checks,logs,sess,parts,hist,fleetN); return; }
     SBC.from('rf_repair_parts').select('part_name,qty,price,repair_id').in('repair_id',ids.slice(0,600)).limit(5000)
-      .then(function(pr){ sumFinish(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts,res[5],fleetN); },
-            function(){ sumFinish(day,reps,[],checks,logs,sess,parts,res[5],fleetN); });
+      .then(function(pr){ _sumDraw(day,reps,(pr&&pr.data)||[],checks,logs,sess,parts,hist,fleetN); },
+            function(){ _sumDraw(day,reps,[],checks,logs,sess,parts,hist,fleetN); });
   },function(){ SUM_BUSY=false; body.innerHTML='<div class="emp" style="padding:14px 0">Couldn’t load that day.</div>'; });
 }
 
+/* A DRAWING ERROR MUST NEVER LOOK LIKE A SLOW NETWORK.
+   When sumFinish threw, the "Loading Today…" placeholder stayed on screen — indefinitely, with the
+   real cause visible only in a console nobody has open on a phone. Every path into the renderer goes
+   through here, so a failure to draw says so, on the page, with the reason. */
+function _sumDraw(day,reps,rparts,checks,logs,sess,parts,hist,fleetN){
+  try { sumFinish(day,reps,rparts,checks,logs,sess,parts,hist,fleetN); }
+  catch(e){
+    SUM_BUSY=false;
+    var b=document.getElementById('sum-body');
+    if(b) b.innerHTML='<div class="emp" style="padding:14px 0">Couldn\u2019t draw '+acEsc(_sumLabel(day))
+      +'.<br><span style="font-size:11px;opacity:.7">'+acEsc(String((e&&e.message)||e))+'</span></div>';
+  }
+}
 function sumFinish(day,reps,rparts,checks,logs,sess,parts,hist,fleetN){
   SUM_BUSY=false;
   var pMap={}; parts.forEach(function(p){ pMap[p.sku]={desc:p.desc,price:+p.price||0}; });
@@ -10942,7 +11003,19 @@ function rfqCheckPartsLanded(qid){
 
      Sort on the more recent of discovered/repaired so the top of the list is genuinely what happened
      most recently, and keep id only to break ties within a day. */
-  function _recency(r){ var a=r.iso||'', b=r.dateRepaired||''; return (a>b?a:b)||''; }
+  /* AND THE TWO FIELDS ARE NOT IN THE SAME FORMAT, WHICH IS HOW THIS WENT WRONG.
+     `iso` is YYYY-MM-DD; `dateRepaired` is DD.MM.YYYY — reversed and dot-joined for display. Compared
+     as raw strings, EVERY dot-format date beats every ISO one, because '3' and '1' and '0' all sort
+     above '2'. So the list ordered itself by day-of-month descending and the whole table opened on
+     31.12.2025, with 2026 nowhere in sight. Normalise to ISO first; then a string compare is a date
+     compare, which is the only reason this shortcut was ever safe. */
+  function _repIso(v){
+    var t=String(v||'');
+    var m=t.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if(m) return m[3]+'-'+m[2]+'-'+m[1];
+    return /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0,10) : '';
+  }
+  function _recency(r){ var a=_repIso(r.iso), b=_repIso(r.dateRepaired); return (a>b?a:b)||''; }
   out.sort(function(a,b){ return _recency(b).localeCompare(_recency(a)) || ((b.id||0)-(a.id||0)); });
   return out;
 }
@@ -11500,7 +11573,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14764,8 +14837,25 @@ function sdEnter(){
       return !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);   // backstop for rows older than started_at
     });
     if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over \u2014 measured from the green flag, so a delayed race still counts. If races HAVE run, the runner may not be capturing them: check the Render log for <b>[sessions]</b>.</div>'; return; }
-    // load runs (karts) for all sessions
-    SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id').in('session_uuid',SD_SESS.map(function(s){return s.uuid;})).limit(1500).then(function(rr){
+    /* LOAD THE KARTS FOR EVERY LISTED SESSION — ALL OF THEM.
+       This was one request with .limit(1500), and that single number is why races kept vanishing
+       from this page as the day went on. A week here is roughly 700 sessions carrying some 7,000
+       runs, so 1,500 is a fraction of them — and the query had no ORDER BY, so PostgREST returned
+       whichever 1,500 it liked, in practice the oldest rows in the table. Sessions whose runs fell
+       outside that window came back with zero karts and were then dropped two lines below by the
+       "no karts recorded" filter. Every race ran fine, was stored fine, and simply never arrived.
+       It looked time-based because it was: the later in the day, the more runs existed, and the
+       further today's slipped off the end of the window.
+       Fetched in batches of session id instead, in parallel, so the amount of data is bounded by
+       the sessions actually being shown rather than by a guess. */
+    var _sdIds=SD_SESS.map(function(s){return s.uuid;}), _sdBatches=[];
+    for(var _i=0;_i<_sdIds.length;_i+=60) _sdBatches.push(_sdIds.slice(_i,_i+60));
+    Promise.all(_sdBatches.map(function(ids){
+      return SBC.from('rf_session_runs').select('session_uuid,kart_no,client_name,fleet_management_id')
+        .in('session_uuid',ids).limit(4000)
+        .then(function(r){ return (r&&r.data)||[]; }, function(){ return []; });
+    })).then(function(parts){
+      var rr={data:[]}; parts.forEach(function(p){ rr.data=rr.data.concat(p); });
       SD_RUNS={}; ((rr&&rr.data)||[]).forEach(function(x){ (SD_RUNS[x.session_uuid]=SD_RUNS[x.session_uuid]||[]).push(x); });
       // Drop empty slots: a scheduled race nobody entered has 0 karts and nothing to show. Keeping
       // them just clutters the list with "0 karts / no data".
@@ -15796,7 +15886,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16265,7 +16355,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GD';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GE';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

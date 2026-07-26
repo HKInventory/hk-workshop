@@ -2770,7 +2770,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FO · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FP · ZXing raw</div>
       </div>
     </div>
 
@@ -3307,12 +3307,6 @@
           <input type="range" min="0" max="2" step="1" class="acct-slider" id="acct-txtsz" onchange="setTextSize(this.value)" oninput="setTextSize(this.value)">
           <div class="acct-slider-labels"><span>Normal</span><span>Large</span><span>Huge</span></div>
         </div>
-        <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">&#128340; Opening hours</div>
-        <div class="m-tool-desc">Outside these hours the runner stops polling RaceFacer and RiMO, which is where most of the Supabase and Render usage goes. The app keeps working &mdash; it just stops refreshing, and says so. A race on track always overrides this.</div>
-        <div id="mset-hours"><div class="m-empty">Loading venues&hellip;</div></div>
-        <div class="m-form-msg" id="mset-hours-msg"></div>
-        <button class="m-add" style="width:100%;margin-top:8px" onclick="hoursSave()">Save opening hours</button>
-      </div>
       <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
           <div class="m-tool-desc" id="acct-about">HK Workshop</div>
         </div>
@@ -3503,6 +3497,12 @@
         <div class="m-fld" style="margin-top:10px;max-width:230px"><label>Minutes of inactivity</label><input id="mset-logout" type="number" min="1" max="600" step="1" placeholder="30"></div>
         <div class="m-form-msg" id="mset-msg"></div>
         <button class="m-add" style="width:100%;margin-top:8px" onclick="saveAutoLogout()">Save</button>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">&#128340; Opening hours</div>
+        <div class="m-tool-desc">Outside these hours the runner stops polling RaceFacer and RiMO, which is where most of the Supabase and Render usage goes. The app keeps working &mdash; it just stops refreshing, and says so. A race on track always overrides this.</div>
+        <div id="mset-hours"><div class="m-empty">Loading venues&hellip;</div></div>
+        <div class="m-form-msg" id="mset-hours-msg"></div>
+        <button class="m-add" style="width:100%;margin-top:8px" onclick="hoursSave()">Save opening hours</button>
       </div>
       <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
         <div class="m-tool-desc" id="mset-about">HK Workshop</div>
@@ -4555,7 +4555,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FO</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FP</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4998,7 +4998,6 @@ var TAB_DEFS=[
   {key:'tvcast',   id:'wtv',     label:'TV Display'},
   {key:'health',   id:'whealth', label:'App Health'},
   {key:'summary',  id:'wsummary',label:'Daily Summary'},
-  {key:'dehfn',    id:'bcndeh',  label:'Dehaardt Functions'},
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
@@ -11374,7 +11373,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -15605,7 +15604,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16074,7 +16073,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FO';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FP';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

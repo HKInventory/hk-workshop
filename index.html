@@ -2003,7 +2003,12 @@
          mechanic looking up from a tablet showing #22C55E saw #3DD68C on the wall and had to
          re-read it. Status colour is a shared language across this system; there is one set of it,
          and this is the set on the kart grid. */
-      --ok:#22C55E;--ok2:#34d977;--warn:#FFD600;--warn2:#ffe34d;--bad:#FF3B30;--bad2:#ff5c52;
+      /* TUNED FOR A TV, NOT FOR A DESK MONITOR.
+         These are the kart screen's colours, but a Chiq panel in a lit workshop is not a calibrated
+         display: it crushes the low end and desaturates, so #22C55E on near-black went muddy from
+         across the room. The LIGHTER tone of each pair now leads and the saturated one shades it —
+         same three colours, same meaning, roughly a third more luminance where it counts. */
+      --ok:#3BE87F;--ok2:#22C55E;--warn:#FFE04A;--warn2:#FFD600;--bad:#FF6357;--bad2:#FF3B30;
       --lt:#8A97A6;--tvac:#00CFFF;
       background:radial-gradient(120% 80% at 50% -25%,rgba(0,207,255,.10),transparent 55%),radial-gradient(110% 100% at 50% 125%,rgba(123,92,255,.06),transparent 60%),#070A0F;
       color:var(--ink);font-family:'Inter',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
@@ -2049,19 +2054,19 @@
     .tv-gauge{height:2.2vmin;border-radius:1.1vmin;overflow:hidden;display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line)}
     .tv-gauge i{height:100%}
     /* Top-lit gradients, exactly as the kart screen's usable bar draws them. */
-    .tv-gauge .g-ok{background:linear-gradient(180deg,var(--ok2),var(--ok))}
-    .tv-gauge .g-warn{background:linear-gradient(180deg,var(--warn2),var(--warn))}
-    .tv-gauge .g-bad{background:linear-gradient(180deg,var(--bad2),var(--bad))}
+    .tv-gauge .g-ok{background:linear-gradient(180deg,var(--ok),var(--ok2))}
+    .tv-gauge .g-warn{background:linear-gradient(180deg,var(--warn),var(--warn2))}
+    .tv-gauge .g-bad{background:linear-gradient(180deg,var(--bad),var(--bad2))}
     .tv-gauge .g-lt{background:#54616E}
     .tv-stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8vmin}
     .tv-stat{position:relative;border-radius:1.7vmin;padding:2.2vmin 2.4vmin;background:var(--panel);border:1px solid var(--line);overflow:hidden}
     /* Each card wears its status the way a kart tile does: a full-width colour cap, a wash of the
        same hue behind it and the figure itself in that colour. A 2px hairline read as decoration
        from ten metres; this reads as the status at a glance, which is the only job the board has. */
-    .tv-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:.7vmin;background:linear-gradient(180deg,var(--c2,var(--tvac)),var(--c,var(--tvac)))}
-    .tv-stat.ok  {--c:var(--ok);  --c2:var(--ok2);  background:rgba(34,197,94,.09);  border-color:rgba(34,197,94,.34)}
-    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,214,0,.09);  border-color:rgba(255,214,0,.34)}
-    .tv-stat.bad {--c:var(--bad); --c2:var(--bad2); background:rgba(255,59,48,.09);  border-color:rgba(255,59,48,.34)}
+    .tv-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:.9vmin;background:linear-gradient(180deg,var(--c,var(--tvac)),var(--c2,var(--tvac)))}
+    .tv-stat.ok  {--c:var(--ok);  --c2:var(--ok2);  background:rgba(59,232,127,.16); border-color:rgba(59,232,127,.55)}
+    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,224,74,.16); border-color:rgba(255,224,74,.55)}
+    .tv-stat.bad {--c:var(--bad); --c2:var(--bad2); background:rgba(255,99,87,.16);  border-color:rgba(255,99,87,.55)}
     .tv-stat.ok .n,.tv-stat.warn .n,.tv-stat.bad .n{color:var(--c)}
     .tv-stat .n{font-size:6.2vmin;font-weight:800;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)}
     .tv-stat .l{font-size:1.45vmin;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-top:.8vmin}
@@ -2071,8 +2076,8 @@
     .tv-attn{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:1vmin}
     .tv-attn .lab{font-size:1.35vmin;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin-right:.6vmin}
     .tv-kn{min-width:4.4vmin;text-align:center;font-size:2vmin;font-weight:800;padding:.7vmin 1.2vmin;border-radius:.9vmin;font-variant-numeric:tabular-nums;
-      background:rgba(255,59,48,.16);border:1px solid rgba(255,59,48,.45);color:var(--bad2)}
-    .tv-kn.maint{background:rgba(255,214,0,.16);border-color:rgba(255,214,0,.45);color:var(--warn2)}
+      background:rgba(255,99,87,.22);border:1px solid rgba(255,99,87,.6);color:var(--bad)}
+    .tv-kn.maint{background:rgba(255,224,74,.22);border-color:rgba(255,224,74,.6);color:var(--warn)}
     /* per-type fleet extras */
     .tv-ready .den{font-size:.5em;color:var(--mut);font-weight:800;letter-spacing:-.02em}
     .tv-ready .rl{display:flex;flex-direction:column;gap:.5vmin}
@@ -2085,7 +2090,7 @@
     .tv-dmg{display:flex;align-items:center;gap:1.4vmin;padding:1.1vmin 1.6vmin;border-radius:1.1vmin;background:var(--panel);border:1px solid var(--line)}
     .tv-dmg .di{flex:1;min-width:0;font-size:1.95vmin;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tv-dmg .dd{font-size:1.6vmin;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;flex:0 0 auto}
-    .tv-allok{margin-top:auto;padding:1.8vmin;border-radius:1.3vmin;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.34);color:var(--ok2);font-size:2.1vmin;font-weight:700;text-align:center}
+    .tv-allok{margin-top:auto;padding:1.8vmin;border-radius:1.3vmin;background:rgba(59,232,127,.16);border:1px solid rgba(59,232,127,.5);color:var(--ok);font-size:2.1vmin;font-weight:700;text-align:center}
     /* repair leaderboard (today / week / month) */
     .tv-lb{display:flex;flex-direction:column;gap:.7vmin;flex:1;min-height:0;justify-content:stretch}
     .tv-lbhdr{display:flex;align-items:center;gap:1.8vmin;padding:0 2.2vmin .4vmin}
@@ -2135,7 +2140,7 @@
        reward; the numbers do not, because they are a table. The row is also no longer two and a half
        times the height of its neighbours: at that size it stopped reading as first place and started
        reading as a banner that had swallowed the list. */
-    .tv-lbrow.hero{flex:1.45 1 0;background:linear-gradient(100deg,rgba(34,197,94,.16),rgba(34,197,94,.02));border-color:rgba(34,197,94,.55);box-shadow:0 0 3vmin rgba(34,197,94,.14)}
+    .tv-lbrow.hero{flex:1.45 1 0;background:linear-gradient(100deg,rgba(59,232,127,.22),rgba(59,232,127,.03));border-color:rgba(59,232,127,.7);box-shadow:0 0 3vmin rgba(59,232,127,.2)}
     .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-num,2.1vmin)}
     .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-numon,2.7vmin)}
     .tv-lbrow.hero .rk{font-size:var(--lb-hrk,5vmin)}
@@ -2906,7 +2911,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GG · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GH · ZXing raw</div>
       </div>
     </div>
 
@@ -4691,7 +4696,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GG</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GH</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -10785,16 +10790,76 @@ function _repOriginalNote(rfId, r){
   if(!r) return '';
   if(r.damageNote) return r.damageNote;                 // if RaceFacer ever does supply it, prefer that
   var day=String(r.iso||'').slice(0,10); if(!day||rfId==null) return '';
-  var notes=RF_NOTES_BY_ID[rfId]||[]; var best=null;
+  var notes=RF_NOTES_BY_ID[rfId]||[]; var best=null, bestGap=null;
+  /* TWO REASONS THIS KEPT FALLING BACK TO THE REPAIR NOTE.
+     1. THE DATES WERE IN DIFFERENT CLOCKS. rf_repairs.date_discovered is a plain DATE and is already
+        the venue's day. rf_kart_notes.created_at is a TIMESTAMP, and slicing ten characters off it
+        reads the UTC day. A note written at 9am Sydney is 23:00 the PREVIOUS day in UTC, so it never
+        matched the repair it belonged to, while an afternoon note matched fine. That is why this
+        looked like it depended on whether parts were used: parts jobs get done first thing, so they
+        were the morning notes. Both sides are now compared as venue days.
+     2. DAMAGE FOUND AT NIGHT IS REPAIRED THE NEXT MORNING. Requiring the note to be created on the
+        very same day as the repair's discovery date threw away the most ordinary case there is. The
+        note may be raised up to two days before, provided it was CLOSED on or after the discovery
+        day — a note closed before the repair was even raised cannot be the one it closed. */
+  var claimed=_repNoteClaims(rfId);
+  if(claimed&&r.id!=null&&Object.prototype.hasOwnProperty.call(claimed,r.id)) return claimed[r.id]||'';
   for(var i=0;i<notes.length;i++){
-    var n=notes[i]; if(!n||!n.note) continue;
-    var made=String(n.createdIso||'').slice(0,10);
-    if(made!==day) continue;
-    if(n.active) continue;                              // still open — it is not what this repair closed
-    // Closed nearest to the repair wins when a kart had more than one note that day.
-    if(!best||String(n.archivedIso||'')>String(best.archivedIso||'')) best=n;
+    var n=notes[i]; if(!_repNoteFits(n,day)) continue;
+    var gap=_repNoteGap(n,day);
+    // Same tie-break as the paired path: on an equal gap the EARLIEST-closed note wins, because a
+    // note is archived when its repair is raised. A row that reaches here has no id to pair on.
+    if(best==null||gap<bestGap||(gap===bestGap&&String(n.archivedIso||'')<String(best.archivedIso||''))){ best=n; bestGap=gap; }
   }
   return best?best.note:'';
+}
+function _repVDay(iso){ try{ var t=_sydParse(iso); return t==null?'':_sydDayKey(t); }catch(e){ return String(iso||'').slice(0,10); } }
+function _repNoteFits(n,day){
+  if(!n||!n.note||n.active) return false;               // no text, or still open — not what a repair closed
+  var made=_repVDay(n.createdIso); if(!made||made>day) return false;
+  var closed=n.archivedIso?_repVDay(n.archivedIso):'';
+  if(closed&&closed<day) return false;
+  var gap=Math.round((Date.parse(day)-Date.parse(made))/86400000);
+  return gap>=0&&gap<=2;
+}
+function _repNoteGap(n,day){ return Math.round((Date.parse(day)-Date.parse(_repVDay(n.createdIso)))/86400000); }
+/* ONE NOTE, ONE REPAIR.
+   RaceFacer's repairs API carries no reference to the kart note the damage was raised in, so the
+   pairing has to be inferred — and inferring it row by row meant two repairs on the same kart on the
+   same day both picked whichever note was closed last, showing the same damage text twice while the
+   other note went unused. Pair them once, greedily, closest first, and let each note be claimed only
+   once. Repairs left over fall back to their own description, which is what RaceFacer would show. */
+var _repClaimSig=null, _repClaimMap=null;
+function _repNoteClaims(rfId){
+  try{
+    var reps=(typeof KD_REPAIRS!=='undefined'&&KD_REPAIRS)?KD_REPAIRS:[];
+    var notes=RF_NOTES_BY_ID[rfId]||[];
+    var sig=rfId+'|'+reps.length+'|'+notes.length+'|'+reps.map(function(x){return x.id||0;}).join(',');
+    if(sig===_repClaimSig) return _repClaimMap;
+    /* BOTH SIDES RUN IN CREATION ORDER, SO PAIR THEM IN CREATION ORDER.
+       Picking "whichever note was closed last" for each repair independently paired them backwards
+       when a kart had two repairs the same day: the older repair took the newer note. A note is
+       archived at the moment its repair is raised, and RaceFacer issues repair ids in the order they
+       are raised — so the earliest-closed note belongs to the lowest-numbered repair. Walk both
+       lists forwards and take the first note that still fits and has not been claimed. */
+    var ordered=reps.filter(function(r){ return r&&r.id!=null&&!r.damageNote&&String(r.iso||'').slice(0,10); })
+      .slice().sort(function(a,b){ return String(a.iso).localeCompare(String(b.iso))||((a.id||0)-(b.id||0)); });
+    var byClose=notes.map(function(n,ni){ return {n:n,ni:ni}; })
+      .sort(function(a,b){ return String(a.n.archivedIso||'').localeCompare(String(b.n.archivedIso||'')); });
+    var map={}, usedNote={};
+    ordered.forEach(function(r){
+      var day=String(r.iso||'').slice(0,10), pick=null;
+      for(var j=0;j<byClose.length;j++){
+        var e=byClose[j];
+        if(usedNote[e.ni]) continue;
+        if(!_repNoteFits(e.n,day)) continue;
+        if(pick==null||_repNoteGap(e.n,day)<_repNoteGap(pick.n,day)) { pick=e; break; }
+      }
+      if(pick){ map[r.id]=pick.n.note; usedNote[pick.ni]=1; }
+    });
+    _repClaimSig=sig; _repClaimMap=map;
+    return map;
+  }catch(e){ return null; }
 }
 function _repKartId(){ try{ return (KD_KART&&KD_KART.rfId!=null)?KD_KART.rfId:null; }catch(e){ return null; } }
 function repTableHTML(){
@@ -11720,7 +11785,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -12960,7 +13025,14 @@ function _lb90(iso){ if(!iso) return false; var t=Date.parse(iso); if(isNaN(t)) 
 function tvLbRows(key){
   var pool=TV_LB_ALL||[];
   if(key==='all') return tvLbSort(pool.filter(function(o){return (o.all||0)>0;}),'all').slice(0,14);
-  return tvLbSort(pool.filter(function(o){return _lb90(o.last);}),key).slice(0,14);
+  /* A DAILY BOARD LISTS PEOPLE WHO DID A REPAIR TODAY.
+     This filtered on "active in the last 90 days" and then SORTED by the period — it never required
+     the period's count to be anything at all. So anyone with an all-time total and a recent stamp
+     appeared on the Today board with a 0 beside their name, and from across the workshop a name on
+     the repair leaderboard reads as a repair, whatever number is next to it. Kaedi was on the board
+     with no repair in RaceFacer to her name at all, and that is why.
+     Zero in the period means not on the board for that period. */
+  return tvLbSort(pool.filter(function(o){ return _lb90(o.last) && (Number(o[key])||0)>0; }),key).slice(0,14);
 }
 function tvLbRowHtml(o,rank,phase){
   var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=[o.day,o.week,o.month,o.year,o.all], cells='';
@@ -16089,7 +16161,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16558,7 +16630,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GG';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GH';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

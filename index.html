@@ -15240,6 +15240,8 @@ function sdEnter(){
     });
     function _sdRanBySequence(x){
       var ms=x.scheduled_at?Date.parse(x.scheduled_at):0; if(!ms) return false;
+      // A slot whose own time has not arrived cannot have run, whatever else is on the board.
+      if(ms>Date.now()) return false;
       var key=(_sdTrackLabel(x.track)||'?')+'|'+_sdDayKey(x.scheduled_at);
       var latest=_sdAfter[key]||0;
       return latest>ms;      // something later on this track has already gone green

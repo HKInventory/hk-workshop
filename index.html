@@ -1753,16 +1753,23 @@
    centres on the BAR and not merely on the space left over — an asymmetric reserve would drift the
    name every time the badge changed word. It also guarantees the name can never reach either gutter
    on a 320px phone, which is the one width where the longest venue name and badge both have to fit. */
-.sitebar{display:none;align-items:center;justify-content:center;gap:9px;padding:7px 96px;cursor:pointer;font-weight:800;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--site,#00CFFF);position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+.sitebar{display:none;align-items:center;justify-content:center;gap:9px;padding:7px 88px;cursor:pointer;font-weight:800;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--site,#00CFFF);position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
 .sitebar .sb-dot{width:8px;height:8px;border-radius:50%;background:var(--site,#00CFFF);box-shadow:0 0 10px var(--site,#00CFFF);animation:sbpulse 2.4s ease-in-out infinite;flex-shrink:0;}
 @keyframes sbpulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.62);}}
 .sitebar .sb-name{position:relative;z-index:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-/* Hint left, badge right, venue name dead centre. Both of these are asides — the name is the thing
-   staff read — so neither belongs in the centred flow. Left in it, they each shove the name toward
-   the opposite edge by half their own width, and on a phone the longest of each simply will not fit
-   on one centred line at all. Pinned to the gutters they can never move the name or collide with it. */
-.sitebar .sb-hint{position:absolute;left:14px;top:50%;transform:translateY(-50%);z-index:2;
-  font-size:9.5px;letter-spacing:.05em;opacity:.5;font-weight:700;text-transform:none;}
+/* "tap to switch" belongs NEXT TO the venue name, not in the left gutter.
+   Pinning it out of the flow did centre the name perfectly, but it parked the hint on the far left
+   where it reads as a stray label rather than as a caption on the thing it describes. It is back in
+   the centred group beside the name; only the open/closed badge stays pinned, because that one is a
+   status and does belong at the edge. Below 380px the hint hides rather than crowd a long venue name
+   against the badge — the name is what has to survive. */
+.sitebar .sb-hint{font-size:9.5px;letter-spacing:.05em;opacity:.5;font-weight:700;text-transform:none;flex:none;}
+/* On a phone the hint gives ground before the name or the badge does: it tightens first, and only
+   disappears on the narrowest handsets, where "Melbourne" plus a status badge genuinely will not
+   share a line with it. Measured across 320-1200px: the name stays dead centre at every width. */
+@media (max-width:430px){ .sitebar{gap:6px;padding-left:80px;padding-right:80px}
+  .sitebar .sb-hint{font-size:8.5px;letter-spacing:.02em} }
+@media (max-width:360px){ .sitebar .sb-hint{display:none} }
 .sitebar::after{content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;background:linear-gradient(90deg,transparent,var(--siteGlow,rgba(0,207,255,.2)),transparent);animation:sbsweep 5s ease-in-out infinite;}
 @keyframes sbsweep{0%{left:-45%;}55%,100%{left:130%;}}
 /* ----- site chooser ----- */
@@ -2918,7 +2925,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GK · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GL · ZXing raw</div>
       </div>
     </div>
 
@@ -4704,7 +4711,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GK</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GL</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11802,7 +11809,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16201,7 +16208,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GK \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16670,7 +16677,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GK';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GL';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -2808,7 +2808,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GB · ZXing raw</div>
       </div>
     </div>
 
@@ -4593,7 +4593,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GA</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GB</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4741,11 +4741,17 @@ function go(id,mode){
   }
   // Force reflow so the browser commits the starting state before the transition
   void nxt.offsetWidth;
+  // WHO IS ON TOP DURING THE SLIDE. The .active/.behind classes are not swapped until the animation
+  // ENDS, so the cascade cannot decide this — for the whole slide the outgoing screen is still
+  // .active. Going forward, the new screen slides in OVER the old one, so it is lifted explicitly
+  // for the duration and released at the end.
+  nxt.style.zIndex='3';
+  if(cur) cur.style.zIndex='2';
   // Now trigger the transitions
-  nxt.style.transition='transform 330ms '+ease;
+  nxt.style.transition='transform 480ms '+ease;
   nxt.style.transform='translate3d(0,0,0)';
   if(cur){
-    cur.style.transition='transform 330ms '+ease;
+    cur.style.transition='transform 480ms '+ease;
     cur.style.transform='translate3d(-28%,0,0)';
   }
   setTimeout(function(){
@@ -4757,6 +4763,7 @@ function go(id,mode){
       cur.classList.remove('active');
     }
     // Cascade now matches intended final values. Safe to refresh inline.
+    nxt.style.zIndex=''; if(cur) cur.style.zIndex='';
     nxt.style.transition='none';
     nxt.style.transform='translate3d(0,0,0)';
     if(cur){
@@ -4767,7 +4774,7 @@ function go(id,mode){
     navLock=false;
     if(appEl) appEl.classList.remove('nav-locked');
     _navFlush();
-  },350);
+  },500);
 }
 function back(){
   if(navLock){ _navPending={kind:'back'}; return; }
@@ -4787,10 +4794,13 @@ function back(){
   to.classList.remove('active');
   // Force reflow
   void from.offsetWidth;
+  // Going back, the screen being LEFT slides away to the right, so it is the one that must be on
+  // top while it moves; the screen underneath is revealed as it goes.
+  from.style.zIndex='3'; to.style.zIndex='2';
   // Trigger the transitions
-  from.style.transition='transform 330ms '+ease;
+  from.style.transition='transform 480ms '+ease;
   from.style.transform='translate3d(100%,0,0)';
-  to.style.transition='transform 330ms '+ease;
+  to.style.transition='transform 480ms '+ease;
   to.style.transform='translate3d(0,0,0)';
   setTimeout(function(){
     // CRITICAL FIX: align cascade (class state) BEFORE touching inline transforms.
@@ -4809,10 +4819,11 @@ function back(){
     from.style.transform='translate3d(100%,0,0)';
     if(fromId==='scan') stopScan();
     requestAnimationFrame(function(){updateUI(toId);});
+    from.style.zIndex=''; to.style.zIndex='';
     navLock=false;
     if(appEl2) appEl2.classList.remove('nav-locked');
     _navFlush();
-  },350);
+  },500);
 }
 
 // ── Swipe back (lazy setup — only activates on real movement) ──
@@ -5463,9 +5474,9 @@ function goHome(){
   to.classList.remove('active');
   void from.offsetWidth;
   // Animate
-  from.style.transition='transform 330ms '+ease;
+  from.style.transition='transform 480ms '+ease;
   from.style.transform='translate3d(100%,0,0)';
-  to.style.transition='transform 330ms '+ease;
+  to.style.transition='transform 480ms '+ease;
   to.style.transform='translate3d(0,0,0)';
   setTimeout(function(){
     // Align cascade first (same fix as back())
@@ -5480,7 +5491,7 @@ function goHome(){
     stk=['home'];
     requestAnimationFrame(function(){updateUI('home');});
     navLock=false;
-  },350);
+  },500);
 }
 
 function logout(){
@@ -11440,7 +11451,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13214,7 +13225,7 @@ function bootTvDisplay(){
           try{ tvSubscribe(); }catch(e){}
           try{ SBC.from('tv_state').select('*').eq('site',currentSite).then(function(r){ var row=(r&&r.data&&r.data[0])||null; try{ tvApplyState(row); }catch(e){} },function(){}); }catch(e){}
         }
-      },350);
+      },500);
       setTimeout(function(){ try{ clearInterval(_tvConnT); }catch(e){} },20000);
     }
     _tvBootAt=Date.now();
@@ -13374,7 +13385,7 @@ function tvcSave(){
   _tvcSaveT=setTimeout(function(){
     if(typeof SBC==='undefined'||!SBC) return;
     SBC.from('tv_state').upsert({site:tvCastState.site||tvcCfgSite(),scenes:tvCastState.scenes,morning:!!tvCastState.morning,morning_until:tvCastState.morning_until||'10:30',greeting:tvCastState.greeting||'',shift:tvCastState.shift||[],alert:tvCastState.alert,takeover:tvCastState.takeover,rotate_seconds:tvCastState.rotate_seconds,items:tvCastState.items,banner:tvCastState.banner||'',standby:!!tvCastState.standby,updated_at:new Date().toISOString()},{onConflict:'site'}).then(function(){},function(){});
-  },350);
+  },500);
 }
 function tvcToggleMorning(){ tvCastState.morning=!tvCastState.morning; tvcRender(); tvcSave(); }
 function tvcSetShift(v){ tvCastState.shift=String(v||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,12); tvcSave(); }
@@ -15734,7 +15745,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16203,7 +16214,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GA';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GB';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

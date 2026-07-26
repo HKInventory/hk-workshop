@@ -1099,6 +1099,10 @@
        Charts are inline SVG/CSS: nothing to load, nothing to go stale, and it draws
        the moment the data lands. Marks are thin, grid and axes recede, and every
        chart is direct-labelled so no value is ever carried by colour alone. */
+    .dev-badge{display:inline-block;vertical-align:middle;margin-left:9px;padding:3px 9px;border-radius:999px;
+      background:rgba(201,133,0,.16);border:1px solid rgba(201,133,0,.45);color:#c98500;
+      font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+    .dev-note{font-size:11.5px;color:var(--t2);line-height:1.6;margin:-4px 0 14px;max-width:62ch}
     .sum-days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch}
     .sum-days::-webkit-scrollbar{display:none}
     .sum-chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--b1);background:var(--card2);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
@@ -2661,9 +2665,9 @@
         <div class="pgtitle">Facility</div>
         <div class="ki-sub">Track layouts, damage intelligence &amp; tools</div>
         <div class="ki-tiles">
-          <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
-          <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction</div></div>
-          <div class="tile gord"     id="bcndeh" onclick="kiOpenRef('beacons')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons','layouts')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
+          <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
+          <div class="tile gord"     id="bcndeh" onclick="go('beacons','dehaardt')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
           <div class="tile kcheck"   id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
           <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
@@ -2699,7 +2703,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FD · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-FE · ZXing raw</div>
       </div>
     </div>
 
@@ -2782,7 +2786,10 @@
     <div class="scr" id="s-race">
       <div class="phdr"><button class="back" onclick="back()"> Back</button></div>
       <div class="sb">
-        <div class="pgtitle">Intelligence</div>
+        <div class="pgtitle">Intelligence <span class="dev-badge">In development</span></div>
+        <div class="dev-note">The layout comparisons need the beacon layouts drawn before the numbers
+          mean anything &mdash; without them the engine is attributing damage to layouts it can only
+          half identify. What is here is real, but treat it as indicative until the layouts land.</div>
         <div class="md-tabs">
           <button class="md-tab active" id="inteltab-today" onclick="intelTab('today')">Today</button>
           <button class="md-tab" id="inteltab-layouts" onclick="intelTab('layouts')">Layouts</button>
@@ -2913,7 +2920,7 @@
             </div>
           </div>
         </div>
-        <div class="bcnhint">Tap a beacon for its sector (S/N) and function (F/N).</div>
+        <div class="bcnhint" id="bcnHint">Tap a beacon for its sector (S/N) and function (F/N).</div>
         <div class="bcnbody">
           <div class="bcnmap"><div id="bcnHost"></div></div>
           <aside class="bcnside" id="bcnSide">
@@ -2921,7 +2928,7 @@
             <div class="bcnsidelist" id="bcnSideList"></div>
           </aside>
         </div>
-        <div class="bcnleg">
+        <div class="bcnleg" id="bcnLeg">
           <span class="bcnlg"><i style="background:#00C853"></i> Finish / go</span>
           <span class="bcnlg"><i style="background:#FFD600"></i> Slow zone</span>
           <span class="bcnlg"><i style="background:#00CFFF"></i> Caution</span>
@@ -4482,7 +4489,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FD</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-FE</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -4589,7 +4596,11 @@ function logoTap(){
   if(cur!=='home') goHome();                        // elsewhere -> slide home first
   playSplash(false);                                // replay the HK logo animation, nothing else
 }
-function go(id){
+function go(id,mode){
+  // A screen can be opened in more than one mode — Beacons serves both Layouts and Dehaardt
+  // Functions, which are the same map with a different job. Stashed before the transition so the
+  // renderer sees the right mode on its first paint rather than correcting itself after.
+  if(mode) try{ window._scrMode=mode; }catch(e){}
   try{ _resetTabView(id); }catch(e){}
   if(navLock) return;  // block spam taps during in-flight transition
   var curId=stk.length?stk[stk.length-1]:null,cur=curId?s(curId):null,nxt=s(id);
@@ -4685,7 +4696,7 @@ function back(){
 }
 
 // ── Swipe back (lazy setup — only activates on real movement) ──
-var sx=0,sy=0,swiping=false,swipeStarted=false,swipeCur=null,swipePrev=null,_chatSwipeConsumed=false;
+var sx=0,sy=0,swiping=false,swipeStarted=false,swipeCur=null,swipePrev=null,_chatSwipeConsumed=false,_chatInnerBack=false;
 // Velocity tracking so a fast FLICK completes the back even if it didn't travel far — this is the
 // single biggest thing that makes iOS's gesture feel alive rather than distance-gated.
 var swVelX=0,swLastX=0,swLastT=0;
@@ -4699,7 +4710,7 @@ nav.addEventListener('touchstart',function(e){
   if(!swiping && !swipeStarted && document.body.style.overflow==='hidden'){ document.body.style.overflow=''; document.body.style.touchAction=''; }
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;
   swiping=false;
-  swipeStarted=false; _chatSwipeConsumed=false;  // not yet committed to a swipe gesture
+  swipeStarted=false; _chatSwipeConsumed=false; _chatInnerBack=false;  // not yet committed to a swipe gesture
   // Just record position. DO NOT modify DOM here — a tap should never affect anything.
 },{passive:true});
 
@@ -4737,7 +4748,18 @@ nav.addEventListener('touchmove',function(e){
     var curId=stk[stk.length-1],prevId=stk[stk.length-2];
     if(!curId||!prevId) return;
     if(curId==='welcome'||curId==='pin'||prevId==='pin') return;
-    if(curId==='chats'){ swiping=false; swipeStarted=false; _chatSwipeConsumed=true; document.body.style.overflow=''; document.body.style.touchAction=''; return; }   // chats: vertical scroll only, no screen-drag
+    /* CHATS USED TO REFUSE THE SWIPE ENTIRELY. That is why swiping back from a thread did nothing
+       and you had to tap out through Comms. The gesture is already gated to the left 32px, so it
+       cannot be confused with scrolling a message list.
+       When Chats has an inner view open the target is not another SCREEN, so there is nothing to
+       drag — the two screens would slide against each other and then snap back. Flag it instead and
+       let touchend perform the step through back(). */
+    if(curId==='chats'&&typeof chatGoBack==='function'){
+      var tvv=document.getElementById('ch-thread-view'), gvv=document.getElementById('ch-group-view'), ivv=document.getElementById('ch-info-view');
+      var inner=(ivv&&ivv.style.display!=='none')||(gvv&&gvv.style.display!=='none')
+        ||(tvv&&tvv.style.display!=='none'&&!(typeof _gcDesk==='function'&&_gcDesk()));
+      if(inner){ _chatInnerBack=true; swiping=false; swipeStarted=false; return; }
+    }
     swipeCur=s(curId);
     swipePrev=s(prevId);
     if(!swipeCur||!swipePrev) return;
@@ -4774,6 +4796,13 @@ nav.addEventListener('touchend',function(e){
   // Unlock body scroll
   document.body.style.overflow='';
   document.body.style.touchAction=''; _chatSwipeConsumed=false;
+  // An inner Chats step: no screens were dragged, so decide it purely on distance travelled.
+  if(_chatInnerBack){
+    _chatInnerBack=false;
+    var ex=(e.changedTouches&&e.changedTouches[0])?e.changedTouches[0].clientX:sx;
+    if((ex-sx)>44){ try{ back(); }catch(err){} }
+    swiping=false; swipeStarted=false; return;
+  }
   // If swipe never started, this was just a tap — do nothing
   if(!swiping){swipeStarted=false;return;}
   swiping=false;swipeStarted=false;
@@ -5114,7 +5143,8 @@ function updateUI(id){
   if(id==='summary' && typeof sumLoad==='function'){ try{ sumLoad(); }catch(e){} }
   // Live staff dots: hold the presence feed only while the dashboard showing them is open.
   if(typeof presStart==='function'){ if(id==='manager'){ try{ presStart(); }catch(e){} } else { try{ presStop(); }catch(e){} } }
-  if(id==='beacons' && typeof loadBeacons==='function') loadBeacons();
+  if(id==='beacons'){ try{ bcnApplyMode(window._scrMode||'layouts'); }catch(e){}
+    if(typeof loadBeacons==='function') loadBeacons(); }
   if(id==='chats' && typeof chatEnter==='function'){ try{chatEnter();}catch(e){} }
   if(id==='hkai' && typeof aiEnter==='function'){ try{aiEnter();}catch(e){} }
   if(id==='sessdata' && typeof sdEnter==='function'){ try{sdEnter();}catch(e){} }
@@ -9048,6 +9078,21 @@ function loadRace(){
     var rows=(res&&res.data)||[]; renderRaceStats(null,null,rows.length); renderRaceDisc(rows);
   }, function(){ renderRaceStats(null,null,0); renderRaceDisc([]); });
 }
+/* LAYOUTS vs DEHAARDT FUNCTIONS.
+   These are one screen doing two jobs. The beacon map, the per-beacon sector/function side list and
+   the function legend are DEHAARDT's — signal positions, slow zones, finish lines — and they had all
+   ended up on the Layouts tile, leaving the Dehaardt Functions tile as an empty "awaiting
+   integration" placeholder. Layouts is about the shape of the track that is live; Dehaardt is about
+   what the beacons on it do. Same map, different question, so the Dehaardt-only furniture is shown
+   or hidden rather than the screen being duplicated. */
+function bcnApplyMode(mode){
+  var deh=(mode==='dehaardt');
+  var set=function(id,on){ var e=document.getElementById(id); if(e) e.style.display=on?'':'none'; };
+  set('bcnHint',deh); set('bcnSide',deh); set('bcnLeg',deh);
+  var t=document.getElementById('bcnTrk');
+  try{ document.querySelector('#s-beacons .bcnmap').style.maxWidth=deh?'':'100%'; }catch(e){}
+  window._bcnMode=mode;
+}
 /* ===================== INTELLIGENCE ENGINE =====================
    Attributes repairs + kart notes to the layout that was LIVE when they happened (track_history,
    written by a DB trigger whenever tracks.live changes), then computes per-layout damage rates,
@@ -11084,7 +11129,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-FE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14429,7 +14474,25 @@ function _chEnsureRoleGroups(cb){
   if(!defs.length){ if(cb) cb(); return; }
   var pending=defs.length; defs.forEach(function(d){ _chGroupEnsure(d, function(){ if(--pending<=0 && cb) cb(); }); });
 }
-function chatGoBack(){ return false; }   // Back always leaves Chats \u2192 home
+/* ONE STEP BACK AT A TIME, INSIDE CHATS.
+   This was a stub returning false, so Back — and the swipe, once it was allowed — always left Chats
+   entirely. From inside a message thread that is wrong twice over: you lose your place in the chat
+   list, and getting back to a thread means re-entering Comms, Chats, then the thread. Chats has its
+   own view stack (list -> thread -> group/info), so Back walks it before leaving the screen.
+   Returns true when it handled the step, which is what tells back() and the swipe to stop. */
+function chatGoBack(){
+  try{
+    var iv=document.getElementById('ch-info-view');
+    if(iv&&iv.style.display!=='none'){ if(CH_GROUP){ chatOpenGroup(CH_GROUP.id); } else { chatShowList(); } return true; }
+    var gv=document.getElementById('ch-group-view');
+    if(gv&&gv.style.display!=='none'){ chatShowList(); return true; }
+    var tv=document.getElementById('ch-thread-view');
+    // On desktop the list and thread sit side by side, so closing the thread would leave a blank
+    // column rather than taking you anywhere — there, Back should leave Chats as it always did.
+    if(tv&&tv.style.display!=='none'&&!(typeof _gcDesk==='function'&&_gcDesk())){ chatShowList(); return true; }
+  }catch(e){}
+  return false;
+}
 function chatBack(){ if(typeof chatGoBack==='function'&&chatGoBack()) return; back(); }
 function _chAvHue(name){ var s=String(name||''),n=0,i; for(i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n%360; }
 function _chAvatar(name,st){
@@ -14962,7 +15025,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-FE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -15431,7 +15494,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-FD';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-FE';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

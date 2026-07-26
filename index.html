@@ -2154,6 +2154,9 @@
        reward; the numbers do not, because they are a table. The row is also no longer two and a half
        times the height of its neighbours: at that size it stopped reading as first place and started
        reading as a banner that had swallowed the list. */
+    /* Topped up to fill the board, not ranked into it — see tvLbRows. */
+    .tv-lbrow.pad{opacity:.45}
+    .tv-lbrow.pad .tv-ct4>b.on{color:var(--mut)}
     .tv-lbrow.hero{flex:1.45 1 0;background:linear-gradient(100deg,rgba(59,232,127,.22),rgba(59,232,127,.03));border-color:rgba(59,232,127,.7);box-shadow:0 0 3vmin rgba(59,232,127,.2)}
     .tv-lbrow.hero .tv-ct4>b{font-size:var(--lb-num,2.1vmin)}
     .tv-lbrow.hero .tv-ct4>b.on{font-size:var(--lb-numon,2.7vmin)}
@@ -2925,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GL · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GM · ZXing raw</div>
       </div>
     </div>
 
@@ -4711,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GL</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GM</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11809,7 +11812,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -13038,6 +13041,7 @@ function tvLeaderboard(){ return tvRepairTallies().filter(function(o){return o.a
    All-time, sliding rows to their new spots (FLIP) and highlighting the active column. */
 var TV_LB_PHASE=0,TV_LB_T=null,TV_LB_DATA=[],TV_LB_SEEN=0;   // SEEN: phase survives scene re-entry (see tvLbStart)
 var TV_LB_KEYS=['day','week','month','year','all'];   // Daily / Weekly / Monthly / Yearly / All-time
+var TV_LB_MIN=5;   // never fewer than five names on the board — see tvLbRows
 function tvLbSort(list,key){
   // Ties break down the periods either side of the one being ranked, so a tie on Monthly is settled
   // by Yearly then All-time rather than by name.
@@ -13053,19 +13057,32 @@ function _lb90(iso){ if(!iso) return false; var t=Date.parse(iso); if(isNaN(t)) 
 function tvLbRows(key){
   var pool=TV_LB_ALL||[];
   if(key==='all') return tvLbSort(pool.filter(function(o){return (o.all||0)>0;}),'all').slice(0,14);
-  /* A DAILY BOARD LISTS PEOPLE WHO DID A REPAIR TODAY.
-     This filtered on "active in the last 90 days" and then SORTED by the period — it never required
-     the period's count to be anything at all. So anyone with an all-time total and a recent stamp
-     appeared on the Today board with a 0 beside their name, and from across the workshop a name on
-     the repair leaderboard reads as a repair, whatever number is next to it. Kaedi was on the board
-     with no repair in RaceFacer to her name at all, and that is why.
-     Zero in the period means not on the board for that period. */
-  return tvLbSort(pool.filter(function(o){ return _lb90(o.last) && (Number(o[key])||0)>0; }),key).slice(0,14);
+  /* EARNED PLACES FIRST, THEN ENOUGH ROWS TO FILL THE BOARD.
+     Two things had to be true at once. A name on a repair leaderboard reads as a repair from across
+     the workshop whatever number sits beside it — which is how Kaedi ended up on the Today board with
+     no repair in RaceFacer to her name — so a zero cannot EARN a place. But a board of four names on a
+     screen built for fourteen looks broken.
+     So: everyone with real work in the period is ranked on it, and if that is fewer than five the
+     board is topped up from the crew who have been active in the last ninety days, ordered by the
+     next-broader periods so someone with a month's work outranks someone with only an old total.
+     A topped-up row shows its honest 0 and is dimmed, so it reads as "on the crew, nothing this
+     week" rather than as a score. */
+  var active=pool.filter(function(o){ return _lb90(o.last); });
+  var earned=tvLbSort(active.filter(function(o){ return (Number(o[key])||0)>0; }),key);
+  if(earned.length<TV_LB_MIN){
+    var have={}; earned.forEach(function(o){ have[o.user]=1; });
+    // Rank the rest by the periods ABOVE this one — recent-but-not-this-period beats long-ago.
+    var wider={day:'week',week:'month',month:'year',year:'all',all:'all'}[key]||'all';
+    var rest=tvLbSort(active.filter(function(o){ return !have[o.user]; }),wider)
+      .map(function(o){ var c={}; for(var k in o) c[k]=o[k]; c._pad=true; return c; });
+    earned=earned.concat(rest.slice(0,TV_LB_MIN-earned.length));
+  }
+  return earned.slice(0,14);
 }
 function tvLbRowHtml(o,rank,phase){
   var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=[o.day,o.week,o.month,o.year,o.all], cells='';
   for(var c=0;c<TV_LB_KEYS.length;c++){ cells+='<b'+(c===phase?' class="on"':'')+'>'+(vals[c]||0)+'</b>'; }
-  return '<div class="tv-lbrow" data-name="'+tvEsc(o.user)+'"><span class="rk" style="color:'+rc+'">'+(rank+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct4">'+cells+'</span></div>';
+  return '<div class="tv-lbrow'+(o._pad?' pad':'')+'" data-name="'+tvEsc(o.user)+'"><span class="rk" style="color:'+rc+'">'+(rank+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct4">'+cells+'</span></div>';
 }
 function tvLbApply(animate){
   var wrap=document.getElementById('tv-lb-wrap');
@@ -13088,6 +13105,7 @@ function tvLbApply(animate){
       for(var c=0;c<cells.length;c++){ cells[c].textContent=(vals[c]||0); cells[c].className=(c===phase?'on':''); }
     }
     r.classList.toggle('hero',i===0);
+    r.classList.toggle('pad',!!o._pad);   // a topped-up row must not keep an earned row's styling
     wrap.appendChild(r);
   });
   var hs=wrap.querySelectorAll('.tv-lbhdr .tv-ct4>span');
@@ -16208,7 +16226,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GL \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16677,7 +16695,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GL';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GM';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

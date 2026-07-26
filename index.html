@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GT · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GU · ZXing raw</div>
       </div>
     </div>
 
@@ -4714,7 +4714,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GT</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GU</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -10973,7 +10973,13 @@ function repTableHTML(){
     var parts=(r.parts||[]).filter(function(p){return p&&p.name;});
     // Resolved once per row, not once per use — this used to be called twice a row.
     var _origNote=_repOriginalNote(_repKartId(),r);
-    var hasDetail=noteLines.length>0||parts.length>0||!!_origNote;   // the row already shows the note; the expand adds the repair note + parts (no re-printing it)
+    /* EVERY REPAIR OPENS, BECAUSE EVERY REPAIR HAS A MECHANIC AND AN OUTCOME.
+       The expand used to appear only when there was a separate repair note, a part, or a matched
+       damage note — so the rows where RaceFacer recorded the work as the description itself had no
+       arrow at all, and the list looked half-broken: some rows you could open, some you could not,
+       with nothing to tell you why. What the mechanic did is the question this table exists to
+       answer, and it is answerable for every row. */
+    var hasDetail=true;
     var head='<tr class="rep-row'+(hasDetail?'':' rep-nodetail')+'" id="reprow-'+i+'"'+(hasDetail?(' onclick="toggleRep('+i+')"'):'')+'>'
       +'<td class="rep-desc">'+kEsc(_origNote||r.issue)+'</td>'
       +'<td class="rep-mono">'+(r.date||'\u2014')+'</td>'
@@ -10985,18 +10991,34 @@ function repTableHTML(){
       +'</tr>';
     if(!hasDetail) return head;
     var inner='';
-    // Row shows the issue; the expand shows what was done + parts (RaceFacer's order).
-    // When the row shows the ORIGINAL report, the expand shows what the mechanic did about it.
-    // When no original could be matched the row already shows the mechanic's text, so the expand
-    // must not simply repeat it.
-    var _orig=_repOriginalNote(_repKartId(),r);
-    var repairText=_orig?r.issue:noteLines.join('\n');
-    if(repairText) inner+='<div class="rep-note-h">Repair note</div><div class="rep-note-b">'+kEsc(repairText)+'</div>';
+    /* WHAT WAS DONE, ALWAYS — and never the same text twice.
+       The row's title is the original damage report when one could be matched, and the mechanic's
+       own words when it could not. So the panel shows the mechanic's account, drawn from the repair
+       note if RaceFacer kept one separately and from the description otherwise, and simply omits it
+       when that would repeat the line directly above. Where the title IS the mechanic's text, the
+       panel says so rather than leaving a reader wondering what it is not telling them. */
+    var _mech=noteLines.join('\n');
+    if(!_mech && _origNote) _mech=r.issue;                 // RaceFacer kept the work as the description
+    if(_mech && _mech!==(_origNote||r.issue)){
+      inner+='<div class="rep-note-h">What the mechanic did</div><div class="rep-note-b">'+kEsc(_mech)+'</div>';
+    } else if(!_origNote){
+      inner+='<div class="rep-note-h">What the mechanic did</div><div class="rep-note-b">'+kEsc(r.issue||'\u2014')
+        +'<div style="margin-top:6px;font-size:11px;color:var(--t2)">RaceFacer recorded this repair with no separate damage report, so this is the only account of it.</div></div>';
+    }
+    if(_origNote){
+      inner+='<div class="rep-note-h">Damage reported</div><div class="rep-note-b">'+kEsc(_origNote)+'</div>';
+    }
     if(parts.length){
       inner+='<div class="rep-pu-h">Parts used</div><table class="rep-pu"><thead><tr><th>Part</th><th class="rp-r">Quantity</th><th class="rp-r">Price</th></tr></thead><tbody>'
         +parts.map(function(p){return '<tr><td>'+kEsc(p.name)+'</td><td class="rp-r">'+(p.qty||1)+'</td><td class="rp-r">'+kEsc(_money(p.price))+'</td></tr>';}).join('')
         +'</tbody></table>';
     }
+    // Never an empty panel: the facts of the job are always worth stating.
+    inner+='<div class="rep-note-h">Job</div><div class="rep-note-b" style="font-size:12px;color:var(--t2)">'
+      +kEsc(r.user||'Unattributed')+(r.dateRepaired?(' \u00b7 repaired '+kEsc(r.dateRepaired)):'')
+      +(r.mileage?(' \u00b7 '+r.mileage.toLocaleString()+' km'):'')
+      +(r.cost?(' \u00b7 $'+r.cost.toFixed(2)):' \u00b7 no cost recorded')
+      +(parts.length?'':' \u00b7 no parts used')+'</div>';
     var detail='<tr class="rep-detail" id="repdet-'+i+'" style="display:none"><td colspan="7"><div class="rep-detbox">'+inner+'</div></td></tr>';
     return head+detail;
   }).join('');
@@ -11889,7 +11911,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16383,7 +16405,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16852,7 +16874,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GT';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GU';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -64,14 +64,55 @@ is a design decision to take deliberately rather than discover halfway through.
 ## Render bandwidth is at 82% of its cap
 
 **Found:** 27 July 2026, while fixing the unit bug that had been hiding it.
+**Measured:** 27 July 2026. **The kart-notes theory is wrong — do not act on it.**
 
 81.58 GB of the 100 GB/month allowance. App Health had been reporting 0.0% because Render returns
 megabytes and the value was stored as bytes.
 
-The likely driver is the kart-notes index: 2.52 MB fetched roughly every 18 seconds. That is the
-first thing to measure. Options if confirmed: request a narrower column set from the DataTables
-endpoint, page it, or lengthen the duty cycle (`NOTES_DUTY`). **This is a real operational limit
-and more urgent than the page's appearance.**
+The standing theory was the kart-notes index at 2.52 MB every ~18 seconds. It does not survive
+measurement, for three independent reasons:
+
+1. **The 2.52 MB is the decompressed body, not the wire.** It comes from `_kniLast.bytes`, which is
+   `text.length` — the string after undici has already decompressed it. undici sends
+   `accept-encoding: gzip, deflate` on every request whether you ask for it or not, so the explicit
+   header on that fetch was redundant and every other RaceFacer fetch is compressed too. Measured
+   against a page of ~2,400 kart-notes-shaped rows: **19.9:1**. The real cost is roughly **126 KB**
+   per fetch, about 0.6 GB/day.
+2. **Render bills outbound bandwidth. The index is a download.** Whether a service-initiated
+   download is billed at all is the open question below; either way this is inbound, not outbound.
+3. **The arithmetic contradicts itself.** 2.52 MB every 18 s is ~354 GB/month — 4.3× the 81.58 GB
+   actually observed and over three times the cap. A proposed cause that over-predicts the bill by
+   more than 4× is not the cause.
+
+Raising `NOTES_DUTY` on the strength of this would have cost note latency — fixed only last
+session, after being entirely dark — for close to nothing.
+
+**What was built instead:** `net_meter.js` in the runner counts bytes in and out per destination,
+including the spawned heavy child (which `stdio: 'inherit'` otherwise hides) and RaceFacer traffic
+(which goes through undici's `fetch`, not the global one — wrapping only the global would have
+missed the whole subject). It logs a `[net]` line every 5 minutes and stores totals in `app_health`
+beside `render_usage`.
+
+**Next step is to read it, not to change anything.** After a deploy plus ~30–60 minutes:
+
+- Whichever of `net_out_bytes` / `net_in_bytes` tracks Render's own delta tells us what Render
+  actually meters. That settles from evidence a question the docs would not — `render.com` is
+  blocked by the network policy from a Claude session, so the primary source could not be read.
+- `net_usage->'by_host'` names the real consumer.
+
+**Check first, before any of that:** whether the 81.58 GB is this worker or the whole Render
+workspace. The dashboard shows bandwidth per service. If something else on the account is serving
+it, every runner-side change is wasted effort.
+
+**Leading candidate once the meter reports:** `rimo.js` polls the RiMO grid every **4 seconds**,
+plus a focus-detail loop at 1.5 s and a cell-history loop at 1 s — and it is the **only** loop with
+no opening-hours gate. Status, notes, sessions and the heavy sync all stand down overnight; RiMO
+polls through the night. By request count it dwarfs the notes index.
+
+**Question for Harvey before touching it:** karts charge overnight, so SOC and BMS genuinely change
+while the venue is shut. Is overnight RiMO data wanted? If yes it stays as it is; if it is only
+needed while the venue is open, the same `hours.shouldSkip` gate the other four loops use would cut
+its requests by roughly half. **Not changed unilaterally** — that is a data-collection decision.
 
 ---
 

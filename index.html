@@ -2061,6 +2061,7 @@
     .ld-mapf{opacity:.75}
     .ld-panel{margin-top:12px;background:var(--card);border:1px solid var(--b2);border-radius:16px;padding:14px 16px}
     .ld-panel .ld-f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--t2);flex:1;min-width:110px}
+    .ld-panel .ld-f select{background:var(--card2);border:1px solid var(--b2);color:var(--t1);border-radius:10px;padding:9px 11px;font-size:15px}
     .ld-panel .ld-f input{background:var(--card2);border:1px solid var(--b2);color:var(--t1);border-radius:10px;padding:9px 11px;font-size:15px}
     .ld-frow{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
     .ld-fndesc{font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5}
@@ -3014,8 +3015,8 @@
         <div class="ld-bar">
           <label class="ld-btn">🗺️ Upload venue plan<input type="file" accept="image/*" style="display:none" onchange="ldUploadPlan(this)"></label>
           <button class="ld-btn" id="ld-ink" onclick="ldToggleInk()">◐ Ink mode</button>
-          <label class="ld-fade">Line threshold
-            <input type="range" min="0.05" max="0.85" step="0.02" id="ld-thr" oninput="ldPlanThreshold(this.value)">
+          <label class="ld-fade">Line pickup
+            <input type="range" min="0.01" max="0.45" step="0.01" id="ld-thr" oninput="ldPlanThreshold(this.value)">
           </label>
           <button class="ld-btn" onclick="ldClearPlan()">Remove plan</button>
         </div>
@@ -3928,7 +3929,7 @@
         <button class="ld-btn pri" id="mm-save" onclick="ldSaveLayout()" disabled>Save master map</button>
         <label class="ld-btn">🗺️ Upload venue plan<input type="file" accept="image/*" style="display:none" onchange="ldUploadPlan(this)"></label>
         <button class="ld-btn" id="mm-ink" onclick="ldToggleInk()">◐ Ink mode</button>
-        <label class="ld-fade">Line threshold<input type="range" min="0.05" max="0.85" step="0.02" id="mm-thr" oninput="ldPlanThreshold(this.value)"></label>
+        <label class="ld-fade">Line pickup<input type="range" min="0.01" max="0.45" step="0.01" id="mm-thr" oninput="ldPlanThreshold(this.value)"></label>
         <button class="ld-btn" onclick="ldClearPlan()">Remove plan</button>
         <span class="ld-status" id="mm-status"></span>
       </div>
@@ -13264,7 +13265,7 @@ function ldSyncBar(){
   var em=ldEl('editmap'); if(em) em.className='ld-btn'+(LD_EDIT?' on':'');
   var nm=ldEl('name'); if(nm&&document.activeElement!==nm) nm.value=(LD_LAYOUTS[LD_LETTER]&&LD_LAYOUTS[LD_LETTER].display_name)||'';
   var th=ldEl('thr');
-  if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.45;
+  if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.06;
   var ik=ldEl('ink'); if(ik) ik.className='ld-btn'+((LD_MAP&&!LD_MAP.planRaw)?' on':'');
   var cl=ldEl('clean'); if(cl) cl.className='ld-btn'+(LD_CLEAN?' on':'');
 }
@@ -13283,8 +13284,17 @@ function ldRenderMap(){
      slope lifts the faint construction lines that would otherwise wash out.
      This keeps the SURVEYED drawing, at survey accuracy, and just restyles it. Any tracing I do by
      eye is strictly worse than the real thing with its background removed. */
-  var _thr=(LD_MAP.planThreshold==null?0.45:LD_MAP.planThreshold), _w=0.14;
-  var _t={ slope:(1/_w).toFixed(3), icept:(-_thr/_w).toFixed(3) };
+  /* KEEP THE GREY. THAT IS THE TRACK.
+     This defaulted to a threshold of 0.45, which discarded anything lighter than mid-grey — and on
+     this drawing the TRACK IS DRAWN IN GREY while the black lines are walls. So the filter was
+     deleting precisely the thing it existed to reveal. Harvey said "the grey lines of the track"
+     from the first message; I read it as "black ink, grey clutter" and had it exactly backwards.
+     Now the cut sits just below paper white, so every line — grey or black — survives, and the
+     gain then drives what survives to full black. Mid-grey (luminance ~0.75) lands solidly black;
+     only near-white paper is dropped. That IS "the grey lines redrawn in black with no background".
+     The slider still exists for a dirtier scan, but it starts where the track is visible. */
+  var _thr=(LD_MAP.planThreshold==null?0.06:LD_MAP.planThreshold), _gain=6.5;
+  var _t={ slope:_gain.toFixed(3), icept:(-_thr*_gain).toFixed(3) };
   h+='<defs><filter id="ldink" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">'
    + '<feColorMatrix type="matrix" values="0 0 0 0 0.04  0 0 0 0 0.06  0 0 0 0 0.10  -0.34 -0.34 -0.34 0 1"/>'
    /* THRESHOLD, NOT A FADE — this is what isolates the track.
@@ -13334,7 +13344,7 @@ function ldRenderMap(){
   });
   // 4. beacons — fixed positions; a layout decides which are in use and what they run
   (LD_MAP.segs||[]).forEach(function(s){
-    var on=(s.kind==='static')?!(cfg[s.id]&&cfg[s.id].off):ldSegOn(s), c=cfg[s.id];
+    var on=ldSegOn(s), c=cfg[s.id];
     if(LD_CLEAN&&!on) return;                       // reading the map: only what is actually in play
     var cls='ld-seg '+s.kind+(s.kind!=='wall'&&!on?' off':'')+(LD_SEL===s.id?' sel':'');
     var w=s.kind==='wall'?7:(on?13:8);
@@ -13343,10 +13353,8 @@ function ldRenderMap(){
     var mx=(s.x1+s.x2)/2, my=(s.y1+s.y2)/2, vert=Math.abs(s.y2-s.y1)>Math.abs(s.x2-s.x1);
     if(s.kind==='dyn'&&!LD_CLEAN) h+='<text class="ld-num" x="'+(mx+(vert?16:0))+'" y="'+(my+(vert?5:-14))+'"'+(vert?'':' text-anchor="middle"')+'>'+s.id+'</text>';
     // The function chip only means something where the beacon is actually in play.
-    var sn=(s.kind==='static'?(c&&c.sn!=null?c.sn:(s.sn||'')):(c&&c.sn||''));
-    var fn=(s.kind==='static'?(c&&c.fn!=null?c.fn:(s.fn||'')):(c&&c.fn||''));
-    var inUse=(s.kind==='static')?(!c||c.off!==true):(on&&!!c);
-    if(inUse&&(sn||fn)){
+    var sn=(c&&c.sn)||'', fn=(c&&c.fn)||'';
+    if(on&&(sn||fn)){
       var t=(sn?('S'+sn):'')+(sn&&fn?'·':'')+(fn?('F'+fn):''), tw=t.length*10.5+16;
       h+='<g class="ld-chipg"><rect class="ld-chip" x="'+(mx-tw/2)+'" y="'+(my+12)+'" width="'+tw+'" height="27" rx="7"/>'
        +'<text class="ld-chiptxt" x="'+mx+'" y="'+(my+31)+'" text-anchor="middle">'+ldEsc(t)+'</text></g>';
@@ -13475,7 +13483,7 @@ function ldUploadPlan(input){
 function ldPlanOpacity(v){ if(!LD_MAP) return; LD_MAP.planOpacity=Math.max(0.1,Math.min(1,+v||0.85)); LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar(); }
 function ldPlanThreshold(v){
   if(!LD_MAP) return;
-  LD_MAP.planThreshold=Math.max(0.02,Math.min(0.95,+v||0.45));
+  LD_MAP.planThreshold=Math.max(0.005,Math.min(0.6,+v==null?0.06:+v));
   LD_MAP.planRaw=false;                      // a threshold is meaningless on the raw image
   LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar();
 }
@@ -13518,31 +13526,32 @@ function ldRenderPanel(){
   var dirName=LD_DIR==='c'?'clockwise':'anti-clockwise';
   var title=s.kind==='dyn'?('Beacon '+s.id+' · programmable'):s.kind==='static'?((s.label||s.id)+' · static'):(s.id+' · wall');
   h+='<div class="ld-ptitle"><b>'+ldEsc(title)+'</b><span class="ld-pdir">Track '+ldEsc(LD_LETTER)+' · '+dirName+'</span></div>';
-  if(s.kind==='dyn'){
+  if(s.kind!=='wall'){
     h+='<button class="ld-big'+(on?' on':'')+'" onclick="ldToggleBeacon()">'
-      +(on?'● In use '+dirName:'○ Not used on this layout')
-      +'<span class="ld-bigsub">Fixed unit — a layout decides what it does, not where it is</span></button>';
+      +(on?'\u25cf In use '+dirName:'\u25cb Not used on this layout')
+      +'<span class="ld-bigsub">'+(s.kind==='dyn'?'Programmable \u2014 the Arduino can change this one':'Static \u2014 set in hardware')+'</span></button>';
     if(on){
       h+='<div class="ld-frow">'
        +'<label class="ld-f"><span>S/N (sector)</span><input value="'+ldEsc((c&&c.sn)||'')+'" inputmode="numeric" oninput="ldCfgField(\'sn\',this.value)"></label>'
        +'<label class="ld-f"><span>F/N (function)</span><input list="ld-fnlist" value="'+ldEsc((c&&c.fn)||'')+'" oninput="ldCfgField(\'fn\',this.value)"></label></div>'
        +'<div class="ld-fndesc" id="ld-fnlive">'+ldFnDesc((c&&c.fn)||'')+'</div>'
-       +'<div class="ld-fndesc">Beacon settings apply to <b>'+dirName+'</b> only. The other direction keeps its own.</div>';
+       +'<div class="ld-fndesc">Applies to <b>'+dirName+'</b> only \u2014 the other direction keeps its own.</div>';
     }
-    h+='<div class="ld-frow ld-mapf"><label class="ld-f"><span>MAC address (unit)</span><input value="'+ldEsc(s.mac||'')+'" placeholder="AA:BB:CC:DD:EE:FF" oninput="ldSegField(\'mac\',this.value)"></label>'
-     +'<label class="ld-f"><span>Label</span><input value="'+ldEsc(s.label||'')+'" placeholder="e.g. Pit entry" oninput="ldSegField(\'label\',this.value)"></label></div>';
-  } else if(s.kind==='static'){
-    var off=!!(c&&c.off);
-    h+='<button class="ld-big'+(off?'':' on')+'" onclick="ldToggleStatic()">'
-      +(off?'○ Not in use on this layout':'● In use')
-      +'<span class="ld-bigsub">Permanent fixture — its function is set in hardware</span></button>'
-     +'<div class="ld-frow ld-mapf">'
-     +'<label class="ld-f"><span>S/N (fixed)</span><input value="'+ldEsc(s.sn||'')+'" inputmode="numeric" oninput="ldSegField(\'sn\',this.value)"></label>'
-     +'<label class="ld-f"><span>F/N (fixed)</span><input list="ld-fnlist" value="'+ldEsc(s.fn||'')+'" oninput="ldSegField(\'fn\',this.value)"></label>'
-     +'<label class="ld-f"><span>Label</span><input value="'+ldEsc(s.label||'')+'" oninput="ldSegField(\'label\',this.value)"></label></div>'
-     +'<div class="ld-fndesc">'+ldFnDesc(s.fn||'')+'</div>';
-  } else {
-    h+='<div class="ld-frow ld-mapf"><label class="ld-f"><span>Label</span><input value="'+ldEsc(s.label||'')+'" oninput="ldSegField(\'label\',this.value)"></label></div>';
+    /* MASTER-MAP FIELDS. Position, type, MAC and label describe the UNIT, not a layout, so they are
+       only editable on the master map — and every beacon has all of them now. Red and blue used to
+       behave differently (blue carried a fixed function on the segment and could not be switched
+       per direction), which is why blue felt un-editable. They are the same object; the colour only
+       says whether the Arduino can drive it. */
+    if(LD_EDIT){
+      h+='<div class="ld-frow ld-mapf">'
+       +'<label class="ld-f"><span>Type</span><select onchange="ldSegField(\'kind\',this.value)">'
+       +'<option value="dyn"'+(s.kind==='dyn'?' selected':'')+'>Programmable (red)</option>'
+       +'<option value="static"'+(s.kind==='static'?' selected':'')+'>Static (blue)</option></select></label>'
+       +'<label class="ld-f"><span>MAC address</span><input value="'+ldEsc(s.mac||'')+'" placeholder="AA:BB:CC:DD:EE:FF" oninput="ldSegField(\'mac\',this.value)"></label>'
+       +'<label class="ld-f"><span>Label</span><input value="'+ldEsc(s.label||'')+'" placeholder="e.g. Pit entry" oninput="ldSegField(\'label\',this.value)"></label></div>'
+       +'<div class="ld-frow"><button class="ld-btn" onclick="ldDeleteSeg()">\ud83d\uddd1 Delete this beacon</button></div>'
+       +'<div class="ld-fndesc">Drag either end on the map to move or re-angle it. Defaults S/N '+ldEsc(s.sn||'\u2014')+' \u00b7 F/N '+ldEsc(s.fn||'\u2014')+'.</div>';
+    }
   }
   p.innerHTML=h+addRow;
 }
@@ -13553,8 +13562,9 @@ function ldFnDesc(fn){
 /* A beacon is in use per LAYOUT AND DIRECTION — it has nothing to do with barriers, and turning it
    off for clockwise leaves anti-clockwise exactly as it was. */
 function ldToggleBeacon(){
-  var cfg=ldBeacons();
-  if(cfg[LD_SEL]) delete cfg[LD_SEL]; else cfg[LD_SEL]={sn:'',fn:''};
+  var cfg=ldBeacons(), seg=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;});
+  // Prefill from the unit's own defaults — the named beacons carry their real S/N + F/N.
+  if(cfg[LD_SEL]) delete cfg[LD_SEL]; else cfg[LD_SEL]={sn:(seg&&seg.sn)||'',fn:(seg&&seg.fn)||''};
   LD_DIRTY=true; ldRenderMap(); ldRenderPanel(); ldRenderTabs(); ldSyncBar();
 }
 /* Run or remove a moveable barrier between two pillars. Shared by both directions: it is a
@@ -13581,7 +13591,7 @@ function ldCfgField(f,v){
   cfg[LD_SEL][f]=v; LD_DIRTY=true; ldSyncBar(); ldRenderMap(); ldRenderTabs();
   if(f==='fn'){ var el=ldEl('fnlive'); if(el) el.innerHTML=ldFnDesc(v); }
 }
-function ldSegField(f,v){ var s=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;}); if(!s) return; s[f]=v; LD_MAPDIRTY=true; ldSyncBar(); if(f!=='mac') ldRenderMap(); }
+function ldSegField(f,v){ var s=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;}); if(!s) return; s[f]=v; LD_MAPDIRTY=true; ldSyncBar(); if(f!=='mac'&&f!=='label') ldRenderMap(); if(f==='kind') ldRenderPanel(); }
 function ldToggleEdit(){ LD_EDIT=!LD_EDIT; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
 function ldToggleClean(){ LD_CLEAN=!LD_CLEAN; LD_SEL=null; LD_PIN=null; LD_BSEL=null; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
 /* MASTER MAP, opened from Master Access. Same engine, different host elements and permanently in
@@ -13741,11 +13751,8 @@ function ldExport(){
            barriers:r.barriers.slice(),beacons:[]};
   (LD_MAP.segs||[]).forEach(function(s){
     if(s.kind==='wall') return;
-    var c=cfg[s.id];
-    if(s.kind==='dyn'){ if(!c) return; }
-    else if(c&&c.off) return;
-    var sn=s.kind==='static'?(s.sn||''):((c&&c.sn)||'');
-    var fn=s.kind==='static'?(s.fn||''):((c&&c.fn)||'');
+    var c=cfg[s.id]; if(!c) return;               // not in use on this layout
+    var sn=(c.sn||''), fn=(c.fn||'');
     var f=(typeof dhFn==='function')?dhFn(fn):null;
     out.beacons.push({id:s.id,kind:s.kind,label:s.label||null,mac:s.mac||null,sn:sn,fn:fn,does:(f&&f.desc)||null});
   });

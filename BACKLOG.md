@@ -178,6 +178,20 @@ beacon for **every** track at once.
 - Barriers render **hatched** to match the insert pieces on the plan (large 6595×2005, small
   2200×2005, column 2005×2005).
 
+**The threshold keeps GREY — that is the track.** It first defaulted to discarding anything lighter
+than mid-grey, on the assumption that the track was the black ink and the grey was clutter. It is
+the other way round on this drawing: **the track is drawn in grey**, the black lines are walls.
+Harvey said "the grey lines of the track" from his first message and I read it backwards, so the
+filter was deleting exactly what it existed to reveal. The cut now sits just below paper white, so
+every line survives and the gain drives it to full black — grey lines redrawn in black, white paper
+gone.
+
+**Red and blue beacons are the same object.** Blue used to carry a fixed function on the segment and
+could not be switched per direction, which is why it felt un-editable. Now both are movable,
+deletable, have a MAC and label, can be switched between types, and take per-layout, per-direction
+S/N + F/N. Turning one on prefills from the unit's own defaults, so the eight named beacons arrive
+with their real values. Colour now means one thing only: whether the Arduino can drive it.
+
 **The plan: thresholded, not traced.** Every attempt to redraw the venue by eye was rightly called
 crap. The drawing has the track walls in **solid black** and the architectural background (column
 grid, dimensions, hatching, paper tone) in **light grey** — so an SVG filter maps luminance to alpha

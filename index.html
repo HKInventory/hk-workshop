@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GY · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-GZ · ZXing raw</div>
       </div>
     </div>
 
@@ -4612,6 +4612,18 @@ function startRealtime(){
       }
     }catch(e){}
   }
+  /* EVERY TABLE THIS APP SUBSCRIBES TO — kept beside the subscriptions so it cannot drift.
+     App Health checks this against the live supabase_realtime publication and names anything
+     subscribing to a table that cannot deliver. `poll` marks a subscription we do NOT expect to be
+     live: rimo_karts changes far too often to be worth publishing (it was writing 208 rows/min
+     before the runner's hysteresis fix, and every row would multiply by every connected device),
+     so the kart dots ride the 20s poll below instead and that is deliberate, not a fault. */
+  window.HK_RT_TABLES=[
+    {t:'rf_karts'},{t:'rf_kart_notes'},{t:'rf_repairs'},{t:'rf_discrepancies'},
+    {t:'parts'},{t:'stock'},{t:'ui_config'},{t:'messages'},{t:'chat_reads'},
+    {t:'tasks'},{t:'ramp_events'},{t:'kart_checks'},{t:'presence'},{t:'tv_state'},
+    {t:'rimo_karts',poll:'20s poll'}
+  ];
   try{
     SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _rtParts(); _rtNotif(); }).subscribe();
     SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
@@ -4714,7 +4726,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GY</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-GZ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7666,6 +7678,33 @@ function healthRender(){
 
   /* ---- where the writes go ------------------------------------------------ */
   var pubSet={}; (cur.published_tables||[]).forEach(function(t){ pubSet[t]=1; });
+
+  /* ---- LIVE UPDATES: is each subscription actually receiving anything? -----
+     A .on('postgres_changes') for a table that is NOT in the supabase_realtime publication
+     subscribes successfully, reports no error, and then delivers nothing for the rest of the
+     session. Five of ours were in that state — parts, stock, rf_repairs, rf_discrepancies and
+     rimo_karts — so a repair logged by one mechanic never reached anybody else's screen, and the
+     manager discrepancy badge and its alert sound could not fire at all. Nothing anywhere said so.
+     That is the same shape as the write-path bug that ran six days unnoticed: silent, and invisible
+     precisely because the code looks correct. This panel makes the publication and the subscription
+     list check each other, so the next one announces itself. */
+  // Guarded: this render must never throw on a name that startRealtime() may not have set yet.
+  // A single unguarded reference inside a render is what left Daily Summary stuck on "Loading".
+  var _rtSubs=(typeof window!=='undefined'&&window.HK_RT_TABLES)?window.HK_RT_TABLES:[];
+  var liveGrid='';
+  if((cur.published_tables||[]).length && _rtSubs.length){
+    var _ok=0, _dead=[], _polled=[];
+    _rtSubs.forEach(function(s){
+      if(pubSet[s.t]) _ok++;
+      else if(s.poll) _polled.push(s.t+' ('+s.poll+')');
+      else _dead.push(s.t);
+    });
+    liveGrid=_hGrid([
+      ['Delivering', _ok+' of '+_rtSubs.length],
+      ['Polled instead', _polled.length?_polled.join(', '):null],
+      ['NOT delivering', _dead.length?('<span style="color:'+SUMC.warm+'">'+_dead.join(', ')+'</span>'):'none']
+    ]);
+  }
   var wb=cur.writes_by_table||{};
   var wRows=Object.keys(wb).map(function(t){ return {label:t,n:Number(wb[t])||0,pub:!!pubSet[t]}; })
     .sort(function(a,b){ return b.n-a.n; }).slice(0,12);
@@ -7719,6 +7758,9 @@ function healthRender(){
     +'<div class="mc"><div class="mct">Where the writes go</div>'
       +'<div class="sum-note" style="margin:0 0 10px">Marked tables are in the realtime publication, so their rows multiply by connected clients.</div>'+writeBars
     +'</div>'
+    +(liveGrid?('<div class="mc"><div class="mct">Live updates</div>'
+      +'<div class="sum-note" style="margin:0 0 10px">A table the app subscribes to but which is not in the realtime publication delivers nothing, silently — that screen simply never updates on its own.</div>'+liveGrid
+    +'</div>'):'')
     +'<div class="mc"><div class="mct">Biggest tables</div>'+tblBars+'</div>'
     +'<div class="mc"><div class="mct">Render</div>'+renderCard+'</div>'
     +(sbGrid?('<div class="mc"><div class="mct">Supabase, in full</div>'+sbGrid+'</div>'):'')
@@ -10191,9 +10233,12 @@ function loadRimo(){
 function startRimoLive(){
   if(typeof SBC==='undefined'||!SBC) return;
   loadRimo();                                         // refresh now (also picks up a site change)
-  // Live updates: the runner only writes karts that actually changed, so realtime is cheap — a kart
-  // flipping online fires one event and the dot updates within a moment. Debounced so a burst (e.g.
-  // the runner's first full write after a restart) collapses into a single reload.
+  // rimo_karts is deliberately NOT in the realtime publication, so this subscription receives
+  // nothing and the 20s poll below is what actually keeps the dots current. Kept, not deleted, so
+  // it starts working the moment the table is ever published — but the poll is the real path, and
+  // App Health lists this under "Polled instead" rather than as a fault. Publishing it would be a
+  // bad trade: it was writing 208 rows/min before the runner's hysteresis fix, and every row
+  // multiplies by every connected device.
   if(!_rimoSub){
     try{ _rimoSub=SBC.channel('rimo-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'rimo_karts'},function(){ clearTimeout(_rimoDeb); _rimoDeb=setTimeout(loadRimo,600); })
@@ -11952,7 +11997,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-GZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16498,7 +16543,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-GZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -16967,7 +17012,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-GY';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-GZ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

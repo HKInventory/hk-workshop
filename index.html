@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HD · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HE · ZXing raw</div>
       </div>
     </div>
 
@@ -4804,7 +4804,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HD</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HE</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7700,6 +7700,64 @@ function _rtHeadroom(tierIdx){
     return n+' device'+(n===1?'':'s')+' at the current write rate';
   }catch(e){ return null; }
 }
+/* ===== SPARK: one small time-series engine, used everywhere ===================================
+   The page grew a bar list per metric, which is fine for "which table is biggest" and useless for
+   the question this page actually exists to answer: is something CHANGING. A write path that
+   repeats itself is invisible in a bar and obvious in a line, and that is the failure mode this
+   whole page was built after.
+
+   Pure SVG, no library, no network — the app has no build step and a strict offline-first rule.
+   Draws an area + line + last-point marker, with a shaded band for the plan limit where one
+   applies, so "approaching the limit" is a thing you SEE rather than a percentage you have to
+   read and convert. */
+function _spark(vals, opts){
+  opts=opts||{};
+  var v=(vals||[]).filter(function(x){ return x!=null && isFinite(x); }).map(Number);
+  if(v.length<2) return '<div class="sum-empty">Not enough history yet &mdash; needs two snapshots.</div>';
+  var W=opts.w||600, H=opts.h||90, P=4;
+  var max=Math.max.apply(null,v), min=Math.min.apply(null,v);
+  if(opts.limit!=null) max=Math.max(max,opts.limit);
+  if(max===min){ max=min+1; }                                  // a flat line still deserves a line
+  var col=opts.color||SUMC.accent;
+  var x=function(i){ return P+(i*(W-2*P))/(v.length-1); };
+  var y=function(n){ return H-P-((n-min)/(max-min))*(H-2*P); };
+  var pts=v.map(function(n,i){ return x(i).toFixed(1)+','+y(n).toFixed(1); }).join(' ');
+  var area='M'+x(0).toFixed(1)+','+(H-P)+' L'+v.map(function(n,i){ return x(i).toFixed(1)+','+y(n).toFixed(1); }).join(' L')+' L'+x(v.length-1).toFixed(1)+','+(H-P)+' Z';
+  var lim='';
+  if(opts.limit!=null && opts.limit<=max){
+    var ly=y(opts.limit).toFixed(1);
+    lim='<line x1="'+P+'" y1="'+ly+'" x2="'+(W-P)+'" y2="'+ly+'" stroke="'+SUMC.warm+'" stroke-width="1" stroke-dasharray="4 3" opacity=".85"/>';
+  }
+  var last=v[v.length-1];
+  var uid='sp'+Math.floor(x(1)*1000)+v.length+Math.round(max);
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:'+H+'px;display:block">'
+    +'<defs><linearGradient id="'+uid+'" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0%" stop-color="'+col+'" stop-opacity=".38"/><stop offset="100%" stop-color="'+col+'" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#'+uid+')"/>'
+    +lim
+    +'<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+x(v.length-1).toFixed(1)+'" cy="'+y(last).toFixed(1)+'" r="3.2" fill="'+col+'"/>'
+    +'</svg>';
+}
+/* A metric card: big current value, the trend behind it, and what it is measured against. */
+function _sparkCard(title, value, sub, vals, opts){
+  return '<div class="mc" style="padding-bottom:6px"><div class="mct">'+title+'</div>'
+    +'<div style="font-size:26px;font-weight:800;letter-spacing:-.5px;margin:2px 0 0">'+value+'</div>'
+    +(sub?('<div class="sum-note" style="margin:2px 0 8px">'+sub+'</div>'):'<div style="height:8px"></div>')
+    +_spark(vals,opts)+'</div>';
+}
+/* Oldest -> newest for a metric across the loaded snapshots. HEALTH_ROWS is newest-first. */
+function _series(key){
+  try{
+    var rows=(typeof HEALTH_ROWS!=='undefined'&&HEALTH_ROWS)?HEALTH_ROWS:[];
+    return rows.slice().reverse().map(function(r){
+      var v=(typeof key==='function')?key(r):(r?r[key]:null);
+      return (v==null||!isFinite(Number(v)))?null:Number(v);
+    }).filter(function(x){ return x!=null; });
+  }catch(e){ return []; }
+}
+
 /* ---- DEVICES, AND WHAT THIS ACTUALLY COSTS -------------------------------------------------
    The device count is the multiplier on every realtime message, so it belongs on this page as a
    first-class figure rather than buried inside a projection. Peak matters more than "now": a quiet
@@ -7983,6 +8041,28 @@ function healthRender(){
       +'<div class="sum-note" style="margin:0 0 10px">Marked tables are in the realtime publication, so their rows multiply by connected clients.</div>'+writeBars
     +'</div>'
     +'<div class="mc"><div class="mct">Instant features &amp; what they cost</div>'+_rtDialHtml(cur)+'</div>'
+    /* ---- THE HEADLINE ROW ---------------------------------------------------------------
+       Four things, each with its own history behind it, because the question this page exists
+       to answer is "is anything changing", and a number on its own cannot answer that. Realtime
+       carries the plan line so approaching the limit is visible rather than arithmetic. */
+    +_sparkCard('Realtime messages',
+        (cur.realtime_msgs_month!=null?((cur.realtime_msgs_month/1e6).toFixed(2)+'M'):'not measured'),
+        (cur.realtime_msgs_month!=null
+          ? ('projected this month &middot; '+Math.round(cur.realtime_msgs_month/(cur.realtime_cap||5e6)*100)+'% of '+(((cur.realtime_cap||5e6)/1e6).toFixed(0))+'M &middot; dashed line is the plan')
+          : 'run app_health_columns.sql &mdash; the runner is measuring this and has nowhere to put it'),
+        _series('realtime_msgs_month'), {limit:(cur.realtime_cap||5e6)})
+    +_sparkCard('Devices connected',
+        (function(){var d=_rtDevices(); return d.now==null?'&mdash;':String(d.now);})(),
+        (function(){var d=_rtDevices(); return d.peak7==null?'no history yet':('peak '+d.peak7+' over 7 days &middot; average '+d.avg7);})(),
+        _series('realtime_clients'))
+    +_sparkCard('Write rate',
+        ((cur.avg_writes_per_min!=null?Number(cur.avg_writes_per_min).toFixed(0):(cur.writes_per_min!=null?cur.writes_per_min:'&mdash;'))+' /min'),
+        'rows a minute across every table &middot; flat is healthy, a step change is a write path repeating itself',
+        _series('avg_writes_per_min'), {color:SUMC.warm})
+    +_sparkCard('Database size',
+        (cur.db_total_bytes!=null?hBytes(cur.db_total_bytes):'&mdash;'),
+        'of 8 GB on Pro &middot; growth here is what a runaway write path looks like days later',
+        _series('db_total_bytes'))
     +'<div class="mc"><div class="mct">Devices &amp; the bill</div>'
       +'<div class="sum-note" style="margin:0 0 10px">Devices are the multiplier on every realtime message, so the peak matters more than the reading right now &mdash; a quiet Tuesday says nothing about a school-holiday Saturday.</div>'
       +_hGrid([
@@ -12249,7 +12329,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16796,7 +16876,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -17265,7 +17345,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HD';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HE';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -116,6 +116,35 @@ its requests by roughly half. **Not changed unilaterally** — that is a data-co
 
 ---
 
+## Layout Designer — built 27 Jul; open questions + Arduino stage
+
+The venue map + layout library is live (Facility → Layout Designer, manager-default-on). One
+shared geometry (pillars + beacon segments), layout codes A–AX × c/a (100), marketing names per
+code, per-layout beacon config (S/N + F/N from the real `DEHAARDT_FN` table), red = programmable
+(MAC field on each), blue = static (fixed F/N on the segment), editable map, export button
+emitting the config JSON a future Arduino bridge would push. Tables `venue_map` +
+`track_layouts` are NOT in the realtime publication — zero message cost by construction.
+
+Open items, deliberately not guessed:
+
+- **Traced geometry is approximate.** Seeded by eye from Harvey's plan screenshot. Harvey should
+  drag beacons/pillars to true positions in ✏️ Edit map once, then Save — the DB copy is then
+  authoritative forever.
+- **Names per code or per letter?** The sheet has one marketing-name row per LETTER; Harvey's
+  example ("track Aa") suggested per-variant. Built per-code (each of Aa/Ac named separately) as
+  the superset. If he wants shared, he names both.
+- **Zones/sections** (adult vs junior vs inter open simultaneously, as in his coloured overlay):
+  the model handles it — each concurrent track is its own layout code — but there is no
+  "venue preset" yet that groups several active layouts into one tap. That is the natural next
+  step and also what the Arduino stage would switch.
+- **Linking codes to RaceFacer's 46 track configs** (`tracks` table, runner-maintained) so the
+  live layout auto-detects: field for it does not exist yet; add `rf_track_id` to
+  `track_layouts` when wanted.
+- **Arduino stage:** export format is stable ({code, beacons:[{id, kind, mac, sn, fn}]}). The
+  bridge consumes exactly that; nothing in the app needs restructuring for it.
+- **MAC addresses are not validated** — free text, since Dehaardt's exact identifier format
+  hasn't been seen yet. Validate once a real one is in hand.
+
 ## Parts still do not attach to repairs pushed from the app
 
 Root cause known. RaceFacer renders "Parts used" as a Vue component, so `used_parts[index].id`

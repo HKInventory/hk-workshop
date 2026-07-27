@@ -112,6 +112,41 @@ an estimated monthly bill.
 money and makes more things live; turning it down is free and instant. Every setting states its
 gains and its costs, and shows how many devices it supports.
 
+### We were about to fix the wrong thing, and measured it first
+
+**The situation:** the worker that talks to RaceFacer runs on a hosting service with a hard limit
+of 100 GB of traffic a month. It was at 81.58 GB — 82% — with the month still running. Going over
+means either a bill or the service being cut off.
+
+**The suspected cause** was a large page the worker downloads from RaceFacer to spot new kart
+notes: 2.5 MB, roughly every 18 seconds. It looked obvious, and the fix looked easy — fetch it
+less often.
+
+**Measuring it first showed the theory was wrong three times over:**
+
+- That 2.5 MB is the size **after unpacking**. Everything is sent compressed, and a page of 2,400
+  near-identical rows compresses about **20 to 1**. What actually crosses the wire is roughly
+  126 KB, not 2.5 MB.
+- The hosting service charges for data **sent out**. This page is data coming **in**.
+- The numbers never added up. 2.5 MB every 18 seconds would be about **354 GB a month** — more
+  than four times what the bill actually shows, and over three times the cap. If that were the
+  cause, the service would have been cut off weeks ago.
+
+**Why it matters that we checked:** the "easy fix" was to fetch the notes page less often. Notes
+detection had *just* been repaired — before that it had been finding nothing at all — so the
+proposed fix would have slowed down the feature we had only-just got working, to save a few
+percent of a bill it was not causing.
+
+**What was built instead:** the worker now counts every byte it sends and receives, and which
+system it went to. Nothing was counting before — the same blind spot behind the 324 million
+message incident below, where a runaway process ran for six days because nothing was watching.
+
+**Still to do:** read the meter after it has been running an hour, and confirm whether the 81.58 GB
+is even this worker rather than something else on the same account. The current leading suspect is
+the battery-telemetry poller, which checks every 4 seconds around the clock and is the only part of
+the system that does not stand down overnight — a question for Harvey, since karts charge overnight
+and that data may well be wanted.
+
 ---
 
 ## The 324 million message incident — read before changing anything

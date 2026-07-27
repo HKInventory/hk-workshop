@@ -1997,42 +1997,62 @@
     .ld-btn.on{background:linear-gradient(145deg,#F97316,#9A3412);border-color:rgba(253,186,116,.5);color:#fff}
     .ld-btn[disabled]{opacity:.45;pointer-events:none}
     .ld-dirs{display:flex;gap:8px;margin:0 0 10px}
+    .ld-note{font-size:11.5px;color:var(--t2);line-height:1.55;margin:0 2px 10px}
+    .ts-tools{display:flex;gap:14px;align-items:center;margin:0 0 10px}
+    .ts-only{font-size:12.5px;color:var(--t2);display:flex;align-items:center;gap:7px}
+    .ts-wrap{overflow-x:auto;border:1px solid var(--b2);border-radius:14px;background:var(--card)}
+    .ts-tab{border-collapse:collapse;width:100%;min-width:900px;font-size:13px}
+    .ts-tab th{position:sticky;top:0;background:var(--card2);color:var(--t2);font-size:10.5px;letter-spacing:.1em;
+      text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--b2);white-space:nowrap}
+    .ts-tab td{padding:6px 8px;border-bottom:1px solid var(--b2);vertical-align:middle}
+    .ts-tab tr.used td{background:rgba(132,204,22,.06)}
+    .ts-code{font-weight:800;font-size:15px;color:var(--t1);white-space:nowrap;padding-left:12px!important}
+    .ts-dir{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--t2);white-space:nowrap}
+    .ts-tab input{width:100%;min-width:120px;background:var(--card2);border:1px solid var(--b2);color:var(--t1);
+      border-radius:9px;padding:7px 9px;font-size:13px}
+    .ts-tab input.pri{border-color:rgba(132,204,22,.45)}
+    .ts-meta{font-size:11px;color:var(--t2);white-space:nowrap}
     .ld-tab{flex:1;background:var(--card);border:1px solid var(--b2);color:var(--t2);border-radius:13px;padding:11px 10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:center}
     .ld-tab.on{background:linear-gradient(145deg,#2563EB,#1E3A8A);border-color:rgba(147,197,253,.55);color:#fff}
     .ld-tabn{font-size:10.5px;font-weight:600;opacity:.75;letter-spacing:.04em}
-    .ld-stage{position:relative;background:#070b12;border:1px solid var(--b2);border-radius:16px;overflow:hidden;touch-action:none}
-    .ld-stage svg{display:block;width:100%;height:auto;cursor:grab}
-    .ld-noplan{fill:rgba(255,255,255,.35);font-size:34px;font-weight:600}
-    /* Drawn venue backdrop (replaced the moment a real plan is uploaded). */
-    .v-hall{fill:#101724;stroke:#3d4b63;stroke-width:4;stroke-linejoin:round}
-    .v-room{fill:#1b2436;stroke:#46536c;stroke-width:2.5}
-    .v-svc{fill:#16342a;stroke:#2f7d5f;stroke-width:2.5}
-    .v-track{fill:none;stroke:#66748e;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
-    .v-pit{fill:rgba(148,163,184,.16);stroke:#7c8aa3;stroke-width:2;stroke-dasharray:9 7}
-    .v-lab{fill:#64748b;font-size:19px;font-weight:700;letter-spacing:.08em}
-    .ld-note{font-size:11.5px;color:var(--t2);line-height:1.55;margin:0 2px 10px}
+    /* A LIGHT DRAWING SURFACE, NOT A DARK UI PANEL.
+       This started dark to match the rest of the app and it made the venue look like a photocopy.
+       A plan is read as ink on paper: crisp black line work on near-white, which is also what makes
+       the red and blue beacons and the hatched barriers pop instead of muddying together. The ink
+       filter above forces an uploaded plan into the same black-on-white so a scan and the drawn
+       venue are indistinguishable in style. */
+    .ld-stage{position:relative;background:#f7f9fc;border:1px solid var(--b2);border-radius:16px;overflow:hidden;touch-action:manipulation}
+    .ld-stage svg{display:block;width:100%;height:auto}
+    .ld-noplan{fill:#94a3b8;font-size:34px;font-weight:600}
     .ld-fade{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2)}
     .ld-fade input{width:120px}
-    /* A barrier is a physical wall between two pillars — deliberately NOT red, because red means
-       beacon. Solid, chunky, structural. */
-    .ld-bar-line{stroke:#E2E8F0;stroke-width:16;stroke-linecap:round;cursor:pointer}
-    .ld-bar-line.sel{stroke:#FDE68A}
-    .ld-pillar{fill:rgba(37,99,235,.22);stroke:#60A5FA;stroke-width:3;cursor:pointer}
-    .ld-pillar.pin{fill:rgba(250,204,21,.5);stroke:#FACC15;stroke-width:5}
-    .ld-pillar.cand{stroke-dasharray:5 4;stroke:#FDE68A}
+    /* Drawn venue — black vector line work. */
+    .v-hall{fill:#ffffff;stroke:#0f172a;stroke-width:4;stroke-linejoin:round}
+    .v-room{fill:#e8edf5;stroke:#334155;stroke-width:2.5}
+    .v-svc{fill:#d8ebe0;stroke:#2f7d5f;stroke-width:2.5}
+    .v-track{fill:none;stroke:#0f172a;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+    .v-pit{fill:rgba(15,23,42,.06);stroke:#475569;stroke-width:2;stroke-dasharray:9 7}
+    .v-lab{fill:#64748b;font-size:19px;font-weight:700;letter-spacing:.08em}
+    /* A barrier is a physical insert piece — hatched, with a dark edge so it reads as an object. */
+    .ld-bar-line{stroke:url(#ldhatch);stroke-width:17;stroke-linecap:butt;cursor:pointer}
+    .ld-bar-line.sel{stroke:#F59E0B}
+    .ld-bar-edge{stroke:#0f172a;stroke-width:21;stroke-linecap:butt;pointer-events:none}
+    .ld-pillar{fill:#ffffff;stroke:#0f172a;stroke-width:3;cursor:pointer}
     .ld-pillar.edit{cursor:grab}
+    .ld-pillar.pin{fill:#FDE68A;stroke:#D97706;stroke-width:5}
+    .ld-pillar.cand{stroke-dasharray:5 4;stroke:#D97706}
     .ld-seg{stroke-linecap:round;cursor:pointer}
-    .ld-seg.dyn{stroke:#FF3B30}
-    .ld-seg.static{stroke:#2979FF}
-    .ld-seg.wall{stroke:#5b6572;cursor:default}
-    .ld-seg.off{opacity:.22;stroke-dasharray:9 11}
-    .ld-seg.sel{filter:drop-shadow(0 0 10px currentColor)}
+    .ld-seg.dyn{stroke:#DC2626}
+    .ld-seg.static{stroke:#1D4ED8}
+    .ld-seg.wall{stroke:#94a3b8;cursor:default}
+    .ld-seg.off{opacity:.3;stroke-dasharray:9 11}
+    .ld-seg.sel{filter:drop-shadow(0 0 8px currentColor)}
     .ld-hit{stroke:transparent;stroke-width:34;cursor:pointer}
-    .ld-num{fill:#111827;font-size:19px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:rgba(255,255,255,.85);stroke-width:4px}
-    .ld-slab{fill:#1D4ED8;font-size:16px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:4px}
-    .ld-chip{fill:#0d1420;stroke:rgba(255,255,255,.3)}
+    .ld-num{fill:#0f172a;font-size:19px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+    .ld-slab{fill:#1D4ED8;font-size:15px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+    .ld-chip{fill:#0f172a;stroke:none}
     .ld-chiptxt{fill:#fff;font-size:17px;font-weight:800;pointer-events:none}
-    .ld-hnd{fill:#fff;stroke:#F97316;stroke-width:3;cursor:grab}
+    .ld-hnd{fill:#fff;stroke:#D97706;stroke-width:3;cursor:grab}
     .ld-ptitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
     .ld-pdir{font-size:11.5px;color:var(--t2);letter-spacing:.05em;text-transform:uppercase}
     .ld-big{width:100%;background:var(--card2);border:1px solid var(--b2);color:var(--t1);border-radius:13px;padding:13px 15px;font-size:15px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left}
@@ -2956,6 +2976,7 @@
         <div class="ki-tiles">
           <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
           <div class="tile tlo"      id="bcndesign" onclick="ldOpen()"><div class="ti">🧭</div><div class="tl">Layout Designer</div><div class="ts">Venue map &amp; beacon setup</div></div>
+          <div class="tile gord"     id="bcntsheet" onclick="tsOpen()"><div class="ti">📋</div><div class="tl">Track Sheet</div><div class="ts">Every layout &amp; its names</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
           <div class="tile gord"     id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
@@ -2985,34 +3006,48 @@
         <div class="ld-dirs" id="ld-dirs"></div>
         <div class="ld-bar">
           <button class="ld-btn pri" id="ld-save" onclick="ldSaveLayout()" disabled>Save</button>
-          <button class="ld-btn" id="ld-editmap" onclick="ldToggleEdit()">✏️ Master map</button>
+          <button class="ld-btn" id="ld-clean" onclick="ldToggleClean()">👁 Clean view</button>
           <button class="ld-btn" id="ld-export" onclick="ldExport()">⧉ Copy config JSON</button>
-          <button class="ld-btn" onclick="ldZoom(1.3)">＋</button>
-          <button class="ld-btn" onclick="ldZoom(1/1.3)">－</button>
-          <button class="ld-btn" onclick="ldZoomReset()">Fit</button>
           <span class="ld-status" id="ld-status"></span>
         </div>
         <!-- The venue plan is the backdrop. Uploaded once, not redrawn — see LD_DEFAULT_MAP. -->
         <div class="ld-bar">
           <label class="ld-btn">🗺️ Upload venue plan<input type="file" accept="image/*" style="display:none" onchange="ldUploadPlan(this)"></label>
           <button class="ld-btn" id="ld-ink" onclick="ldToggleInk()">◐ Ink mode</button>
-          <label class="ld-fade">Fade
-            <input type="range" min="0.15" max="1" step="0.05" id="ld-op" oninput="ldPlanOpacity(this.value)">
+          <label class="ld-fade">Line threshold
+            <input type="range" min="0.05" max="0.85" step="0.02" id="ld-thr" oninput="ldPlanThreshold(this.value)">
           </label>
           <button class="ld-btn" onclick="ldClearPlan()">Remove plan</button>
         </div>
-        <div class="ld-note">Upload the <b>clean</b> blueprint — not one with beacons already drawn on it, or they appear twice. Ink mode drops the white paper and keeps the line work. Beacon positions live on the <b>master map</b> (✏️ above): place them once, every track layout uses them.</div>
+        <div class="ld-note">Connect pillars to lay barriers; tap a beacon to set what it does for this direction. Beacon <b>positions</b> and MAC addresses are not set here — they live on the Venue Master Map in Master Access, because they are hardware shared by every layout.</div>
         <div class="ld-stage" id="ld-stage"></div>
         <div class="ld-legend">
           <span><b style="background:#E2E8F0"></b>Barrier (pillar to pillar)</span>
           <span><b style="background:#FF3B30"></b>Beacon — programmable</span>
           <span><b style="background:#FF3B30;opacity:.3"></b>Beacon — not used here</span>
           <span><b style="background:#2979FF"></b>Beacon — static</span>
-          <span>Scroll to zoom · drag empty space to pan</span>
         </div>
         <div class="ld-panel" id="ld-panel"><div class="hint">Tap a beacon on the map to set it up for this layout.</div></div>
         <div class="ld-names" id="ld-names"></div>
         <datalist id="ld-fnlist"></datalist>
+      </div>
+    </div>
+
+    <!-- TRACK SHEET: the master list of layouts and what each one is called.
+         Mirrors the spreadsheet Harvey works from — one row per track letter, its clockwise and
+         anti-clockwise codes, and up to five marketing names — but reading and writing the SAME
+         rows the Layout Designer uses, so a track can never be called one thing here and another
+         there. That drift is what made the naming unmanageable in the first place. -->
+    <div class="scr" id="s-tracksheet">
+      <div class="phdr"><button class="back" onclick="tsBack()"> Back</button>
+        <button class="tk-chip" style="margin-left:auto" onclick="tsSave()" id="ts-save" disabled>Save</button></div>
+      <div class="sb">
+        <div class="pgtitle">&#128203; Track Sheet</div>
+        <div class="ki-sub">Every track layout and what it is called. <span id="ts-status"></span></div>
+        <div class="ts-tools">
+          <label class="ts-only"><input type="checkbox" id="ts-used" onchange="tsRender()"> Only tracks in use</label>
+        </div>
+        <div class="ts-wrap"><table class="ts-tab" id="ts-tab"></table></div>
       </div>
     </div>
 
@@ -3880,20 +3915,30 @@
       </div>
     </div>
   </div>
+  <!-- VENUE MASTER MAP. Beacon POSITIONS and MAC addresses live here, not in the Layout Designer:
+       they are hardware, shared by every layout, and moving one by accident while building a track
+       would silently change every track at once. (This replaces the old per-track Beacon Designer,
+       which assumed each track had its own beacons — the thing that made track naming unmanageable
+       in the first place.) -->
   <div class="m-pane" id="m-pane-tracks">
-    <div class="m-tools"><div class="m-pane-title">Beacon Designer</div></div>
-    <div class="bd-wrap">
-      <select class="bd-track" id="bd-track" onchange="bdSelectTrack(this.value)"><option value="">Loading tracks…</option></select>
-      <div class="bd-head" id="bd-head"></div>
-      <div class="bd-bar">
-        <label class="bd-btn bd-up" id="bd-upbtn" style="display:none">⤓ Replace blueprint<input type="file" accept="image/*" style="display:none" onchange="bdUploadBlueprint(this)"></label>
-        <button class="bd-btn bd-save" id="bd-savebtn" onclick="bdSave()" disabled>Save layout</button>
-        <button class="bd-btn bd-reset" id="bd-resetbtn" onclick="bdReset()" style="display:none">Reset to no map</button>
-        <span class="bd-status" id="bd-status"></span>
+    <div class="m-tools"><div class="m-pane-title">Venue Master Map</div></div>
+    <div style="padding:0 18px 18px">
+      <div class="ld-note">One drawing, shared by every track layout. Place the pillars and the beacons here, give each programmable beacon its MAC address, and every layout in the Layout Designer is built on top of it. Barriers and beacon functions are <b>not</b> set here — they belong to a layout.</div>
+      <div class="ld-bar">
+        <button class="ld-btn pri" id="mm-save" onclick="ldSaveLayout()" disabled>Save master map</button>
+        <label class="ld-btn">🗺️ Upload venue plan<input type="file" accept="image/*" style="display:none" onchange="ldUploadPlan(this)"></label>
+        <button class="ld-btn" id="mm-ink" onclick="ldToggleInk()">◐ Ink mode</button>
+        <label class="ld-fade">Line threshold<input type="range" min="0.05" max="0.85" step="0.02" id="mm-thr" oninput="ldPlanThreshold(this.value)"></label>
+        <button class="ld-btn" onclick="ldClearPlan()">Remove plan</button>
+        <span class="ld-status" id="mm-status"></span>
       </div>
-      <div class="bd-stage" id="bd-stage"><div class="bd-empty">Pick a track above to start.</div></div>
-      <div class="bd-panel" id="bd-panel"><div class="bd-phint">Pick a track, upload its car-park blueprint, then tap the blueprint to drop beacons.</div></div>
-      <datalist id="bd-fnlist"></datalist>
+      <div class="ld-stage" id="mm-stage"></div>
+      <div class="ld-legend">
+        <span><b style="background:#60A5FA"></b>Pillar (drag to position)</span>
+        <span><b style="background:#FF3B30"></b>Beacon — programmable (has a MAC)</span>
+        <span><b style="background:#2979FF"></b>Beacon — static</span>
+      </div>
+      <div class="ld-panel" id="mm-panel"></div>
     </div>
   </div>
   <div class="m-pane" id="m-pane-karts">
@@ -5460,7 +5505,7 @@ var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaard
 /* bcn:design (Layout Designer) is manager-default-on for the same reason App Health is: it
    configures what beacons tell karts to do on track, which is not floor-mechanic material.
    Managers and the owner get it; anyone else needs it granted in Master Access -> Access. */
-var MGR_DEFAULT_TABS=['health','summary','bcn:design'];
+var MGR_DEFAULT_TABS=['health','summary','bcn:design','bcn:sheet'];
 function _isDefaultOnTab(k){ return NEW_DEFAULT_TABS.indexOf(k)>=0 || MGR_DEFAULT_TABS.indexOf(k)>=0; }
 var ACCESS_CFG=null;   // {roles:[{name,tabs}], overrides:{name:[tabs]}}
 var MROLES=['Manager','Assistant Manager','Mechanic','Facility','Office'];   // role names for the Staff dropdown; refreshed from the config
@@ -5544,7 +5589,7 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
 var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
-var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
 var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
@@ -5623,14 +5668,14 @@ function applyRoleVisibility(force){
     vis(t.id,show);
   });
   // Beacons' section sub-tiles are gated by their own default-on keys.
-  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
+  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcntsheet','bcn:sheet'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
   // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is). Drives
   // Inventory, Dashboard, Comms and Beacons straight from their section tiles.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
   vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
-  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','wrace','bcndeh','bcnpickups','wtools','wsess']));
+  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -12541,7 +12586,7 @@ function mTab(name){
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
   if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
-  if(name==='tracks') bdOpen();
+  if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
   if(name==='access') acOpen();
 }
@@ -13105,11 +13150,17 @@ function LD_VENUE_SVG(){
   +   '<text x="196" y="1000">CAR-PARK BAYS — SHAPED BY THE BARRIERS YOU CONNECT</text>'
   + '</g>';
 }
+var LD_HOST='ld';
+function ldEl(n){ return document.getElementById(LD_HOST+'-'+n); }
 var LD_MAP=null, LD_LAYOUTS={}, LD_LETTER=null, LD_DIR='c', LD_SEL=null;
+/* CLEAN VIEW. Reading a track map and building one are different jobs. While building you need to
+   see every beacon you could switch on, greyed out; while reading, those greyed-out ones are just
+   noise on top of the answer. So clean view drops anything not in use on this layout entirely —
+   barriers and live beacons only — and that is what the track actually looks like. */
+var LD_CLEAN=false;
 var LD_PIN=null;    // first pillar of a pending connection
 var LD_BSEL=null;   // selected barrier ("pA|pB")
 var LD_DIRTY=false, LD_MAPDIRTY=false, LD_EDIT=false, LD_DRAG=null, LD_LOADED=false;
-var LD_VIEW={z:1,x:0,y:0};
 /* A TRACK IS A LETTER. A DIRECTION IS A TAB.
    The first cut listed all 100 codes in one dropdown — Ac, Aa, Bc, Ba — which buried the fact that
    Ac and Aa are the SAME track driven the other way. Harvey's rule: the barriers stay where they
@@ -13128,11 +13179,12 @@ function ldLetters(){
   return L;
 }
 function ldEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
-function ldStatus(m){ var el=document.getElementById('ld-status'); if(el) el.textContent=m||''; }
+function ldStatus(m){ var el=ldEl('status'); if(el) el.textContent=m||''; }
 function ldSite(){ return (typeof currentSite!=='undefined'&&currentSite)||'sydney'; }
 function ldCode(){ return LD_LETTER+LD_DIR; }
 function ldOpen(){
   go('trackmap');
+  LD_HOST='ld'; LD_EDIT=false; LD_CLEAN=false; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
   var dl=document.getElementById('ld-fnlist');
   if(dl && typeof DEHAARDT_FN!=='undefined') dl.innerHTML=DEHAARDT_FN.map(function(f){return '<option value="'+ldEsc(String(f.fn))+'">'+ldEsc(f.desc||'')+'</option>';}).join('');
   ldLoad();
@@ -13182,7 +13234,7 @@ function ldPillarById(id){ return (LD_MAP.pillars||[]).find(function(p){return p
 function ldSegOn(s){ return !!ldBeacons()[s.id]; }
 function ldRenderAll(){ ldFillSelector(); ldRenderTabs(); ldRenderMap(); ldRenderPanel(); ldRenderNames(); ldSyncBar(); }
 function ldFillSelector(){
-  var sel=document.getElementById('ld-code'); if(!sel) return;
+  var sel=ldEl('code'); if(!sel) return;
   var html='';
   ldLetters().forEach(function(L){
     var row=LD_LAYOUTS[L], nm=row&&row.display_name?(' — '+row.display_name):'';
@@ -13192,7 +13244,7 @@ function ldFillSelector(){
   sel.innerHTML=html;
 }
 function ldRenderTabs(){
-  var el=document.getElementById('ld-dirs'); if(!el) return;
+  var el=ldEl('dirs'); if(!el) return;
   var r=ldRow(LD_LETTER);
   function tab(d,label){
     var n=Object.keys((d==='a'?r.beacons_a:r.beacons_c)||{}).length;
@@ -13206,20 +13258,21 @@ function ldPick(letter){
   if(LD_DIRTY && !confirm('Unsaved changes — switch track anyway?')){ ldFillSelector(); return; }
   LD_DIRTY=false; LD_LETTER=letter; LD_SEL=null; ldRenderAll();
 }
-function ldNameEdit(){ ldRow(LD_LETTER).display_name=document.getElementById('ld-name').value; LD_DIRTY=true; ldSyncBar(); ldRenderNames(); }
+function ldNameEdit(){ ldRow(LD_LETTER).display_name=ldEl('name').value; LD_DIRTY=true; ldSyncBar(); ldRenderNames(); }
 function ldSyncBar(){
-  var sv=document.getElementById('ld-save'); if(sv) sv.disabled=!(LD_DIRTY||LD_MAPDIRTY);
-  var em=document.getElementById('ld-editmap'); if(em) em.className='ld-btn'+(LD_EDIT?' on':'');
-  var nm=document.getElementById('ld-name'); if(nm&&document.activeElement!==nm) nm.value=(LD_LAYOUTS[LD_LETTER]&&LD_LAYOUTS[LD_LETTER].display_name)||'';
-  var op=document.getElementById('ld-op');
-  if(op&&document.activeElement!==op) op.value=(LD_MAP&&LD_MAP.planOpacity!=null)?LD_MAP.planOpacity:0.85;
-  var ik=document.getElementById('ld-ink'); if(ik) ik.className='ld-btn'+((LD_MAP&&!LD_MAP.planRaw)?' on':'');
+  var sv=ldEl('save'); if(sv) sv.disabled=!(LD_DIRTY||LD_MAPDIRTY);
+  var em=ldEl('editmap'); if(em) em.className='ld-btn'+(LD_EDIT?' on':'');
+  var nm=ldEl('name'); if(nm&&document.activeElement!==nm) nm.value=(LD_LAYOUTS[LD_LETTER]&&LD_LAYOUTS[LD_LETTER].display_name)||'';
+  var th=ldEl('thr');
+  if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.45;
+  var ik=ldEl('ink'); if(ik) ik.className='ld-btn'+((LD_MAP&&!LD_MAP.planRaw)?' on':'');
+  var cl=ldEl('clean'); if(cl) cl.className='ld-btn'+(LD_CLEAN?' on':'');
 }
 /* ---- map render: permanent layers underneath, the layout on top ---- */
 function ldRenderMap(){
-  var st=document.getElementById('ld-stage'); if(!st||!LD_MAP) return;
+  var st=ldEl('stage'); if(!st||!LD_MAP) return;
   var cfg=ldBeacons(), h='', W=LD_MAP.w||LD_W, H=LD_MAP.h||LD_H;
-  var vb=(LD_VIEW.x)+' '+(LD_VIEW.y)+' '+(W/LD_VIEW.z)+' '+(H/LD_VIEW.z);
+  var vb='0 0 '+W+' '+H;
   h+='<svg id="ld-svg" viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg">';
   /* INK MODE — turn the architect's drawing into line work on a dark stage.
      An uploaded plan is black ink on white paper, and dropping that into a dark tool looks exactly
@@ -13230,14 +13283,34 @@ function ldRenderMap(){
      slope lifts the faint construction lines that would otherwise wash out.
      This keeps the SURVEYED drawing, at survey accuracy, and just restyles it. Any tracing I do by
      eye is strictly worse than the real thing with its background removed. */
+  var _thr=(LD_MAP.planThreshold==null?0.45:LD_MAP.planThreshold), _w=0.14;
+  var _t={ slope:(1/_w).toFixed(3), icept:(-_thr/_w).toFixed(3) };
   h+='<defs><filter id="ldink" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">'
-   + '<feColorMatrix type="matrix" values="0 0 0 0 0.78  0 0 0 0 0.83  0 0 0 0 0.90  -0.34 -0.34 -0.34 0 1"/>'
-   + '<feComponentTransfer><feFuncA type="linear" slope="2.1" intercept="0"/></feComponentTransfer>'
-   + '</filter></defs>';
+   + '<feColorMatrix type="matrix" values="0 0 0 0 0.04  0 0 0 0 0.06  0 0 0 0 0.10  -0.34 -0.34 -0.34 0 1"/>'
+   /* THRESHOLD, NOT A FADE — this is what isolates the track.
+      On the venue drawing the track walls are solid BLACK while the architectural background
+      (column grid, dimension lines, room hatching, the scan's paper tone) is LIGHT GREY. The
+      matrix above turns luminance into alpha, so a hard cut on that alpha keeps the dark ink and
+      throws the pale ink away: what is left is the track, in black, on nothing. Harvey asked for
+      "the grey lines of the track redrawn in black with no background", and this is that —
+      achieved from HIS surveyed drawing rather than by me tracing it worse.
+      slope/intercept form a step: everything below the threshold goes to 0, above it to 1. The
+      slider moves the threshold because how pale the background is depends on the scan. */
+   + '<feComponentTransfer><feFuncA type="linear" slope="'+_t.slope+'" intercept="'+_t.icept+'"/></feComponentTransfer>'
+   + '</filter>'
+   /* Hatched, because that is how the barriers are drawn on the plan and how Harvey thinks about
+      them — physical insert pieces (6595x2005 large, 2200x2005 small, 2005x2005 column) rather
+      than abstract lines. Painted as a stroke pattern so it follows whatever angle two pillars
+      happen to sit at. */
+   + '<pattern id="ldhatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+   + '<rect width="14" height="14" fill="#CBD5E1"/><rect width="6" height="14" fill="#64748B"/></pattern>'
+   + '</defs>';
   // 1. the real venue drawing, underneath everything
   if(LD_MAP.plan){
+    /* Full strength: after thresholding this is pure black line work, and fading it would only
+       make the track harder to read. Raw mode keeps a fade so the untouched scan is still usable. */
     h+='<image href="'+LD_MAP.plan+'" x="0" y="0" width="'+W+'" height="'+H+'" opacity="'
-      +(LD_MAP.planOpacity==null?0.85:LD_MAP.planOpacity)+'" preserveAspectRatio="none"'
+      +(LD_MAP.planRaw?(LD_MAP.planOpacity==null?0.85:LD_MAP.planOpacity):1)+'" preserveAspectRatio="none"'
       +(LD_MAP.planRaw?'':' filter="url(#ldink)"')+'/>';
   } else if((LD_MAP.w||LD_W)===LD_W&&(LD_MAP.h||LD_H)===LD_H){
     h+=LD_VENUE_SVG();          // drawn venue, until the real plan is uploaded over it
@@ -13249,7 +13322,8 @@ function ldRenderMap(){
   brow.barriers.forEach(function(k){
     var ab=k.split('|'), a=ldPillarById(ab[0]), b=ldPillarById(ab[1]);
     if(!a||!b) return;
-    h+='<line class="ld-bar-line" data-b="'+k+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'
+    h+='<line class="ld-bar-edge" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'
+     + '<line class="ld-bar-line'+(LD_BSEL===k?' sel':'')+'" data-b="'+k+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'
      + '<line class="ld-hit" data-b="'+k+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>';
   });
   // 3. pillars — the fixed nodes a barrier is built between
@@ -13261,12 +13335,13 @@ function ldRenderMap(){
   // 4. beacons — fixed positions; a layout decides which are in use and what they run
   (LD_MAP.segs||[]).forEach(function(s){
     var on=(s.kind==='static')?!(cfg[s.id]&&cfg[s.id].off):ldSegOn(s), c=cfg[s.id];
+    if(LD_CLEAN&&!on) return;                       // reading the map: only what is actually in play
     var cls='ld-seg '+s.kind+(s.kind!=='wall'&&!on?' off':'')+(LD_SEL===s.id?' sel':'');
     var w=s.kind==='wall'?7:(on?13:8);
     h+='<line class="'+cls+'" data-s="'+s.id+'" x1="'+s.x1+'" y1="'+s.y1+'" x2="'+s.x2+'" y2="'+s.y2+'" stroke-width="'+w+'"/>';
     if(s.kind!=='wall') h+='<line class="ld-hit" data-s="'+s.id+'" x1="'+s.x1+'" y1="'+s.y1+'" x2="'+s.x2+'" y2="'+s.y2+'"/>';
     var mx=(s.x1+s.x2)/2, my=(s.y1+s.y2)/2, vert=Math.abs(s.y2-s.y1)>Math.abs(s.x2-s.x1);
-    if(s.kind==='dyn') h+='<text class="ld-num" x="'+(mx+(vert?16:0))+'" y="'+(my+(vert?5:-14))+'"'+(vert?'':' text-anchor="middle"')+'>'+s.id+'</text>';
+    if(s.kind==='dyn'&&!LD_CLEAN) h+='<text class="ld-num" x="'+(mx+(vert?16:0))+'" y="'+(my+(vert?5:-14))+'"'+(vert?'':' text-anchor="middle"')+'>'+s.id+'</text>';
     // The function chip only means something where the beacon is actually in play.
     var sn=(s.kind==='static'?(c&&c.sn!=null?c.sn:(s.sn||'')):(c&&c.sn||''));
     var fn=(s.kind==='static'?(c&&c.fn!=null?c.fn:(s.fn||'')):(c&&c.fn||''));
@@ -13282,7 +13357,7 @@ function ldRenderMap(){
        another and pushed the last one off the canvas. The compact S/F chip is always readable and
        always shown; the wordy label appears when it can be read — zoomed in, or on the one you
        have selected. */
-    if(s.kind==='static'&&s.label&&(LD_VIEW.z>=1.5||LD_SEL===s.id)){
+    if(s.kind==='static'&&s.label){
       h+='<text class="ld-slab" x="'+mx+'" y="'+(my-14)+'" text-anchor="middle">'+ldEsc(s.label)+'</text>';
     }
     if(LD_EDIT&&LD_SEL===s.id){
@@ -13325,18 +13400,12 @@ function ldWire(svg){
       if(seg&&(seg.kind!=='wall'||LD_EDIT)){ LD_SEL=(LD_SEL===id)?null:id; LD_PIN=null; LD_BSEL=null; ldRenderMap(); ldRenderPanel(); return; }
     }
     if(LD_PIN||LD_BSEL){ LD_PIN=null; LD_BSEL=null; ldRenderMap(); ldRenderPanel(); }
-    // empty space -> pan
-    var pt=ldPt(svg,ev); if(pt){ LD_DRAG={kind:'pan',sx:pt.x,sy:pt.y}; svg.setPointerCapture(ev.pointerId); }
+    if(LD_PIN||LD_BSEL||LD_SEL){ LD_PIN=null; LD_BSEL=null; LD_SEL=null; ldRenderMap(); ldRenderPanel(); }
   });
   svg.addEventListener('pointermove',function(ev){
     if(!LD_DRAG) return;
     var pt=ldPt(svg,ev); if(!pt) return;
     var x=Math.round(pt.x), y=Math.round(pt.y);
-    if(LD_DRAG.kind==='pan'){
-      LD_VIEW.x-=(x-LD_DRAG.sx); LD_VIEW.y-=(y-LD_DRAG.sy);
-      var el=svg; el.setAttribute('viewBox',LD_VIEW.x+' '+LD_VIEW.y+' '+((LD_MAP.w||LD_W)/LD_VIEW.z)+' '+((LD_MAP.h||LD_H)/LD_VIEW.z));
-      return;
-    }
     if(LD_DRAG.kind==='h'){
       var s=(LD_MAP.segs||[]).find(function(q){return q.id===LD_DRAG.seg;}); if(!s) return;
       if(LD_DRAG.h==='1'){ s.x1=x; s.y1=y; } else { s.x2=x; s.y2=y; }
@@ -13348,16 +13417,11 @@ function ldWire(svg){
   });
   function end(){ LD_DRAG=null; }
   svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
-  svg.addEventListener('wheel',function(ev){ ev.preventDefault(); ldZoom(ev.deltaY<0?1.15:1/1.15); },{passive:false});
 }
-function ldZoom(f){
-  var W=(LD_MAP&&LD_MAP.w)||LD_W, H=(LD_MAP&&LD_MAP.h)||LD_H;
-  var cx=LD_VIEW.x+(W/LD_VIEW.z)/2, cy=LD_VIEW.y+(H/LD_VIEW.z)/2;
-  LD_VIEW.z=Math.max(1,Math.min(6,LD_VIEW.z*f));
-  LD_VIEW.x=cx-(W/LD_VIEW.z)/2; LD_VIEW.y=cy-(H/LD_VIEW.z)/2;
-  ldRenderMap();
-}
-function ldZoomReset(){ LD_VIEW={z:1,x:0,y:0}; ldRenderMap(); }
+/* The map does not pan or zoom. It is a fixed plan view, deliberately: everything is visible at
+   once, nothing can be scrolled out of frame, and a tap is always a tap rather than sometimes the
+   start of a drag. */
+function ldZoomReset(){ ldRenderMap(); }
 /* UPLOAD THE VENUE PLAN.
    Stored inline in venue_map.doc rather than in Supabase storage: it is ONE image for the whole
    venue, changed roughly never, and inlining means the map needs no second fetch, no bucket, no
@@ -13409,6 +13473,12 @@ function ldUploadPlan(input){
   rd.readAsDataURL(f);
 }
 function ldPlanOpacity(v){ if(!LD_MAP) return; LD_MAP.planOpacity=Math.max(0.1,Math.min(1,+v||0.85)); LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar(); }
+function ldPlanThreshold(v){
+  if(!LD_MAP) return;
+  LD_MAP.planThreshold=Math.max(0.02,Math.min(0.95,+v||0.45));
+  LD_MAP.planRaw=false;                      // a threshold is meaningless on the raw image
+  LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar();
+}
 function ldToggleInk(){ if(!LD_MAP) return; LD_MAP.planRaw=!LD_MAP.planRaw; LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar(); }
 function ldClearPlan(){
   if(!LD_MAP||!LD_MAP.plan) return;
@@ -13417,7 +13487,7 @@ function ldClearPlan(){
 }
 /* ---- panel ---- */
 function ldRenderPanel(){
-  var p=document.getElementById('ld-panel'); if(!p) return;
+  var p=ldEl('panel'); if(!p) return;
   var addRow=LD_EDIT?('<div class="ld-frow">'
     +'<button class="ld-btn" onclick="ldAddSeg(\'dyn\')">+ Barrier</button>'
     +'<button class="ld-btn" onclick="ldAddSeg(\'static\')">+ Static beacon</button>'
@@ -13441,6 +13511,7 @@ function ldRenderPanel(){
       +'<button class="ld-big on" onclick="ldRemoveBarrier()">▬ Remove this barrier<span class="ld-bigsub">Moveable wall between two pillars</span></button>';
     return;
   }
+  if(LD_CLEAN){ p.innerHTML='<div class="hint"><b>Clean view.</b> Only the barriers and the beacons actually in use on Track '+ldEsc(LD_LETTER||'')+' '+dirNm+' — this is what the track is. Turn it off to edit.</div>'; return; }
   if(!LD_SEL){ p.innerHTML='<div class="hint">Tap a <b>pillar</b>, then another, to run a barrier between them — that is what shapes Track '+ldEsc(LD_LETTER||'')+'. Tap a <b>beacon</b> (red or blue) to set what it does '+dirNm+'.</div>'+addRow; return; }
   var s=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;}); if(!s){ p.innerHTML=addRow; return; }
   var cfg=ldBeacons(), c=cfg[s.id], on=ldSegOn(s), h='';
@@ -13508,10 +13579,22 @@ function ldToggleStatic(){
 function ldCfgField(f,v){
   var cfg=ldBeacons(); if(!cfg[LD_SEL]) cfg[LD_SEL]={sn:'',fn:''};
   cfg[LD_SEL][f]=v; LD_DIRTY=true; ldSyncBar(); ldRenderMap(); ldRenderTabs();
-  if(f==='fn'){ var el=document.getElementById('ld-fnlive'); if(el) el.innerHTML=ldFnDesc(v); }
+  if(f==='fn'){ var el=ldEl('fnlive'); if(el) el.innerHTML=ldFnDesc(v); }
 }
 function ldSegField(f,v){ var s=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;}); if(!s) return; s[f]=v; LD_MAPDIRTY=true; ldSyncBar(); if(f!=='mac') ldRenderMap(); }
 function ldToggleEdit(){ LD_EDIT=!LD_EDIT; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
+function ldToggleClean(){ LD_CLEAN=!LD_CLEAN; LD_SEL=null; LD_PIN=null; LD_BSEL=null; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
+/* MASTER MAP, opened from Master Access. Same engine, different host elements and permanently in
+   edit mode — this screen exists to move hardware, and the Layout Designer exists to build tracks
+   on top of it. Keeping them apart is the point: a stray drag while designing a layout would move
+   a beacon for every track at once. */
+function mmOpen(){
+  LD_HOST='mm'; LD_EDIT=true; LD_CLEAN=false; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
+  var dl=document.getElementById('ld-fnlist');
+  if(dl && typeof DEHAARDT_FN!=='undefined' && !dl.children.length)
+    dl.innerHTML=DEHAARDT_FN.map(function(f){return '<option value="'+ldEsc(String(f.fn))+'">'+ldEsc(f.desc||'')+'</option>';}).join('');
+  ldLoad();
+}
 function ldAddSeg(kind){
   var pfx=kind==='dyn'?'':kind==='static'?'S':'W', n=1;
   while((LD_MAP.segs||[]).some(function(s){return s.id===pfx+n;})) n++;
@@ -13541,14 +13624,14 @@ function ldDeleteSeg(){
   ldRenderMap(); ldRenderPanel(); ldSyncBar();
 }
 function ldRenderNames(){
-  var el=document.getElementById('ld-names'); if(!el) return;
+  var el=ldEl('names'); if(!el) return;
   var named=ldLetters().filter(function(L){ return LD_LAYOUTS[L]&&LD_LAYOUTS[L].display_name; });
   el.innerHTML=named.length?('<b>Named tracks:</b> '+named.map(function(L){return L+' = '+ldEsc(LD_LAYOUTS[L].display_name);}).join(' · ')):'';
 }
 /* ---- persistence. PostgREST TRAP (§4 of the handover): an RLS-refused write returns success
    over zero rows. Every save appends .select() and treats an empty result as failure. ---- */
 function ldSaveLayout(){
-  var jobs=[], sv=document.getElementById('ld-save');
+  var jobs=[], sv=ldEl('save');
   if(sv) sv.disabled=true; ldStatus('Saving…');
   if(LD_DIRTY){
     var r=ldRow(LD_LETTER);
@@ -13567,6 +13650,87 @@ function ldSaveLayout(){
 }
 /* The config a future Arduino bridge pushes: every in-play beacon for THIS track and direction,
    with its MAC, S/N and F/N. Stable format, so the hardware stage starts from something fixed. */
+/* ===================== TRACK SHEET =====================
+   The master list Harvey works from, reading and writing the SAME track_layouts rows the Layout
+   Designer uses. That is the whole point: a spreadsheet kept alongside the app drifts from it
+   within a week, and "which name is this track actually called" was the original complaint. One
+   row per letter, its two direction codes, and up to five marketing names.
+   Nothing here is realtime and nothing writes until Save. */
+var TS_ROWS={}, TS_DIRTY=false, TS_LOADED=false;
+function tsEsc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
+function tsStatus(m){ var e=document.getElementById('ts-status'); if(e) e.textContent=m||''; }
+function tsOpen(){ go('tracksheet'); tsLoad(); }
+function tsBack(){ if(TS_DIRTY && !confirm('Unsaved names — leave anyway?')) return; TS_DIRTY=false; back(); }
+function tsLoad(){
+  tsStatus('Loading…');
+  SBC.from('track_layouts').select('*').eq('site',(typeof currentSite!=='undefined'&&currentSite)||'sydney')
+    .then(function(r){
+      TS_ROWS={};
+      ((r&&r.data)||[]).forEach(function(row){ if(row.code&&/^[A-Z]{1,2}$/.test(row.code)) TS_ROWS[row.code]=row; });
+      TS_LOADED=true; TS_DIRTY=false; tsStatus(''); tsRender(); tsSync();
+    },function(){ TS_LOADED=true; tsStatus('Could not load — run the layout-designer SQL'); tsRender(); });
+}
+function tsRow(L){
+  var r=TS_ROWS[L];
+  if(!r) r=TS_ROWS[L]={site:(typeof currentSite!=='undefined'&&currentSite)||'sydney',code:L,display_name:'',names:[],barriers:[],beacons_c:{},beacons_a:{}};
+  if(!Array.isArray(r.names)) r.names=[];
+  return r;
+}
+function tsInUse(r){
+  return !!(r&&((r.display_name&&r.display_name.trim())||(Array.isArray(r.barriers)&&r.barriers.length)
+    ||Object.keys(r.beacons_c||{}).length||Object.keys(r.beacons_a||{}).length));
+}
+function tsRender(){
+  var t=document.getElementById('ts-tab'); if(!t) return;
+  var onlyUsed=document.getElementById('ts-used'); onlyUsed=onlyUsed&&onlyUsed.checked;
+  var h='<thead><tr><th>Track</th><th>Clockwise</th><th>Anti</th><th>Marketing name</th>'
+      + '<th>Alt 2</th><th>Alt 3</th><th>Alt 4</th><th>Alt 5</th><th>Built</th></tr></thead><tbody>';
+  var letters=(typeof ldLetters==='function')?ldLetters():[];
+  var shown=0;
+  letters.forEach(function(L){
+    var r=TS_ROWS[L], used=tsInUse(r);
+    if(onlyUsed&&!used) return;
+    shown++;
+    var nm=(r&&r.display_name)||'', alt=(r&&Array.isArray(r.names))?r.names:[];
+    var nb=(r&&Array.isArray(r.barriers))?r.barriers.length:0;
+    var bc=(r&&r.beacons_c)?Object.keys(r.beacons_c).length:0;
+    var ba=(r&&r.beacons_a)?Object.keys(r.beacons_a).length:0;
+    h+='<tr class="'+(used?'used':'')+'">'
+     + '<td class="ts-code">'+L+'</td>'
+     + '<td class="ts-dir">'+L+'c</td><td class="ts-dir">'+L+'a</td>'
+     + '<td><input class="pri" value="'+tsEsc(nm)+'" placeholder="e.g. The Clock" oninput="tsSet(\''+L+'\',0,this.value)"></td>';
+    for(var i=1;i<=4;i++) h+='<td><input value="'+tsEsc(alt[i-1]||'')+'" oninput="tsSet(\''+L+'\','+i+',this.value)"></td>';
+    h+='<td class="ts-meta">'+(nb?(nb+' barrier'+(nb===1?'':'s')):'—')+(bc||ba?(' · '+bc+'c/'+ba+'a'):'')+'</td></tr>';
+  });
+  h+='</tbody>';
+  t.innerHTML=h;
+  if(!shown) tsStatus(onlyUsed?'No tracks built yet — untick to see all 50.':'');
+}
+function tsSet(L,idx,v){
+  var r=tsRow(L);
+  if(idx===0) r.display_name=v; else r.names[idx-1]=v;
+  TS_DIRTY=true; tsSync();
+}
+function tsSync(){ var b=document.getElementById('ts-save'); if(b) b.disabled=!TS_DIRTY; }
+/* Only writes the rows that actually carry a name or a layout — otherwise opening this screen and
+   leaving would create fifty empty rows for tracks nobody has built. */
+function tsSave(){
+  var b=document.getElementById('ts-save'); if(b) b.disabled=true;
+  var payload=Object.keys(TS_ROWS).map(function(L){ return TS_ROWS[L]; })
+    .filter(function(r){ return tsInUse(r)||(r.names||[]).some(function(x){return x&&x.trim();}); })
+    .map(function(r){ return { site:r.site,code:r.code,display_name:r.display_name||'',
+        names:(r.names||[]).filter(function(x){return x!=null;}),
+        barriers:r.barriers||[],beacons_c:r.beacons_c||{},beacons_a:r.beacons_a||{},
+        updated_at:new Date().toISOString() }; });
+  if(!payload.length){ TS_DIRTY=false; tsStatus('Nothing to save'); tsSync(); return; }
+  tsStatus('Saving…');
+  // PostgREST answers success over zero rows when RLS refuses — see the handover. Treat it as failure.
+  SBC.from('track_layouts').upsert(payload,{onConflict:'site,code'}).select('code').then(function(r){
+    if(r.error) throw r.error;
+    if(!r.data||!r.data.length) throw new Error('write refused (0 rows) — run the layout-designer SQL');
+    TS_DIRTY=false; tsStatus('Saved \u2713 '+r.data.length+' track(s)'); tsSync();
+  }).catch(function(e){ tsStatus('Save failed: '+((e&&e.message)||e)); TS_DIRTY=true; tsSync(); });
+}
 function ldExport(){
   var r=ldRow(LD_LETTER), cfg=ldBeacons();
   var out={track:LD_LETTER,direction:(LD_DIR==='c'?'clockwise':'anti'),code:ldCode(),

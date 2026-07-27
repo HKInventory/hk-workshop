@@ -104,15 +104,55 @@ beside `render_usage`.
 workspace. The dashboard shows bandwidth per service. If something else on the account is serving
 it, every runner-side change is wasted effort.
 
-**Leading candidate once the meter reports:** `rimo.js` polls the RiMO grid every **4 seconds**,
-plus a focus-detail loop at 1.5 s and a cell-history loop at 1 s — and it is the **only** loop with
-no opening-hours gate. Status, notes, sessions and the heavy sync all stand down overnight; RiMO
-polls through the night. By request count it dwarfs the notes index.
+### MEASURED 27 Jul — the answer is `karts-info`, not notes, and not RiMO
 
-**Question for Harvey before touching it:** karts charge overnight, so SOC and BMS genuinely change
-while the venue is shut. Is overnight RiMO data wanted? If yes it stays as it is; if it is only
-needed while the venue is open, the same `hours.shouldSkip` gate the other four loops use would cut
-its requests by roughly half. **Not changed unilaterally** — that is a data-collection decision.
+Six `[net]` readings from 15 to 40 minutes of uptime, all in agreement:
+
+```
+WIRE out 12.3MB in 525.0MB over 40min -> ~13.01GB/mo out, ~553.40GB/mo in
+103.166.146.163 6.0/510.3MB · supabase 6.1/11.9MB · rimo 0.2/2.8MB
+busiest: supabase 9183req · rf:garage/karts-info 2872req · rf:garage/notifications 2002req
+```
+
+- **RaceFacer is 97% of inbound** (510 MB of 525 MB).
+- **`karts-info` is the biggest single line.** `statusFast` issues one call per distinct kart type
+  — 6 of them — every status cycle, ~**72 requests a minute**, each returning that type's full
+  kart records, to read one field per kart.
+- **The notes index is exonerated.** It does not reach the top three; at ~126 KB on the wire every
+  10–20 s it is under 4% of inbound.
+- **RiMO is 0.2 MB out / 2.8 MB in** — the previous "leading candidate" was wrong too. The
+  overnight-gate question below is now moot for bandwidth; leave RiMO alone.
+
+This is also the RaceFacer **contention** the codebase documents everywhere (`status cycle SLOW`,
+karts-info going 478 ms → 4.8 s in races). 72 req/min into a per-IP throughput-bound box. Bandwidth
+and status latency have the same root cause.
+
+**Still open: does Render bill inbound?** Out projects to ~13 GB/mo (fine); in projects to ~553
+GB/mo (5× the cap). Render's 81.58 GB is *historical* and the code has changed since it accrued, so
+it will not match a current rate — do not try to force it to. `app_health` now stores
+`net_out_bytes`, `net_in_bytes` and `render_usage` in the same row every 30 min, so the honest
+comparison is delta-vs-delta:
+
+```sql
+select at,
+       net_out_bytes - lag(net_out_bytes) over (order by at) as out_delta,
+       net_in_bytes  - lag(net_in_bytes)  over (order by at) as in_delta,
+       (render_usage->>'bandwidth_bytes')::bigint
+         - lag((render_usage->>'bandwidth_bytes')::bigint) over (order by at) as render_delta
+from app_health
+where at > now() - interval '1 day'
+order by at;
+```
+
+Ignore rows where a delta is negative (the worker restarted; `net_*` are cumulative since boot).
+Whichever of `out_delta` / `in_delta` tracks `render_delta` is what Render meters.
+
+**Next step depends on one measured fact, now being collected.** A one-shot log line prints the
+`karts-info` response headers. If RaceFacer sends an `ETag`/`Last-Modified`, an `If-None-Match`
+turns a ~100 KB body into a ~200-byte 304 — the problem disappears at no cost to status latency.
+If it does not, the levers are polling slower (`STATUS_POLL_SEC`, already an env var — tunable from
+the Render dashboard with no deploy) or asking for less, and both trade latency. **Do not pick
+until the header line has been read.**
 
 ---
 

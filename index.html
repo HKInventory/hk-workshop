@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HC · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HD · ZXing raw</div>
       </div>
     </div>
 
@@ -4804,7 +4804,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HC</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HD</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7700,6 +7700,49 @@ function _rtHeadroom(tierIdx){
     return n+' device'+(n===1?'':'s')+' at the current write rate';
   }catch(e){ return null; }
 }
+/* ---- DEVICES, AND WHAT THIS ACTUALLY COSTS -------------------------------------------------
+   The device count is the multiplier on every realtime message, so it belongs on this page as a
+   first-class figure rather than buried inside a projection. Peak matters more than "now": a quiet
+   Tuesday reading tells you nothing about a school-holiday Saturday, and it is the busy day that
+   decides whether a setting is safe. Read from the app_health history this page already has, so
+   it costs nothing extra to show. */
+function _rtDevices(){
+  var out={now:null,peak24:null,peak7:null,avg7:null};
+  try{
+    var rows=(typeof HEALTH_ROWS!=='undefined'&&HEALTH_ROWS)?HEALTH_ROWS:[];
+    if(!rows.length) return out;
+    var now=Date.now(), d24=[], d7=[];
+    for(var i=0;i<rows.length;i++){
+      var c=rows[i]&&rows[i].realtime_clients; if(c==null) continue;
+      var t=Date.parse(rows[i].at||''); if(!isFinite(t)) continue;
+      var age=now-t;
+      if(age<=86400000) d24.push(Number(c));
+      if(age<=7*86400000) d7.push(Number(c));
+    }
+    var cur=rows[0]&&rows[0].realtime_clients;
+    out.now=(cur==null)?null:Number(cur);
+    if(d24.length) out.peak24=Math.max.apply(null,d24);
+    if(d7.length){ out.peak7=Math.max.apply(null,d7); out.avg7=Math.round((d7.reduce(function(a,b){return a+b;},0)/d7.length)*10)/10; }
+  }catch(e){}
+  return out;
+}
+/* The bill, from figures we can actually read. Anything unknown is left out and named rather than
+   guessed at — a made-up total is worse than an incomplete one when it is what you budget against. */
+var PLAN_BASE_USD=25;      // Pro
+function _rtBill(cur){
+  var lines=[], total=PLAN_BASE_USD, unknown=[];
+  lines.push(['Pro plan', '$'+PLAN_BASE_USD.toFixed(2)]);
+  var compute=null;
+  try{ var u=(cur&&cur.supabase_usage)||{}; if(u.compute_cost!=null) compute=Number(u.compute_cost); }catch(e){}
+  if(compute!=null){ lines.push(['Compute','$'+compute.toFixed(2)]); total+=compute; } else unknown.push('compute');
+  var over=0, msgs=(cur&&cur.realtime_msgs_month!=null)?Number(cur.realtime_msgs_month):null;
+  if(msgs!=null){
+    over=Math.max(0,(msgs-RT_PLAN_INCLUDED_M*1e6)/1e6)*RT_PER_M;
+    lines.push(['Realtime overage', over?('$'+over.toFixed(2)):'none — inside the plan']);
+    total+=over;
+  } else unknown.push('realtime');
+  return {lines:lines,total:total,unknown:unknown};
+}
 function _rtCost(capM){ var over=Math.max(0,capM-RT_PLAN_INCLUDED_M); return over*RT_PER_M; }
 function _rtDialHtml(cur){
   var tiers=window.HK_RT_TIERS||[]; if(!tiers.length) return '';
@@ -7940,6 +7983,21 @@ function healthRender(){
       +'<div class="sum-note" style="margin:0 0 10px">Marked tables are in the realtime publication, so their rows multiply by connected clients.</div>'+writeBars
     +'</div>'
     +'<div class="mc"><div class="mct">Instant features &amp; what they cost</div>'+_rtDialHtml(cur)+'</div>'
+    +'<div class="mc"><div class="mct">Devices &amp; the bill</div>'
+      +'<div class="sum-note" style="margin:0 0 10px">Devices are the multiplier on every realtime message, so the peak matters more than the reading right now &mdash; a quiet Tuesday says nothing about a school-holiday Saturday.</div>'
+      +_hGrid([
+        ['Connected now', (function(){var d=_rtDevices(); return d.now==null?null:d.now;})()],
+        ['Peak, 24 hours', (function(){var d=_rtDevices(); return d.peak24==null?null:d.peak24;})()],
+        ['Peak, 7 days',  (function(){var d=_rtDevices(); return d.peak7==null?null:d.peak7;})()],
+        ['Average, 7 days',(function(){var d=_rtDevices(); return d.avg7==null?null:d.avg7;})()]
+      ])
+      +(function(){
+         var b=_rtBill(cur);
+         return '<div class="sum-note" style="margin:12px 0 6px"><b>Estimated monthly bill</b></div>'
+           +_hGrid(b.lines.concat([['Estimated total','$'+b.total.toFixed(2)]]))
+           +(b.unknown.length?('<div class="sum-note" style="margin:8px 0 0;color:var(--t2)">Not included, because it is not measured yet: '+b.unknown.join(', ')+'. Left out rather than guessed &mdash; this is a number you budget against.</div>'):'');
+       })()
+    +'</div>'
     +(liveGrid?('<div class="mc"><div class="mct">Live updates</div>'
       +'<div class="sum-note" style="margin:0 0 10px">A table the app subscribes to but which is not in the realtime publication delivers nothing, silently — that screen simply never updates on its own.</div>'+liveGrid
     +'</div>'):'')
@@ -12191,7 +12249,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16738,7 +16796,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HD \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -17207,7 +17265,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HC';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HD';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -2027,10 +2027,11 @@
     .ld-fade{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2)}
     .ld-fade input{width:120px}
     /* Drawn venue — black vector line work. */
-    .v-hall{fill:#ffffff;stroke:#0f172a;stroke-width:4;stroke-linejoin:round}
+    .v-wall{fill:#ffffff;stroke:#0f172a;stroke-width:5;stroke-linejoin:round}
+    .v-wall2{fill:none;stroke:#0f172a;stroke-width:4;stroke-linecap:round}
     .v-room{fill:#e8edf5;stroke:#334155;stroke-width:2.5}
     .v-svc{fill:#d8ebe0;stroke:#2f7d5f;stroke-width:2.5}
-    .v-track{fill:none;stroke:#0f172a;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+    .v-track{fill:none;stroke:#0f172a;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
     .v-pit{fill:rgba(15,23,42,.06);stroke:#475569;stroke-width:2;stroke-dasharray:9 7}
     .v-lab{fill:#64748b;font-size:19px;font-weight:700;letter-spacing:.08em}
     /* A barrier is a physical insert piece — hatched, with a dark edge so it reads as an object. */
@@ -3080,7 +3081,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HM · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HN · ZXing raw</div>
       </div>
     </div>
 
@@ -4974,7 +4975,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HM</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HN</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12585,7 +12586,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -13114,41 +13115,50 @@ var LD_DEFAULT_MAP={w:LD_W,h:LD_H,plan:null,planOpacity:0.85,
    the entire point of this editor — drawing a fixed track there would contradict the tool. */
 function LD_VENUE_SVG(){
   return ''
-  // hall shell
-  + '<path class="v-hall" d="M96 78 L1838 96 L1838 606 L1794 606 L1794 1040 L838 1040 L838 864 L96 852 Z"/>'
-  // non-karting rooms, right-hand side
-  + '<g class="v-room">'
-  +   '<path d="M1568 94 L1836 98 L1836 462 L1802 470 L1808 562 L1568 566 Z"/>'
-  +   '<path d="M1418 372 L1560 366 L1566 486 L1424 492 Z"/>'
-  +   '<path d="M1100 380 L1232 372 L1240 500 L1108 540 Z"/>'
-  +   '<path d="M1568 486 L1792 480 L1792 604 L1568 604 Z"/>'
-  +   '<path d="M1600 962 L1792 962 L1792 1038 L1600 1038 Z"/>'
-  +   '<path d="M352 322 L456 318 L456 376 L352 376 Z"/>'
-  + '</g>'
-  + '<g class="v-svc"><path d="M1548 96 L1568 96 L1568 208 L1548 208 Z"/>'
-  +   '<path d="M1280 992 L1332 992 L1332 1038 L1280 1038 Z"/></g>'
-  // permanent track sections — the ones Harvey circled as never changing
-  + '<g class="v-track">'
-  +   '<path d="M100 132 C100 104 132 90 186 88 L312 92 C382 96 420 128 422 186 L424 304"/>'
-  +   '<path d="M176 178 C176 162 196 154 232 154 L306 158 C344 162 358 180 358 210 L360 304"/>'
-  +   '<path d="M700 382 C688 262 742 162 848 150 C956 138 1022 222 1030 332 L1032 382"/>'
-  +   '<path d="M772 382 C764 290 800 218 866 212 C936 206 968 270 972 342 L974 382"/>'
-  +   '<path d="M1238 706 C1244 632 1300 578 1382 562 C1470 545 1580 548 1660 590 '
-  +          'C1740 632 1782 720 1786 812 C1790 900 1748 966 1660 996 C1560 1030 1420 1026 1330 992 '
-  +          'C1248 960 1226 880 1234 806 Z"/>'
-  +   '<path d="M1466 618 L1580 700 L1592 900 L1520 946 L1440 946 L1372 898 L1382 700 Z"/>'
-  + '</g>'
-  // pit lane
+  // ---- perimeter of the karting hall -------------------------------------
+  + '<path class="v-wall" d="M96 96 L1520 96 L1520 372 L1240 372 L1240 560 '
+  +        'L1400 552 L1560 560 L1700 620 L1790 760 L1790 1012 L836 1012 '
+  +        'L836 858 L96 858 Z"/>'
+  // ---- top-left hairpin (permanent) --------------------------------------
+  + '<path class="v-track" d="M96 176 C104 128 150 102 214 100 L330 102 '
+  +        'C400 106 434 142 436 200 L436 340"/>'
+  + '<path class="v-track" d="M172 214 C178 178 208 162 254 162 L326 164 '
+  +        'C364 168 380 190 380 220 L380 340"/>'
+  // party-room / bay divider
+  + '<path class="v-wall2" d="M437 100 L437 356"/>'
+  // ---- top-middle hairpin (permanent) ------------------------------------
+  + '<path class="v-track" d="M700 372 L702 230 C706 172 762 142 838 142 '
+  +        'C920 142 1024 176 1032 258 L1034 372"/>'
+  + '<path class="v-track" d="M776 372 L778 268 C782 226 818 210 866 210 '
+  +        'C918 210 972 234 976 282 L978 372"/>'
+  // the long bay wall the two hairpins hang off
+  + '<path class="v-wall2" d="M510 368 L1034 368"/>'
+  // ---- intermediate / pit loop (permanent) --------------------------------
+  + '<path class="v-track" d="M1246 700 C1252 618 1322 566 1424 556 '
+  +        'C1544 544 1662 586 1732 670 C1792 744 1798 850 1756 930 '
+  +        'C1712 1000 1602 1020 1472 1018 C1352 1016 1272 976 1242 890 '
+  +        'C1226 830 1236 760 1246 700 Z"/>'
+  + '<path class="v-track" d="M1472 630 L1592 722 L1602 890 L1522 950 '
+  +        'L1420 950 L1356 890 L1366 722 Z"/>'
+  // throat linking the car-park bays to the loop
+  + '<path class="v-track" d="M1100 700 C1150 720 1200 748 1242 786"/>'
+  // ---- pit lane -----------------------------------------------------------
   + '<g class="v-pit"><path d="M990 862 L1232 862 L1232 896 L990 896 Z"/></g>'
+  // ---- rooms, for orientation only ---------------------------------------
+  + '<g class="v-room">'
+  +   '<path d="M1528 96 L1836 100 L1836 470 L1806 476 L1810 566 L1528 566 Z"/>'
+  +   '<path d="M1250 372 L1420 366 L1426 500 L1256 506 Z"/>'
+  +   '<path d="M1528 486 L1790 480 L1790 604 L1528 604 Z"/>'
+  +   '<path d="M1600 962 L1786 962 L1786 1010 L1600 1010 Z"/>'
+  +   '<path d="M352 322 L436 318 L436 376 L352 376 Z"/>'
+  + '</g>'
   + '<g class="v-lab">'
-  +   '<text x="1700" y="330">ENTERTAINMENT</text>'
-  +   '<text x="1492" y="436">BRIEFING</text>'
-  +   '<text x="1170" y="452">WAITING</text>'
-  +   '<text x="1680" y="548">RESULTS</text>'
-  +   '<text x="1696" y="1006">WORKSHOP</text>'
-  +   '<text x="404" y="354">PARTY</text>'
+  +   '<text x="1682" y="330">ENTERTAINMENT</text>'
+  +   '<text x="1338" y="444">BRIEFING</text>'
+  +   '<text x="1659" y="548">RESULTS</text>'
+  +   '<text x="1693" y="992">WORKSHOP</text>'
+  +   '<text x="394" y="354">PARTY</text>'
   +   '<text x="1111" y="886">PIT LANE</text>'
-  +   '<text x="196" y="1000">CAR-PARK BAYS — SHAPED BY THE BARRIERS YOU CONNECT</text>'
   + '</g>';
 }
 var LD_HOST='ld';
@@ -13452,8 +13462,18 @@ function ldUploadPlan(input){
       var w=Math.round(img.width*sc), h=Math.round(img.height*sc);
       var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
       var cx=cv.getContext('2d');
-      cx.fillStyle='#fff'; cx.fillRect(0,0,w,h);       // plans are drawn on white; keep transparency readable
       cx.drawImage(img,0,0,w,h);
+      /* A TRANSPARENT PNG NEEDS NO FILTER — AND IS RUINED BY ONE.
+         The ink filter exists to strip white paper off a scan. If the drawing already has no
+         background (a proper vector export from Figma / Illustrator / Inkscape) then filtering it
+         would flatten its real colours to black — which is exactly the "the black beacon lines
+         shouldn't be black" complaint, one step removed. So: detect real transparency and leave
+         the image alone. This is the good path, and it should not need a setting. */
+      var hasAlpha=false;
+      try{
+        var d=cx.getImageData(0,0,w,h).data;
+        for(var i=3;i<d.length;i+=4*97){ if(d[i]<250){ hasAlpha=true; break; } }
+      }catch(e){}
       var url;
       try{
         url=cv.toDataURL('image/png');
@@ -13471,10 +13491,11 @@ function ldUploadPlan(input){
           s.y1=Math.round(s.y1*fy); s.y2=Math.round(s.y2*fy);
         });
       }
-      LD_MAP.w=w; LD_MAP.h=h; LD_MAP.plan=url;
+      LD_MAP.w=w; LD_MAP.h=h; LD_MAP.plan=url; LD_MAP.planRaw=hasAlpha;
       if(LD_MAP.planOpacity==null) LD_MAP.planOpacity=0.85;
       LD_MAPDIRTY=true; ldZoomReset(); ldSyncBar();
-      ldStatus('Plan set ('+w+'×'+h+', '+Math.round(url.length/1024)+'KB) — drag the pillars onto the real columns, then Save');
+      ldStatus('Plan set ('+w+'\u00d7'+h+', '+Math.round(url.length/1024)+'KB'
+        +(hasAlpha?', transparent \u2014 shown as drawn':', ink mode on')+') \u2014 drag the pillars onto the real columns, then Save');
     };
     img.src=rd.result;
   };
@@ -17894,7 +17915,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HM \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18363,7 +18384,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HM';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HN';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

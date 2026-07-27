@@ -156,45 +156,55 @@ until the header line has been read.**
 
 ---
 
-## Layout Designer — v2 (27 Jul). Letters + direction tabs, plan as backdrop
+## Layout Designer / Master Map / Track Sheet — v3 (27 Jul)
 
-**Model, as Harvey specified it:**
+**Three screens, split by what they own:**
 
-- A **track is a LETTER** (A–AX, 50). Selecting one shows two tabs: **Clockwise / Anti-clockwise**.
-- **Barriers belong to the letter** — physical, shared by both directions. Connecting two pillars
-  closes a gap, disjoining opens it, and the set of connections *is* the track layout.
-- **Beacon S/N + F/N belong to the direction** — same track driven the other way needs different
-  functions. One DB row per letter holding `barriers`, `beacons_c`, `beacons_a`.
-- Disjoining a barrier clears its beacon on **both** directions: a beacon cannot sit on a barrier
-  that is not there, and leaving one behind would export a function for hardware that is not on
-  the track.
+| Screen | Where | Owns |
+|---|---|---|
+| **Venue Master Map** | Master Access → Tracks | Pillar + beacon **positions**, MAC addresses, the venue plan image |
+| **Layout Designer** | Facility | **Barriers** (per letter) and **beacon functions** (per direction) |
+| **Track Sheet** | Facility | Every letter, its `c`/`a` codes, and up to 5 marketing names |
 
-**The plan is an uploaded image, not a redrawing.** The first attempt traced Harvey's annotations
-into vector shapes — a yellow outline polygon and pink blobs for the static track sections — and
-he was right that it looked terrible. The annotations were him *pointing at* which sections stay
-the same, not instructions to draw circles. Re-drawing a surveyed architectural plan by eye from a
-screenshot can only ever be a worse copy of a thing he already has. So: **🗺️ Upload venue plan**
-puts the real drawing underneath (stored inline in `venue_map.doc`; PNG, JPEG fallback over
-~2.2 MB), with a fade slider, and pillars/barriers/beacons overlay it. Uploading rescales all
-existing geometry proportionally so nothing drifts.
+Hardware lives on the master map deliberately: a stray drag while building a layout would move a
+beacon for **every** track at once.
 
-**Seeded with real data** off the annotated plan — eight named static beacons with their actual
-values: Pit On 1st (S00/F12), Pit On 2nd (S00/F11), Pit Entry (S00/F28), Track B (S01/F26),
-Normal (S00/F53), Normal (S01/F09), Holding (S00/F48), Release (S00/F51). **Their positions are
-approximate** — read off a differently-cropped drawing than the pillars were — so they want
-dragging onto their real spots once. The values are exact.
+**Corrected model (Harvey, twice, and he was right both times):**
+
+- **Red lines are BEACONS, not barriers.** Fixed positions, each with a MAC. A layout decides
+  whether each is in use and what S/N + F/N it runs.
+- **Barriers are moveable and made by CONNECTING PILLARS.** Tap one pillar, tap another. They are
+  physical, so they are shared by both directions of a letter; beacon functions are per direction.
+- Barriers render **hatched** to match the insert pieces on the plan (large 6595×2005, small
+  2200×2005, column 2005×2005).
+
+**The plan: thresholded, not traced.** Every attempt to redraw the venue by eye was rightly called
+crap. The drawing has the track walls in **solid black** and the architectural background (column
+grid, dimensions, hatching, paper tone) in **light grey** — so an SVG filter maps luminance to alpha
+and a hard threshold keeps the dark ink and discards the pale. Result: the track in black, on
+nothing, from the *surveyed* drawing rather than a worse copy of it. The threshold is a slider
+because how pale the background is depends on the scan.
+
+**Fixed viewport, no pan or zoom** (asked for): everything visible at once, a tap is always a tap.
+
+**Clean view** hides every beacon not in use on the current layout — reading a track map and
+building one are different jobs.
 
 Open items:
 
-- **Pillar positions are traced by eye.** Upload the plan, drag the pillars onto the real columns
-  once, Save. From then on the DB copy is authoritative.
-- **Zones / concurrent tracks** (adult + junior + intermediate open at once): each is its own
-  letter, but there is no "venue preset" grouping several active letters into one tap. Natural
-  next step, and what the Arduino stage would switch.
-- **Link letters to RaceFacer's 46 configs** so the live layout auto-detects — needs an
-  `rf_track_id` column on `track_layouts`.
-- **MAC addresses are unvalidated free text** until a real Dehaardt identifier has been seen.
-- Arduino export format is stable: `{track, direction, code, beacons:[{id,kind,label,mac,sn,fn}]}`.
+- **Barrier stock is not modelled.** The plan notes "BLUE: 4 boxes 7 spare / GREEN: 2 boxes 1
+  spare" — there is a finite number of insert pieces. A layout could total up what it needs and
+  warn when it exceeds stock. Natural next step; not built.
+- **Pillar positions are traced by eye.** Upload the clean plan, drag the 20 pillars onto the real
+  columns once in the Master Map, Save. The DB copy is authoritative from then on.
+- **Static beacon positions are approximate** (read off a differently-cropped drawing); their
+  S/N + F/N values are exact and real.
+- **Zones / concurrent tracks** (adult + junior + inter open together): each is its own letter,
+  but no "venue preset" groups several active letters into one tap.
+- **Link letters to RaceFacer's 46 configs** for auto-detection — needs `rf_track_id` on
+  `track_layouts`.
+- MAC addresses are unvalidated free text until a real Dehaardt identifier has been seen.
+- Export format is stable: `{track, direction, code, barriers:[...], beacons:[{id,kind,label,mac,sn,fn}]}`.
 
 ## Parts still do not attach to repairs pushed from the app
 

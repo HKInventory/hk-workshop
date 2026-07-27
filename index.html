@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HB · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HC · ZXing raw</div>
       </div>
     </div>
 
@@ -4646,7 +4646,22 @@ function startRealtime(){
      bad :'The chattiest table by far — it moved 208 rows a minute before the runner fix. Every one of those multiplies by every device.'},
     {cap:25, name:'+ Push & AI',    add:['rf_repair_queue','rf_note_queue','rf_status_queue','rf_kart_edit_queue','ai_queue'],
      good:'"STILL SENDING" clears the instant RaceFacer accepts it, and HK AI answers appear as they land.',
-     bad :'Only matters while you are watching something save. Costs all month for a few seconds of reassurance.'}
+     bad :'Only matters while you are watching something save. Costs all month for a few seconds of reassurance.'},
+    /* THESE THREE ADD NO FEATURES, AND THAT IS THE POINT.
+       By 25M every table worth publishing is already live, so there is nothing left to switch on.
+       What is left to buy is HEADROOM — because the bill is rows x DEVICES, and the device count
+       is the factor nobody controls. Measured rates put Essential alone at 75% of 5M once fifteen
+       devices are connected; the features did not change, the shift got busy. So these tiers are
+       labelled for what they actually are rather than dressed up as new capability. */
+    {cap:30, name:'All live · busy shift', add:[],
+     good:'Nothing new switches on — this is headroom. Everything from the tiers below stays live through a full shift without the projection creeping up on the limit.',
+     bad :'You are paying for capacity you may never use. Check the device count on this page before buying it.'},
+    {cap:40, name:'All live · peak',       add:[],
+     good:'Room for school holidays and event days, when far more phones and screens are signed in at once than on a normal Tuesday.',
+     bad :'Only worth it if the projection actually approaches the limit on your busiest days. It will not make anything faster.'},
+    {cap:50, name:'All live · maximum',    add:[],
+     good:'As much margin as this plan sells. Sensible only if a write path has misbehaved before and you want the ceiling well clear of it.',
+     bad :'$112.50/mo for margin alone. The App Health write-rate chart is the cheaper way to catch a runaway write path.'}
   ];
   window.HK_RT_TIER=(typeof window.HK_RT_TIER==='number')?window.HK_RT_TIER:0;
   window.HK_RT_TABLES=[
@@ -4696,7 +4711,27 @@ function startRealtime(){
     _rtCh('kc-rt','kart_checks').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
   }catch(e){}
 }
-startRealtime();
+/* NOTHING GOES LIVE UNTIL SOMEBODY IS ACTUALLY LOOKING AT IT.
+   startRealtime() ran on page load, so every channel was subscribed while the user was still
+   standing at the PIN pad — and each incoming event ran its merge-and-redraw handler against
+   screens nobody could see. That work is on the main thread, which is exactly why tapping a
+   digit and swiping felt heavy: the same signature as the frozen kart screen, where "only
+   scrolling works" meant the main thread was busy, not that the pointer was stuck.
+
+   It also got WORSE when the notes parser started working. rf_kart_notes is published and
+   subscribed, and it went from delivering nothing at all to delivering a fleet-wide backlog —
+   so the PIN screen quietly acquired a few hundred merge-and-redraw callbacks it never had
+   before. Fixing detection made the phone slower, and this is where that landed.
+
+   Started on sign-in and on TV boot instead. The TV never signs in, so it gets its own hook. */
+var _rtStarted=false;
+function startRealtimeOnce(){
+  if(_rtStarted) return;
+  _rtStarted=true;
+  try{ rtDialLoad(); }catch(e){}      // shared dial setting before the first subscribe
+  try{ startRealtime(); }catch(e){}
+}
+if(typeof cu!=='undefined' && cu) startRealtimeOnce();
 
 /* Managers-only unread badge on the Racefacer tile: count of today's unresolved discrepancies. */
 function refreshRfBadge(){
@@ -4769,7 +4804,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HB</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HC</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5629,6 +5664,7 @@ function onLoginOk(m,entered){
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
   try{ if(!TRAINING) startPresence(); }catch(e){}
+  try{ startRealtimeOnce(); }catch(e){}   // subscribe now, not while the PIN pad was up
   try{ if(!TRAINING&&typeof vhStart==='function') vhStart(); }catch(e){}
   document.getElementById('we').innerText=(typeof roleEmojiFor==='function'?roleEmojiFor(m.role):(m.emoji||'\ud83d\udd27'));
   document.getElementById('wn').innerText='Hey, '+m.name.split(' ')[0]+'!';
@@ -7651,6 +7687,19 @@ function _rtProject(cur,tierIdx){
   if(!known||clients==null) return {rows:known?rows:null, clients:clients, month:null};
   return {rows:rows, clients:clients, month:rows*Math.max(1,clients)*60*24*30.44};
 }
+/* How many devices this setting takes before the projection reaches it, at the CURRENT measured
+   row rate. This is what makes a headroom tier judgeable instead of a guess: the features are
+   identical across the top three, so the only honest question is "how many people can be on it". */
+function _rtHeadroom(tierIdx){
+  try{
+    var tiers=window.HK_RT_TIERS||[];
+    var cur=(typeof HEALTH_ROWS!=='undefined'&&HEALTH_ROWS&&HEALTH_ROWS.length)?HEALTH_ROWS[0]:null;
+    var p=_rtProject(cur,tierIdx);
+    if(p.rows==null||!p.rows) return null;
+    var n=Math.floor((tiers[tierIdx].cap*1e6)/(p.rows*60*24*30.44));
+    return n+' device'+(n===1?'':'s')+' at the current write rate';
+  }catch(e){ return null; }
+}
 function _rtCost(capM){ var over=Math.max(0,capM-RT_PLAN_INCLUDED_M); return over*RT_PER_M; }
 function _rtDialHtml(cur){
   var tiers=window.HK_RT_TIERS||[]; if(!tiers.length) return '';
@@ -7676,7 +7725,8 @@ function _rtDialBody(idx,t,proj,cost,warn){
   return _hGrid([
       ['Setting', 'Under '+t.cap+'M &mdash; '+t.name],
       ['Extra cost', cost?('$'+cost.toFixed(2)+'/mo'):'included in plan'],
-      ['Projected now', proj]
+      ['Projected now', proj],
+      ['Devices supported', _rtHeadroom(idx)]
     ])
     +'<div class="sum-note" style="margin:10px 0 0"><b>Gains:</b> '+t.good+'</div>'
     +'<div class="sum-note" style="margin:6px 0 0"><b>Costs:</b> '+t.bad+'</div>'+warn;
@@ -7714,8 +7764,7 @@ function rtDialLoad(){
       if(v.tier===window.HK_RT_TIER) return;
       window.HK_RT_TIER=v.tier;
       try{ localStorage.setItem('hk_rt_tier',String(v.tier)); }catch(e){}
-      try{ if(SBC.removeAllChannels) SBC.removeAllChannels(); try{ rtDialLoad(); }catch(e){}   // shared dial setting before the first subscribe
-startRealtime(); }catch(e){}
+      try{ if(SBC.removeAllChannels) SBC.removeAllChannels(); startRealtime(); }catch(e){}
     },function(){});
   }catch(e){}
 }
@@ -12142,7 +12191,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -14023,6 +14072,7 @@ function bootTvDisplay(){
       setTimeout(function(){ try{ clearInterval(_tvConnT); }catch(e){} },20000);
     }
     _tvBootAt=Date.now();
+    try{ startRealtimeOnce(); }catch(e){}   // the TV has no PIN, so this is its hook
     tvSyncTimer=setInterval(tvSyncView,15000);     // catch scheduled messages + the morning cut-off
     // NOTE: the HK logo no longer pops on a blind 60s timer (which made it appear mid-scene at random).
     // It now shows only as the hand-off at the END of a kart-type's screen time — see tvAdvance().
@@ -16688,7 +16738,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -17157,7 +17207,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HB';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HC';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

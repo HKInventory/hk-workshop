@@ -141,11 +141,28 @@ percent of a bill it was not causing.
 system it went to. Nothing was counting before — the same blind spot behind the 324 million
 message incident below, where a runaway process ran for six days because nothing was watching.
 
-**Still to do:** read the meter after it has been running an hour, and confirm whether the 81.58 GB
-is even this worker rather than something else on the same account. The current leading suspect is
-the battery-telemetry poller, which checks every 4 seconds around the clock and is the only part of
-the system that does not stand down overnight — a question for Harvey, since karts charge overnight
-and that data may well be wanted.
+**What the meter then found:** not the notes page, and not the battery poller either — both
+suspects were wrong. The real answer is the **kart status check**. To keep the app's kart colours
+up to date, the system asks RaceFacer for the status of every kart every five seconds — and
+because RaceFacer will only answer one kart *type* at a time, that is six separate requests, 72 a
+minute, every minute the venue is open. Each one sends back every detail of every kart, when all
+we wanted was one word per kart: OK, damaged, or in for maintenance.
+
+That single habit accounts for **97% of everything the system downloads**. The notes page that
+started this whole investigation turned out to be under 4%.
+
+It also explains something we had been treating as a separate problem. RaceFacer runs on one small
+on-site machine, and it can only deal with one request at a time — so those 72 requests a minute
+are also why the system periodically reports itself running slow, and why kart status can lag
+during a busy race. The bandwidth bill and the sluggishness are the same problem wearing two hats.
+
+**Deliberately not "fixed" yet, for one good reason.** There is a polite way to ask a server "has
+anything changed since last time?" — if it supports it, the answer is a few bytes instead of a full
+download, and the problem vanishes with no downside at all. If it does not support it, the only
+alternative is checking less often, which means kart statuses update more slowly — a real trade-off
+that is Harvey's call, not ours. We are now measuring which of the two it is, rather than guessing
+and finding out afterwards. That is the same discipline that stopped us breaking the notes feature
+earlier in the day.
 
 ### Track layouts got a system instead of a naming nightmare
 

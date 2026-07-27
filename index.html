@@ -2046,10 +2046,13 @@
     .ld-seg.dyn{stroke:#DC2626}
     .ld-seg.static{stroke:#1D4ED8}
     .ld-seg.wall{stroke:#94a3b8;cursor:default}
-    .ld-seg.off{opacity:.3;stroke-dasharray:9 11}
+    /* An unused beacon must never read as a line on the track. Faint, dotted and neutral-grey —
+       not a dimmed version of its live colour, which at a glance still looks like a mark on the
+       circuit. Colour is reserved for beacons that are actually doing something. */
+    .ld-seg.off{stroke:#cbd5e1!important;opacity:.55;stroke-dasharray:4 10;stroke-width:5!important}
     .ld-seg.sel{filter:drop-shadow(0 0 8px currentColor)}
     .ld-hit{stroke:transparent;stroke-width:34;cursor:pointer}
-    .ld-num{fill:#0f172a;font-size:19px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+    .ld-num{fill:#94a3b8;font-size:19px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
     .ld-slab{fill:#1D4ED8;font-size:15px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
     .ld-chip{fill:#0f172a;stroke:none}
     .ld-chiptxt{fill:#fff;font-size:17px;font-weight:800;pointer-events:none}
@@ -3008,7 +3011,7 @@
         <div class="ld-dirs" id="ld-dirs"></div>
         <div class="ld-bar">
           <button class="ld-btn pri" id="ld-save" onclick="ldSaveLayout()" disabled>Save</button>
-          <button class="ld-btn" id="ld-clean" onclick="ldToggleClean()">👁 Clean view</button>
+          <button class="ld-btn" id="ld-clean" onclick="ldToggleClean()">✏️ Edit beacons</button>
           <button class="ld-btn" id="ld-export" onclick="ldExport()">⧉ Copy config JSON</button>
           <span class="ld-status" id="ld-status"></span>
         </div>
@@ -3081,7 +3084,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HN · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HO · ZXing raw</div>
       </div>
     </div>
 
@@ -4975,7 +4978,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HN</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HO</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12586,7 +12589,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -13195,7 +13198,7 @@ function ldSite(){ return (typeof currentSite!=='undefined'&&currentSite)||'sydn
 function ldCode(){ return LD_LETTER+LD_DIR; }
 function ldOpen(){
   go('trackmap');
-  LD_HOST='ld'; LD_EDIT=false; LD_CLEAN=false; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
+  LD_HOST='ld'; LD_EDIT=false; LD_CLEAN=true; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
   var dl=document.getElementById('ld-fnlist');
   if(dl && typeof DEHAARDT_FN!=='undefined') dl.innerHTML=DEHAARDT_FN.map(function(f){return '<option value="'+ldEsc(String(f.fn))+'">'+ldEsc(f.desc||'')+'</option>';}).join('');
   ldLoad();
@@ -13275,9 +13278,12 @@ function ldSyncBar(){
   var em=ldEl('editmap'); if(em) em.className='ld-btn'+(LD_EDIT?' on':'');
   var nm=ldEl('name'); if(nm&&document.activeElement!==nm) nm.value=(LD_LAYOUTS[LD_LETTER]&&LD_LAYOUTS[LD_LETTER].display_name)||'';
   var th=ldEl('thr');
-  if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.06;
+  if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.18;
   var ik=ldEl('ink'); if(ik) ik.className='ld-btn'+((LD_MAP&&!LD_MAP.planRaw)?' on':'');
-  var cl=ldEl('clean'); if(cl) cl.className='ld-btn'+(LD_CLEAN?' on':'');
+  /* The button says what it DOES, not what mode you are in — the common mistake with toggles.
+     In clean view it offers editing; while editing it offers the clean read-back. */
+  var cl=ldEl('clean');
+  if(cl){ cl.className='ld-btn'+(LD_CLEAN?'':' on'); cl.textContent=LD_CLEAN?'\u270f\ufe0f Edit beacons':'\ud83d\udc41 Clean view'; }
 }
 /* ---- map render: permanent layers underneath, the layout on top ---- */
 function ldRenderMap(){
@@ -13303,7 +13309,7 @@ function ldRenderMap(){
      gain then drives what survives to full black. Mid-grey (luminance ~0.75) lands solidly black;
      only near-white paper is dropped. That IS "the grey lines redrawn in black with no background".
      The slider still exists for a dirtier scan, but it starts where the track is visible. */
-  var _thr=(LD_MAP.planThreshold==null?0.06:LD_MAP.planThreshold), _gain=6.5;
+  var _thr=(LD_MAP.planThreshold==null?0.18:LD_MAP.planThreshold), _gain=6.5;
   var _t={ slope:_gain.toFixed(3), icept:(-_thr*_gain).toFixed(3) };
   h+='<defs><filter id="ldink" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">'
    + '<feColorMatrix type="matrix" values="0 0 0 0 0.04  0 0 0 0 0.06  0 0 0 0 0.10  -0.34 -0.34 -0.34 0 1"/>'
@@ -13504,7 +13510,7 @@ function ldUploadPlan(input){
 function ldPlanOpacity(v){ if(!LD_MAP) return; LD_MAP.planOpacity=Math.max(0.1,Math.min(1,+v||0.85)); LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar(); }
 function ldPlanThreshold(v){
   if(!LD_MAP) return;
-  LD_MAP.planThreshold=Math.max(0.005,Math.min(0.6,+v==null?0.06:+v));
+  LD_MAP.planThreshold=Math.max(0.005,Math.min(0.6,+v==null?0.18:+v));
   LD_MAP.planRaw=false;                      // a threshold is meaningless on the raw image
   LD_MAPDIRTY=true; ldRenderMap(); ldSyncBar();
 }
@@ -17915,7 +17921,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HN \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18384,7 +18390,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HN';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HO';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

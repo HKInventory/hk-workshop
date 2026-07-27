@@ -186,6 +186,17 @@ every layout can be exported as the exact configuration file a small computer (A
 push to the beacons — the eventual goal being turning a whole track layout on from the app in
 one tap.
 
+**Second pass, after honest feedback.** The first version got two things wrong and Harvey said so
+plainly. It listed all hundred layouts in one flat dropdown, which hid the fact that a track and
+the same track run backwards are the *same barriers* with *different beacon settings*. And it
+tried to redraw the venue plan from scratch, which looked exactly as amateurish as that sounds.
+
+Both fixed. You now pick a track — A, B, C — and then a Clockwise or Anti-clockwise tab. The
+barriers are shared between the two, because they are physical objects that do not move; only the
+beacon functions differ. And the venue plan is simply uploaded as an image and everything is
+drawn on top of it, so what you see is the real surveyed drawing rather than somebody's tracing
+of it.
+
 ---
 
 ## The 324 million message incident — read before changing anything

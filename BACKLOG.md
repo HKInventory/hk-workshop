@@ -156,34 +156,45 @@ until the header line has been read.**
 
 ---
 
-## Layout Designer — built 27 Jul; open questions + Arduino stage
+## Layout Designer — v2 (27 Jul). Letters + direction tabs, plan as backdrop
 
-The venue map + layout library is live (Facility → Layout Designer, manager-default-on). One
-shared geometry (pillars + beacon segments), layout codes A–AX × c/a (100), marketing names per
-code, per-layout beacon config (S/N + F/N from the real `DEHAARDT_FN` table), red = programmable
-(MAC field on each), blue = static (fixed F/N on the segment), editable map, export button
-emitting the config JSON a future Arduino bridge would push. Tables `venue_map` +
-`track_layouts` are NOT in the realtime publication — zero message cost by construction.
+**Model, as Harvey specified it:**
 
-Open items, deliberately not guessed:
+- A **track is a LETTER** (A–AX, 50). Selecting one shows two tabs: **Clockwise / Anti-clockwise**.
+- **Barriers belong to the letter** — physical, shared by both directions. Connecting two pillars
+  closes a gap, disjoining opens it, and the set of connections *is* the track layout.
+- **Beacon S/N + F/N belong to the direction** — same track driven the other way needs different
+  functions. One DB row per letter holding `barriers`, `beacons_c`, `beacons_a`.
+- Disjoining a barrier clears its beacon on **both** directions: a beacon cannot sit on a barrier
+  that is not there, and leaving one behind would export a function for hardware that is not on
+  the track.
 
-- **Traced geometry is approximate.** Seeded by eye from Harvey's plan screenshot. Harvey should
-  drag beacons/pillars to true positions in ✏️ Edit map once, then Save — the DB copy is then
-  authoritative forever.
-- **Names per code or per letter?** The sheet has one marketing-name row per LETTER; Harvey's
-  example ("track Aa") suggested per-variant. Built per-code (each of Aa/Ac named separately) as
-  the superset. If he wants shared, he names both.
-- **Zones/sections** (adult vs junior vs inter open simultaneously, as in his coloured overlay):
-  the model handles it — each concurrent track is its own layout code — but there is no
-  "venue preset" yet that groups several active layouts into one tap. That is the natural next
-  step and also what the Arduino stage would switch.
-- **Linking codes to RaceFacer's 46 track configs** (`tracks` table, runner-maintained) so the
-  live layout auto-detects: field for it does not exist yet; add `rf_track_id` to
-  `track_layouts` when wanted.
-- **Arduino stage:** export format is stable ({code, beacons:[{id, kind, mac, sn, fn}]}). The
-  bridge consumes exactly that; nothing in the app needs restructuring for it.
-- **MAC addresses are not validated** — free text, since Dehaardt's exact identifier format
-  hasn't been seen yet. Validate once a real one is in hand.
+**The plan is an uploaded image, not a redrawing.** The first attempt traced Harvey's annotations
+into vector shapes — a yellow outline polygon and pink blobs for the static track sections — and
+he was right that it looked terrible. The annotations were him *pointing at* which sections stay
+the same, not instructions to draw circles. Re-drawing a surveyed architectural plan by eye from a
+screenshot can only ever be a worse copy of a thing he already has. So: **🗺️ Upload venue plan**
+puts the real drawing underneath (stored inline in `venue_map.doc`; PNG, JPEG fallback over
+~2.2 MB), with a fade slider, and pillars/barriers/beacons overlay it. Uploading rescales all
+existing geometry proportionally so nothing drifts.
+
+**Seeded with real data** off the annotated plan — eight named static beacons with their actual
+values: Pit On 1st (S00/F12), Pit On 2nd (S00/F11), Pit Entry (S00/F28), Track B (S01/F26),
+Normal (S00/F53), Normal (S01/F09), Holding (S00/F48), Release (S00/F51). **Their positions are
+approximate** — read off a differently-cropped drawing than the pillars were — so they want
+dragging onto their real spots once. The values are exact.
+
+Open items:
+
+- **Pillar positions are traced by eye.** Upload the plan, drag the pillars onto the real columns
+  once, Save. From then on the DB copy is authoritative.
+- **Zones / concurrent tracks** (adult + junior + intermediate open at once): each is its own
+  letter, but there is no "venue preset" grouping several active letters into one tap. Natural
+  next step, and what the Arduino stage would switch.
+- **Link letters to RaceFacer's 46 configs** so the live layout auto-detects — needs an
+  `rf_track_id` column on `track_layouts`.
+- **MAC addresses are unvalidated free text** until a real Dehaardt identifier has been seen.
+- Arduino export format is stable: `{track, direction, code, beacons:[{id,kind,label,mac,sn,fn}]}`.
 
 ## Parts still do not attach to repairs pushed from the app
 

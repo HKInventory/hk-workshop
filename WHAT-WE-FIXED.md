@@ -147,6 +147,28 @@ the battery-telemetry poller, which checks every 4 seconds around the clock and 
 the system that does not stand down overnight — a question for Harvey, since karts charge overnight
 and that data may well be wanted.
 
+### Track layouts got a system instead of a naming nightmare
+
+**What it was like:** every track configuration had its own ad-hoc name, RaceFacer holds 46 of
+them with names like "Australian GP 1, Clockwise", and nobody could say from a name which
+beacons should be doing what.
+
+**What was built:** a Layout Designer in the app. The venue (a car park — the pillars are real)
+is drawn once as a digital map: every Dehaardt beacon segment in its place, red for the
+programmable ones, blue for the fixed ones. Every possible layout gets a short code — A to AX,
+plus c for clockwise, a for anti-clockwise — exactly matching the master spreadsheet. A marketing
+name like "The Clock" is just a label on a code, so a track can be renamed for a season without
+touching a single beacon setting.
+
+Pick a layout, tap a beacon, set its sector and function numbers — the function list is the real
+one from the Dehaardt manual, with plain-English descriptions. The map itself is editable by
+dragging, so when the venue changes, fixing the map takes seconds and no programmer.
+
+**Built ready for the next stage:** the programmable beacons each store their MAC address, and
+every layout can be exported as the exact configuration file a small computer (Arduino) would
+push to the beacons — the eventual goal being turning a whole track layout on from the app in
+one tap.
+
 ---
 
 ## The 324 million message incident — read before changing anything

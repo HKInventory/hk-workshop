@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HG · ZXing raw</div>
       </div>
     </div>
 
@@ -4804,7 +4804,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HF</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7950,15 +7950,39 @@ function healthRender(){
   }
 
   /* ---- plan headroom ------------------------------------------------------ */
+  /* MEASURED FIRST, AND ONE HONEST LINE FOR THE REST.
+     This drew nine meters and six of them read "not measured", which is the worst of both
+     worlds: it looks broken, it buries the three figures that ARE real, and it says nothing
+     about why. Those six are not broken and never will be — they come from Supabase's internal
+     dashboard API, which a Management token cannot reach at all. So show what is measured, and
+     account for the rest once, plainly, instead of six times as blank bars. */
+  var _ledger=(function(){
+    try{
+      var now=new Date(), ms=new Date(now.getFullYear(),now.getMonth(),1).getTime(), sum=0, seen=0;
+      for(var i=0;i<rows.length;i++){
+        var d=rows[i]&&rows[i].realtime_msgs_delta; if(d==null) continue;
+        var t=Date.parse(rows[i].at||''); if(!isFinite(t)||t<ms) continue;
+        sum+=Number(d)||0; seen++;
+      }
+      return seen?sum:null;
+    }catch(e){ return null; }
+  })();
+  var _rtShown=(msgs!=null)?msgs:_ledger;
   var meters=_hMeter(dbB,HK_PLAN.db_bytes,'Database','Pro plan includes 8 GB','bytes')
-    +_hMeter(msgs,HK_PLAN.realtime_msgs,'Realtime messages','this billing month','num')
-    +_hMeter(egr,HK_PLAN.egress_bytes,'Supabase egress','','bytes')
-    +_hMeter(su.cached_egress_bytes,HK_PLAN.cached_egress_bytes,'Cached egress','','bytes')
-    +_hMeter(su.storage_bytes,HK_PLAN.storage_bytes,'File storage','','bytes')
-    +_hMeter(rnd,HK_PLAN.render_bytes,'Render bandwidth','the 100 GB/month cap','bytes')
-    +_hMeter(su.realtime_peak_connections,HK_PLAN.rt_conns,'Peak realtime connections','','num')
-    +_hMeter(su.func_invocations,HK_PLAN.func_calls,'Edge function calls','','num')
-    +_hMeter(su.monthly_active_users,HK_PLAN.mau,'Monthly active users','','num');
+    +_hMeter(_rtShown,HK_PLAN.realtime_msgs,'Realtime messages',
+        (msgs!=null?'this billing month':(_ledger!=null?'measured here, by counting what we sent':'run hk_app_health_setup.sql to start counting')),'num')
+    +_hMeter(rnd,HK_PLAN.render_bytes,'Render bandwidth','the 100 GB/month cap','bytes');
+  var _unread=[];
+  if(su.egress_bytes==null) _unread.push('egress');
+  if(su.cached_egress_bytes==null) _unread.push('cached egress');
+  if(su.storage_bytes==null) _unread.push('file storage');
+  if(su.realtime_peak_connections==null) _unread.push('peak connections');
+  if(su.func_invocations==null) _unread.push('edge functions');
+  if(su.monthly_active_users==null) _unread.push('monthly active users');
+  if(_unread.length) meters+='<div class="sum-note" style="margin:10px 0 0">'
+    +'<b>'+_unread.length+' figures are not readable from here:</b> '+_unread.join(', ')+'. '
+    +'They come from Supabase’s dashboard, whose usage API is internal and cannot be reached with a Management token — no key exists that would fix this. '
+    +'They are on the org Usage page in the Supabase dashboard. Everything above is measured directly and does not depend on any vendor API.</div>';
 
   /* ---- write rate, with the billable slice on the same axis ---------------- */
   var colRows=hist.slice(-48).map(function(x){
@@ -12358,7 +12382,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16905,7 +16929,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -17374,7 +17398,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HF';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

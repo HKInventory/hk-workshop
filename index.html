@@ -2928,7 +2928,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HB · ZXing raw</div>
       </div>
     </div>
 
@@ -4618,28 +4618,71 @@ function startRealtime(){
      live: rimo_karts changes far too often to be worth publishing (it was writing 208 rows/min
      before the runner's hysteresis fix, and every row would multiply by every connected device),
      so the kart dots ride the 20s poll below instead and that is deliberate, not a fault. */
+  /* ===== THE REALTIME DIAL =====================================================
+     Supabase bills a REALTIME MESSAGE per row delivered per subscribed client, so cost is
+     rows x devices — not speed. Polling faster does not write more rows: a kart that goes
+     Damaged is written once whether we notice in 3s or 30s. What actually costs money is how
+     many TABLES each device listens to, which is the only thing this dial changes.
+
+     Publication is a superset and stays fixed (it is DDL, and a published table with no
+     subscriber costs nothing). Each device then subscribes only to the tiers it is turned up
+     to, so turning the dial down is immediate and cannot break anything — the feature simply
+     falls back to its poll or to a tab-focus refresh.
+
+     Tiers are additive and ordered by value per message: the things people stand and wait for
+     come first, the chatty telemetry last. */
+  window.HK_RT_TIERS=[
+    {cap:5,  name:'Essential',      add:[],
+     good:'Notes, kart status, chat, tasks and the TV all live. The cheapest set that still feels like one shared system.',
+     bad :'A repair logged by someone else will not appear until you switch tabs or reopen the kart. The manager discrepancy alert cannot fire.'},
+    {cap:10, name:'+ Repairs',      add:['rf_repairs','rf_discrepancies'],
+     good:'Repairs appear on every screen the moment they are logged, and the manager discrepancy badge and its sound work.',
+     bad :'Roughly doubles the message bill. Repairs are bursty — a sync sweep can write many at once.'},
+    {cap:15, name:'+ Parts & stock',add:['parts','stock'],
+     good:'Stock levels and part edits update everywhere at once, so two people cannot book out the same last item.',
+     bad :'Parts change rarely, so this buys the least per message of any tier.'},
+    {cap:20, name:'+ Kart dots',    add:['rimo_karts'],
+     good:'Karts light up online/offline instantly instead of on a 20 second poll. This is the delay you feel on the kart grid.',
+     bad :'The chattiest table by far — it moved 208 rows a minute before the runner fix. Every one of those multiplies by every device.'},
+    {cap:25, name:'+ Push & AI',    add:['rf_repair_queue','rf_note_queue','rf_status_queue','rf_kart_edit_queue','ai_queue'],
+     good:'"STILL SENDING" clears the instant RaceFacer accepts it, and HK AI answers appear as they land.',
+     bad :'Only matters while you are watching something save. Costs all month for a few seconds of reassurance.'}
+  ];
+  window.HK_RT_TIER=(typeof window.HK_RT_TIER==='number')?window.HK_RT_TIER:0;
   window.HK_RT_TABLES=[
     {t:'rf_karts'},{t:'rf_kart_notes'},{t:'rf_repairs'},{t:'rf_discrepancies'},
     {t:'parts'},{t:'stock'},{t:'ui_config'},{t:'messages'},{t:'chat_reads'},
     {t:'tasks'},{t:'ramp_events'},{t:'kart_checks'},{t:'presence'},{t:'tv_state'},
     {t:'rimo_karts',poll:'20s poll'}
   ];
+  /* A gated channel returns a stub rather than null: the call sites chain .on(...).subscribe(),
+     so a null would throw and take every LATER subscription in the try block down with it. */
+  var _RT_NOOP=window._RT_NOOP=(window._RT_NOOP||{on:function(){return this;},subscribe:function(){return this;}});
+  window._rtAllowed=function(t){
+    try{
+      var tiers=window.HK_RT_TIERS||[], upto=Math.max(0,Math.min(tiers.length-1,window.HK_RT_TIER||0));
+      for(var i=1;i<=upto;i++){ if((tiers[i].add||[]).indexOf(t)>=0) return true; }
+      for(var j=1;j<tiers.length;j++){ if((tiers[j].add||[]).indexOf(t)>=0) return false; }
+      return true;   // not named by any tier => Essential, always on
+    }catch(e){ return true; }
+  };
+  function _rtCh(name,table){ return window._rtAllowed(table)?SBC.channel(name):_RT_NOOP; }
   try{
-    SBC.channel('parts-rt').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _rtParts(); _rtNotif(); }).subscribe();
-    SBC.channel('stock-rt').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
+    _rtCh('parts-rt','parts').on('postgres_changes',{event:'*',schema:'public',table:'parts'},function(){ _rtParts(); _rtNotif(); }).subscribe();
+    _rtCh('stock-rt','stock').on('postgres_changes',{event:'*',schema:'public',table:'stock'},function(){ if((currentSite||'sydney')!=='sydney') _rtParts(); _rtNotif(); }).subscribe();
     // RaceFacer tables -> refresh whatever RF view is open, live (debounced so a sync burst = one refresh).
-    SBC.channel('rfk-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); _tvHook('karts'); }).subscribe();
+    _rtCh('rfk-rt','rf_karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _rtKarts(); _tvHook('karts'); }).subscribe();
     // Repair/note events MERGE instantly (cheap, in-memory) but the kart-screen REDRAW is
     // debounced: during a sync sweep thousands of these arrive, and redrawing per event is a
     // DOM-rebuild storm — the strobing kart counts. One redraw ~1.2s after the burst settles.
     var kartRerenderSoon = _debounce(function(){ try{kartRerenderNow();}catch(e){} }, 500, 2200);
-    SBC.channel('rfr-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); _tvHook('reps'); }).subscribe();
+    _rtCh('rfr-rt','rf_repairs').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ _rtRepairMerge(p); _rtKarts(); _rtMech(); _rtCheck(); kartRerenderSoon(); _tvHook('reps'); }).subscribe();
     // Notes: MERGE instantly (incl. DELETE), then redraw. A delete is a single event, not a
     // sync burst, so redraw promptly rather than on the debounce that smooths mass updates.
-    SBC.channel('rfn-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); _tvHook('notes'); }).subscribe();
-    SBC.channel('rfd-rt').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
-    SBC.channel('uicfg-rt').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
-    SBC.channel('msg-rt').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
+    _rtCh('rfn-rt','rf_kart_notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); _tvHook('notes'); }).subscribe();
+    _rtCh('rfd-rt','rf_discrepancies').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
+    _rtCh('uicfg-rt','ui_config').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
+    _rtCh('msg-rt','messages').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
       try{
         if(p&&p.eventType==='INSERT'&&p.new&&typeof _rtMsgIn==='function'){ _rtMsgIn(p.new); }
         else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
@@ -4648,9 +4691,9 @@ function startRealtime(){
     }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
       try{ var row=p&&(p.new||p.old); if(row&&row.channel===CH_CHANNEL){ if(p&&p.new) CH_READS[p.new.name]=p.new.at; chatUpdateSeen(); } }catch(e){}
     }).subscribe();
-    SBC.channel('tasks-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} _tvHook('tasks'); }).subscribe();
-    SBC.channel('ramp-rt').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} _tvHook('ramp'); }).subscribe();
-    SBC.channel('kc-rt').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
+    _rtCh('tasks-rt','tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} _tvHook('tasks'); }).subscribe();
+    _rtCh('ramp-rt','ramp_events').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} _tvHook('ramp'); }).subscribe();
+    _rtCh('kc-rt','kart_checks').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
   }catch(e){}
 }
 startRealtime();
@@ -4726,7 +4769,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HA</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HB</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7588,6 +7631,95 @@ function _hGrid(pairs){
   }).join('')+'</div>';
 }
 
+/* ===== THE REALTIME DIAL =====================================================================
+   Cost here is rows x devices, never speed — see HK_RT_TIERS. The projection is MEASURED, not
+   modelled: per-table write rates come from the runner's own writes_by_table snapshot and the
+   device count from presence, so the figure moves with the real system rather than an estimate
+   that quietly goes stale. Where a factor is unknown it says so instead of showing a confident
+   number, because a confident wrong number is what let 324M go unnoticed for six days. */
+var RT_PLAN_INCLUDED_M=5, RT_PER_M=2.5;   // 5M included, $2.50 per additional million
+function _rtProject(cur,tierIdx){
+  var wb=(cur&&cur.writes_by_table)||{};
+  var clients=(cur&&cur.realtime_clients!=null)?Number(cur.realtime_clients):null;
+  var tiers=window.HK_RT_TIERS||[];
+  // Every table live at or below this tier. Anything not named by a tier is Essential.
+  var named={}; tiers.forEach(function(t){ (t.add||[]).forEach(function(x){ named[x]=1; }); });
+  var on={}; (window.HK_RT_TABLES||[]).forEach(function(x){ if(!named[x.t]) on[x.t]=1; });
+  for(var i=1;i<=tierIdx&&i<tiers.length;i++) (tiers[i].add||[]).forEach(function(x){ on[x]=1; });
+  var rows=0, known=false;
+  Object.keys(on).forEach(function(t){ if(wb[t]!=null){ rows+=Number(wb[t])||0; known=true; } });
+  if(!known||clients==null) return {rows:known?rows:null, clients:clients, month:null};
+  return {rows:rows, clients:clients, month:rows*Math.max(1,clients)*60*24*30.44};
+}
+function _rtCost(capM){ var over=Math.max(0,capM-RT_PLAN_INCLUDED_M); return over*RT_PER_M; }
+function _rtDialHtml(cur){
+  var tiers=window.HK_RT_TIERS||[]; if(!tiers.length) return '';
+  var idx=Math.max(0,Math.min(tiers.length-1,window.HK_RT_TIER||0)), t=tiers[idx];
+  var p=_rtProject(cur,idx);
+  var capMsgs=t.cap*1e6;
+  var pct=(p.month==null)?null:Math.round((p.month/capMsgs)*100);
+  var cost=_rtCost(t.cap);
+  var proj=(p.month==null)
+    ? '<span style="color:var(--t2)">not measurable yet — needs one snapshot with per-table writes and a device count</span>'
+    : '<b>'+(p.month/1e6).toFixed(2)+'M</b> / month projected &middot; '+pct+'% of this setting'
+      +' <span style="color:var(--t2)">('+p.rows.toFixed(1)+' rows/min &times; '+p.clients+' device'+(p.clients===1?'':'s')+')</span>';
+  var warn=(pct!=null&&pct>100)?('<div class="sum-note" style="color:'+SUMC.warm+';font-weight:800;margin:8px 0 0">Over this setting. Turn it up, or turn a feature off.</div>'):'';
+  return '<div class="sum-note" style="margin:0 0 12px">Cost is rows written &times; devices listening &mdash; not speed. '
+      +'Polling faster does not write more rows, so this dial changes WHICH features are live, nothing else. '
+      +'Turning it down takes effect at once and breaks nothing: a feature just falls back to its poll.</div>'
+    +'<input type="range" min="0" max="'+(tiers.length-1)+'" step="1" value="'+idx+'" '
+      +'oninput="rtDialPreview(this.value)" onchange="rtDialSave(this.value)" '
+      +'style="width:100%;margin:6px 0 14px;accent-color:'+SUMC.accent+'">'
+    +'<div id="rt-dial-body">'+_rtDialBody(idx,t,proj,cost,warn)+'</div>';
+}
+function _rtDialBody(idx,t,proj,cost,warn){
+  return _hGrid([
+      ['Setting', 'Under '+t.cap+'M &mdash; '+t.name],
+      ['Extra cost', cost?('$'+cost.toFixed(2)+'/mo'):'included in plan'],
+      ['Projected now', proj]
+    ])
+    +'<div class="sum-note" style="margin:10px 0 0"><b>Gains:</b> '+t.good+'</div>'
+    +'<div class="sum-note" style="margin:6px 0 0"><b>Costs:</b> '+t.bad+'</div>'+warn;
+}
+function rtDialPreview(v){
+  var tiers=window.HK_RT_TIERS||[], i=Math.max(0,Math.min(tiers.length-1,parseInt(v,10)||0));
+  var cur=(HEALTH_ROWS&&HEALTH_ROWS.length)?HEALTH_ROWS[0]:null;   // newest-first, same as healthRender
+  var p=_rtProject(cur,i), capMsgs=tiers[i].cap*1e6;
+  var pct=(p.month==null)?null:Math.round((p.month/capMsgs)*100);
+  var proj=(p.month==null)?'<span style="color:var(--t2)">not measurable yet</span>'
+    :'<b>'+(p.month/1e6).toFixed(2)+'M</b> / month projected &middot; '+pct+'% of this setting'
+     +' <span style="color:var(--t2)">('+p.rows.toFixed(1)+' rows/min &times; '+p.clients+' device'+(p.clients===1?'':'s')+')</span>';
+  var warn=(pct!=null&&pct>100)?('<div class="sum-note" style="color:'+SUMC.warm+';font-weight:800;margin:8px 0 0">Over this setting. Turn it up, or turn a feature off.</div>'):'';
+  var el=document.getElementById('rt-dial-body');
+  if(el) el.innerHTML=_rtDialBody(i,tiers[i],proj,_rtCost(tiers[i].cap),warn);
+}
+function rtDialSave(v){
+  var i=Math.max(0,Math.min((window.HK_RT_TIERS||[]).length-1,parseInt(v,10)||0));
+  window.HK_RT_TIER=i;
+  try{ localStorage.setItem('hk_rt_tier',String(i)); }catch(e){}
+  try{ SBC.from('ui_config').upsert({key:'rt_budget',value:{tier:i},updated_at:new Date().toISOString()},{onConflict:'key'}).then(function(){},function(){}); }catch(e){}
+  // Re-open the channels so the change lands now rather than on the next reload. If the client
+  // cannot tear them down cleanly, say so plainly rather than leaving the dial lying about state.
+  try{ if(SBC.removeAllChannels) SBC.removeAllChannels(); startRealtime(); if(typeof startPresence==='function') startPresence(); }
+  catch(e){ try{ console.log('[rt] channels could not be reopened — reload to apply'); }catch(_){} }
+  rtDialPreview(i);
+}
+/* Read before the first subscribe so a device comes up on the shared setting rather than
+   Essential-then-flip. localStorage answers instantly; ui_config is the shared source of truth. */
+function rtDialLoad(){
+  try{ var l=localStorage.getItem('hk_rt_tier'); if(l!=null) window.HK_RT_TIER=parseInt(l,10)||0; }catch(e){}
+  try{
+    SBC.from('ui_config').select('value').eq('key','rt_budget').maybeSingle().then(function(r){
+      var v=r&&r.data&&r.data.value; if(!v||typeof v.tier!=='number') return;
+      if(v.tier===window.HK_RT_TIER) return;
+      window.HK_RT_TIER=v.tier;
+      try{ localStorage.setItem('hk_rt_tier',String(v.tier)); }catch(e){}
+      try{ if(SBC.removeAllChannels) SBC.removeAllChannels(); try{ rtDialLoad(); }catch(e){}   // shared dial setting before the first subscribe
+startRealtime(); }catch(e){}
+    },function(){});
+  }catch(e){}
+}
+
 function healthRender(){
   var host=document.getElementById('health-body'); if(!host) return;
   var rows=HEALTH_ROWS||[];
@@ -7758,6 +7890,7 @@ function healthRender(){
     +'<div class="mc"><div class="mct">Where the writes go</div>'
       +'<div class="sum-note" style="margin:0 0 10px">Marked tables are in the realtime publication, so their rows multiply by connected clients.</div>'+writeBars
     +'</div>'
+    +'<div class="mc"><div class="mct">Instant features &amp; what they cost</div>'+_rtDialHtml(cur)+'</div>'
     +(liveGrid?('<div class="mc"><div class="mct">Live updates</div>'
       +'<div class="sum-note" style="margin:0 0 10px">A table the app subscribes to but which is not in the realtime publication delivers nothing, silently — that screen simply never updates on its own.</div>'+liveGrid
     +'</div>'):'')
@@ -10240,7 +10373,7 @@ function startRimoLive(){
   // bad trade: it was writing 208 rows/min before the runner's hysteresis fix, and every row
   // multiplies by every connected device.
   if(!_rimoSub){
-    try{ _rimoSub=SBC.channel('rimo-live')
+    try{ _rimoSub=(window._rtAllowed&&window._rtAllowed('rimo_karts'))?SBC.channel('rimo-live'):window._RT_NOOP
       .on('postgres_changes',{event:'*',schema:'public',table:'rimo_karts'},function(){ clearTimeout(_rimoDeb); _rimoDeb=setTimeout(loadRimo,600); })
       .subscribe(); }catch(e){}
   }
@@ -12009,7 +12142,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') bdOpen();
   if(name==='karts') mkOpen();
@@ -16555,7 +16688,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -17024,7 +17157,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HA';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HB';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

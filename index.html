@@ -2056,6 +2056,9 @@
     .ld-slab{fill:#1D4ED8;font-size:15px;font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
     .ld-chip{fill:#0f172a;stroke:none}
     .ld-chiptxt{fill:#fff;font-size:17px;font-weight:800;pointer-events:none}
+    .ld-thit{fill:none;stroke:transparent;stroke-width:22;cursor:pointer}
+    .ld-draw{fill:none;stroke:#F97316;stroke-width:6;stroke-dasharray:12 8;stroke-linecap:round}
+    .ld-dpt{fill:#fff;stroke:#F97316;stroke-width:3}
     .ld-hnd{fill:#fff;stroke:#D97706;stroke-width:3;cursor:grab}
     .ld-ptitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
     .ld-pdir{font-size:11.5px;color:var(--t2);letter-spacing:.05em;text-transform:uppercase}
@@ -3083,7 +3086,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HP · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HQ · ZXing raw</div>
       </div>
     </div>
 
@@ -3919,6 +3922,7 @@
       <div class="ld-bar">
         <button class="ld-btn pri" id="mm-save" onclick="ldSaveLayout()" disabled>Save master map</button>
         <label class="ld-btn">🗺️ Upload venue plan<input type="file" accept="image/*" style="display:none" onchange="ldUploadPlan(this)"></label>
+        <button class="ld-btn" id="mm-draw" onclick="ldToggleDraw()">✏️ Draw track</button>
         <button class="ld-btn" id="mm-ink" onclick="ldToggleInk()">◐ Ink mode</button>
         <label class="ld-fade">Line pickup<input type="range" min="0.01" max="0.45" step="0.01" id="mm-thr" oninput="ldPlanThreshold(this.value)"></label>
         <button class="ld-btn" onclick="ldClearPlan()">Remove plan</button>
@@ -4960,7 +4964,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HP</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HQ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12607,7 +12611,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -13190,6 +13194,18 @@ var LD_MAP=null, LD_LAYOUTS={}, LD_LETTER=null, LD_DIR='c', LD_SEL=null;
    noise on top of the answer. So clean view drops anything not in use on this layout entirely —
    barriers and live beacons only — and that is what the track actually looks like. */
 var LD_CLEAN=false;
+/* TRACE THE TRACK YOURSELF, ONCE.
+   Everything else failed for the same reason. Tracing it by eye from a screenshot gave a worse copy
+   of a drawing Harvey already owns. Thresholding his scan cannot work, because the track lines are
+   the same tone as the column grid and dimension text — a luminance filter separates by darkness
+   and there is no darkness difference to separate on. And any uploaded plan carries whatever was
+   drawn on it, so the beacon marks on the annotated blueprint come through as black lines the app
+   has no way to erase; they are part of the picture.
+   So: draw the track over the plan, in the app, by clicking points. Then delete the plan and the
+   trace is all that is left — clean vectors, real geometry, drawn by the person who knows the
+   venue. Five minutes, once, and it is permanently right.
+   Stored on the master map beside the pillars, so every layout inherits it. */
+var LD_DRAW=false, LD_PATH=null;
 var LD_PIN=null;    // first pillar of a pending connection
 var LD_BSEL=null;   // selected barrier ("pA|pB")
 var LD_DIRTY=false, LD_MAPDIRTY=false, LD_EDIT=false, LD_DRAG=null, LD_LOADED=false;
@@ -13216,7 +13232,7 @@ function ldSite(){ return (typeof currentSite!=='undefined'&&currentSite)||'sydn
 function ldCode(){ return LD_LETTER+LD_DIR; }
 function ldOpen(){
   go('trackmap');
-  LD_HOST='ld'; LD_EDIT=false; LD_CLEAN=true; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
+  LD_HOST='ld'; LD_EDIT=false; LD_CLEAN=true; LD_DRAW=false; LD_PATH=null; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
   var dl=document.getElementById('ld-fnlist');
   if(dl && typeof DEHAARDT_FN!=='undefined') dl.innerHTML=DEHAARDT_FN.map(function(f){return '<option value="'+ldEsc(String(f.fn))+'">'+ldEsc(f.desc||'')+'</option>';}).join('');
   ldLoad();
@@ -13298,6 +13314,7 @@ function ldSyncBar(){
   var th=ldEl('thr');
   if(th&&document.activeElement!==th) th.value=(LD_MAP&&LD_MAP.planThreshold!=null)?LD_MAP.planThreshold:0.18;
   var ik=ldEl('ink'); if(ik) ik.className='ld-btn'+((LD_MAP&&!LD_MAP.planRaw)?' on':'');
+  var dw=ldEl('draw'); if(dw) dw.className='ld-btn'+(LD_DRAW?' on':'');
   /* The button says what it DOES, not what mode you are in — the common mistake with toggles.
      In clean view it offers editing; while editing it offers the clean read-back. */
   var cl=ldEl('clean');
@@ -13308,7 +13325,7 @@ function ldRenderMap(){
   var st=ldEl('stage'); if(!st||!LD_MAP) return;
   var cfg=ldBeacons(), h='', W=LD_MAP.w||LD_W, H=LD_MAP.h||LD_H;
   var vb='0 0 '+W+' '+H;
-  h+='<svg id="ld-svg" viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg">';
+  h+='<svg id="'+LD_HOST+'-svg" viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg">';
   /* INK MODE — turn the architect's drawing into line work on a dark stage.
      An uploaded plan is black ink on white paper, and dropping that into a dark tool looks exactly
      as bad as Harvey said. The fix is not to redraw it: it is to throw the paper away and keep the
@@ -13361,6 +13378,18 @@ function ldRenderMap(){
   } else {
     h+='<text class="ld-noplan" x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle">Upload the venue plan to see the track underneath</text>';
   }
+  // 1b. the traced track — permanent vector geometry, drawn by hand over the plan
+  (LD_MAP.tracks||[]).forEach(function(t,ti){
+    if(!t.pts||t.pts.length<2) return;
+    var d=t.pts.map(function(q,i){ return (i?'L':'M')+q[0]+' '+q[1]; }).join(' ')+(t.closed?' Z':'');
+    h+='<path class="v-track" d="'+d+'"/>';
+    if(LD_EDIT) h+='<path class="ld-thit" data-t="'+ti+'" d="'+d+'"/>';
+  });
+  if(LD_DRAW&&LD_PATH&&LD_PATH.pts.length){
+    var dp=LD_PATH.pts.map(function(q,i){ return (i?'L':'M')+q[0]+' '+q[1]; }).join(' ');
+    h+='<path class="ld-draw" d="'+dp+'"/>';
+    LD_PATH.pts.forEach(function(q){ h+='<circle class="ld-dpt" cx="'+q[0]+'" cy="'+q[1]+'" r="7"/>'; });
+  }
   // 2. BARRIERS — pillar-to-pillar walls. Drawn before the pillars so the columns sit on top.
   var brow=ldRow(LD_LETTER);
   brow.barriers.forEach(function(k){
@@ -13409,7 +13438,7 @@ function ldRenderMap(){
   });
   h+='</svg>';
   st.innerHTML=h;
-  ldWire(st.querySelector('#ld-svg'));
+  ldWire(st.querySelector('svg'));
 }
 function ldPt(svg,ev){
   var p=svg.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY;
@@ -13420,6 +13449,12 @@ function ldWire(svg){
   if(!svg) return;
   svg.addEventListener('pointerdown',function(ev){
     var t=ev.target;
+    if(LD_DRAW){
+      var q=ldPt(svg,ev); if(!q) return;
+      if(!LD_PATH) LD_PATH={pts:[],closed:false};
+      LD_PATH.pts.push([Math.round(q.x),Math.round(q.y)]);
+      ldRenderMap(); ldRenderPanel(); return;
+    }
     if(LD_EDIT&&t.hasAttribute){
       if(t.hasAttribute('data-h')){ LD_DRAG={kind:'h',seg:t.getAttribute('data-s'),h:t.getAttribute('data-h')}; svg.setPointerCapture(ev.pointerId); ev.preventDefault(); return; }
       if(t.hasAttribute('data-p')){ LD_DRAG={kind:'p',p:t.getAttribute('data-p')}; svg.setPointerCapture(ev.pointerId); ev.preventDefault(); return; }
@@ -13548,6 +13583,19 @@ function ldRenderPanel(){
     +(LD_SEL?'<button class="ld-btn" onclick="ldDeleteSeg()">🗑 Delete selected</button>':'')
     +'</div>'):'';
   var dirNm=LD_DIR==='c'?'clockwise':'anti-clockwise';
+  if(LD_DRAW){
+    var np=LD_PATH?LD_PATH.pts.length:0, nt=(LD_MAP.tracks||[]).length;
+    p.innerHTML='<div class="ld-ptitle"><b>Drawing the track</b><span class="ld-pdir">'+nt+' line(s) traced</span></div>'
+      +'<div class="hint">Tap along a track wall to drop points. Finish the line, then start the next one. '
+      +'Trace it over the uploaded plan, then <b>Remove plan</b> and only your drawing is left.</div>'
+      +'<div class="ld-frow">'
+      +'<button class="ld-btn pri" onclick="ldFinishPath(false)"'+(np<2?' disabled':'')+'>\u2713 Finish line ('+np+' pts)</button>'
+      +'<button class="ld-btn" onclick="ldFinishPath(true)"'+(np<3?' disabled':'')+'>\u21bb Finish as loop</button>'
+      +'<button class="ld-btn" onclick="ldUndoPoint()">\u21a9 Undo</button>'
+      +'<button class="ld-btn" onclick="ldClearTracks()">\ud83d\uddd1 Clear all lines</button>'
+      +'</div>';
+    return;
+  }
   if(LD_EDIT&&!LD_SEL){ p.innerHTML='<div class="hint"><b>Master map.</b> Drag pillars and beacons to their true positions, and add or remove them. This is the one shared drawing every track layout is built on — it is not part of any single layout.</div>'+addRow; return; }
   if(!LD_MAP){ p.innerHTML=''; return; }
   // pending connection
@@ -13637,6 +13685,32 @@ function ldCfgField(f,v){
   if(f==='fn'){ var el=ldEl('fnlive'); if(el) el.innerHTML=ldFnDesc(v); }
 }
 function ldSegField(f,v){ var s=(LD_MAP.segs||[]).find(function(x){return x.id===LD_SEL;}); if(!s) return; s[f]=v; LD_MAPDIRTY=true; ldSyncBar(); if(f!=='mac'&&f!=='label') ldRenderMap(); if(f==='kind') ldRenderPanel(); }
+/* Drawing lives inside the master map: the trace is venue geometry, not a layout. */
+function ldToggleDraw(){
+  LD_DRAW=!LD_DRAW;
+  if(!LD_DRAW) ldFinishPath();
+  LD_SEL=null; LD_PIN=null; LD_BSEL=null;
+  ldRenderMap(); ldRenderPanel(); ldSyncBar();
+}
+function ldFinishPath(close){
+  if(!LD_PATH){ return; }
+  if(LD_PATH.pts.length>=2){
+    if(!LD_MAP.tracks) LD_MAP.tracks=[];
+    LD_MAP.tracks.push({pts:LD_PATH.pts.slice(),closed:!!close});
+    LD_MAPDIRTY=true;
+    ldStatus('Track line added ('+LD_PATH.pts.length+' points) — keep drawing, or turn Draw off');
+  }
+  LD_PATH=null; ldRenderMap(); ldRenderPanel(); ldSyncBar();
+}
+function ldUndoPoint(){
+  if(LD_PATH&&LD_PATH.pts.length){ LD_PATH.pts.pop(); if(!LD_PATH.pts.length) LD_PATH=null; ldRenderMap(); ldRenderPanel(); return; }
+  if(LD_MAP.tracks&&LD_MAP.tracks.length){ LD_MAP.tracks.pop(); LD_MAPDIRTY=true; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
+}
+function ldClearTracks(){
+  if(!LD_MAP.tracks||!LD_MAP.tracks.length) return;
+  if(!confirm('Delete the whole traced track? The pillars and beacons stay.')) return;
+  LD_MAP.tracks=[]; LD_PATH=null; LD_MAPDIRTY=true; ldRenderMap(); ldRenderPanel(); ldSyncBar();
+}
 function ldToggleEdit(){ LD_EDIT=!LD_EDIT; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
 function ldToggleClean(){ LD_CLEAN=!LD_CLEAN; LD_SEL=null; LD_PIN=null; LD_BSEL=null; ldRenderMap(); ldRenderPanel(); ldSyncBar(); }
 /* MASTER MAP, opened from Master Access. Same engine, different host elements and permanently in
@@ -13644,7 +13718,7 @@ function ldToggleClean(){ LD_CLEAN=!LD_CLEAN; LD_SEL=null; LD_PIN=null; LD_BSEL=
    on top of it. Keeping them apart is the point: a stray drag while designing a layout would move
    a beacon for every track at once. */
 function mmOpen(){
-  LD_HOST='mm'; LD_EDIT=true; LD_CLEAN=false; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
+  LD_HOST='mm'; LD_EDIT=true; LD_CLEAN=false; LD_DRAW=false; LD_PATH=null; LD_SEL=null; LD_PIN=null; LD_BSEL=null;
   var dl=document.getElementById('ld-fnlist');
   if(dl && typeof DEHAARDT_FN!=='undefined' && !dl.children.length)
     dl.innerHTML=DEHAARDT_FN.map(function(f){return '<option value="'+ldEsc(String(f.fn))+'">'+ldEsc(f.desc||'')+'</option>';}).join('');
@@ -17939,7 +18013,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18408,7 +18482,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HP';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HQ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -3086,7 +3086,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HQ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HR · ZXing raw</div>
       </div>
     </div>
 
@@ -4466,12 +4466,21 @@ function mapPart(r){
 function loadParts(cb){
   if(TRAINING){ if(cb)cb((TRAIN_PARTS||[]).slice()); return; }
   var site=currentSite||'sydney';
-  var qs=[SBC.from('parts').select('*'), SBC.from('logs').select('action,sku,qty,ts,site').eq('site',site)];
-  if(site!=='sydney') qs.push(SBC.from('stock').select('sku,qty,min_stock,location').eq('site',site));
+  /* EVERY SITE READS `stock`, INCLUDING SYDNEY.
+     Sydney used to be special-cased onto the parts row — qty, min_stock and location lived on the
+     shared catalogue record while every other venue used the per-site `stock` table. That is what
+     made per-venue ordering levels impossible to reason about: the numbers for one venue sat on
+     the record all venues share, and adding Perth meant Sydney was the odd one out forever.
+     Now `parts` is the catalogue (description, prices, supplier, category) and `stock` carries
+     everything that differs by venue. Adding a venue is one insert and it inherits every rule. */
+  var qs=[SBC.from('parts').select('*'), SBC.from('logs').select('action,sku,qty,ts,site').eq('site',site),
+          SBC.from('stock').select('sku,qty,min_stock,location,auto_min,yield_rate,stats_reset_at').eq('site',site)];
   Promise.all(qs).then(function(rs){
-    var pres=rs[0], lres=rs[1], sres=(site!=='sydney')?rs[2]:null;
+    var pres=rs[0], lres=rs[1], sres=rs[2];
     if(pres.error||!pres.data){ if(cb)cb(null); return; }
-    var smap={}; if(sres&&sres.data){ sres.data.forEach(function(s){ smap[String(s.sku)]={qty:Number(s.qty)||0,min_stock:(s.min_stock!=null?Number(s.min_stock):null),location:s.location||''}; }); }
+    var smap={}; if(sres&&sres.data){ sres.data.forEach(function(s){ smap[String(s.sku)]={
+      qty:Number(s.qty)||0, min_stock:(s.min_stock!=null?Number(s.min_stock):null), location:s.location||'',
+      auto_min:s.auto_min, yield_rate:(s.yield_rate!=null?Number(s.yield_rate):null), stats_reset_at:(s.stats_reset_at||null) }; }); }
     /* 90-day TAKEN usage per SKU drives the reorder maths.
        RIMO: orders placed every 6 months, ~3-month shipping ->
          min to always carry (reorder point) = ceil(90d usage x 1.3)   (covers the 3-month lead + 30% buffer)
@@ -4479,7 +4488,11 @@ function loadParts(cb){
        daysLeft = current stock / daily usage rate. */
     // Per-part "reset stock data" baseline: usage/scans logged BEFORE a part's stats_reset_at are ignored,
     // so its smartness + predictions + 0/6 start fresh without deleting any history.
-    var resetBySku={}; (pres.data||[]).forEach(function(r){ if(r&&r.stats_reset_at){ var rt=Date.parse(r.stats_reset_at); if(!isNaN(rt)) resetBySku[String(r.sku)]=rt; } });
+    /* Per-venue baseline: usage is per site, so resetting Sydney must not wipe Perth's history.
+       Falls back to the catalogue value for rows not yet migrated. */
+    var resetBySku={};
+    (pres.data||[]).forEach(function(r){ if(r&&r.stats_reset_at){ var rt=Date.parse(r.stats_reset_at); if(!isNaN(rt)) resetBySku[String(r.sku)]=rt; } });
+    Object.keys(smap).forEach(function(sk){ var v=smap[sk]&&smap[sk].stats_reset_at; if(v){ var rt=Date.parse(v); if(!isNaN(rt)) resetBySku[sk]=rt; } });
     var ninety=Date.now()-90*864e5, usage90={}, scans90={}, scansAll={};
     ((lres&&lres.data)||[]).forEach(function(l){
       if(String(l.action||'')!=='TAKEN') return;
@@ -4490,7 +4503,13 @@ function loadParts(cb){
       usage90[sk]=(usage90[sk]||0)+(Number(l.qty)||0); scans90[sk]=(scans90[sk]||0)+1;
     });
     var arr=pres.data.map(function(r){
-      if(sres){ var sm=smap[String(r.sku)]||{qty:0,min_stock:null,location:''}; r.qty=sm.qty; r.min_stock=sm.min_stock; r.location=sm.location; }
+      // The venue's own levels win over anything left on the catalogue row.
+      var sm=smap[String(r.sku)];
+      if(sm){ r.qty=sm.qty; r.min_stock=sm.min_stock; r.location=sm.location;
+        if(sm.auto_min!=null) r.auto_min=sm.auto_min;
+        if(sm.yield_rate!=null) r.yield_rate=sm.yield_rate;
+        if(sm.stats_reset_at!=null) r.stats_reset_at=sm.stats_reset_at; }
+      else { r.qty=0; }                                  // no row for this venue yet = none held here
       var pt=mapPart(r), u=usage90[pt.sku]||0;
       pt.scans90=scans90[pt.sku]||0; pt.scansAll=scansAll[pt.sku]||0;
       if(u>0){ pt.used90=u; var rate=u/90; pt.daysLeft=rate>0?Math.floor(pt.qty/rate):null; pt.recommendedReorder=Math.ceil(u*1.3); pt.orderQuantity=Math.ceil(u*2); }
@@ -4964,7 +4983,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HQ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HR</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -6042,8 +6061,8 @@ function goLoadData(cb){
     goDatasets={};
     allSites.forEach(function(site){
       goDatasets[site.id]=prows.map(function(r){ var c=cat(r), qty, min;
-        if(site.id==='sydney'){ qty=Number(r.qty)||0; min=(r.min_stock!=null?Number(r.min_stock):null); }
-        else { var sm=(stockMap[site.id]||{})[c.sku]||{qty:0,min:null}; qty=sm.qty; min=sm.min; }
+        // Every venue, Sydney included, reads its own stock row. See loadParts.
+        var sm=(stockMap[site.id]||{})[c.sku]||{qty:0,min:null}; qty=sm.qty; min=sm.min;
         var u=((usage[site.id]||{})[c.sku])||0;
         return {sku:c.sku,desc:c.desc,qty:qty,min_stock:min,reorder:min,used90:u,price_eur:c.pe,price_aud:c.pa};
       });
@@ -12611,7 +12630,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -15623,16 +15642,19 @@ function mResetPartStats(){
   if(typeof SBC==='undefined'||!SBC){ mFormMsg('Not connected'); return; }
   if(!confirm('Reset stock data for this part?\n\nIts usage history, predictions and 0/6 smartness start fresh from now. Stock quantity is NOT changed.')) return;
   mFormMsg('Resetting…');
-  SBC.from('parts').update({stats_reset_at:new Date().toISOString()}).eq('sku',mEditSku).then(function(r){
-    if(r&&r.error){ mFormMsg((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run stock_reset.sql in Supabase first':('Failed — '+(r.error.message||''))); return; }
+  // Per venue: resetting a part at Sydney must not clear Perth's usage baseline.
+  SBC.from('stock').update({stats_reset_at:new Date().toISOString()})
+    .eq('sku',mEditSku).eq('site',(currentSite||'sydney')).then(function(r){
+    if(r&&r.error){ mFormMsg((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run the per-venue stock SQL in Supabase first':('Failed — '+(r.error.message||''))); return; }
     mFormMsg('✓ Stock data reset — predictions rebuild as it’s used'); mReloadParts();
   },function(){ mFormMsg('Connection error'); });
 }
 function mResetAllStats(){
   if(typeof SBC==='undefined'||!SBC){ alert('Not connected'); return; }
   if(!confirm('Reset stock data for ALL parts?\n\nEvery part’s usage history, predictions and 0/6 smartness start fresh from now. Stock quantities are NOT changed. This can’t be undone.')) return;
-  SBC.from('parts').update({stats_reset_at:new Date().toISOString()}).not('sku','is',null).then(function(r){
-    if(r&&r.error){ alert((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run stock_reset.sql in Supabase first — it adds the stats_reset_at column':('Failed — '+(r.error.message||''))); return; }
+  SBC.from('stock').update({stats_reset_at:new Date().toISOString()})
+    .eq('site',(currentSite||'sydney')).not('sku','is',null).then(function(r){
+    if(r&&r.error){ alert((/stats_reset_at|schema cache|column/i.test(r.error.message||''))?'Run the per-venue stock SQL in Supabase first — it adds stock.stats_reset_at':('Failed — '+(r.error.message||''))); return; }
     alert('✓ Stock data reset for all parts — predictions will rebuild as parts are used.'); mReloadParts();
   },function(){ alert('Connection error'); });
 }
@@ -18013,7 +18035,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HQ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18482,7 +18504,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HQ';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HR';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

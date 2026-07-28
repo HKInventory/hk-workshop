@@ -3098,7 +3098,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HS · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HT · ZXing raw</div>
       </div>
     </div>
 
@@ -3796,6 +3796,10 @@
           <textarea id="mr-import-text" style="width:100%;min-height:110px;margin-top:8px;background:var(--card2);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px;font-size:13px" placeholder="Netball finals&#9;12/8/2026&#9;9:00&#9;14:00"></textarea>
           <button class="m-add" style="width:100%;margin-top:8px" onclick="mrImport()">Import pasted rows</button>
         </div>
+        <button class="m-add" style="width:100%;margin-top:6px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="document.getElementById('mr-pdf-file').click()">📄 Import the venue calendar PDF</button>
+        <input type="file" id="mr-pdf-file" accept="application/pdf,.pdf" style="display:none" onchange="mrPdfPick(this)">
+        <div class="m-tool-desc" style="margin-top:6px">Drop in the Entertainment Quarter site-wide calendar. It reads the days printed in <b style="color:#FF5A52">red bold</b> — the venue's own mark for car-parking event days — and turns each one into a ramp event, clear-by the validation time through to the event finish. You review the list before anything is saved.</div>
+        <div id="mr-pdf-out"></div>
         <div class="m-form-msg" id="mr-msg" style="margin-top:8px"></div>
       </div>
       <div class="m-list" id="mr-list"><div class="m-empty">Loading ramp events…</div></div>
@@ -5024,7 +5028,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HS</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HT</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12781,7 +12785,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -16868,6 +16872,244 @@ function mrImport(){
   if(!rows.length){ mrMsg('Nothing importable found'+(bad?(' \u2014 '+bad+' bad line'+(bad===1?'':'s')):''),'#FF5A52'); return; }
   mrSave(rows,function(){ document.getElementById('mr-import-text').value=''; if(bad) mrMsg('\u2713 Imported '+rows.length+' \u00b7 skipped '+bad+' bad line'+(bad===1?'':'s'),'#F59E0B'); });
 }
+/* ===== VENUE CALENDAR PDF -> RAMP EVENTS =========================================
+   The Entertainment Quarter publishes a site-wide calendar as a PDF. Hundreds of rows a quarter;
+   the ones that matter to us are printed in RED BOLD, and its own legend says what that means:
+   "(RED BOLD) EVENT DAYS CAR PARKING VALIDATION". Those are the days the car park fills, which is
+   the days the ramp has to be clear. Everything else — a gig at Liberty Hall for 1,200 — does not
+   touch us.
+
+   READ FROM THE COLOUR, NOT FROM A MODEL. The obvious thing to reach for here is an AI pass over
+   the text, and it would be the wrong tool: the red is IN the file as a fill colour, so detecting
+   it is exact and the same PDF gives the same answer every time. Asking a model which events look
+   big enough to matter is a guess dressed as an answer, and it would silently disagree with the
+   venue's own marking. So: pdf.js for the glyphs, the rendered pixels for the colour, and plain
+   pattern matching for the columns.
+
+   THE COLUMNS ARE READ BY PATTERN, NOT BY POSITION. A row is split into cells by the gaps between
+   glyphs, then each cell is identified by what it looks like — a date, a time range, a lone time,
+   a website, an attendance figure. Keying off x-coordinates would work on exactly this quarter's
+   layout and break the first time the EQ moves a column.
+
+   THE VALIDATION TIME IS THE DEADLINE. A red row carries TWO times: a lone validation time (4pm)
+   and the event's own start/finish (7:40pm-10:20pm). The ramp has to be clear by the validation
+   time, because that is when the car park starts filling — not at kick-off, which is three hours
+   later and far too late. So validation -> "clear from", event finish -> "until".
+
+   WHAT IT WILL NOT DO IS INVENT A TIME. Some rows read TBC. Those are listed, flagged and left
+   unticked for someone to fill in, rather than given a plausible-looking default. */
+var MR_PDF=null;   // parsed rows awaiting review
+function _mrPdfDate(v){
+  // "03-Jul-26" -> "2026-07-03". The calendar's only date format; anything else is not a date.
+  var M={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  var m=String(v||'').trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2}|\d{4})$/);
+  if(!m) return null;
+  var mo=M[m[2].toLowerCase()]; if(!mo) return null;
+  var y=m[3].length===2?('20'+m[3]):m[3];
+  return y+'-'+mo+'-'+('0'+m[1]).slice(-2);
+}
+function _mrPdfDayPlus(iso,n){ var d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+var _MR_T='\\d{1,2}(?::\\d{2})?\\s*(?:am|pm)';
+function _mrIsRange(s){ return new RegExp('^'+_MR_T+'\\s*[-\u2013]\\s*'+_MR_T+'$','i').test(String(s||'').trim()); }
+function _mrIsTime(s){ return new RegExp('^'+_MR_T+'$','i').test(String(s||'').trim()); }
+/* Turn one red row's cells into a ramp event, or into a reason it can't be one yet. */
+function mrPdfEvent(cells){
+  var out={name:'',date:null,date_to:null,start_t:null,end_t:null,why:''};
+  var texts=cells.map(function(c){ return String(c||'').trim(); }).filter(function(t){ return t; });
+  var dates=[], range=null, lone=null, words=[];
+  texts.forEach(function(t){
+    var d=_mrPdfDate(t);
+    if(d){ dates.push(d); return; }
+    if(_mrIsRange(t)){ if(!range) range=t; return; }
+    if(_mrIsTime(t)){ if(!lone) lone=t; return; }
+    if(/^www\./i.test(t)) return;                                 // website column
+    if(/^[\d,]+(\s*\/\s*week)?$/.test(t)) return;                 // estimated attendance
+    if(/^(mon|tues|wednes|thurs|fri|satur|sun)day$/i.test(t)) return;   // day-of-week column
+    if(/^tbc$/i.test(t)) return;                                  // a TBC cell tells us nothing by itself
+    words.push(t);
+  });
+  if(!dates.length){ out.why='no date on the row'; return out; }
+  out.date=dates[0];
+  if(dates.length>1 && dates[1]>dates[0]) out.date_to=dates[1];   // a multi-day hold
+  /* THE EVENT NAME IS THE FIRST TEXT CELL, NOT THE LONGEST.
+     Picking the longest read plausibly and was wrong on the row that matters least to get wrong:
+     "AFL Finals Hold" at the Sydney Cricket Ground came back named "Sydney Cricket Ground", because
+     the venue is the longer string. The calendar always prints the event before the venue, so
+     reading order settles it and no length heuristic is needed. */
+  out.name=words.length?words[0]:'';
+  if(!out.name){ out.why='no event name on the row'; return out; }
+  out.start_t=lone?_mrTime(lone):null;
+  if(range){
+    var p=String(range).split(/[-\u2013]/);
+    out.end_t=_mrTime(p[1]);
+    if(!out.start_t) out.start_t=_mrTime(p[0]);                   // no validation time — fall back to kick-off
+  }
+  if(!out.start_t||!out.end_t){ out.why=(!out.start_t&&!out.end_t)?'times are TBC':(out.start_t?'no finish time':'no clear-by time'); return out; }
+  /* AN EVENT THAT FINISHES AFTER MIDNIGHT ENDS ON THE NEXT DAY.
+     "clear from 20:00 until 00:30" with both on one date is a fifteen-hour window read backwards,
+     which would put the countdown and the banner badly wrong. If the finish is earlier in the
+     clock than the clear-by, the finish belongs to tomorrow. */
+  if(!out.date_to && out.end_t<out.start_t) out.date_to=_mrPdfDayPlus(out.date,1);
+  return out;
+}
+/* Group positioned glyphs into rows, then into cells. Both thresholds are in PDF points and scale
+   with the font, so they hold on a differently-sized page. */
+function mrPdfRows(items){
+  var byY={};
+  /* SPACES ARE TEXT. An earlier pass dropped every whitespace glyph before grouping, on the grounds
+     that it carried no information — and it carries the only information that separates two words.
+     "AFL - Round 17 - Swans v Bulldogs" came back as "AFL-Round17-SwansvBulldogs", and worse, the
+     hole each dropped space left behind widened the gap between its neighbours enough to sometimes
+     trip the cell split, so a name could break in half at an arbitrary point.
+     pdf.js normally hands back whole runs with their spaces intact; this matters when it hands back
+     glyphs instead, which it does on some documents. Keep everything, drop only empty rows. */
+  items.forEach(function(it){
+    if(it.str==null||it.str==='') return;
+    var k=Math.round(it.y/3);
+    (byY[k]=byY[k]||[]).push(it);
+  });
+  return Object.keys(byY).map(Number).sort(function(a,b){ return b-a; }).map(function(k){
+    return byY[k].slice().sort(function(a,b){ return a.x-b.x; });
+  }).filter(function(row){ return row.some(function(g){ return String(g.str||'').trim(); }); });
+}
+function mrPdfCells(row){
+  var cells=[], cur=[row[0]];
+  for(var i=1;i<row.length;i++){
+    var prev=row[i-1], gap=row[i].x-(prev.x+(prev.w||0));
+    if(gap>2.5){ cells.push(cur); cur=[row[i]]; } else cur.push(row[i]);
+  }
+  cells.push(cur);
+  return cells.map(function(c){ return c.map(function(g){ return g.str; }).join('').trim(); });
+}
+function mrPdfParseItems(items){
+  var out=[];
+  mrPdfRows(items).forEach(function(row){
+    // A row counts as red when most of its ink is red — a stray red glyph in a black row is noise.
+    var red=row.filter(function(g){ return g.red; }).length;
+    if(red <= row.length*0.5) return;
+    var ev=mrPdfEvent(mrPdfCells(row));
+    if(ev.name||ev.date) out.push(ev);
+  });
+  return out;
+}
+/* Load pdf.js once, from the same CDN the app already uses for QR and jsPDF. */
+var _MR_PDFJS=null;
+function mrPdfLib(){
+  if(_MR_PDFJS) return _MR_PDFJS;
+  _MR_PDFJS=(new Function('u','return import(u)'))('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs')
+    .then(function(m){
+      var lib=m.getDocument?m:(m.default||m);
+      try{ lib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs'; }catch(e){}
+      return lib;
+    });
+  return _MR_PDFJS;
+}
+/* READ THE COLOUR OFF THE RENDERED PAGE.
+   pdf.js hands back text with positions but not with colour — the fill colour lives in the operator
+   stream, and stitching operators back onto text runs is fiddly and version-dependent. The page is
+   already being rendered to decide nothing else, so the far simpler and more robust answer is to
+   render it and look: for each text run, sample the pixels inside its own box and ask whether the
+   darkest ink there is red. That works whatever the PDF's internal colour model, which matters
+   because the next calendar the EQ sends will not necessarily be built the same way. */
+function _mrRedSampler(img, W){
+  return function(x0,y0,x1,y1){
+    var xa=Math.max(0,Math.floor(x0)), xb=Math.min(W-1,Math.ceil(x1));
+    var ya=Math.max(0,Math.floor(y0)), yb=Math.ceil(y1);
+    var red=0, ink=0;
+    for(var y=ya;y<=yb;y++){
+      var base=y*W*4;
+      for(var x=xa;x<=xb;x++){
+        var i=base+x*4, r=img[i], g=img[i+1], b=img[i+2];
+        if(r>245&&g>245&&b>245) continue;                  // paper
+        ink++;
+        // Red ink: a strong red channel that clearly beats the other two. Anti-aliased edges of
+        // black text never satisfy this; the calendar's blue and green headings do not either.
+        if(r>130 && r-g>55 && r-b>55) red++;
+      }
+    }
+    return ink>0 && red>ink*0.4;
+  };
+}
+function mrPdfExtract(file,cb){
+  mrPdfLib().then(function(pdfjs){
+    var fr=new FileReader();
+    fr.onload=function(){
+      pdfjs.getDocument({data:new Uint8Array(fr.result)}).promise.then(function(doc){
+        var items=[], page=1;
+        (function next(){
+          if(page>doc.numPages){ cb(null,items); return; }
+          doc.getPage(page).then(function(pg){
+            var vp=pg.getViewport({scale:1.5});
+            var cv=document.createElement('canvas'); cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
+            var cx=cv.getContext('2d',{willReadFrequently:true});
+            cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+            pg.render({canvasContext:cx,viewport:vp}).promise.then(function(){
+              var img=cx.getImageData(0,0,cv.width,cv.height).data, isRed=_mrRedSampler(img,cv.width);
+              return pg.getTextContent().then(function(tc){
+                tc.items.forEach(function(it){
+                  if(it.str==null||it.str==='') return;
+                  var t=pdfjs.Util.transform(vp.transform,it.transform);
+                  var w=(it.width||0)*1.5, h=Math.abs((it.height||8)*1.5);
+                  var x=t[4], y=t[5];                                    // device space, y down
+                  // Page-major descending y, so rows sort top-to-bottom across the whole document.
+                  items.push({ str:it.str, x:x/1.5, w:w/1.5,
+                               y:(1e5-page*1e4)-(y/1.5),
+                               red:isRed(x, y-h, x+w, y+h*0.25) });
+                });
+                cv.width=cv.height=0;                                    // release the bitmap
+                page++; next();
+              });
+            }).catch(function(e){ cb(e); });
+          }).catch(function(e){ cb(e); });
+        })();
+      }).catch(function(e){ cb(e); });
+    };
+    fr.onerror=function(){ cb(new Error('Could not read that file')); };
+    fr.readAsArrayBuffer(file);
+  }).catch(function(){ cb(new Error('Could not load the PDF reader — check this device is online.')); });
+}
+function mrPdfPick(inp){
+  var f=inp&&inp.files&&inp.files[0]; if(!f) return;
+  var box=document.getElementById('mr-pdf-out');
+  if(box) box.innerHTML='<div class="m-tool-desc">Reading '+acEsc(f.name)+'…</div>';
+  mrPdfExtract(f,function(err,items){
+    inp.value='';
+    if(err){ if(box) box.innerHTML='<div class="m-form-msg" style="color:#FF5A52">'+acEsc(err.message)+'</div>'; return; }
+    var evs=mrPdfParseItems(items||[]);
+    // Already in the ramp list? Same name on the same day is the same event.
+    var have={}; (MR_LIST||[]).forEach(function(e){ have[String(e.name).trim().toLowerCase()+'|'+e.date]=1; });
+    evs.forEach(function(e){ if(!e.why && have[String(e.name).trim().toLowerCase()+'|'+e.date]) e.why='already in the ramp list'; });
+    MR_PDF=evs;
+    mrPdfRender();
+  });
+}
+function mrPdfRender(){
+  var box=document.getElementById('mr-pdf-out'); if(!box) return;
+  var evs=MR_PDF||[];
+  if(!evs.length){ box.innerHTML='<div class="m-form-msg" style="color:#E8A33D">No red-marked events found in that PDF. The calendar prints car-parking event days in red bold — if this one does not, add them by hand.</div>'; return; }
+  var ready=evs.filter(function(e){ return !e.why; }).length;
+  box.innerHTML='<div class="m-tool-desc" style="margin-top:10px"><b>'+evs.length+'</b> event'+(evs.length===1?'':'s')+' marked red in that calendar — <b>'+ready+'</b> ready to add. Untick anything you don’t want. Times are the car-park validation time (when the ramp must be clear <i>by</i>) through to the event finish.</div>'
+   +evs.map(function(e,i){
+      var dis=!!e.why;
+      return '<div style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--b1);'+(dis?'opacity:.55':'')+'">'
+        +'<input type="checkbox" id="mrpdf-'+i+'"'+(dis?' disabled':' checked')+' style="margin-top:3px;flex:0 0 auto">'
+        +'<label for="mrpdf-'+i+'" style="flex:1;min-width:0;font-size:12.5px;line-height:1.45;cursor:'+(dis?'default':'pointer')+'">'
+        +'<b>'+acEsc(e.name||'(no name)')+'</b><br><span style="color:var(--t2)">'
+        +acEsc(e.date?_dmy(e.date):'no date')+(e.date_to?(' → '+acEsc(_dmy(e.date_to))):'')
+        +(dis?('</span> <span style="color:#E8A33D">— '+acEsc(e.why)+'</span>')
+             :(' · clear by '+acEsc(e.start_t)+' until '+acEsc(e.end_t)+'</span>'))
+        +'</label></div>';
+    }).join('')
+   +'<button class="m-add" style="width:100%;margin-top:10px"'+(ready?'':' disabled')+' onclick="mrPdfAdd()">+ Add '+ready+' ramp event'+(ready===1?'':'s')+'</button>';
+}
+function mrPdfAdd(){
+  var evs=(MR_PDF||[]).filter(function(e,i){
+    if(e.why) return false;
+    var cb=document.getElementById('mrpdf-'+i); return cb&&cb.checked;
+  }).map(function(e){ return {name:e.name,date:e.date,start_t:e.start_t,end_t:e.end_t,date_to:e.date_to||null}; });
+  if(!evs.length){ mrMsg('Nothing ticked','#FF5A52'); return; }
+  mrSave(evs,function(){ MR_PDF=null; var b=document.getElementById('mr-pdf-out'); if(b) b.innerHTML=''; });
+}
 /* ---- Push notifications ---- */
 function _b64ToU8(b){ var p='='.repeat((4-b.length%4)%4), r=(b+p).replace(/-/g,'+').replace(/_/g,'/'), raw=atob(r), a=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i); return a; }
 function notifCtaCheck(){
@@ -18277,7 +18519,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18746,7 +18988,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HS';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HT';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

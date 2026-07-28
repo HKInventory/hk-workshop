@@ -2966,7 +2966,6 @@
         <div class="ki-sub">Team tasks, chats &amp; handovers</div>
         <div class="ki-tiles">
           <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
-          <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div><span class="tile-badge" id="wchats-badge" style="display:none"></span></div>
           <div class="tile hand"     id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
         </div>
       </div>
@@ -3084,7 +3083,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HO · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HP · ZXing raw</div>
       </div>
     </div>
 
@@ -3305,19 +3304,7 @@
         <div class="bcndh"><div class="t">Tracks</div><div class="s">Pulled from RaceFacer · live track shown first</div></div>
         <div class="bcndsearch"><input id="bcnTrackSearch" placeholder="Search tracks…" oninput="filterBeaconList(this.value)" autocomplete="off"></div>
         <div class="bcndlist" id="bcnDlist"></div>
-        <div class="bcndfoot"><button class="bcndfn" onclick="openFnRef()"><span>⚡</span> Dehaardt Functions</button></div>
       </aside>
-      <div class="bcnfn" id="bcnFn">
-        <div class="bcnfncard">
-          <div class="bcnfntop">
-            <div class="bcnfnt"><span>⚡</span> Dehaardt Functions</div>
-            <button class="bcnfnx" onclick="closeFnRef()" aria-label="Close">✕</button>
-          </div>
-          <div class="bcnfndesc">What each Function Number (F/N) tells a kart to do when it crosses a beacon.</div>
-          <div class="bcnfnsearch"><input id="bcnFnSearch" placeholder="Search function number or action…" oninput="renderFnRef(this.value)" autocomplete="off"></div>
-          <div class="bcnfnlist" id="bcnFnList"></div>
-        </div>
-      </div>
       <!-- Mobile-only near-fullscreen beacon detail sheet (desktop keeps the popup + side list). -->
       <div class="bcnsheet" id="bcnSheet" aria-hidden="true" onclick="if(event.target===this)closeBeaconSheet()">
         <button class="bcnsheetx" onclick="closeBeaconSheet()" aria-label="Close beacon">✕</button>
@@ -4320,7 +4307,6 @@ function tutSteps(){
     {tab:'genorder', reqTile:'#wgord', enter:_nav('genorder',function(){loadGenOrder();}), wait:300, emoji:'\ud83d\udce6', title:'Generate Order', body:'Build a RIMO order from real usage. <b>Tap a tab</b> \u2014 Sydney, Melbourne or Combined \u2014 to switch which site you\u2019re ordering for.', spot:'#go-scope', gate:{sel:'#go-scope .go-seg',ev:'click',hint:'Tap a site tab to continue',delay:500}},
     {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Coming soon \u2014 ask questions about stock, usage and ordering in plain English.', spot:null, gate:{ev:'next'}},
     {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Assign and track workshop jobs \u2014 with a phone alert when one lands on you.', spot:null, gate:{ev:'next'}},
-    {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:120, emoji:'\ud83d\udcac', title:'Chats', body:'Message the team without leaving the app \u2014 group chat and DMs.', spot:null, gate:{ev:'next'}},
     {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 with damage prediction coming.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
     {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Beacons', body:'The live track layout with every Dehaardt beacon and its sector/function numbers.', spot:null, gate:{ev:'next'}},
@@ -4871,15 +4857,11 @@ function startRealtime(){
     _rtCh('rfn-rt','rf_kart_notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); _tvHook('notes'); }).subscribe();
     _rtCh('rfd-rt','rf_discrepancies').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
     _rtCh('uicfg-rt','ui_config').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
-    _rtCh('msg-rt','messages').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
-      try{
-        if(p&&p.eventType==='INSERT'&&p.new&&typeof _rtMsgIn==='function'){ _rtMsgIn(p.new); }
-        else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
-        else if(p&&p.eventType==='DELETE'&&p.old&&p.old.id!=null){ var rm=false; for(var i=(CH_MSGS||[]).length-1;i>=0;i--){ if(CH_MSGS[i].id===p.old.id){ CH_MSGS.splice(i,1); rm=true; } } if(rm) chatRenderMsgs('ch-msgs',CH_MSGS,false); }
-      }catch(e){}
-    }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
-      try{ var row=p&&(p.new||p.old); if(row&&row.channel===CH_CHANNEL){ if(p&&p.new) CH_READS[p.new.name]=p.new.at; chatUpdateSeen(); } }catch(e){}
-    }).subscribe();
+    /* TEAM CHAT REMOVED. The messages / chat_reads realtime subscriptions go with it — a live
+       subscription on a deleted feature is pure cost: every row written to a published table
+       multiplies by every connected device, which is the arithmetic behind the 324M incident. The
+       chat screen and its functions are unreachable (no tile, no nav) and are left dormant rather
+       than ripped out mid-file; nothing calls them and nothing subscribes for them. */
     _rtCh('tasks-rt','tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} _tvHook('tasks'); }).subscribe();
     _rtCh('ramp-rt','ramp_events').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} _tvHook('ramp'); }).subscribe();
     _rtCh('kc-rt','kart_checks').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
@@ -4978,7 +4960,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HO</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HP</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5478,7 +5460,6 @@ var TAB_DEFS=[
   {key:'finance',  id:'wfin',    label:'Finance'},
   {key:'hkai',     id:'whkai',   label:'HK AI'},
   {key:'tasks',    id:'wtasks',  label:'Tasks'},
-  {key:'chats',    id:'wchats',  label:'Chats'},
   {key:'race',     id:'wrace',   label:'Intelligence'},
   {key:'kartinfo', id:'wkart',   label:'Kart Info'},
   {key:'beacons',  id:'wbeacon', label:'Beacons'},
@@ -5493,7 +5474,7 @@ var TAB_DEFS=[
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
-var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers (Session Data now lives under Kart Info sections, ki:sessdata)
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers (Session Data now lives under Kart Info sections, ki:sessdata)
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
@@ -5592,11 +5573,11 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 // race) so existing configs + gating are unchanged; they're just shown grouped under their hub here
 // and pulled out of the top home-tab row. Beacons' Layouts & Dehaardt Functions are new default-on keys.
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
-var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
+var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
 var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
-var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
+var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -5679,7 +5660,7 @@ function applyRoleVisibility(force){
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
-  vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
+  vis('thubcomms', anyVis(['wtasks','whandover']));
   vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
@@ -7228,6 +7209,28 @@ function presRepaint(){
   // has its own place to live (Last online, below).
   var today=_sydDayKey(nowMs);
   Object.keys(seen).forEach(function(n){ if(_sydDayKey(seen[n].t)!==today) delete seen[n]; });
+  /* ACTIVE TODAY MEANS CURRENT STAFF, NOT WHOEVER A ROW REMEMBERS.
+     Names here come from presence and staff_sessions, which are historical records — so somebody
+     removed from the team in Master Access carried on appearing all day, and a rename showed the
+     old name beside the new one. Both are rows that were true when written and are not true now.
+     So the list is filtered against the live roster. Deliberately fail-open: if the roster has not
+     loaded yet it is empty, and filtering against an empty list would blank the panel entirely —
+     showing nobody is a worse answer than showing somebody stale. Matching allows a first-name
+     match because presence and the roster do not always agree on surnames. */
+  try{
+    /* ROSTER, not _roster(). _roster() falls back to the hardcoded STAFF list when the live one has
+       not loaded, so filtering through it would hide anyone hired since that constant was written —
+       turning "keep the list current" into "silently drop the newest staff". Only the live roster
+       is allowed to remove a name. */
+    var _rl=(typeof ROSTER!=='undefined')?ROSTER:null;
+    if(_rl&&_rl.length){
+      var _first=function(x){ return String(x||'').trim().split(' ')[0].toLowerCase(); };
+      Object.keys(seen).forEach(function(n){
+        var hit=_rl.some(function(sf){ return sf&&sf.name&&(sf.name===n||_first(sf.name)===_first(n)); });
+        if(!hit) delete seen[n];
+      });
+    }
+  }catch(e){}
   var names=Object.keys(seen);
   if(!names.length){ el.innerHTML='<div class="emp" style="padding:4px 0;font-size:13px">No one signed in today yet</div>'; return; }
   names.sort(function(a,b){ return seen[b].t-seen[a].t; });
@@ -10038,6 +10041,21 @@ function kcComplete(){
     var _sent={};
     _roster().forEach(function(s){ if(s&&s.name&&!_sent[s.name]){ _sent[s.name]=1; hkNotify(s.name,title,b,'kartcheck','./',true); } });
     if(cu&&cu.name&&!_sent[cu.name]) hkNotify(cu.name,title,b,'kartcheck','./',true);   // not on the roster? still tell them
+    /* AND FIRE IT LOCALLY FOR WHOEVER RAN IT.
+       hkNotify already passes allowSelf, so the app asks the server to notify the actor — but the
+       notify-user function decides who actually receives a push, and a sender is a very ordinary
+       thing for a push service to skip. Reported behaviour is that the person who ran the check
+       does not get it, and that half is not fixable from here.
+       A local Notification does not go through any of that: it is raised by this browser, on this
+       device, for the person who just pressed the button. Belt and braces — if the server push does
+       arrive they carry the same tag, so the OS collapses them into one rather than showing two. */
+    try{
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+        var _reg=(navigator.serviceWorker&&navigator.serviceWorker.ready)||null;
+        if(_reg&&_reg.then) _reg.then(function(sw){ try{ sw.showNotification(title,{body:b,tag:'kartcheck',icon:'./icon-192.png'}); }catch(e){} },function(){});
+        else new Notification(title,{body:b,tag:'kartcheck',icon:'./icon-192.png'});
+      }
+    }catch(e){}
   }catch(e){}
 }
 function kcShowSummary(okfm,okN,fmN,dmg){
@@ -12589,7 +12607,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -17921,7 +17939,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HO \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HP \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18390,7 +18408,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HO';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HP';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

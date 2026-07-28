@@ -1036,7 +1036,12 @@
     .kd-line{font-size:clamp(13px,3.4vw,15px);color:#fff;display:flex;gap:18px;flex-wrap:wrap}
     .kd-line .kd-k{color:var(--t2);font-weight:600;margin-right:5px}
     .kd-line b{font-weight:800}
-    .kd-statusseg{display:inline-flex;border:1px solid var(--b2);border-radius:10px;overflow:hidden;flex-shrink:0}
+    .kd-statusseg{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+    .kd-segrow{display:inline-flex;border:1px solid var(--b2);border-radius:10px;overflow:hidden}
+    .kd-statusby{font-size:11px;color:var(--t2);text-align:right;line-height:1.45;max-width:280px}
+    .kd-statusby b{color:#fff;font-weight:700}
+    .kd-statusby .kd-guess{color:#F59E0B;font-weight:700}
+    .kd-statusby .kd-dot{opacity:.45;margin:0 5px}
     .kd-seg{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:8px 12px;color:var(--t2);background:rgba(255,255,255,.03);border-right:1px solid var(--b1);cursor:pointer;user-select:none}
     .kd-seg:active{opacity:.8}
     .kd-seg:last-child{border-right:0}
@@ -3086,7 +3091,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HR · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HS · ZXing raw</div>
       </div>
     </div>
 
@@ -4768,7 +4773,7 @@ function startRealtime(){
         // In-place refresh — NOT a full renderKartDetail(). That resets the active tab and rebuilds the
         // whole "Add note … repairs" body, so realtime re-upserts (mostly UNCHANGED rows) were strobing
         // the screen. Touch only what changed; rebuild the tab body only when its own data changed.
-        var _seg=document.getElementById('kd-statusseg'); if(_seg&&live) _seg.innerHTML=kdStatusSeg(live.status);
+        var _seg=document.getElementById('kd-statusseg'); if(_seg&&live) _seg.innerHTML=kdStatusSeg(live.status,live);
         var _st=document.getElementById('kd-stats'); if(_st&&live) _st.innerHTML=kdStats(live);
         var _on=document.getElementById('kd-opennotes'); if(_on) _on.innerHTML=kartOpenNotesHTML(_k.rfId);
         var _tb=document.getElementById('kt-tabbody');
@@ -4983,7 +4988,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HR</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HS</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -7169,10 +7174,33 @@ function lastOnlineRender(){
     var t=_ms(x.signed_in_at); if(!t||isNaN(t)) return;
     if(!last[x.name]||t>last[x.name].t) last[x.name]={t:t,row:x};
   });
-  // Everyone on the staff list gets a line, including people with no record yet \u2014 "never" is an
-  // answer, and a missing name reads as a bug rather than as information.
-  var names=Object.keys(last);
-  try{ (STAFF||[]).forEach(function(s){ if(s&&s.name&&!last[s.name]) names.push(s.name); }); }catch(e){}
+  /* THE STAFF LIST IS THE ONE IN MASTER ACCESS, NOT THE CONSTANT IN THIS FILE.
+     This seeded its "never signed in" lines from the hardcoded STAFF seed, so the panel was showing
+     a team that stopped being real the day that constant was last edited: anyone hired since never
+     appeared at all, however long they had been here. The chips above were fixed for exactly this
+     and this second list was missed, which is why the two disagreed on who works here.
+
+     The other half matters just as much. Names also arrive from `last`, which is session HISTORY \u2014
+     true when written, not true now \u2014 so someone taken off the team in Master Access kept a line
+     here forever. Both halves now go through the live roster.
+
+     Fail-open on both, deliberately: until staff_public has loaded, ROSTER is empty, and filtering
+     against an empty list would blank the panel. Showing a stale name beats showing nobody. */
+  var _rl=(typeof ROSTER!=='undefined'&&ROSTER&&ROSTER.length)?ROSTER:((typeof STAFF!=='undefined'&&STAFF)||[]);
+  var _first=function(x){ return String(x||'').trim().split(' ')[0].toLowerCase(); };
+  var names=[], claimed={};
+  Object.keys(last).forEach(function(n){
+    // Presence and the roster do not always agree on surnames, so a first-name match counts \u2014
+    // the same rule the Active Today chips use, so the two lists can never disagree again.
+    var sf=null;
+    for(var i=0;i<_rl.length;i++){ var s=_rl[i]; if(s&&s.name&&(s.name===n||_first(s.name)===_first(n))){ sf=s; break; } }
+    if(!sf) return;                       // has history but is no longer on the team
+    claimed[sf.name]=1;                   // ...and don't then add them AGAIN under their roster spelling
+    names.push(n);
+  });
+  // Everyone still on the staff list gets a line, including people with no record yet \u2014 "never" is
+  // an answer, and a missing name reads as a bug rather than as information.
+  _rl.forEach(function(s){ if(s&&s.name&&!claimed[s.name]) names.push(s.name); });
   names.sort(function(a,b){ return (last[b]?last[b].t:0)-(last[a]?last[a].t:0); });
   // Name the clock these times are in. A Perth manager reading "09:22" needs to know whose 09:22.
   try{ var _lt=document.getElementById('lo-tzlabel'); if(_lt) _lt.textContent='sign in / sign out · '+venueTzLabel(currentSite); }catch(e){}
@@ -9226,7 +9254,10 @@ function mapRfKart(r){
   return { rfId:r.rf_id, type:rfTypeShort(r.type), num:rfNum(r.name), status:_st,
     kartId:r.kart_id_label||'-', transponder:'-', brand:r.brand||'RiMO', model:r.model||'-', engine:'Electric',
     mileage:Number(r.total_km)||0, laps:Number(r.total_laps)||0, hours:Number(r.total_hours)||0,
-    cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-', longTerm:(r.long_term===true), typeColor:(r.type_color||null) };
+    cost:(parseFloat(String(r.total_cost||'').replace(/[^0-9.]/g,''))||0), startDate:'-', longTerm:(r.long_term===true), typeColor:(r.type_color||null),
+    // Who last changed the status, and from where. Absent on the TV board's lean column list — that
+    // screen never shows a kart page, and undefined here simply renders no attribution line.
+    statusBy:(r.status_by||''), statusBySrc:(r.status_by_src||''), statusAt:(r.status_changed_at||'') };
 }
 // Paginated read — Supabase/PostgREST caps a single response at ~1000 rows,
 // so we page through with .range() until a short page comes back (otherwise
@@ -9418,6 +9449,10 @@ function loadKartNotesFresh(rfId,cb){
     // Cache is updated; only touch the DOM if the user isn't mid-input (else we'd rebuild under them).
     if(SELECTED_KART&&SELECTED_KART.rfId===rfId&&!(typeof kartInputLocked==='function'&&kartInputLocked())){
       var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(rfId);
+      // The RaceFacer attribution is recovered FROM these notes, so it can only be worked out once
+      // they have arrived. Repaint just that line — the first render ran before this fetch landed.
+      var sby=document.getElementById('kd-statusby');
+      if(sby) sby.outerHTML=kdStatusByHTML(SELECTED_KART,SELECTED_KART.status);
       kdRefreshBodyIfChanged();
     }
     if(cb) cb();
@@ -9431,12 +9466,21 @@ function kdSetStatus(status){
   // the UI reverts automatically if RaceFacer rejects it, so a prompt only adds friction.
   var map={ok:1,damaged:2,maint:3};   // RaceFacer kart_status_id
   var prev=k.status; k.status=status;
-  var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0]; if(kl) kl.status=status;
+  // Name yourself on screen immediately. The runner writes the same three values once RaceFacer
+  // accepts, so this optimistic stamp is replaced by an identical one rather than contradicted —
+  // and _revert puts the previous attribution back if RaceFacer refuses.
+  var prevBy={by:k.statusBy,src:k.statusBySrc,at:k.statusAt};
+  k.statusBy=cu.name; k.statusBySrc='app'; k.statusAt=new Date().toISOString();
+  var kl=(KART_LIST||[]).filter(function(x){return x.rfId===k.rfId;})[0];
+  if(kl){ kl.status=status; kl.statusBy=k.statusBy; kl.statusBySrc=k.statusBySrc; kl.statusAt=k.statusAt; }
   _pendStatus(k.rfId,status);   // survive fleet rebuilds (2s status poll) until RaceFacer echoes it back (self-expires)
-  var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status);
+  var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(status,k);
   // Instantly recolour this kart on the fleet grid too — don't wait for the RaceFacer round-trip.
   if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} }
-  function _revert(msg){ _clearPend(k.rfId); k.status=prev; if(kl) kl.status=prev; if(seg) seg.innerHTML=kdStatusSeg(prev); if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } if(msg) alert(msg); }
+  function _revert(msg){ _clearPend(k.rfId); k.status=prev;
+    k.statusBy=prevBy.by; k.statusBySrc=prevBy.src; k.statusAt=prevBy.at;
+    if(kl){ kl.status=prev; kl.statusBy=prevBy.by; kl.statusBySrc=prevBy.src; kl.statusAt=prevBy.at; }
+    if(seg) seg.innerHTML=kdStatusSeg(prev,k); if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } if(msg) alert(msg); }
   // Queuing always succeeds. What can fail is the runner's push to RaceFacer a second or two
   // later — most often "back to OK" while the kart still has an open damage. Watch the row.
   SBC.from('rf_status_queue').insert({rf_kart_id:k.rfId, kart_status_id:map[status], user_name:cu.name}).select('id').then(function(r){
@@ -9501,7 +9545,7 @@ function kartRefreshSilent(){
     if(scr==='kartdetail'&&SELECTED_KART){
       var live=KART_LIST.find(function(x){return x.rfId===SELECTED_KART.rfId;});
       if(live){ SELECTED_KART=live; KD_KART=live;
-        var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(live.status);
+        var seg=document.getElementById('kd-statusseg'); if(seg) seg.innerHTML=kdStatusSeg(live.status,live);
         var det=document.getElementById('kiv-detail'); if(det) det.style.setProperty('--kacc',(KART_TYPE_COLOR[live.type]||'#22D3EE'));
         var st=document.getElementById('kd-stats'); if(st) st.innerHTML=kdStats(live);
         if(!(typeof kartInputLocked==='function'&&kartInputLocked())){
@@ -11233,7 +11277,7 @@ function rfqSubmit(){
         // If RaceFacer never echoes it (push failed), stop holding after 30s — the 2s status
         // poll then repaints the real status ("goes back to old status if it doesn't land in RF").
         (function(_id,_v){ setTimeout(function(){ if(PENDING_KART_STATUS[_id]===_v){ _clearPend(_id); if(typeof kartRefreshSilent==='function'){ try{ kartRefreshSilent(); }catch(e){} } } },30000); })(k.rfId,_st);
-        var _seg=document.getElementById('kd-statusseg'); if(_seg) _seg.innerHTML=kdStatusSeg(_st);
+        var _seg=document.getElementById('kd-statusseg'); if(_seg) _seg.innerHTML=kdStatusSeg(_st,KD_KART);
         if(typeof renderKartChips==='function'){ try{ renderKartChips(); }catch(e){} } }
     }catch(e){}
     KD_REPAIRS=arr; RFQ_MODE=null; ktTab('Repairs');
@@ -11245,10 +11289,70 @@ function rfqSubmit(){
 }
 function specCard(lbl,val){return '<div class="spec-card"><div class="spec-lbl">'+lbl+'</div><div class="spec-val">'+val+'</div></div>';}
 
-function kdStatusSeg(status){
-  return [['ok','OK'],['maint','For Maintenance'],['damaged','Damaged']].map(function(d){
+function kdStatusSeg(status,k){
+  var seg='<div class="kd-segrow">'+[['ok','OK'],['maint','For Maintenance'],['damaged','Damaged']].map(function(d){
     return '<div class="kd-seg'+(d[0]===status?' on-'+d[0]:'')+'" onclick="kdSetStatus(\''+d[0]+'\')">'+d[1]+'</div>';
-  }).join('');
+  }).join('')+'</div>';
+  return seg+kdStatusByHTML(k||KD_KART,status);
+}
+/* ===== WHO LAST CHANGED THIS KART'S STATUS =====
+   Two sources, and they are NOT equally certain, so they are not displayed the same way.
+
+   1. CHANGED IN THE APP — exact. The app queues the change with the signed-in user's name, and once
+      RaceFacer accepts it the runner writes that name onto the kart. There is no inference here.
+
+   2. CHANGED IN RACEFACER — RaceFacer records no author on anything we can read. karts-info returns
+      kart_status_id and nothing about who set it; the garage pages don't carry it either. So the
+      runner records only what it actually knows: that the change came from RaceFacer, and when.
+
+      A name can often be RECOVERED, because of how the venue actually works: a kart goes DAMAGED
+      because someone logged a note, and back to OK because someone resolved one — and notes DO carry
+      created_by / archived_by. So a status change with exactly ONE matching note within ten minutes
+      is attributed to that note's author, and shown in amber as a likelihood rather than a fact.
+      Two candidates, or none, and it says "in RaceFacer" with no name. That "exactly one or nothing"
+      rule is the same one the note-delete path uses, and for the same reason: on this fleet a kart
+      very often carries near-duplicate notes, and a loose match names the wrong person. Better to
+      say nothing than to say Jack when it was Sam.
+
+   Nothing stored at all (every kart, until the runner has seen its first change) renders NOTHING,
+   rather than a row of "unknown" that would look like a fault. */
+function kdStatusWho(k,status){
+  if(!k) return null;
+  var src=String(k.statusBySrc||''), at=k.statusAt||'';
+  if(!src) return null;
+  if(src==='app') return k.statusBy?{name:k.statusBy,how:'in the app',at:at,sure:true}:null;
+  if(src!=='racefacer') return null;
+  var t=_sydParse(at);
+  if(t==null) return {name:'',how:'in RaceFacer',at:at,sure:true};
+  var notes=(k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
+  // Going OK is a note being RESOLVED; going damaged/maintenance is a note being RAISED.
+  var resolving=(status==='ok'), WIN=10*60000, hits=[], when=null;
+  notes.forEach(function(n){
+    var iso=resolving?n.archivedIso:n.createdIso, who=resolving?n.archivedBy:n.createdBy;
+    if(!iso||!who) return;
+    var nt=_sydParse(iso); if(nt==null||Math.abs(nt-t)>WIN) return;
+    if(hits.indexOf(who)<0){ hits.push(who); when=iso; }
+  });
+  if(hits.length===1) return {name:hits[0],how:'in RaceFacer',at:at,sure:false,noteAt:when,resolving:resolving};
+  return {name:'',how:'in RaceFacer',at:at,sure:true};
+}
+function kdStatusByHTML(k,status){
+  var w=kdStatusWho(k,status);
+  if(!w) return '<div class="kd-statusby" id="kd-statusby"></div>';
+  var when=w.at?fmtNoteDate(w.at):'';
+  var body, tip;
+  if(w.name&&w.sure){
+    body='Status last changed by <b>'+kEsc(w.name)+'</b><span class="kd-dot">·</span>'+kEsc(w.how);
+    tip='Changed from the app by '+w.name+(when?(' at '+when):'')+'. The app records the signed-in user, so this name is exact.';
+  } else if(w.name){
+    body='Status last changed <b>in RaceFacer</b><span class="kd-dot">·</span>likely <span class="kd-guess">'+kEsc(w.name)+'</span>';
+    tip='RaceFacer does not record who changes a kart’s status. '+w.name+' '+(w.resolving?'resolved':'logged')+' this kart’s only note within ten minutes of the change'
+       +(w.noteAt?(' ('+fmtNoteDate(w.noteAt)+')'):'')+', so it was almost certainly them — but it is inferred, not recorded.';
+  } else {
+    body='Status last changed <b>in RaceFacer</b>';
+    tip='RaceFacer does not record who changes a kart’s status, and no single note matched the time of this change, so there is no one to name. Changes made from the app are always named.';
+  }
+  return '<div class="kd-statusby" id="kd-statusby" title="'+kEsc(tip)+'">'+body+(when?('<span class="kd-dot">·</span>'+kEsc(when)):'')+'</div>';
 }
 function kdStats(k){
   var fmt=function(n){return Math.round(n||0).toLocaleString();};
@@ -11277,7 +11381,7 @@ function renderKartDetail(k){
   document.getElementById('kd-name').innerText=k.num;
   document.getElementById('kd-kartid').innerText=k.kartId||'-';
   document.getElementById('kd-trans').innerText=(k.transponder&&k.transponder!=='-')?k.transponder:'—';
-  document.getElementById('kd-statusseg').innerHTML=kdStatusSeg(k.status);
+  document.getElementById('kd-statusseg').innerHTML=kdStatusSeg(k.status,k);
   document.getElementById('kd-stats').innerHTML=kdStats(k);
   var on=document.getElementById('kd-opennotes'); if(on) on.innerHTML=kartOpenNotesHTML(k.rfId);
   renderKdTabs();
@@ -12630,7 +12734,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18035,7 +18139,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HR \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18504,7 +18608,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HR';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HS';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

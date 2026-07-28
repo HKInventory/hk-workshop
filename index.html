@@ -2583,6 +2583,7 @@
     .ch-grp:not(.me) .ch-av{display:flex !important}
     .ch-bub{background:#2A2F37 !important;border-radius:19px !important}
     .ch-grp.me .ch-bub{background:#1A73E8 !important;color:#fff !important}
+    .ch-actwho{font-size:11px;font-weight:700;color:var(--t2);align-self:center;padding:0 8px 0 4px;white-space:nowrap}
     .ch-edited{font-size:10.5px;opacity:.6;font-style:italic}
     .ch-actbar{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}
     .ch-actbar button{background:var(--card);border:1px solid var(--b2);border-radius:999px;color:var(--t1);font-size:12px;font-weight:700;padding:6px 13px;cursor:pointer;font-family:inherit}
@@ -3125,7 +3126,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IA · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IB · ZXing raw</div>
       </div>
     </div>
 
@@ -4972,7 +4973,7 @@ function startRealtime(){
     _rtCh('msg-rt','messages').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
       try{
         if(p&&p.eventType==='INSERT'&&p.new&&typeof _rtMsgIn==='function'){ _rtMsgIn(p.new); }
-        else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
+        else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.edited_by=p.new.edited_by; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
         else if(p&&p.eventType==='DELETE'&&p.old&&p.old.id!=null){ var rm=false; for(var i=(CH_MSGS||[]).length-1;i>=0;i--){ if(CH_MSGS[i].id===p.old.id){ CH_MSGS.splice(i,1); rm=true; } } if(rm) chatRenderMsgs('ch-msgs',CH_MSGS,false); }
       }catch(e){}
     }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
@@ -5076,7 +5077,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IA</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IB</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12920,7 +12921,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18442,7 +18443,10 @@ function chatRenderMsgs(elId,msgs,scroll){
     }
     var _mid=(m.id!=null)?(' data-mid="'+m.id+'"'):'';
     var _own='';
-    var _ed=(m.edited?' <span class="ch-edited">(edited)</span>':'');
+    // Say who edited it when that wasn't the person who wrote it — otherwise an edit by someone
+    // else is indistinguishable from the author changing their own mind.
+    var _edw=(m.edited_by&&m.edited_by!==m.author)?(' by '+String(m.edited_by).split(' ')[0]):'';
+    var _ed=(m.edited?' <span class="ch-edited">(edited'+tvEsc(_edw)+')</span>':'');
     if(m.image){ html+='<div class="ch-bub ch-bub-img"'+_mid+_own+'><img class="ch-img" src="'+tvEsc(m.image)+'" loading="lazy" onclick="event.stopPropagation();_chOpenImg(\''+tvEsc(m.image).replace(/'/g,"%27")+'\')">'+(String(m.body||'').trim()?'<div class="ch-cap">'+_chRenderBody(m.body)+_ed+'</div>':'')+'</div>'; }
     else { html+='<div class="ch-bub"'+_mid+_own+'>'+_chRenderBody(m.body)+_ed+'</div>'; }
     // Own messages are edited/deleted by HOLDING the bubble (WhatsApp-style) \u2014 see _chBindHold \u2014 instead of
@@ -18479,27 +18483,38 @@ function chatMentionPick(i){
 // mid-scroll); right-click does the same on desktop. A tap elsewhere dismisses the action bar.
 var _chHoldTimer=null,_chHoldPt=null;
 function _chClearHold(){ if(_chHoldTimer){ clearTimeout(_chHoldTimer); _chHoldTimer=null; } }
-function _chBubMineId(el){ var b=el&&el.closest&&el.closest('.ch-bub[data-mid]'); if(!b) return null; var id=Number(b.getAttribute('data-mid')); var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; return (m&&cu&&m.author===cu.name)?id:null; }
+/* HOLD ANY MESSAGE, NOT JUST YOUR OWN.
+   Read receipts, editing and deleting were all gated on being the author, so the only way to
+   find out whether a message had been read was to have written it — and a wrong message from
+   someone who has gone home stayed wrong. This is a small team on a workshop floor, not a public
+   forum: the useful default is that anyone can correct anything and anyone can see who has read
+   it. Editing someone else's is labelled as such, and the message carries who last edited it. */
+function _chBubAnyId(el){ var b=el&&el.closest&&el.closest('.ch-bub[data-mid]'); if(!b) return null;
+  var id=Number(b.getAttribute('data-mid')); if(!isFinite(id)) return null;
+  return (CH_MSGS||[]).some(function(x){return x.id===id;})?id:null; }
 function _chBindHold(){
   var box=document.getElementById('ch-msgs'); if(!box||box._holdBound) return; box._holdBound=true;
   box.addEventListener('pointerdown',function(e){
-    var id=_chBubMineId(e.target); if(id==null) return;
+    var id=_chBubAnyId(e.target); if(id==null) return;
     _chHoldPt={x:e.clientX,y:e.clientY};
     _chClearHold(); _chHoldTimer=setTimeout(function(){ _chHoldTimer=null; try{ if(navigator.vibrate) navigator.vibrate(18); }catch(_){} chatMsgActions(id); },420);
   });
   box.addEventListener('pointermove',function(e){ if(_chHoldTimer&&_chHoldPt){ var dx=e.clientX-_chHoldPt.x,dy=e.clientY-_chHoldPt.y; if(dx*dx+dy*dy>90) _chClearHold(); } });
   box.addEventListener('pointerup',_chClearHold); box.addEventListener('pointercancel',_chClearHold);
   box.addEventListener('scroll',_chClearHold,true);
-  box.addEventListener('contextmenu',function(e){ var id=_chBubMineId(e.target); if(id!=null){ e.preventDefault(); chatMsgActions(id); } });
+  box.addEventListener('contextmenu',function(e){ var id=_chBubAnyId(e.target); if(id!=null){ e.preventDefault(); chatMsgActions(id); } });
   // Tap anywhere outside the open action bar dismisses it.
   document.addEventListener('pointerdown',function(e){ var bar=document.getElementById('ch-actbar'); if(bar && !(e.target.closest&&(e.target.closest('#ch-actbar')||e.target.closest('.ch-bub[data-mid=\"'+bar.getAttribute('data-mid')+'\"]')))){ bar.parentNode&&bar.parentNode.removeChild(bar); } },true);
 }
 function chatMsgActions(id){
-  var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m||!cu||m.author!==cu.name) return;
+  var m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0]; if(!m||!cu) return;
   var old=document.getElementById('ch-actbar'); if(old){ old.parentNode.removeChild(old); if(old.getAttribute('data-mid')==String(id)) return; }
   var bub=document.querySelector('#ch-msgs .ch-bub[data-mid=\"'+id+'\"]'); if(!bub) return;
+  var mine=(m.author===cu.name);
   var bar=document.createElement('div'); bar.id='ch-actbar'; bar.setAttribute('data-mid',id); bar.className='ch-actbar';
-  bar.innerHTML='<button onclick=\"event.stopPropagation();chatReadBy('+id+')\">\ud83d\udc41 Read by</button>'
+  // Acting on somebody else's message should never feel like acting on your own.
+  bar.innerHTML=(mine?'':'<span class="ch-actwho">'+tvEsc((m.author||'').split(' ')[0])+'\u2019s message</span>')
+    +'<button onclick=\"event.stopPropagation();chatReadBy('+id+')\">\ud83d\udc41 Read by</button>'
     +(m.image?'':'<button onclick=\"event.stopPropagation();chatEditMsg('+id+')\">\u270e Edit</button>')
     +'<button class=\"del\" onclick=\"event.stopPropagation();chatDeleteMsg('+id+')\">\ud83d\uddd1 Delete</button>';
   bub.parentNode.insertBefore(bar,bub.nextSibling);
@@ -18557,13 +18572,17 @@ function chatEditMsg(id){
   var bar=document.getElementById('ch-actbar'); if(bar) bar.parentNode.removeChild(bar);
 }
 function chatDeleteMsg(id){
-  if(!confirm('Delete this message?')) return;
+  var _m=(CH_MSGS||[]).filter(function(x){return x.id===id;})[0];
+  var _mine=(_m&&cu&&_m.author===cu.name);
+  if(!confirm(_mine?'Delete this message?':('Delete '+((_m&&_m.author)||'this person')+'\u2019s message?\n\nEveryone in the chat will see it disappear.'))) return;
   var bar=document.getElementById('ch-actbar'); if(bar) bar.parentNode.removeChild(bar);
-  SBC.from('messages').delete().eq('id',id).then(function(r){
-    if(r&&r.error){ alert('Couldn\u2019t delete \u2014 run messages_edit.sql'); return; }
+  SBC.from('messages').delete().eq('id',id).select('id').then(function(r){
+    if(r&&r.error){ alert('Couldn\u2019t delete: '+(r.error.message||'')); return; }
+    // Deleting nothing is not deleting. See the note on the edit path above.
+    if(!r||!r.data||!r.data.length){ alert('That message wasn\u2019t deleted \u2014 the database is still set to author-only. Run the messages_shared.sql policy.'); return; }
     for(var i=CH_MSGS.length-1;i>=0;i--){ if(CH_MSGS[i].id===id) CH_MSGS.splice(i,1); }
     chatRenderMsgs('ch-msgs',CH_MSGS,false); chatLoadList();
-  },function(){});
+  },function(){ alert('Connection error'); });
 }
 function chatKey(e){
   if(e&&e.key==='Enter'&&!e.shiftKey){
@@ -18619,11 +18638,30 @@ function chatSend(){
   if(CH_EDIT_ID!=null){
     var eid=CH_EDIT_ID; CH_EDIT_ID=null; ta.value='';
     var sd=document.querySelector('#ch-thread-view .ch-send'); if(sd) sd.textContent='\u27a4';
-    SBC.from('messages').update({body:txt.slice(0,2000),edited:true}).eq('id',eid).then(function(r){
-      if(r&&r.error){ alert('Couldn\u2019t save the edit \u2014 run messages_edit.sql'); return; }
-      for(var i=0;i<CH_MSGS.length;i++){ if(CH_MSGS[i].id===eid){ CH_MSGS[i].body=txt.slice(0,2000); CH_MSGS[i].edited=true; } }
+    /* A WRITE THAT CHANGES NOTHING MUST NOT REPORT SUCCESS.
+       PostgREST answers an UPDATE that RLS refused with an empty result and no error, which looks
+       exactly like a write that worked. Anyone can edit anyone's message now, so if the database
+       policy still says author-only this is the failure people would hit — and they would hit it
+       silently, believing they had corrected something. `.select('id')` turns that into a message. */
+    var _body=txt.slice(0,2000), _who=(cu&&cu.name)||'';
+    var _apply=function(){
+      for(var i=0;i<CH_MSGS.length;i++){ if(CH_MSGS[i].id===eid){ CH_MSGS[i].body=_body; CH_MSGS[i].edited=true; CH_MSGS[i].edited_by=_who; } }
       chatRenderMsgs('ch-msgs',CH_MSGS,false); chatLoadList();
-    },function(){});
+    };
+    var _fail=function(msg){ alert(msg); var ta2=document.getElementById('ch-text'); if(ta2&&!ta2.value) ta2.value=_body; };
+    // edited_by is optional: try to record it, and fall back if the column isn't there yet.
+    SBC.from('messages').update({body:_body,edited:true,edited_by:_who}).eq('id',eid).select('id').then(function(r){
+      if(r&&r.error){
+        SBC.from('messages').update({body:_body,edited:true}).eq('id',eid).select('id').then(function(r2){
+          if(r2&&r2.error){ _fail('Couldn\u2019t save the edit: '+(r2.error.message||'')); return; }
+          if(!r2||!r2.data||!r2.data.length){ _fail('That edit didn\u2019t save \u2014 the database is still set to author-only. Run the messages_shared.sql policy.'); return; }
+          _apply();
+        },function(){ _fail('Connection error'); });
+        return;
+      }
+      if(!r||!r.data||!r.data.length){ _fail('That edit didn\u2019t save \u2014 the database is still set to author-only. Run the messages_shared.sql policy.'); return; }
+      _apply();
+    },function(){ _fail('Connection error'); });
     return;
   }
   ta.value='';
@@ -18724,7 +18762,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IB \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19193,7 +19231,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IA';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-IB';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

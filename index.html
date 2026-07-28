@@ -608,6 +608,10 @@
     .refresh-btn.spinning{color:var(--acc)}
     .refresh-btn.spinning .ricon{animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* Shared loading ring. A count that appears, then changes, reads as a bug; a ring that stops
+       spinning reads as loading. Used wherever a list has to wait for the fleet to arrive. */
+    .hk-load{display:flex;flex-direction:column;align-items:center;gap:11px;padding:34px 0;color:var(--t2);font-size:12.5px}
+    .hk-ring{width:26px;height:26px;border-radius:50%;border:2.5px solid var(--b2);border-top-color:var(--acc);animation:spin .8s linear infinite}
     .stamp{font-size:11px;color:var(--t2)}
     .back:active{opacity:.6}
     .back::before{content:'←'}
@@ -3098,7 +3102,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HU · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HV · ZXing raw</div>
       </div>
     </div>
 
@@ -3790,12 +3794,6 @@
         <div class="m-fld" style="margin-top:8px"><label>Applies to</label><select id="mr-site" style="width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px 12px;font-size:14px;font-family:inherit;-webkit-appearance:none"><option value="">All sites (everyone gets the alert)</option></select></div>
         <button class="m-add" style="width:100%;margin-top:8px" id="mr-add-btn" onclick="mrAdd()">+ Add event</button>
         <button class="m-add" style="width:100%;margin-top:6px;background:transparent;border:1px dashed var(--b2);color:var(--t2);display:none" id="mr-cancel-btn" onclick="mrCancelEdit()">Cancel editing</button>
-        <button class="m-add" style="width:100%;margin-top:8px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="mrImportToggle()">📋 Paste from spreadsheet</button>
-        <div id="mr-import" style="display:none;margin-top:8px">
-          <div class="m-tool-desc">Paste rows copied from Excel / Google Sheets — one event per line: <b>Name, Date, From, To</b> (tabs or commas). Dates like 12/8/2026 or 2026-08-12; times like 14:30 or 2:30pm.</div>
-          <textarea id="mr-import-text" style="width:100%;min-height:110px;margin-top:8px;background:var(--card2);border:1px solid var(--b2);border-radius:10px;color:var(--t1);padding:10px;font-size:13px" placeholder="Netball finals&#9;12/8/2026&#9;9:00&#9;14:00"></textarea>
-          <button class="m-add" style="width:100%;margin-top:8px" onclick="mrImport()">Import pasted rows</button>
-        </div>
         <button class="m-add" style="width:100%;margin-top:6px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" onclick="document.getElementById('mr-pdf-file').click()">📄 Import the venue calendar PDF</button>
         <input type="file" id="mr-pdf-file" accept="application/pdf,.pdf" style="display:none" onchange="mrPdfPick(this)">
         <div class="m-tool-desc" style="margin-top:6px">Drop in the Entertainment Quarter site-wide calendar. It reads the days printed in <b style="color:#FF5A52">red bold</b> — the venue's own mark for car-parking event days — and turns each one into a ramp event, clear-by the validation time through to the event finish. You review the list before anything is saved.</div>
@@ -4336,11 +4334,11 @@ function tutSteps(){
     {tab:'manager', reqTile:'#mgrt', enter:_nav('manager',function(){loadMgr();}), wait:300, emoji:'\u2b50', title:'Manager Dashboard', body:'Live activity, who\u2019s logged in today, and which parts are predicted to run out. Managers only.', spot:'#s-manager .sb', gate:{ev:'next'}},
     {tab:'finance', reqTile:'#wfin', enter:_nav('finance',function(){loadFin();}), wait:300, emoji:'\ud83d\udcb0', title:'Finance', body:'Stock value, monthly spend and dead stock for this site. Managers only.', spot:'#s-finance .sb', gate:{ev:'next'}},
     {tab:'genorder', reqTile:'#wgord', enter:_nav('genorder',function(){loadGenOrder();}), wait:300, emoji:'\ud83d\udce6', title:'Generate Order', body:'Build a RIMO order from real usage. <b>Tap a tab</b> \u2014 Sydney, Melbourne or Combined \u2014 to switch which site you\u2019re ordering for.', spot:'#go-scope', gate:{sel:'#go-scope .go-seg',ev:'click',hint:'Tap a site tab to continue',delay:500}},
-    {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Coming soon \u2014 ask questions about stock, usage and ordering in plain English.', spot:null, gate:{ev:'next'}},
+    {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Ask about karts, repairs, notes, sessions, batteries or stock in plain English \u2014 it reads live workshop data and answers. It can look anything up; it can\u2019t change anything.', spot:null, gate:{ev:'next'}},
     {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Assign and track workshop jobs \u2014 with a phone alert when one lands on you.', spot:null, gate:{ev:'next'}},
-    {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 with damage prediction coming.', spot:null, gate:{ev:'next'}},
+    {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 what actually happened on the floor today.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
-    {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Beacons', body:'The live track layout with every Dehaardt beacon and its sector/function numbers.', spot:null, gate:{ev:'next'}},
+    {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Layouts', body:'Every track layout \u2014 A to AX, clockwise or anti \u2014 drawn on the real venue plan, with the barriers and every Dehaardt beacon\u2019s sector and function numbers.', spot:null, gate:{ev:'next'}},
     {tab:null, emoji:'\ud83c\udf89', title:'That\u2019s the tour!', body:'You\u2019ve seen every tab. Jump in whenever you\u2019re ready \u2014 and you can run this tour again from Training mode.', spot:null, gate:{ev:'next'}}
   ];
 }
@@ -5028,7 +5026,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HU</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HV</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5933,15 +5931,32 @@ function onLoginOk(m,entered){
     // Use the REAL parts list (Sydney) so practice feels real — writes are blocked in stockMove().
     var _tc=sessionStorage.getItem('hk_p');
     if(_tc){ try{ var _tp=JSON.parse(_tc); if(_tp.length&&_tp[0].hasOwnProperty('used90')){ parts=_tp; TRAIN_PARTS=parts; } }catch(e){} }
-    var _twas=currentSite;
-    SBC.from('parts').select('*').then(function(res){
-      if(res&&res.data&&res.data.length){
-        var arr=res.data.map(mapPart).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
-        parts=arr; TRAIN_PARTS=arr;
-        if((typeof stk!=='undefined'&&stk.length?stk[stk.length-1]:'')==='home'){ refreshAllViews(); }
-      }
-      if(!parts.length){ parts=buildTrainData(); TRAIN_PARTS=parts; }  // fallback if offline
-    },function(){ if(!parts.length){ parts=buildTrainData(); TRAIN_PARTS=parts; } });
+    /* TRAINING HAS TO LOOK LIKE THE REAL SHELF, INCLUDING THE NUMBERS.
+       This read `parts` alone, which was right when quantities lived on the catalogue row. They do
+       not any more — every venue keeps its own `stock` row — so after that change training showed
+       the whole catalogue at 0 in stock, and a practice run where nothing is ever in stock teaches
+       nobody anything. It borrows the founding venue's real levels, exactly as that venue sees
+       them. Nothing here can write: stockMove() blocks it. */
+    var _trainSite='sydney';
+    Promise.all([ SBC.from('parts').select('*'),
+                  SBC.from('stock').select('sku,qty,min_stock,location,auto_min,yield_rate').eq('site',_trainSite) ])
+      .then(function(rs){
+        var pres=rs[0], sres=rs[1];
+        if(pres&&pres.data&&pres.data.length){
+          var smap={}; ((sres&&sres.data)||[]).forEach(function(x){ smap[String(x.sku)]=x; });
+          var arr=pres.data.map(function(r){
+            var sm=smap[String(r.sku)];
+            if(sm){ r.qty=sm.qty; r.min_stock=sm.min_stock; r.location=sm.location;
+                    if(sm.auto_min!=null) r.auto_min=sm.auto_min;
+                    if(sm.yield_rate!=null) r.yield_rate=sm.yield_rate; }
+            else { r.qty=0; }
+            return mapPart(r);
+          }).sort(function(a,b){return (a.desc||'').localeCompare(b.desc||'');});
+          parts=arr; TRAIN_PARTS=arr;
+          if((typeof stk!=='undefined'&&stk.length?stk[stk.length-1]:'')==='home'){ refreshAllViews(); }
+        }
+        if(!parts.length){ parts=buildTrainData(); TRAIN_PARTS=parts; }   // fallback if offline
+      },function(){ if(!parts.length){ parts=buildTrainData(); TRAIN_PARTS=parts; } });
     setTimeout(function(){ playTrainingAnim(function(){ _welcomeToHome(); setTimeout(maybeOfferTrainingTour,1300); }); }, 1000);
   } else {
     loadSites(function(){ setTimeout(function(){ openSiteChooser(false,function(){ playSiteLoad(function(){ _welcomeToHome(); setTimeout(maybeOfferTutorial,1300); }); }); }, 1150); });
@@ -12785,7 +12800,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -12936,6 +12951,8 @@ function mkRenderFilters(all){
     else { se.style.display='none'; se.innerHTML=''; }
   }
   var te=document.getElementById('mk-types');
+  // null = still loading. An "All 0" chip beside a spinner states a fleet size we do not know yet.
+  if(te && all===null){ te.innerHTML=''; return; }
   if(te){
     var counts={}; (all||[]).forEach(function(k){ counts[k.type]=(counts[k.type]||0)+1; });
     var types=KART_TYPE_ORDER.filter(function(t){return counts[t];}); Object.keys(counts).forEach(function(t){ if(types.indexOf(t)<0) types.push(t); });
@@ -12949,10 +12966,17 @@ function mkTogLabel(on){ return on?'\u2713 Long Term':'Long Term'; }
 function mkRender(){
   var el=document.getElementById('m-karts-list'); if(!el) return;
   var q=(document.getElementById('mk-search')?document.getElementById('mk-search').value:'').trim().toLowerCase();
-  var loadingOther = MK_SITE && MK_SITE!==(currentSite||'sydney') && MK_KARTS===null;
+  /* DON'T DRAW A FLEET THAT HAS NOT ARRIVED.
+     Another venue already had a loading state; the CURRENT one did not, so opening this tab painted
+     whatever KART_LIST happened to hold at that instant — often nothing, or a partial fleet from a
+     sync mid-sweep — complete with type counts. The numbers then changed under you a second later,
+     which reads as the page being wrong rather than as it still loading. FLEET_LOADED is set only
+     once loadRfKarts has applied a real fleet, so it is the honest test for both cases. */
+  var other = MK_SITE && MK_SITE!==(currentSite||'sydney');
+  var loading = other ? (MK_KARTS===null) : !(typeof FLEET_LOADED!=='undefined' && FLEET_LOADED && (KART_LIST||[]).length);
   var all=mkActiveList();
-  mkRenderFilters(loadingOther?[]:all);
-  if(loadingOther){ el.innerHTML='<div class="m-empty">Loading '+mkSiteLabel(MK_SITE)+' karts\u2026</div>'; return; }
+  mkRenderFilters(loading?null:all);
+  if(loading){ el.innerHTML='<div class="hk-load"><div class="hk-ring"></div><div>Loading '+acEsc(mkSiteLabel(MK_SITE))+' fleet\u2026</div></div>'; return; }
   var list=all.filter(function(k){
     if(MK_TYPE && k.type!==MK_TYPE) return false;
     return !q || String(k.num).indexOf(q)>=0 || String(k.type||'').toLowerCase().indexOf(q)>=0 || (q==='long term' && k.longTerm);
@@ -16763,10 +16787,24 @@ var RAMP_EVENTS=null,_rampT=null;
 function rampFetch(cb,force){
   if(typeof SBC==='undefined'||!SBC){ if(cb)cb([]); return; }
   if(RAMP_EVENTS&&!force){ if(cb)cb(RAMP_EVENTS); return; }
-  var today=new Date(Date.now()-14*86400000).toISOString().slice(0,10);
+  /* A FINISHED EVENT IS NOISE. It used to keep everything from the last fortnight, which was
+     harmless when events were typed in one at a time and is not once a whole quarter's calendar
+     arrives at once — the list opened on matches that were played weeks ago.
+     The query keeps a month's lookback rather than filtering on `date` directly, because the start
+     date is the wrong thing to test: a closure running 20-23 August is still live on the 22nd. The
+     real test is whether the window has CLOSED, which needs the finish date and the finish time,
+     and that runs below. */
+  var lookback=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
   var _cs=currentSite||'sydney';
-  SBC.from('ramp_events').select('*').gte('date',today).order('date').order('start_t').limit(120)
-    .then(function(r){ RAMP_EVENTS=((r&&r.data)||[]).filter(function(e){ return !e.site || e.site===_cs; }); if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
+  SBC.from('ramp_events').select('*').gte('date',lookback).order('date').order('start_t').limit(200)
+    .then(function(r){ RAMP_EVENTS=((r&&r.data)||[]).filter(function(e){ return (!e.site || e.site===_cs) && !rampPast(e); }); if(cb)cb(RAMP_EVENTS); },function(){ if(cb)cb(RAMP_EVENTS||[]); });
+}
+/* Has this event's ramp window closed? Uses the FINISH date (date_to when it spans days) and the
+   finish time, so a multi-day closure stays live through its middle days. */
+function rampPast(ev){
+  if(!ev||!ev.date) return false;
+  var t=new Date((ev.date_to||ev.date)+'T'+(ev.end_t||'23:59')+':00').getTime();
+  return !isNaN(t) && t<Date.now();
 }
 function _rampMs(ev,t){ return new Date(ev.date+'T'+(t||'00:00')+':00').getTime(); }
 function _rampFmt(ms){ if(ms<0)ms=0; var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
@@ -16850,28 +16888,10 @@ function mrDelete(id){
     .then(function(r){return r.json();}).then(function(res){ if(res&&res.success){ RAMP_EVENTS=null; mrLoad(); rampCheck(); } else mrMsg((res&&res.message)||'Delete failed','#FF5A52'); })
     .catch(function(){ mrMsg('Connection error','#FF5A52'); });
 }
-function mrImportToggle(){ var d=document.getElementById('mr-import'); if(d) d.style.display=(d.style.display==='none'?'':'none'); }
-function _mrDate(v){ v=String(v||'').trim();
-  var m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
-  m=v.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/); if(m){ var y=m[3].length===2?('20'+m[3]):m[3]; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
-  return null; }
 function _mrTime(v){ v=String(v||'').trim().toLowerCase();
   var m=v.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/); if(!m) return null;
   var h=+m[1], mi=m[2]?+m[2]:0; if(m[3]==='pm'&&h<12)h+=12; if(m[3]==='am'&&h===12)h=0;
   if(h>23||mi>59) return null; return String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'); }
-function mrImport(){
-  var txt=document.getElementById('mr-import-text').value, rows=[], bad=0;
-  txt.split(/\r?\n/).forEach(function(line){
-    if(!line.trim()) return;
-    var c=line.split(/\t/); if(c.length<4) c=line.split(/,/);
-    if(c.length<4){ bad++; return; }
-    var d=_mrDate(c[1]), st=_mrTime(c[2]), en=_mrTime(c[3]);
-    if(!c[0].trim()||!d||!st||!en){ bad++; return; }
-    rows.push({name:c[0].trim(),date:d,start_t:st,end_t:en});
-  });
-  if(!rows.length){ mrMsg('Nothing importable found'+(bad?(' \u2014 '+bad+' bad line'+(bad===1?'':'s')):''),'#FF5A52'); return; }
-  mrSave(rows,function(){ document.getElementById('mr-import-text').value=''; if(bad) mrMsg('\u2713 Imported '+rows.length+' \u00b7 skipped '+bad+' bad line'+(bad===1?'':'s'),'#F59E0B'); });
-}
 /* ===== VENUE CALENDAR PDF -> RAMP EVENTS =========================================
    The Entertainment Quarter publishes a site-wide calendar as a PDF. Hundreds of rows a quarter;
    the ones that matter to us are printed in RED BOLD, and its own legend says what that means:
@@ -17100,7 +17120,11 @@ function mrPdfPick(inp){
     var evs=mrPdfParseItems(items||[]);
     // Already in the ramp list? Same name on the same day is the same event.
     var have={}; (MR_LIST||[]).forEach(function(e){ have[String(e.name).trim().toLowerCase()+'|'+e.date]=1; });
-    evs.forEach(function(e){ if(!e.why && have[String(e.name).trim().toLowerCase()+'|'+e.date]) e.why='already in the ramp list'; });
+    evs.forEach(function(e){
+      if(e.why) return;
+      if(rampPast(e)){ e.why='already finished'; return; }   // a whole quarter's calendar includes past dates
+      if(have[String(e.name).trim().toLowerCase()+'|'+e.date]) e.why='already in the ramp list';
+    });
     MR_PDF=evs;
     mrPdfRender();
   });
@@ -18541,7 +18565,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19010,7 +19034,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HU';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HV';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

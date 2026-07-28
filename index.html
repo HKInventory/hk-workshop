@@ -1091,6 +1091,8 @@
     .rep-pu td{padding:8px 10px;border-top:1px solid var(--b1);color:#e7ecf0}
     .rep-pu th.rp-r,.rep-pu td.rp-r{text-align:right;white-space:nowrap}
     .rep-table th.rp-r,.rep-table td.rp-r{text-align:right;white-space:nowrap}
+    .rep-editbtn{font-size:12px;font-weight:700;padding:8px 14px;border-radius:10px;background:rgba(76,157,255,.14);border:1px solid rgba(76,157,255,.4);color:#4C9DFF;cursor:pointer;font-family:inherit}
+    .rep-editbtn:active{opacity:.7}
     .rep-empty{padding:24px 16px;text-align:center;color:var(--t2);font-size:13px;background:var(--card);border:1px solid var(--b1);border-radius:14px}
     /* Fleet-wide repairs table (Kart Info → Repairs) */
     .rp-controls{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
@@ -3123,7 +3125,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HX · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HY · ZXing raw</div>
       </div>
     </div>
 
@@ -5070,7 +5072,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HX</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HY</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11293,12 +11295,47 @@ function _rfqDefaultStatus(k){
   var others=notes.filter(function(n){ return n.active && !(RFQ_NOTE&&RFQ_NOTE.id!=null&&n.id===RFQ_NOTE.id); });
   return others.length?'maint':'ok';
 }
+/* ===== EDIT A REPAIR THAT IS ALREADY IN RACEFACER =====
+   RaceFacer lets you reopen a repair and change its note and its parts; the app could only ever
+   add one. The edit endpoint turned out to be the SAME form as create — RaceFacer's own damage page
+   lists its fields as ...annotation, repair_km, _token, REPAIR_ID — so an edit is a create carrying
+   repair_id, and the runner reads the existing record back first so a field the app never knew
+   about (hours spent, the notification it was raised from) cannot be blanked by editing the note.
+
+   The form is the same one used to log a repair, prefilled. Nothing new to learn. */
+var RFQ_EDIT_REPAIR=null;
+function repEdit(repairId){
+  var k=KD_KART; if(!k) return;
+  var r=(KD_REPAIRS||[]).filter(function(x){return x.id===repairId;})[0];
+  if(!r){ alert('That repair is no longer loaded — pull to refresh and try again.'); return; }
+  RFQ_EDIT_REPAIR=r;
+  RFQ_MODE='repair'; RFQ_NOTE=null; RFQ_EDIT_NOTE=null;
+  RFQ_STATUS=(k.status==='maint')?'for_maintenance':(k.status||'ok');
+  // Its parts, as RaceFacer holds them, so removing one is removing one rather than starting over.
+  RFQ_PARTS=(r.parts||[]).map(function(p){
+    var w=(RF_WH||[]).filter(function(x){return String(x.name)===String(p.name);})[0];
+    return { sku:(w?('rf:'+w.part_id):''), part_id:(w?w.part_id:null), rf_id:(w?(w.rf_id||w.part_id):null),
+             max_qty:(w&&w.max_qty)||99, name:p.name, qty:Number(p.qty)||1, price:Number(p.price)||0 };
+  });
+  if(!RFQ_PARTS.length) RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];
+  ktTab('Repairs');
+  loadRfWarehouse();
+  setTimeout(function(){
+    var t=document.getElementById('rfq-note');
+    if(t){ t.value=(r.repairNotes&&r.repairNotes.trim())||r.issue||''; try{ t.focus({preventScroll:true}); }catch(e){} }
+    rfqRenderParts(); rfqWhBanner();
+    var b=document.getElementById('rfq-send'); if(b) b.textContent='\u2713 Save changes';
+    var m=document.getElementById('rfq-msg');
+    if(m){ m.style.color='#4C9DFF'; m.textContent='Editing a repair already in RaceFacer \u2014 change the note or its parts, then Save.'; }
+  },80);
+}
 function rfqToggle(mode){
   // Repair form: default the status to what the kart WILL BE once this note is fixed
   // (no other notes -> OK, other notes -> For Maintenance). Note form keeps the current status.
   var curStatus=(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.status)?KD_KART.status:'ok';
   if(mode==='repair') curStatus=_rfqDefaultStatus(KD_KART);
   RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null; RFQ_EDIT_NOTE=null;
+  RFQ_EDIT_REPAIR=null;   // a New repair must never carry the last edit's target and overwrite it
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
@@ -11348,13 +11385,29 @@ function rfqSubmit(){
   var disc=document.getElementById('rfq-disc').value||((typeof localDay==='function')?localDay():new Date().toISOString().slice(0,10));
   var dt=document.getElementById('rfq-date').value||disc;
   var hrs=(document.getElementById('rfq-hours').value||'').trim();
-  if(!hrs){ say('Enter the working hours'); okBtn('+ Save'); try{ var _wh=document.getElementById('rfq-hours'); if(_wh){ _wh.focus(); _wh.scrollIntoView({behavior:'smooth',block:'center'}); } }catch(e){} return; }   // working hours are mandatory on a repair
+  /* Working hours are mandatory when LOGGING a repair, and deliberately not when editing one.
+     The app never knew the hours of a repair RaceFacer already holds, so demanding them here
+     would force whoever fixes a typo in the note to invent a number — and that number would
+     overwrite the real one. Left empty, the runner keeps what RaceFacer already has. */
+  if(!hrs && !RFQ_EDIT_REPAIR){ say('Enter the working hours'); okBtn('+ Save'); try{ var _wh=document.getElementById('rfq-hours'); if(_wh){ _wh.focus(); _wh.scrollIntoView({behavior:'smooth',block:'center'}); } }catch(e){} return; }
   var uEl=document.getElementById('rfq-user'), who=(uEl&&uEl.value)||cu.name;   // RaceFacer's User dropdown
   var useParts=RFQ_PARTS.filter(function(p){return p.sku;}).map(function(p){return {sku:p.sku,name:p.name,qty:Number(p.qty)||0,price:Number(p.price)||0,part_id:(p.part_id||null),id:(p.rf_id||null),max_qty:(p.max_qty||null)};});
   var row={ site:(currentSite||'sydney'), rf_kart_id:k.rfId, kart_name:String(k.num||''), kart_type:String(k.type||''),
             user_name:who, note:note.slice(0,1000), date_discovered:disc, date_repaired:(fixed?dt:null),
-            working_hours:hrs.slice(0,20), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
+            working_hours:(hrs?hrs.slice(0,20):null), rf_status:RFQ_STATUS, parts:useParts, repair_km:Math.round(Number(k.mileage)||0),
             notification_id:(RFQ_NOTE&&(RFQ_NOTE.notifId!=null?RFQ_NOTE.notifId:RFQ_NOTE.id))||null };
+  /* AN EDIT IS THE SAME PUSH CARRYING repair_id. The runner reads the existing record back before
+     posting, so anything the app doesn't send — hours spent, the notification it was raised from —
+     survives rather than being blanked. An edit also keeps the dates RaceFacer already holds
+     instead of stamping today's, which is what a create does. */
+  var _ed=RFQ_EDIT_REPAIR;
+  if(_ed){
+    row.repair_id=_ed.id;
+    row.date_discovered=_ed.iso||disc;
+    row.date_repaired=_ed.isoRepaired||null;
+    row.notification_id=null;              // the note it came from is already resolved; don't re-send it
+    if(_ed.mileage) row.repair_km=Math.round(Number(_ed.mileage)||0);
+  }
   SBC.from('rf_repair_queue').insert(row).select('id').then(function(r){
     if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('+ Save'); return; }
     // DID THE PARTS ACTUALLY REACH RACEFACER?
@@ -11367,6 +11420,19 @@ function rfqSubmit(){
       if(_qid!=null) setTimeout(function(){ rfqCheckPartsLanded(_qid); },20000);
     }catch(e){}
     var arr=(RF_REPAIRS_BY_ID[k.rfId]=RF_REPAIRS_BY_ID[k.rfId]||[]);
+    if(_ed){
+      // Show the change straight away on the row it belongs to. The sync overwrites this with what
+      // RaceFacer really holds within a couple of minutes, so a refused edit corrects itself.
+      for(var _i=0;_i<arr.length;_i++){ if(arr[_i].id===_ed.id){
+        arr[_i].issue=note; arr[_i].repairNotes='';
+        arr[_i].parts=useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};});
+        arr[_i].cost=useParts.reduce(function(a,p){return a+p.qty*p.price;},0);
+      } }
+      RFQ_EDIT_REPAIR=null; RFQ_MODE=null; KD_REPAIRS=arr;
+      _kdBodySig=null; ktTab('Repairs');
+      try{ if(typeof kartRerenderNow==='function') kartRerenderNow(); }catch(e){}
+      return;
+    }
     arr.unshift({ id:Date.now(), iso:disc, date:disc.split('-').reverse().join('.'), status:(fixed?'fixed':'open'),
       isoRepaired:(fixed?dt:''), cost:useParts.reduce(function(a,p){return a+p.qty*p.price;},0), issue:note, repairNotes:'',
       parts:useParts.map(function(p){return {name:p.name,qty:p.qty,price:p.price};}), mileage:0, user:cu.name,
@@ -11953,6 +12019,11 @@ function repTableHTML(){
       +(r.mileage?(' \u00b7 '+r.mileage.toLocaleString()+' km'):'')
       +(r.cost?(' \u00b7 $'+r.cost.toFixed(2)):' \u00b7 no cost recorded')
       +(parts.length?'':' \u00b7 no parts used')+'</div>';
+    /* EDIT — only for a repair RaceFacer actually holds. A row still on its way there has no
+       repair_id to edit, and a pending row's local id is not one. */
+    if(r.id && !r._pending){
+      inner+='<div style="margin-top:12px"><button class="rep-editbtn" onclick="event.stopPropagation();repEdit('+r.id+')">\u270e Edit this repair</button></div>';
+    }
     var detail='<tr class="rep-detail" id="repdet-'+i+'" style="display:none"><td colspan="7"><div class="rep-detbox">'+inner+'</div></td></tr>';
     return head+detail;
   }).join('');
@@ -12845,7 +12916,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18636,7 +18707,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19105,7 +19176,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HX';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HY';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

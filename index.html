@@ -2112,7 +2112,14 @@
          display: it crushes the low end and desaturates, so #22C55E on near-black went muddy from
          across the room. The LIGHTER tone of each pair now leads and the saturated one shades it —
          same three colours, same meaning, roughly a third more luminance where it counts. */
-      --ok:#3BE87F;--ok2:#22C55E;--warn:#FFE04A;--warn2:#FFD600;--bad:#FF6357;--bad2:#FF3B30;
+      /* THE YELLOW HAD TO CARRY THE SAME WEIGHT AS THE GREEN AND THE RED.
+         --warn was #FFE04A, a pale lemon. On a monitor it looks fine next to #3BE87F and
+         #FF6357; on the venue's CHIQ panel it does not — that screen renders the green and the
+         red at full chroma and the lemon lands somewhere between white and olive, so the FOR
+         MAINT tile read as washed out beside two vivid ones. Amber has far more saturation to
+         give at TV gamut and separates cleanly from white, so the three states now look like
+         three states from across the workshop. */
+      --ok:#3BE87F;--ok2:#22C55E;--warn:#FFB020;--warn2:#F59300;--bad:#FF6357;--bad2:#FF3B30;
       --lt:#8A97A6;--tvac:#00CFFF;
       background:radial-gradient(120% 80% at 50% -25%,rgba(0,207,255,.10),transparent 55%),radial-gradient(110% 100% at 50% 125%,rgba(123,92,255,.06),transparent 60%),#070A0F;
       color:var(--ink);font-family:'Inter',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
@@ -2176,7 +2183,7 @@
        from ten metres; this reads as the status at a glance, which is the only job the board has. */
     .tv-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:.9vmin;background:linear-gradient(180deg,var(--c,var(--tvac)),var(--c2,var(--tvac)))}
     .tv-stat.ok  {--c:var(--ok);  --c2:var(--ok2);  background:rgba(59,232,127,.16); border-color:rgba(59,232,127,.55)}
-    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,224,74,.16); border-color:rgba(255,224,74,.55)}
+    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,176,32,.18); border-color:rgba(255,176,32,.6)}
     .tv-stat.bad {--c:var(--bad); --c2:var(--bad2); background:rgba(255,99,87,.16);  border-color:rgba(255,99,87,.55)}
     .tv-stat.ok .n,.tv-stat.warn .n,.tv-stat.bad .n{color:var(--c)}
     .tv-stat .n{font-size:6.2vmin;font-weight:800;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)}
@@ -2188,7 +2195,7 @@
     .tv-attn .lab{font-size:1.35vmin;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin-right:.6vmin}
     .tv-kn{min-width:4.4vmin;text-align:center;font-size:2vmin;font-weight:800;padding:.7vmin 1.2vmin;border-radius:.9vmin;font-variant-numeric:tabular-nums;
       background:rgba(255,99,87,.22);border:1px solid rgba(255,99,87,.6);color:var(--bad)}
-    .tv-kn.maint{background:rgba(255,224,74,.22);border-color:rgba(255,224,74,.6);color:var(--warn)}
+    .tv-kn.maint{background:rgba(255,176,32,.22);border-color:rgba(255,176,32,.62);color:var(--warn)}
     /* per-type fleet extras */
     .tv-ready .den{font-size:.5em;color:var(--mut);font-weight:800;letter-spacing:-.02em}
     .tv-ready .rl{display:flex;flex-direction:column;gap:.5vmin}
@@ -3242,6 +3249,9 @@
       </div>
       <div class="sb">
         <div class="pgtitle">Finance</div>
+        <!-- A reset must never be invisible. If this venue's figures start from a date, the screen
+             says so and says who set it — otherwise a zeroed month reads as data gone missing. -->
+        <div id="fin-resetnote" style="display:none;font-size:12px;color:#E8A33D;background:rgba(232,163,61,.1);border:1px solid rgba(232,163,61,.35);border-radius:10px;padding:9px 12px;margin-bottom:12px;line-height:1.5"></div>
         <!-- Quick stat cards (pink/rose accents to match Finance branding) -->
         <div class="stats-grid">
           <div class="stat-card stat-finA"><div class="stat-num" id="fst-value">—</div><div class="stat-lbl">Stock Value</div></div>
@@ -3813,6 +3823,14 @@
         <div id="mset-hours"><div class="m-empty">Loading venues&hellip;</div></div>
         <div class="m-form-msg" id="mset-hours-msg"></div>
         <button class="m-add" style="width:100%;margin-top:8px" onclick="hoursSave()">Save opening hours</button>
+      </div>
+      <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">💰 Reset finance figures</div>
+        <div class="m-tool-desc">Starts this venue's spend figures from now. Stock value is live and already correct; what this clears is the spend built up while the app was being tested, before a real stocktake.<br><br><b>Nothing is deleted.</b> It records a date and Finance skips anything before it, so stock history, usage and the smart minimums all keep working — and clearing the date brings every figure straight back.</div>
+        <div id="mset-fin-state" style="font-size:12px;color:var(--t2);margin-top:10px"></div>
+        <div class="m-fld" style="margin-top:10px;max-width:260px"><label>Type RESET to confirm</label><input id="mset-fin-word" placeholder="RESET" autocapitalize="characters"></div>
+        <div class="m-form-msg" id="mset-fin-msg"></div>
+        <button class="m-add" style="width:100%;margin-top:8px" onclick="finResetApply()">Reset this venue's spend to $0</button>
+        <button class="m-add" style="width:100%;margin-top:6px;background:transparent;border:1px dashed var(--b2);color:var(--t2)" id="mset-fin-undo" onclick="finResetClear()">Undo — count from the beginning again</button>
       </div>
       <div class="mc" style="text-align:left;margin-top:14px"><div class="mct">ℹ️ About</div>
         <div class="m-tool-desc" id="mset-about">HK Workshop</div>
@@ -4631,6 +4649,15 @@ function _activeAgo(ms){
   if(s<21600) return Math.round(s/3600)+'h ago';
   try{ return new Date(ms).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
 }
+/* The venue's finance reset line, as an epoch ms. Null = counting from the beginning. Per site,
+   because Melbourne's stocktake and Sydney's are different days. */
+function finResetMs(site){
+  try{
+    var s=(typeof siteById==='function')?siteById(site||currentSite||'sydney'):null;
+    var t=s&&s.finance_reset_at?_sydParse(s.finance_reset_at):null;
+    return t||null;
+  }catch(e){ return null; }
+}
 /* Finance — live from logs x price + current parts */
 function sbFinanceData(cb){
   var now=new Date(), thisYr=now.getFullYear(), lastYr=thisYr-1, thisMo=now.getMonth(), ninety=new Date(now.getTime()-90*864e5);
@@ -4638,11 +4665,20 @@ function sbFinanceData(cb){
   var sv=0, exp=[];
   (parts||[]).forEach(function(p){var v=(Number(p.price)||0)*(Number(p.qty)||0); sv+=v; if(v>0)exp.push({sku:p.sku,desc:p.desc,qty:p.qty,price:Number(p.price)||0,value:v});});
   exp.sort(function(a,b){return b.value-a.value;}); exp=exp.slice(0,10);
+  /* RESET IS A LINE IN TIME, NOT A DELETION.
+     Every figure on this screen is derived — spend is `logs` priced by `parts`, nothing is stored
+     as a total anywhere. So zeroing it does not need a single row destroyed: the venue records the
+     moment its numbers started counting for real, and everything before that is skipped here.
+     Recoverable by design. Clearing the date brings the whole history straight back, the log rows
+     stay intact for stock history and the smart minimums, and nobody has to be sure they were
+     right about which rows were "test data" before pressing anything. */
+  var _fcut=finResetMs(currentSite||'sydney');
   SBC.from('logs').select('*').eq('site',(currentSite||'sydney')).then(function(res){
     var logs=(res&&res.data)||[];
     var spendMonth=0,spendYTD=0,spendLastYr=0,spend90=0,monthly={},spendSku={},lastTaken={},usage90={},daily={};
     logs.forEach(function(l){
       var d=new Date(l.ts); if(isNaN(d)||String(l.action||'')!=='TAKEN')return;
+      if(_fcut&&d.getTime()<_fcut) return;                       // before this venue's reset — not counted
       var sku=String(l.sku||''),q=Number(l.qty)||0,price=(pMap[sku]&&pMap[sku].price)||0,cost=q*price,y=d.getFullYear();
       if(y===thisYr)spendYTD+=cost; if(y===lastYr)spendLastYr+=cost;
       if(y===thisYr&&d.getMonth()===thisMo){spendMonth+=cost; spendSku[sku]=(spendSku[sku]||0)+cost;}
@@ -9054,6 +9090,17 @@ function loadFin(){
       if(n>=1000000) return '$'+(n/1000000).toFixed(1)+'M';
       return '$'+Math.round(n).toLocaleString();
     };
+    // Say plainly that the figures start from a date, so a $0 month can never be mistaken for
+    // something having gone wrong. Hidden entirely when there is no reset.
+    try{
+      var _rn=document.getElementById('fin-resetnote'), _rm=finResetMs(currentSite);
+      if(_rn){
+        if(_rm){ _rn.style.display='';
+          _rn.innerHTML='Spend figures count from <b>'+acEsc(fmtNoteDate(new Date(_rm).toISOString()))
+            +'</b> — everything before that is excluded, not deleted. Clear the reset in Master Access → Settings to bring the full history back.'; }
+        else _rn.style.display='none';
+      }
+    }catch(e){}
     // Top stat cards (use compact for stock value + YTD which can get into the millions)
     document.getElementById('fst-value').innerText=fmtCompact(d.stockValue);
     document.getElementById('fst-month').innerText=fmt(d.spendMonth);
@@ -12734,7 +12781,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HS \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -14368,6 +14415,72 @@ function hoursClosed(i,day,on){
   if(on) c.push(day);
   st.hours.closed=c; hoursRender();
 }
+/* ===== FINANCE RESET =============================================================
+   Asked for because the venue has been stress-testing the app and the test spend was making the
+   Finance screen useless — Apr–Jun 2026 at ~$2,164/month against a flat $0 before, which is
+   visibly synthetic.
+
+   BUILT AS AN EXCLUSION, NOT A DELETION, and that was a deliberate choice rather than a shortcut.
+   Every figure on that screen is derived from `logs` priced by `parts`; no total is stored. So a
+   date is enough to zero it, and a date is reversible. Deleting the rows would have thrown away
+   the stock history and the 90-day usage that drives every smart minimum in the building, to
+   achieve the same visible result. There is no version of "reset the finances" worth that.
+
+   Per venue, because Sydney's stocktake and Melbourne's are different days.
+
+   Deliberately noisy about itself: typed confirmation rather than one tap, it reports how many
+   log rows it is about to exclude BEFORE doing it, and the Finance screen carries a standing note
+   naming the date. A zeroed month must never be mistakable for data quietly going missing. */
+function finResetMsg(t,c){ var el=document.getElementById('mset-fin-msg'); if(el){ el.style.color=c||''; el.innerHTML=t||''; } }
+function finResetPaint(){
+  var st=document.getElementById('mset-fin-state'), undo=document.getElementById('mset-fin-undo');
+  if(!st) return;
+  var site=currentSite||'sydney', ms=finResetMs(site), lbl=(typeof siteLabel==='function')?siteLabel(site):site;
+  if(ms){ st.innerHTML='<b>'+acEsc(lbl)+'</b> currently counts from <b>'+acEsc(fmtNoteDate(new Date(ms).toISOString()))+'</b>.';
+          if(undo) undo.style.display=''; }
+  else { st.innerHTML='<b>'+acEsc(lbl)+'</b> is counting its full history — no reset set.';
+         if(undo) undo.style.display='none'; }
+}
+// Count what a reset would exclude, so the confirmation states a real number rather than a promise.
+function _finCountBefore(site,iso,cb){
+  if(typeof SBC==='undefined'||!SBC){ cb(null); return; }
+  SBC.from('logs').select('id',{count:'exact',head:true}).eq('site',site).eq('action','TAKEN').lt('ts',iso)
+    .then(function(r){ cb(r&&typeof r.count==='number'?r.count:null); },function(){ cb(null); });
+}
+function _finWrite(site,iso,after){
+  SBC.from('sites').update({finance_reset_at:iso}).eq('id',site).select('id').then(function(r){
+    if(r&&r.error){ finResetMsg(/finance_reset_at|column|schema cache/i.test(r.error.message||'')
+      ? 'Not set up yet — run the <b>sites.finance_reset_at</b> SQL first.' : ('Failed: '+acEsc(r.error.message||'')),'#FF5A52'); return; }
+    // A write that changes nothing must not report success — RLS refusing looks identical otherwise.
+    if(!r||!r.data||!r.data.length){ finResetMsg('The write affected no rows — nothing changed. Check you have Master Access for this venue.','#FF5A52'); return; }
+    try{ var s=siteById(site); if(s) s.finance_reset_at=iso; }catch(e){}
+    if(after) after();
+  },function(){ finResetMsg('Connection error','#FF5A52'); });
+}
+function finResetApply(){
+  var w=document.getElementById('mset-fin-word'), site=currentSite||'sydney';
+  if(!w||String(w.value||'').trim().toUpperCase()!=='RESET'){ finResetMsg('Type RESET in the box to confirm.','#FF5A52'); return; }
+  var iso=new Date().toISOString(), lbl=(typeof siteLabel==='function')?siteLabel(site):site;
+  finResetMsg('Checking…');
+  _finCountBefore(site,iso,function(n){
+    var what=(n==null)?'every stock movement recorded so far':(n.toLocaleString()+' stock movement'+(n===1?'':'s'));
+    if(!confirm('Reset '+lbl+'’s spend figures to $0?\n\n'+what+' will stop counting towards spend.\n\nNothing is deleted — the rows stay, and Undo brings every figure back.')){ finResetMsg(''); return; }
+    _finWrite(site,iso,function(){
+      w.value=''; finResetPaint();
+      finResetMsg('✓ '+acEsc(lbl)+' now counts from today. '+(n==null?'':(n.toLocaleString()+' earlier movement'+(n===1?'':'s')+' excluded, none deleted.')),'#3BE87F');
+      try{ if(typeof loadFin==='function' && _hkScr()==='finance') loadFin(); }catch(e){}
+    });
+  });
+}
+function finResetClear(){
+  var site=currentSite||'sydney', lbl=(typeof siteLabel==='function')?siteLabel(site):site;
+  if(!confirm('Count '+lbl+'’s full history again?\n\nEvery excluded movement comes back into the spend figures.')) return;
+  finResetMsg('Clearing…');
+  _finWrite(site,null,function(){
+    finResetPaint(); finResetMsg('✓ '+acEsc(lbl)+' is counting its full history again.','#3BE87F');
+    try{ if(typeof loadFin==='function' && _hkScr()==='finance') loadFin(); }catch(e){}
+  });
+}
 function hoursSave(){
   var msg=document.getElementById('mset-hours-msg');
   if(!HRS_DRAFT||!HRS_DRAFT.length||typeof SBC==='undefined'||!SBC) return;
@@ -14878,7 +14991,7 @@ function tvLbRows(key){
   return earned.slice(0,14);
 }
 function tvLbRowHtml(o,rank,phase){
-  var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=[o.day,o.week,o.month,o.year,o.all], cells='';
+  var medal=['#FFD45E','#CBD5E1','#E8995A'], rc=rank<3?medal[rank]:'var(--tvac)', vals=_tvLbVals(o), cells='';
   for(var c=0;c<TV_LB_KEYS.length;c++){ cells+='<b'+(c===phase?' class="on"':'')+'>'+(vals[c]||0)+'</b>'; }
   return '<div class="tv-lbrow'+(o._pad?' pad':'')+'" data-name="'+tvEsc(o.user)+'"><span class="rk" style="color:'+rc+'">'+(rank+1)+'</span><span class="nm">'+tvEsc(o.user)+'</span><span class="tv-ct4">'+cells+'</span></div>';
 }
@@ -14899,7 +15012,7 @@ function tvLbApply(animate){
     if(!r){ var t=document.createElement('div'); t.innerHTML=tvLbRowHtml(o,i,phase); r=t.firstChild; byN[o.user]=r; enter.push(r); }
     else {
       var rk=r.querySelector('.rk'); if(rk){ rk.textContent=(i+1); rk.style.color=(i<3?medal[i]:'var(--tvac)'); }
-      var cells=r.querySelectorAll('.tv-ct4>b'), vals=[o.day,o.week,o.month,o.year,o.all];
+      var cells=r.querySelectorAll('.tv-ct4>b'), vals=_tvLbVals(o);
       for(var c=0;c<cells.length;c++){ cells[c].textContent=(vals[c]||0); cells[c].className=(c===phase?'on':''); }
     }
     r.classList.toggle('hero',i===0);
@@ -14961,10 +15074,26 @@ function tvLbUpdateNumbers(){
   var phase=TV_LB_PHASE;
   [].slice.call(wrap.querySelectorAll('.tv-lbrow')).forEach(function(r){
     var o=by[r.getAttribute('data-name')]; if(!o) return;
-    var cells=r.querySelectorAll('.tv-ct4>b'), vals=[o.day,o.week,o.month,o.all];
+    /* FIVE COLUMNS, FIVE VALUES.
+       This listed four — day, week, month, all — against a header that has five. So every data
+       refresh put the ALL-TIME total into the YEAR column and left All-time reading 0, until the
+       phase timer next ran tvLbApply and shunted it back across. That is the number jumping columns
+       on the board, and the reason a mechanic with 1,458 lifetime repairs showed 0 all-time.
+       Driven off TV_LB_KEYS now, like the other two render paths, so a sixth period could never
+       reintroduce it. */
+    var vals=_tvLbVals(o), cells=r.querySelectorAll('.tv-ct4>b');
+    // A row whose cell count disagrees with the header cannot be patched into agreement — its
+    // columns would stay shifted. Rebuild it instead, so a short row can never survive a refresh.
+    if(cells.length!==TV_LB_KEYS.length){
+      var ct=r.querySelector('.tv-ct4');
+      if(ct){ var h=''; for(var k=0;k<TV_LB_KEYS.length;k++) h+='<b'+(k===phase?' class="on"':'')+'>'+(vals[k]||0)+'</b>';
+        ct.innerHTML=h; return; }
+    }
     for(var c=0;c<cells.length;c++){ if(cells[c]){ cells[c].textContent=(vals[c]||0); cells[c].className=(c===phase?'on':''); } }
   });
 }
+// The one place the period columns are turned into numbers. All three render paths use it.
+function _tvLbVals(o){ return [o.day,o.week,o.month,o.year,o.all]; }
 function tvSceneLeaderboard(){
   var lb=tvLeaderboard();
   if(!lb.length) return tvEyebrow('Repair Leaderboard','')+'<div class="tv-empty">No completed repairs recorded yet.</div>';
@@ -15192,13 +15321,22 @@ function tvRefresh(){ tvRenderCurrent(false); }
 function tvRerender(){ clearTimeout(_tvRr); _tvRr=setTimeout(tvRefresh,160); }
 /* ---------- rotation: one self-scheduling timer, never stacks ---------- */
 function tvAdvance(){
-  // Show the HK logo hand-off ONLY at the END of a kart-type's screen time (Adult→Inter etc.), never
-  // mid-scene. So: if the scene we're leaving is a kart-type scene, pulse the logo over the transition.
-  var wasType=(_tvCurKey && _tvCurKey.indexOf('type:')===0);
+  /* THE HK HAND-OFF PLAYS IN EXACTLY ONE PLACE PER LAP.
+     It used to fire at the end of EVERY kart-type screen, so with Adult, Inter, Junior and Mini in
+     the rotation the logo appeared four times a lap — more often than some of the scenes it was
+     supposed to be punctuating. It now plays once, on the way INTO the first kart type, which is
+     the moment the board turns from people back to karts.
+
+     Anchored to the scene being ENTERED, not the one being left. That matters: how many kart types
+     a venue has, and whether tasks and items are switched on, both change the rotation, and a rule
+     written against the outgoing scene would drift as soon as either did. */
   var list=tvEnabledScenes();
   if(list.length){ var ci=(typeof tvIdx==='number'&&tvIdx>=0)?tvIdx:0; tvIdx=(ci+1)%list.length; }
+  var firstType='';
+  for(var i=0;i<list.length;i++){ if(String(list[i].key||'').indexOf('type:')===0){ firstType=list[i].key; break; } }
+  var entering=(list.length&&list[tvIdx])?list[tvIdx].key:'';
   tvRenderCurrent(true);
-  if(wasType){ try{ tvHkPulse(); }catch(e){} }
+  if(firstType&&entering===firstType){ try{ tvHkPulse(); }catch(e){} }
   tvScheduleNext();
 }
 function tvScheduleNext(){

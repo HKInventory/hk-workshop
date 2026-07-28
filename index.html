@@ -573,6 +573,16 @@
     .tile.maccess {background:linear-gradient(145deg,#D97706,#78350F);border:1px solid rgba(251,191,36,0.55)}
     .tile.kcheck  {background:linear-gradient(145deg,#06B6D4,#0E7490);border:1px solid rgba(103,232,249,0.55)}
     .tile.hand    {background:linear-gradient(145deg,#F59E0B,#B45309);border:1px solid rgba(251,191,36,0.55)}
+    /* FACILITY HUB — eight tiles that have to be told apart at a glance, and two pairs were
+       effectively the same colour: Track Sheet and Dehaardt Functions both used the indigo
+       `gord` class, and Layout Designer, Dehaardt Pickups and Sessions were three warm ambers.
+       These classes exist only on this hub, so the shared tile colours everywhere else are
+       untouched — repainting `.tile.gord` would have moved Generate Order on the home grid too.
+       Sessions is deliberately desaturated: it is the one tile that does not open anything. */
+    .tile.facdesign{background:linear-gradient(145deg,#0EA5E9,#075985);border:1px solid rgba(56,189,248,0.55)}
+    .tile.facdeh   {background:linear-gradient(145deg,#C026D3,#701A75);border:1px solid rgba(232,121,249,0.50)}
+    .tile.factools {background:linear-gradient(145deg,#14B8A6,#115E59);border:1px solid rgba(45,212,191,0.55)}
+    .tile.facsoon  {background:linear-gradient(145deg,#64748B,#334155);border:1px solid rgba(148,163,184,0.45)}
     .tile.tvc     {background:linear-gradient(145deg,#0891B2,#0E3A4C);border:1px solid rgba(34,211,238,0.50)}
     /* Bright amber/lime tiles need darker text for contrast */
     .tile.tlo .tl,.tile.tlo .ts,.tile.beacon .tl,.tile.beacon .ts{text-shadow:0 1px 3px rgba(0,0,0,0.55)}
@@ -1855,10 +1865,18 @@
 .train-banner{display:none;align-items:center;justify-content:center;gap:12px;padding:7px 16px;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#08121a;background:repeating-linear-gradient(45deg,#FFD600,#FFD600 12px,#F5C400 12px,#F5C400 24px);cursor:default}
 .train-banner .tb-exit{background:rgba(0,0,0,.22);color:#000;border-radius:999px;padding:3px 11px;font-size:11px;cursor:pointer;letter-spacing:.05em}
 .train-tag{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;color:#caa400;background:rgba(255,214,0,.14);border:1px solid rgba(255,214,0,.4);border-radius:7px;padding:3px 9px;letter-spacing:.02em}
-#tut-wrap{position:absolute;inset:0;z-index:140;pointer-events:auto}
+/* THE SPOTLIGHT HOLE HAS TO BE A REAL HOLE.
+   The four masks are drawn AROUND the highlighted control, leaving a gap over it — but the
+   wrapper holding them covered the whole viewport and took pointer events itself. So every tap
+   in the 'hole' landed on #tut-wrap, and the steps that ask you to DO something — type in
+   Search, start typing a part name on Request Order — could never be completed. The tour looked
+   interactive and was not.
+   The wrapper is now transparent to input and only the pieces that should catch it do: the four
+   masks (so tapping outside the highlight does nothing) and the card (so its buttons work). */
+#tut-wrap{position:absolute;inset:0;z-index:140;pointer-events:none}
 .tut-mask{position:fixed;background:rgba(2,5,9,.82);pointer-events:auto;z-index:1}
 #tut-ring{position:fixed;border:2px solid var(--site,#00CFFF);border-radius:16px;box-shadow:0 0 0 2px rgba(0,207,255,.22),0 0 26px var(--site,#00CFFF);pointer-events:none;transition:all .28s cubic-bezier(.3,.8,.3,1);display:none;z-index:2}
-#tut-card{position:fixed;width:300px;max-width:calc(100vw - 24px);background:#0c1218;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6);z-index:3;transition:top .28s ease,left .28s ease}
+#tut-card{pointer-events:auto;position:fixed;width:300px;max-width:calc(100vw - 24px);background:#0c1218;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6);z-index:3;transition:top .28s ease,left .28s ease}
 .tut-hint{font-size:12.5px;font-weight:700;color:var(--site,#00CFFF);background:rgba(0,207,255,.1);border:1px solid rgba(0,207,255,.3);border-radius:11px;padding:9px 11px;margin:14px 0 12px;text-align:center}
 .tut-emoji{font-size:30px;line-height:1}
 .tut-title{font-size:19px;font-weight:800;color:#fff;margin-top:8px}
@@ -2122,8 +2140,10 @@
          red at full chroma and the lemon lands somewhere between white and olive, so the FOR
          MAINT tile read as washed out beside two vivid ones. Amber has far more saturation to
          give at TV gamut and separates cleanly from white, so the three states now look like
-         three states from across the workshop. */
-      --ok:#3BE87F;--ok2:#22C55E;--warn:#FFB020;--warn2:#F59300;--bad:#FF6357;--bad2:#FF3B30;
+         three states from across the workshop. Pulled back from amber to a golden YELLOW at
+         Harvey's call — he wanted it reading as yellow again, but carrying the weight the amber
+         had rather than the washed-out lemon it started as. Hue is yellow; saturation is not. */
+      --ok:#3BE87F;--ok2:#22C55E;--warn:#FFC400;--warn2:#E39B00;--bad:#FF6357;--bad2:#FF3B30;
       --lt:#8A97A6;--tvac:#00CFFF;
       background:radial-gradient(120% 80% at 50% -25%,rgba(0,207,255,.10),transparent 55%),radial-gradient(110% 100% at 50% 125%,rgba(123,92,255,.06),transparent 60%),#070A0F;
       color:var(--ink);font-family:'Inter',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
@@ -2187,7 +2207,7 @@
        from ten metres; this reads as the status at a glance, which is the only job the board has. */
     .tv-stat::before{content:'';position:absolute;left:0;right:0;top:0;height:.9vmin;background:linear-gradient(180deg,var(--c,var(--tvac)),var(--c2,var(--tvac)))}
     .tv-stat.ok  {--c:var(--ok);  --c2:var(--ok2);  background:rgba(59,232,127,.16); border-color:rgba(59,232,127,.55)}
-    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,176,32,.18); border-color:rgba(255,176,32,.6)}
+    .tv-stat.warn{--c:var(--warn);--c2:var(--warn2);background:rgba(255,196,0,.18); border-color:rgba(255,196,0,.62)}
     .tv-stat.bad {--c:var(--bad); --c2:var(--bad2); background:rgba(255,99,87,.16);  border-color:rgba(255,99,87,.55)}
     .tv-stat.ok .n,.tv-stat.warn .n,.tv-stat.bad .n{color:var(--c)}
     .tv-stat .n{font-size:6.2vmin;font-weight:800;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)}
@@ -2199,7 +2219,7 @@
     .tv-attn .lab{font-size:1.35vmin;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin-right:.6vmin}
     .tv-kn{min-width:4.4vmin;text-align:center;font-size:2vmin;font-weight:800;padding:.7vmin 1.2vmin;border-radius:.9vmin;font-variant-numeric:tabular-nums;
       background:rgba(255,99,87,.22);border:1px solid rgba(255,99,87,.6);color:var(--bad)}
-    .tv-kn.maint{background:rgba(255,176,32,.22);border-color:rgba(255,176,32,.62);color:var(--warn)}
+    .tv-kn.maint{background:rgba(255,196,0,.22);border-color:rgba(255,196,0,.64);color:var(--warn)}
     /* per-type fleet extras */
     .tv-ready .den{font-size:.5em;color:var(--mut);font-weight:800;letter-spacing:-.02em}
     .tv-ready .rl{display:flex;flex-direction:column;gap:.5vmin}
@@ -2985,6 +3005,7 @@
         <div class="ki-sub">Team tasks, chats &amp; handovers</div>
         <div class="ki-tiles">
           <div class="tile tasks"    id="wtasks" onclick="go('tasks')"><div class="ti">✅</div><div class="tl">Tasks</div><div class="ts">Assign &amp; track jobs</div></div>
+          <div class="tile chats"    id="wchats" onclick="go('chats')"><div class="ti">💬</div><div class="tl">Chats</div><div class="ts">Message the team</div><span class="tile-badge" id="wchats-badge" style="display:none"></span></div>
           <div class="tile hand"     id="whandover" onclick="go('handovers')"><div class="ti">🤝</div><div class="tl">Handovers</div><div class="ts">Shift handovers</div></div>
         </div>
       </div>
@@ -2998,13 +3019,13 @@
         <div class="ki-sub">Track layouts, damage intelligence &amp; tools</div>
         <div class="ki-tiles">
           <div class="tile beacon"   id="bcnlayouts" onclick="go('beacons')"><div class="ti">🗺️</div><div class="tl">Layouts</div><div class="ts">Live layout &amp; timeline</div></div>
-          <div class="tile tlo"      id="bcndesign" onclick="ldOpen()"><div class="ti">🧭</div><div class="tl">Layout Designer</div><div class="ts">Venue map &amp; beacon setup</div></div>
+          <div class="tile facdesign" id="bcndesign" onclick="ldOpen()"><div class="ti">🧭</div><div class="tl">Layout Designer</div><div class="ts">Venue map &amp; beacon setup</div></div>
           <div class="tile gord"     id="bcntsheet" onclick="tsOpen()"><div class="ti">📋</div><div class="tl">Track Sheet</div><div class="ts">Every layout &amp; its names</div></div>
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
-          <div class="tile gord"     id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
+          <div class="tile facdeh"   id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
-          <div class="tile kcheck"   id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
-          <div class="tile hand"     id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
+          <div class="tile factools" id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
+          <div class="tile facsoon"  id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
         </div>
       </div>
     </div>
@@ -3102,7 +3123,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HV · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HW · ZXing raw</div>
       </div>
     </div>
 
@@ -4336,9 +4357,22 @@ function tutSteps(){
     {tab:'genorder', reqTile:'#wgord', enter:_nav('genorder',function(){loadGenOrder();}), wait:300, emoji:'\ud83d\udce6', title:'Generate Order', body:'Build a RIMO order from real usage. <b>Tap a tab</b> \u2014 Sydney, Melbourne or Combined \u2014 to switch which site you\u2019re ordering for.', spot:'#go-scope', gate:{sel:'#go-scope .go-seg',ev:'click',hint:'Tap a site tab to continue',delay:500}},
     {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Ask about karts, repairs, notes, sessions, batteries or stock in plain English \u2014 it reads live workshop data and answers. It can look anything up; it can\u2019t change anything.', spot:null, gate:{ev:'next'}},
     {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Assign and track workshop jobs \u2014 with a phone alert when one lands on you.', spot:null, gate:{ev:'next'}},
+    {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:160, emoji:'\ud83d\udcac', title:'Chats', body:'Message anyone here without leaving the app \u2014 direct messages, and groups you\u2019re put in. No all-hands channel: things reach the people they concern.', spot:null, gate:{ev:'next'}},
     {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 what actually happened on the floor today.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
-    {tab:'beacons', reqTile:'#wbeacon', enter:_nav('beacons',null), wait:120, emoji:'\ud83d\udce1', title:'Layouts', body:'Every track layout \u2014 A to AX, clockwise or anti \u2014 drawn on the real venue plan, with the barriers and every Dehaardt beacon\u2019s sector and function numbers.', spot:null, gate:{ev:'next'}},
+    /* THE TOUR HAD FALLEN BEHIND THE APP. Kart Check — the job most people here do most days —
+       was not in it at all, nor were Handovers, Tools, the Daily Summary, TV or Master Access.
+       tutFilter drops any step whose tile is not visible to the person taking the tour, so the
+       manager-only ones simply do not appear for a mechanic and nothing needs gating by hand. */
+    {tab:'kartcheck', reqTile:'#wkcheck', enter:_nav('kartcheck',null), wait:200, emoji:'\ud83c\udfc1', title:'Kart Check', body:'Walk the fleet and mark every kart OK, damaged or in for maintenance. It pushes straight to RaceFacer, and whoever runs it gets the summary on their phone.', spot:null, gate:{ev:'next'}},
+    {tab:'handovers', reqTile:'#whandover', enter:_nav('handovers',null), wait:160, emoji:'\ud83e\udd1d', title:'Handovers', body:'What the last shift left for you, and what you leave for the next one. Written once, read by whoever comes on.', spot:null, gate:{ev:'next'}},
+    {tab:'tools', reqTile:'#wtools', enter:_nav('tools',null), wait:160, emoji:'\ud83e\uddf0', title:'Tools', body:'Who has which tool signed out, so a missing torque wrench has a name against it rather than a mystery.', spot:null, gate:{ev:'next'}},
+    {tab:'beaconhub', reqTile:'#wbeacon', enter:_nav('beaconhub',null), wait:160, emoji:'\ud83d\udce1', title:'Layouts', body:'Every track layout \u2014 A to AX, clockwise or anti \u2014 drawn on the real venue plan, with the barriers and every Dehaardt beacon\u2019s sector and function numbers. The Track Sheet names them.', spot:null, gate:{ev:'next'}},
+    {tab:'summary', reqTile:'#wsummary', enter:_nav('summary',null), wait:220, emoji:'\ud83d\udcc5', title:'Daily Summary', body:'One venue-day read back from what actually happened \u2014 repairs, parts, checks, who was on \u2014 each figure against the fortnight\u2019s average, so it answers \u201cwas today unusual?\u201d.', spot:null, gate:{ev:'next'}},
+    {tab:'tvcast', reqTile:'#wtv', enter:_nav('tvcast',null), wait:200, emoji:'\ud83d\udcfa', title:'TV Board', body:'What the workshop screen shows and when \u2014 kart readiness by type, the repair leaderboard, jobs and ramp countdowns.', spot:null, gate:{ev:'next'}},
+    // Master Access is behind a rotating code, so the tour points at the tile rather than opening it —
+    // a PIN prompt mid-tour would be a dead end with no way back to the next step.
+    {tab:'home', reqTile:'#wmaccess', enter:_nav('home',null), wait:200, emoji:'\ud83d\udd10', title:'Master Access', body:'Parts, staff and PINs, venues, kart types, the ramp calendar and who can see what. Everything that configures the app lives behind this one tile \u2014 and its own code.', spot:'#wmaccess', gate:{ev:'next'}},
     {tab:null, emoji:'\ud83c\udf89', title:'That\u2019s the tour!', body:'You\u2019ve seen every tab. Jump in whenever you\u2019re ready \u2014 and you can run this tour again from Training mode.', spot:null, gate:{ev:'next'}}
   ];
 }
@@ -4923,11 +4957,22 @@ function startRealtime(){
     _rtCh('rfn-rt','rf_kart_notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ _rtNoteMerge(p); if(p&&(p.eventType==='DELETE'||(!p.new&&p.old))){ try{kartRerenderNow();}catch(e){} } kartRerenderSoon(); _tvHook('notes'); }).subscribe();
     _rtCh('rfd-rt','rf_discrepancies').on('postgres_changes',{event:'*',schema:'public',table:'rf_discrepancies'},function(){ _rtMgr(); _rtBadge(); if(_hkScr()==='manager'){try{hkSound('smart');}catch(e){}} }).subscribe();
     _rtCh('uicfg-rt','ui_config').on('postgres_changes',{event:'*',schema:'public',table:'ui_config'},function(p){ var nw=(p&&p.new)||null; if(nw&&nw.key==='qr_layout' && typeof _qrRealtimeApply==='function') _qrRealtimeApply(nw.value); }).subscribe();
-    /* TEAM CHAT REMOVED. The messages / chat_reads realtime subscriptions go with it — a live
-       subscription on a deleted feature is pure cost: every row written to a published table
-       multiplies by every connected device, which is the arithmetic behind the 324M incident. The
-       chat screen and its functions are unreachable (no tile, no nav) and are left dormant rather
-       than ripped out mid-file; nothing calls them and nothing subscribes for them. */
+    /* CHATS IS BACK — what Harvey wanted gone was the all-hands "Team chat" GROUP, with every
+       person in the venue in it, not the ability to message anyone. That group is now removed at
+       the source (see chatGroups) while DMs and the real groups stay.
+       The realtime subscriptions come back with the feature, and they are the expensive part: every
+       row written to a published table multiplies by every connected device, which is the
+       arithmetic behind the 324M incident. Worth having for chat; not worth having for a screen
+       nobody can open, which is why they were taken out alongside it rather than left running. */
+    _rtCh('msg-rt','messages').on('postgres_changes',{event:'*',schema:'public',table:'messages'},function(p){
+      try{
+        if(p&&p.eventType==='INSERT'&&p.new&&typeof _rtMsgIn==='function'){ _rtMsgIn(p.new); }
+        else if(p&&p.eventType==='UPDATE'&&p.new){ var f=(CH_MSGS||[]).filter(function(m){return m.id===p.new.id;})[0]; if(f){ f.body=p.new.body; f.edited=p.new.edited; f.image=p.new.image; chatRenderMsgs('ch-msgs',CH_MSGS,false); } }
+        else if(p&&p.eventType==='DELETE'&&p.old&&p.old.id!=null){ var rm=false; for(var i=(CH_MSGS||[]).length-1;i>=0;i--){ if(CH_MSGS[i].id===p.old.id){ CH_MSGS.splice(i,1); rm=true; } } if(rm) chatRenderMsgs('ch-msgs',CH_MSGS,false); }
+      }catch(e){}
+    }).on('postgres_changes',{event:'*',schema:'public',table:'chat_reads'},function(p){
+      try{ var row=p&&(p.new||p.old); if(row&&row.channel===CH_CHANNEL){ if(p&&p.new) CH_READS[p.new.name]=p.new.at; chatUpdateSeen(); } }catch(e){}
+    }).subscribe();
     _rtCh('tasks-rt','tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(p){ if(typeof _rtTaskIn==='function'){try{_rtTaskIn(p);}catch(e){}} _tvHook('tasks'); }).subscribe();
     _rtCh('ramp-rt','ramp_events').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ try{hkSound('ramp');}catch(e){} if(typeof rampCheck==='function'){try{rampCheck();}catch(e){}} _tvHook('ramp'); }).subscribe();
     _rtCh('kc-rt','kart_checks').on('postgres_changes',{event:'*',schema:'public',table:'kart_checks'},function(p){ if(typeof _rtKartCheck==='function'){try{_rtKartCheck(p);}catch(e){}} }).subscribe();
@@ -5026,7 +5071,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HV</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HW</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5526,6 +5571,7 @@ var TAB_DEFS=[
   {key:'finance',  id:'wfin',    label:'Finance'},
   {key:'hkai',     id:'whkai',   label:'HK AI'},
   {key:'tasks',    id:'wtasks',  label:'Tasks'},
+  {key:'chats',    id:'wchats',  label:'Chats'},
   {key:'race',     id:'wrace',   label:'Intelligence'},
   {key:'kartinfo', id:'wkart',   label:'Kart Info'},
   {key:'beacons',  id:'wbeacon', label:'Beacons'},
@@ -5540,7 +5586,7 @@ var TAB_DEFS=[
   {key:'masteraccess', id:'wmaccess', label:'Master Access'}
 ];
 var ALL_TAB_KEYS=TAB_DEFS.map(function(t){return t.key;});
-var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers (Session Data now lives under Kart Info sections, ki:sessdata)
+var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chats','race','kartinfo','beacons','tools','kartcheck','handovers'];   // mirrors pre-access behaviour for non-managers (Session Data now lives under Kart Info sections, ki:sessdata)
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
@@ -5639,11 +5685,11 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 // race) so existing configs + gating are unchanged; they're just shown grouped under their hub here
 // and pulled out of the top home-tab row. Beacons' Layouts & Dehaardt Functions are new default-on keys.
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
-var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'handovers',label:'Handovers',tile:'whandover'}];
+var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
 var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
-var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
+var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
   user=user||cu;
   var eff=(user&&typeof effectiveTabs==='function')?effectiveTabs(user):null;
@@ -5726,7 +5772,7 @@ function applyRoleVisibility(force){
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
-  vis('thubcomms', anyVis(['wtasks','whandover']));
+  vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
   vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
@@ -12800,7 +12846,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18187,9 +18233,12 @@ function chatRenderList(){
   var me=(cu&&cu.name)||'', cs=currentSite||'sydney', csL=(typeof siteLabel==='function'?siteLabel(cs):cs);
   var q=CH_FILTER.trim().toLowerCase(); function _pass(n){ return !q||String(n||'').toLowerCase().indexOf(q)>=0; }
   var html='<div class="ck-hdrow"><div class="ck-hd">Chats</div><button class="ck-new" onclick="chatNewGroup()">+ New group</button></div>';
-  if(_pass('Team chat')) html+=_chConvRow('general','<span class="ch-av ch-team">\ud83d\udcac</span>','Team chat','Everyone at '+csL,'chatOpenGeneral()');
-  // Role-type chats (Office / Facility / Workshop) are real chat_groups rows \u2014 the old hardcoded
-  // 'office' special channel that duplicated the Office group has been removed.
+  /* NO ALL-HANDS "TEAM CHAT". A single channel containing every person at the venue is the one
+     Harvey asked to be rid of — everything lands on everyone, so it stops being read. Groups you
+     choose to be in, and direct messages, are the whole feature now. The 'general' channel's
+     history is untouched in the database; it simply isn't listed.
+     Role-type chats (Office / Facility / Workshop) are real chat_groups rows — the old hardcoded
+     'office' special channel that duplicated the Office group has been removed. */
   if(CH_GROUPS&&CH_GROUPS.length){
     html+='<div class="ck-sec">Groups</div>';
     CH_GROUPS.forEach(function(g){ if(_pass(g.name)) html+=_chConvRow('group:'+g.id,_grpAvatar(g),g.name,((g.members||[]).length)+' member'+(((g.members||[]).length)===1?'':'s'),'chatOpenGroup('+g.id+')'); });
@@ -18565,7 +18614,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HV \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19034,7 +19083,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HV';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HW';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

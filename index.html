@@ -3125,7 +3125,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HZ · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IA · ZXing raw</div>
       </div>
     </div>
 
@@ -4366,8 +4366,12 @@ function tutSteps(){
        tutFilter drops any step whose tile is not visible to the person taking the tour, so the
        manager-only ones simply do not appear for a mechanic and nothing needs gating by hand. */
     {tab:'kartcheck', reqTile:'#wkcheck', enter:_nav('kartcheck',null), wait:200, emoji:'\ud83c\udfc1', title:'Kart Check', body:'Walk the fleet and mark every kart OK, damaged or in for maintenance. It pushes straight to RaceFacer, and whoever runs it gets the summary on their phone.', spot:null, gate:{ev:'next'}},
-    {tab:'handovers', reqTile:'#whandover', enter:_nav('handovers',null), wait:160, emoji:'\ud83e\udd1d', title:'Handovers', body:'What the last shift left for you, and what you leave for the next one. Written once, read by whoever comes on.', spot:null, gate:{ev:'next'}},
-    {tab:'tools', reqTile:'#wtools', enter:_nav('tools',null), wait:160, emoji:'\ud83e\uddf0', title:'Tools', body:'Who has which tool signed out, so a missing torque wrench has a name against it rather than a mystery.', spot:null, gate:{ev:'next'}},
+    /* DESCRIBE WHAT IS THERE, NOT WHAT IS PLANNED. These two were added to the tour with confident
+       descriptions of features neither screen has — Handovers and Tools are both still placeholders.
+       A tour that describes a screen you are looking at, wrongly, is worse than no tour: the next
+       thing the reader doubts is the part that was right. Say "coming" and mean it. */
+    {tab:'handovers', reqTile:'#whandover', enter:_nav('handovers',null), wait:160, emoji:'\ud83e\udd1d', title:'Handovers', body:'Coming \u2014 a place to pass on what the next shift needs to know, so it is written once and read by whoever comes on.', spot:null, gate:{ev:'next'}},
+    {tab:'tools', reqTile:'#wtools', enter:_nav('tools',null), wait:160, emoji:'\ud83e\uddf0', title:'Tools', body:'Coming \u2014 handy workshop tools gathered in one place.', spot:null, gate:{ev:'next'}},
     {tab:'beaconhub', reqTile:'#wbeacon', enter:_nav('beaconhub',null), wait:160, emoji:'\ud83d\udce1', title:'Layouts', body:'Every track layout \u2014 A to AX, clockwise or anti \u2014 drawn on the real venue plan, with the barriers and every Dehaardt beacon\u2019s sector and function numbers. The Track Sheet names them.', spot:null, gate:{ev:'next'}},
     {tab:'summary', reqTile:'#wsummary', enter:_nav('summary',null), wait:220, emoji:'\ud83d\udcc5', title:'Daily Summary', body:'One venue-day read back from what actually happened \u2014 repairs, parts, checks, who was on \u2014 each figure against the fortnight\u2019s average, so it answers \u201cwas today unusual?\u201d.', spot:null, gate:{ev:'next'}},
     {tab:'tvcast', reqTile:'#wtv', enter:_nav('tvcast',null), wait:200, emoji:'\ud83d\udcfa', title:'TV Board', body:'What the workshop screen shows and when \u2014 kart readiness by type, the repair leaderboard, jobs and ramp countdowns.', spot:null, gate:{ev:'next'}},
@@ -5072,7 +5076,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HZ</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IA</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12916,7 +12920,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18720,7 +18724,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IA \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19189,7 +19193,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HZ';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-IA';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

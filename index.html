@@ -3125,7 +3125,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HY · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HZ · ZXing raw</div>
       </div>
     </div>
 
@@ -5072,7 +5072,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HY</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HZ</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12916,7 +12916,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -15026,7 +15026,19 @@ function tvSceneType(type){
   // READY = OK + For-maintenance (everything in service that isn't damaged).
   var ready=s.ok.length+s.maint.length, pReady=tot?Math.round(ready/tot*100):0;
   var pOk=tot?Math.round(s.ok.length/tot*100):0, pFm=tot?Math.round(s.maint.length/tot*100):0, pDmg=tot?Math.round(s.dmg.length/tot*100):0;
-  var dn=tot||1, wOk=s.ok.length/dn*100, wWarn=s.maint.length/dn*100, wBad=s.dmg.length/dn*100;
+  /* THE BAR HAS TO ADD UP TO A BAR.
+     Widths were taken over the IN-SERVICE karts only, and each segment is omitted when its count is
+     zero — so a type whose karts are all long-term parked has tot === 0, all three segments omitted,
+     and an empty trough. Nothing was wrong with the data: the type genuinely had nobody in service,
+     and the screen expressed that by showing nothing at all, which reads as broken from across the
+     workshop.
+     The bar now spans every kart of the type and the parked ones take the remainder in grey — the
+     .g-lt style has been sitting unused in the stylesheet since this was built. A bar is therefore
+     always full and always accounted for, and a fully parked type looks parked rather than faulty.
+     The tiles underneath still read as a share of what is IN SERVICE, which is the question they
+     answer; the bar answers "where is this whole type?". */
+  var dn=s.ks.length||1;
+  var wOk=s.ok.length/dn*100, wWarn=s.maint.length/dn*100, wBad=s.dmg.length/dn*100, wLt=s.lt.length/dn*100;
   // DAMAGED karts only, newest damage-note first, showing the note that explains the damage.
   var dmg=s.dmg.map(function(k){ var nt=tvKartDamageNote(k); return {k:k,nt:nt,iso:(nt&&nt.createdIso)||''}; });
   dmg.sort(function(a,b){ return String(b.iso).localeCompare(String(a.iso)); });
@@ -15037,10 +15049,11 @@ function tvSceneType(type){
   return tvEyebrow(type+' karts', tvEsc(siteLabel(currentSite))+' \u00b7 '+tot+' in service')+
     '<div class="tv-fleet">'+
       '<div class="tv-ready"><div class="big" style="color:'+ac+'">'+ready+'<span class="den">/'+tot+'</span></div><div class="rl"><div class="of">KARTS READY</div>'+(s.dmg.length?'<div class="of2">'+s.dmg.length+' damaged \u00b7 out of service</div>':'<div class="of2">none out of service</div>')+(s.lt.length?'<div class="of2">'+s.lt.length+' long-term parked</div>':'')+'</div><div class="pct">'+pReady+'%</div></div>'+
-      '<div class="tv-gauge">'
+      '<div class="tv-gauge" title="'+tvEsc(s.ok.length+' OK \u00b7 '+s.maint.length+' for maintenance \u00b7 '+s.dmg.length+' damaged'+(s.lt.length?(' \u00b7 '+s.lt.length+' long-term parked'):''))+'">'
         +(wOk  ?'<i class="g-ok"   style="width:'+wOk+'%">'+s.ok.length+'</i>':'')
         +(wWarn?'<i class="g-warn" style="width:'+wWarn+'%">'+s.maint.length+'</i>':'')
         +(wBad ?'<i class="g-bad"  style="width:'+wBad+'%">'+s.dmg.length+'</i>':'')
+        +(wLt  ?'<i class="g-lt"   style="width:'+wLt+'%">'+s.lt.length+'</i>':'')
       +'</div>'+
       '<div class="tv-stats3">'+
         '<div class="tv-stat ok"><div class="n">'+s.ok.length+'</div><div class="l">OK \u00b7 '+pOk+'%</div></div>'+
@@ -18707,7 +18720,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HY \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HZ \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19176,7 +19189,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HY';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HZ';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

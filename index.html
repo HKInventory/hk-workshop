@@ -3098,7 +3098,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HT · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HU · ZXing raw</div>
       </div>
     </div>
 
@@ -5028,7 +5028,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HT</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HU</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12785,7 +12785,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -16972,21 +16972,43 @@ function mrPdfRows(items){
     return byY[k].slice().sort(function(a,b){ return a.x-b.x; });
   }).filter(function(row){ return row.some(function(g){ return String(g.str||'').trim(); }); });
 }
+/* SPLIT A ROW INTO COLUMNS. TWO KINDS OF BOUNDARY, BECAUSE PDFS COME IN TWO SHAPES.
+   A gap between columns can be a real hole in the layout, or it can be a run of space characters
+   padding across to the next column — and which one you get depends on how the PDF was written.
+   This calendar is the second kind: pdf.js hands back "Friday", then a single space item 43pt wide,
+   then "03-Jul-26". Every positional gap is therefore exactly ZERO, the whole row collapsed into
+   one cell, and every event was correctly found, correctly sampled as red, and then parsed as a
+   single unsplittable string with no date in it.
+   So a wide whitespace item is a column boundary in its own right, while a narrow one is an
+   ordinary space inside a name. Both rules run together, so it works whether the document supplies
+   its gaps as geometry or as padding. */
 function mrPdfCells(row){
-  var cells=[], cur=[row[0]];
-  for(var i=1;i<row.length;i++){
-    var prev=row[i-1], gap=row[i].x-(prev.x+(prev.w||0));
-    if(gap>2.5){ cells.push(cur); cur=[row[i]]; } else cur.push(row[i]);
+  var cells=[], cur=[], GAP=2.5, PAD=6;
+  for(var i=0;i<row.length;i++){
+    var g=row[i], prev=row[i-1];
+    if(!String(g.str||'').trim() && (g.w||0)>PAD){          // padding out to the next column
+      if(cur.length){ cells.push(cur); cur=[]; }
+      continue;
+    }
+    if(cur.length && prev && (g.x-(prev.x+(prev.w||0)))>GAP){ cells.push(cur); cur=[]; }
+    cur.push(g);
   }
-  cells.push(cur);
-  return cells.map(function(c){ return c.map(function(g){ return g.str; }).join('').trim(); });
+  if(cur.length) cells.push(cur);
+  return cells.map(function(c){ return c.map(function(g){ return g.str; }).join('').trim(); })
+              .filter(function(t){ return t; });
 }
 function mrPdfParseItems(items){
   var out=[];
   mrPdfRows(items).forEach(function(row){
-    // A row counts as red when most of its ink is red — a stray red glyph in a black row is noise.
-    var red=row.filter(function(g){ return g.red; }).length;
-    if(red <= row.length*0.5) return;
+    /* A row counts as red when most of its INK is red — a stray red glyph in a black row is noise.
+       Measured over the items that actually carry text, which is not the same as all of them:
+       pdf.js emits whitespace-only spacer items between cells, and a space has no ink to be red.
+       Counting those as evidence put a fully red row at exactly 8 red of 16 items — one short of
+       the majority — so every event in the calendar was found, sampled correctly, and then thrown
+       away by the test that was supposed to select it. */
+    var inked=row.filter(function(g){ return String(g.str||'').trim(); });
+    var red=inked.filter(function(g){ return g.red; }).length;
+    if(!inked.length || red <= inked.length*0.5) return;
     var ev=mrPdfEvent(mrPdfCells(row));
     if(ev.name||ev.date) out.push(ev);
   });
@@ -18519,7 +18541,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HT \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HU \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -18988,7 +19010,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HT';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HU';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

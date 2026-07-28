@@ -3123,7 +3123,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HW · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-HX · ZXing raw</div>
       </div>
     </div>
 
@@ -4357,7 +4357,6 @@ function tutSteps(){
     {tab:'genorder', reqTile:'#wgord', enter:_nav('genorder',function(){loadGenOrder();}), wait:300, emoji:'\ud83d\udce6', title:'Generate Order', body:'Build a RIMO order from real usage. <b>Tap a tab</b> \u2014 Sydney, Melbourne or Combined \u2014 to switch which site you\u2019re ordering for.', spot:'#go-scope', gate:{sel:'#go-scope .go-seg',ev:'click',hint:'Tap a site tab to continue',delay:500}},
     {tab:'hkai', reqTile:'#whkai', enter:_nav('hkai',null), wait:120, emoji:'\ud83e\udd16', title:'HK AI', body:'Ask about karts, repairs, notes, sessions, batteries or stock in plain English \u2014 it reads live workshop data and answers. It can look anything up; it can\u2019t change anything.', spot:null, gate:{ev:'next'}},
     {tab:'tasks', reqTile:'#wtasks', enter:_nav('tasks',null), wait:120, emoji:'\u2705', title:'Tasks', body:'Assign and track workshop jobs \u2014 with a phone alert when one lands on you.', spot:null, gate:{ev:'next'}},
-    {tab:'chats', reqTile:'#wchats', enter:_nav('chats',null), wait:160, emoji:'\ud83d\udcac', title:'Chats', body:'Message anyone here without leaving the app \u2014 direct messages, and groups you\u2019re put in. No all-hands channel: things reach the people they concern.', spot:null, gate:{ev:'next'}},
     {tab:'race', reqTile:'#wrace', enter:_nav('race',null), wait:120, emoji:'\ud83e\udde0', title:'Intelligence', body:'Track of the day, today\u2019s repairs, parts and discrepancies \u2014 what actually happened on the floor today.', spot:null, gate:{ev:'next'}},
     {tab:'kartinfo', reqTile:'#wkart', enter:_nav('kartinfo',function(){ if(typeof loadKartInfo==='function') loadKartInfo(); }), wait:200, emoji:'\ud83c\udfc1', title:'Kart Info', body:'Specs, repairs and history for every kart in the fleet.', spot:'#s-kartinfo .sb', gate:{ev:'next'}},
     /* THE TOUR HAD FALLEN BEHIND THE APP. Kart Check — the job most people here do most days —
@@ -5071,7 +5070,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HW</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-HX</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -12846,7 +12845,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-HX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -14142,7 +14141,30 @@ function mLoadSnap(cb,force){
     }).catch(function(){ _mSnapBusy=false; var ws=_mSnapWaiters.slice(); _mSnapWaiters=[]; ws.forEach(function(w){ try{w(null);}catch(e){} }); });
 }
 var MS_ORIG={};
-function roleEmojiFor(r){ try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var f=rs.find(function(x){return x.name===r;}); if(f&&f.emoji) return f.emoji; }catch(e){} return (r==='Manager'||r==='Assistant Manager')?'\u2b50':'\ud83d\udd27'; }
+/* ONE EMOJI PER ROLE, NOT ONE EMOJI FOR EVERYONE WHO ISN'T A MANAGER.
+   The fallback here was a star for Manager and Assistant Manager and a wrench for every other role
+   on the team — so Facilities, Office and Instructor all read as mechanics on the dashboard, the
+   Last-online list and the chat avatars. It only looked right in Master Access, which reads each
+   person's own saved emoji through a different path.
+   ACCESS_CFG still wins when it is loaded (roles are editable there), but it is only fetched for
+   the Access tab, so on every other screen this map IS the answer rather than a stopgap. */
+var ROLE_EMOJI={
+  'Manager':'\u2b50','Assistant Manager':'\u2b50','Admin':'\ud83d\udd11',
+  'Mechanic':'\ud83d\udd27','Facilities':'\ud83c\udfd7\ufe0f','Office':'\ud83d\uddc2\ufe0f',
+  'Instructor':'\ud83c\udfc1','Marshal':'\ud83c\udfc1','Supervisor':'\ud83d\udccb'
+};
+function roleEmojiFor(r){
+  try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var f=rs.find(function(x){return x.name===r;}); if(f&&f.emoji) return f.emoji; }catch(e){}
+  var k=String(r||'').trim();
+  if(ROLE_EMOJI[k]) return ROLE_EMOJI[k];
+  // Unknown role: match on what it's called rather than dropping straight to a wrench.
+  var l=k.toLowerCase();
+  if(/manager|owner|director/.test(l)) return '\u2b50';
+  if(/facilit|maint|clean|ground/.test(l)) return '\ud83c\udfd7\ufe0f';
+  if(/office|admin|recept|front/.test(l)) return '\ud83d\uddc2\ufe0f';
+  if(/instruct|marshal|track|race/.test(l)) return '\ud83c\udfc1';
+  return '\ud83d\udd27';
+}
 /* ----- Staff editor (server-backed, authorised by your PIN) ----- */
 function msLoad(){
   var el=document.getElementById('m-staff-list'); el.innerHTML='<div class="m-empty">Loading staff…</div>';
@@ -18614,7 +18636,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HW \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-HX \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19083,7 +19105,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-HW';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-HX';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

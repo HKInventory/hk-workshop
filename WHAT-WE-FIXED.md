@@ -197,6 +197,42 @@ beacon functions differ. And the venue plan is simply uploaded as an image and e
 drawn on top of it, so what you see is the real surveyed drawing rather than somebody's tracing
 of it.
 
+## 28 July 2026
+
+### Stock levels are now genuinely per venue — and Sydney stopped being the exception
+
+**What it was like:** every venue was supposed to have its own stock figures, and every venue did —
+except Sydney. Sydney's quantity, minimum and shelf location lived on the *parts catalogue* record,
+the one row every venue shares. Melbourne used a proper per-venue table. So the founding venue's
+numbers *were* the shared numbers, which meant a second venue could only ever be bolted on beside
+it, and a third would have made the confusion permanent.
+
+Two settings were worse than that: the **lock** (🔒, which stops a part's minimum tuning itself) and
+the **yield rate** (how many scans before the smart minimum takes over) were shared by all venues
+outright. Locking a part in Sydney locked it in Melbourne too, whether anyone wanted that or not.
+
+**Why it matters:** Sydney has more karts than Melbourne and burns through parts faster. Same karts,
+same parts — different rates, so different minimums and different reorder points. There was no way
+to say that.
+
+**Now:** `parts` is purely the catalogue — description, prices, supplier, brand, lead time, category,
+photo. Everything that differs by venue moved to the per-venue table: quantity, minimum, location,
+the lock, the yield rate, and the per-part stats reset. Every venue reads its own row, Sydney
+included. Adding Perth is one insert and it inherits every rule automatically.
+
+**Two things fixed on the way past:**
+
+- The smart minimum auto-tuned after 6 scans no matter what the yield rate said. A high-use part set
+  to 75 in the sheet had its minimum quietly rewritten long before the app agreed the threshold had
+  been reached. The two now read the same number.
+- The stock write reported success even when it changed nothing. It now says so — the same class of
+  silent-success bug that hid the note problems for weeks.
+
+**One deliberate deletion, agreed first:** the old per-venue table held 2,471 units for Sydney that
+had gone stale months ago, against a real figure of zero. The migration overwrote them from the live
+numbers, because Sydney is genuinely empty pending a stocktake. A full backup of the table was taken
+first and still exists.
+
 ---
 
 ## The 324 million message incident — read before changing anything

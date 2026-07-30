@@ -1847,6 +1847,29 @@
 .sc-msg{min-height:18px;margin-top:18px;font-size:13px;font-weight:700;color:#FF8A3D;opacity:0;transition:opacity .2s;}
 .sc-msg.show{opacity:1;}
 .sc-cancel{margin-top:24px;background:none;border:none;color:#8aa3b0;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;padding:8px;}
+    /* ── TABLETS ──
+       Every cap above is a phone dimension. On a 1024x1366 iPad that leaves a postage stamp of UI
+       marooned in the middle of a very large black screen — the PIN pad 320px wide with a thousand
+       pixels of nothing under it, the site cards likewise. Size this furniture off the SHORT edge of
+       the screen (vmin) instead, so it grows with the tablet and still fits in landscape.
+       Deliberately gated on both dimensions so no phone, in either orientation, can match it. */
+    @media (min-width: 700px) and (min-height: 700px) {
+      .pin-wrap { max-width: none; gap: 26px; }
+      .pin-h2 { font-size: clamp(30px, 4.4vmin, 44px); }
+      .pin-p  { font-size: clamp(15px, 1.9vmin, 19px); }
+      .dots { gap: clamp(16px, 2.2vmin, 24px); }
+      .dot { width: clamp(16px, 1.9vmin, 22px); height: clamp(16px, 1.9vmin, 22px); }
+      .pad { max-width: min(470px, 54vmin); gap: clamp(10px, 1.5vmin, 18px); }
+      .k { border-radius: 22px; font-size: clamp(26px, 4.2vmin, 40px); }
+      .sc-inner { max-width: min(620px, 68vmin); }
+      .sc-h { font-size: clamp(34px, 5vmin, 48px); }
+      .sc-p { font-size: clamp(15px, 2vmin, 20px); margin-bottom: clamp(28px, 4vmin, 44px); }
+      .sc-grid { gap: clamp(16px, 2.2vmin, 24px); }
+      .site-card { padding: clamp(24px, 3.4vmin, 38px) clamp(26px, 3.6vmin, 40px); border-radius: 24px; }
+      .site-card .sc-name { font-size: clamp(30px, 4.2vmin, 42px); }
+      .site-card .sc-sub  { font-size: clamp(13px, 1.7vmin, 17px); }
+      .site-card .sc-go   { font-size: clamp(26px, 3.6vmin, 36px); }
+    }
 /* ----- site switch transition (opaque + dramatic slam) ----- */
 .siteswitch{position:absolute;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease;overflow:hidden;}
 .siteswitch.in{opacity:1;} .siteswitch.out{opacity:0;transition:opacity .4s ease;}
@@ -3148,7 +3171,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IE · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IF · ZXing raw</div>
       </div>
     </div>
 
@@ -5125,7 +5148,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IE</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IF</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -5921,22 +5944,54 @@ function sizeTiles(){ layoutHome(); }
    the grid once, then re-laid it out a tick later: the visible jump.
    Now it computes the target span and only touches the DOM when something actually differs, so a
    repeat call costs nothing and cannot produce a second layout pass. */
+/* THE COLUMN COUNT IS A SHAPE DECISION, NOT A WIDTH ONE.
+   It used to be "3 columns over 600px wide, 2 under". On an iPad that put six tiles into a 3x2 grid
+   in a 992x1219 space, and since the rows stretch to fill the height, every tile came out 297 wide
+   by 601 tall — skyscrapers, with the second row running off the bottom.
+   The screen's SHAPE is what decides how many columns look right, so try each count and keep the one
+   whose resulting tile is closest to a card (a bit wider than tall). Same six tiles: 2 columns on an
+   iPad portrait (489x397), 3 across an iPad landscape or a Mac window, still 2 on a phone — which is
+   what it already did, so nothing changes there. */
+var TILE_ASPECT=1.35;                        // the shape we are aiming each tile at (w/h)
+function _lhCols(n,W,H,gap){
+  if(n<=1) return 1;
+  var best=2, bestScore=Infinity;
+  var max=Math.min(4,n);
+  for(var c=(W<420?2:2);c<=max;c++){
+    var rows=Math.ceil(n/c);
+    var tw=(W-(c-1)*gap)/c, th=(H-(rows-1)*gap)/rows;
+    if(tw<=0||th<=0) continue;
+    var score=Math.abs(Math.log((tw/th)/TILE_ASPECT));
+    if(score<bestScore-0.001){ bestScore=score; best=c; }
+  }
+  return best;
+}
 var _lhSig=null;
 function layoutHome(){
   var grid=document.getElementById('home-grid');
   if(!grid) return;
-  var cols=window.innerWidth>=600?3:2;
   var tiles=[];
   for(var i=0;i<grid.children.length;i++){
     if(grid.children[i].style.display!=='none') tiles.push(grid.children[i]);
   }
   var n=tiles.length;
   if(!n){ _lhSig=null; return; }
+  var gap=parseFloat(getComputedStyle(grid).rowGap)||10;
+  var W=grid.clientWidth||window.innerWidth, H=grid.clientHeight||window.innerHeight;
+  var cols=_lhCols(n,W,H,gap);
+  var rows=Math.ceil(n/cols);
+  // Even at the best column count a very tall screen can stretch a tile past square. Cap the row
+  // height there and centre the block instead of letting it grow.
+  var tw=(W-(cols-1)*gap)/cols, th=(H-(rows-1)*gap)/rows;
+  var cap=(th>tw*1.15)?Math.round(tw*1.15):0;
   var rem=n%cols, span=(rem!==0)?('span '+(cols-rem+1)):'';
-  // Same tile count, same column count, same span => the DOM already says what we would say.
-  var sig=n+'/'+cols+'/'+span;
+  // Same inputs => the DOM already says what we would say. Rounded so a sub-pixel resize is a no-op.
+  var sig=n+'/'+cols+'/'+span+'/'+cap+'/'+Math.round(W/8)+'x'+Math.round(H/8);
   if(sig===_lhSig) return;
   _lhSig=sig;
+  grid.style.gridTemplateColumns='repeat('+cols+',minmax(0,1fr))';
+  grid.style.gridAutoRows=cap?(cap+'px'):'';
+  grid.style.alignContent=cap?'center':'';
   for(var j=0;j<tiles.length;j++){
     var want=(j===n-1)?span:'';
     if(tiles[j].style.gridColumn!==want) tiles[j].style.gridColumn=want;   // write only on a real change
@@ -13000,7 +13055,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -18941,7 +18996,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IE \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19410,7 +19465,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IE';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-IF';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -25,8 +25,10 @@
 --    datetime               at_raw          venue wall clock, kept verbatim as printed
 --    client                 participant     RaceFacer calls the driver the client; '-' when none
 --    session                session_label   '-' outside a booked race
---    session_id             session_id      -> rf_sessions.rf_session_id, and how `track` is resolved
---    run_id                 run_id          -> rf_session_runs.run_id (driver + kart for the run)
+--    session_id             session_id      intended: -> rf_sessions.rf_session_id, and the mechanism
+--                                           `track` is resolved by. UNEXERCISED — see the note below.
+--    run_id                 run_id          intended: -> rf_session_runs.run_id. Stored ready; nothing
+--                                           reads it yet and the join is unconfirmed. See below.
 --    transponder_lap_time   lap_time        seconds; what RaceFacer's own LAP TIME column shows
 --    loop_lap_time          loop_lap_time   seconds; same loop to same loop, i.e. a true lap
 --    strength               strength        see the warning below
@@ -34,6 +36,16 @@
 --    (none)                 track           NOT in the payload. RaceFacer knows it and the runner
 --                                           reads it off RaceFacer: session_id -> rf_sessions.track,
 --                                           then loop -> track learned from those. See rf_pickups.js.
+--
+--  ⚠️  THE session_id / run_id JOINS ARE NOT PROVEN YET.
+--  Both ids were null on the confirmed capture, and RaceFacer's own Passing History shows most rows
+--  in a given minute carrying no session at all. The columns are stored ready and cost nothing, but
+--  do not write a query that assumes they are populated. This also bounds `track`: it is resolved
+--  from session_id first and then from the loop -> track map those sessions teach, so if session_id
+--  is null in practice, track stays null and the app falls back to grouping karts by type.
+--  First thing to check once rows exist:
+--    select count(*) as rows, count(session_id) as with_session, count(track) as with_track
+--      from public.rf_passings where site = 'sydney' and at > now() - interval '2 hours';
 --
 --  ⚠️  DO NOT BUILD ON strength OR battery_low AT THIS VENUE.
 --  Both are empty here: RaceFacer reports strength as '-' and battery as N/A on every record, in

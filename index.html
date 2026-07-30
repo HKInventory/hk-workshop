@@ -12885,7 +12885,12 @@ function dpLoad(cb){
         if(!DP_ROWS.length){
           SBC.from('rf_passings').select('at').eq('site',currentSite||'sydney').limit(1)
             .then(function(r2){
-              DP_STATE=(r2&&r2.data&&r2.data.length)?'window':'never';
+              /* An errored probe RESOLVES — it does not reject — so `r2.data` comes back null and the
+                 old ternary read that as 'never', printing "the table is ready but nothing has been
+                 written to it yet". That is a claim manufactured out of a failed query, and it is the
+                 most reassuring of the four possibilities, which is precisely how the missing table
+                 went unnoticed in the first place. Check the error before believing the data. */
+              DP_STATE=(r2&&r2.error)?'unknown':((r2&&r2.data&&r2.data.length)?'window':'never');
               renderPickupsSection(); if(cb)cb();
             },function(){ DP_STATE='unknown'; renderPickupsSection(); if(cb)cb(); });
           return;

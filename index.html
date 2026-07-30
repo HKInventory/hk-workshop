@@ -544,6 +544,25 @@
     .dp-tbl td{padding:6px;color:var(--t1);border-bottom:1px solid var(--b1)}
     .dp-tblwrap{max-height:420px;overflow:auto;border:1px solid var(--b1);border-radius:12px}
     .dp-empty{text-align:center;color:var(--t2);font-size:13px;padding:34px 16px;line-height:1.7}
+    /* "How to read this" — prose, not furniture. Wide measure hurts reading, so it is capped. */
+    .dp-help{max-width:760px;font-size:13px;line-height:1.7;color:var(--t1)}
+    .dp-help h4{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#5EEAD4;margin:20px 0 7px}
+    .dp-help h4:first-child{margin-top:0}
+    .dp-help p{margin:0 0 10px;color:var(--t2)}
+    .dp-help b{color:#fff;font-weight:700}
+    .dp-help code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#8fb8d6;background:var(--card2,#141821);padding:1px 5px;border-radius:4px}
+    .dp-hcard{background:var(--card2,#141821);border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+    .dp-hcard.bad{border-color:rgba(226,75,74,.35)} .dp-hcard.warn{border-color:rgba(240,203,30,.32)}
+    .dp-hh{font-size:13px;font-weight:800;color:#fff;margin-bottom:4px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+    .dp-hb{font-size:9.5px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:6px;background:rgba(226,75,74,.18);color:#F09595;white-space:nowrap}
+    .dp-hb.warn{background:rgba(240,203,30,.16);color:#F5D84E}
+    .dp-hb.ok{background:rgba(34,197,94,.15);color:#7CFCA9}
+    .dp-hb.grey{background:rgba(255,255,255,.07);color:var(--t2)}
+    .dp-hd{font-size:12.5px;color:var(--t2);line-height:1.65}
+    .dp-hd em{font-style:normal;color:#fff;font-weight:600}
+    .dp-hdo{font-size:12px;color:#9fd6b5;margin-top:5px}
+    .dp-hex{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--t2);background:rgba(0,0,0,.28);
+      border-left:2px solid var(--b2);padding:7px 10px;border-radius:0 6px 6px 0;margin:7px 0 0;white-space:pre-wrap;line-height:1.55}
     .sd-legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--t2);margin-top:8px}
     .sd-lg{display:flex;align-items:center;gap:4px}.sd-lg span{width:9px;height:9px;border-radius:2px}
     .sd-toolbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -12771,7 +12790,9 @@ function renderCpuSection(){
 var DP_ROWS=null, DP_VIEW='karts', DP_LOADING=false, DP_ERR='', DP_STATE='';
 var DP_WINDOW_H=12;                       // hours of history the screen reads
 var DP_LIMIT=6000;                        // row cap — dpLoad reports when it bites
-var DP_TRUNC=false, DP_SPAN=null, DP_TIMER=null;
+var DP_TICK_MS=10000;                     // how often new pickups are pulled in — see dpTick
+var DP_RUNNER_SEC=15;                     // the runner's own poll, quoted in the explainer
+var DP_TRUNC=false, DP_SPAN=null, DP_TIMER=null, DP_NEWEST=null, DP_TICKING=false;
 var DP_MIN_PICKUPS=10;                    // below this a kart hasn't run enough to judge at all
 var DP_MIN_DARK=15;                       // and "went dark" needs more than that — see the rule
 var DP_DARK_RUN=600000;                   // ...plus 10 min of actual lapping before it vanished
@@ -12794,8 +12815,10 @@ function renderPickupsSection(){
     +  dpTab('karts','Karts',A.karts.length)
     +  dpTab('loops','Loops',A.loops.length)
     +  dpTab('live','Live feed',rows.length)
+    +  dpTab('help','How to read this','?')
     +'</div>'
-    +(DP_VIEW==='karts'?dpKartsView(A):(DP_VIEW==='loops'?dpLoopsView(A):dpLiveView(rows)));
+    +(DP_VIEW==='karts'?dpKartsView(A):(DP_VIEW==='loops'?dpLoopsView(A)
+      :(DP_VIEW==='help'?dpHelpView(A):dpLiveView(rows))));
 }
 
 /* THE EMPTY STATE HAS TO SAY WHICH KIND OF EMPTY IT IS.
@@ -12830,12 +12853,14 @@ function dpTab(id,label,n){
     +_sdEsc(label)+' <span style="opacity:.65">'+n+'</span></button>';
 }
 
+// One place for the column list — the full read and the incremental tick must never drift apart.
+var DP_COLS='at,loop,track,kart_no,kart_id,transponder,strength,battery_low,session_label,participant,session_id,lap_time,loop_lap_time';
 function dpLoad(cb){
   if(typeof SBC==='undefined'||!SBC){ DP_ERR='Not connected.'; if(cb)cb(); return; }
   DP_LOADING=true; DP_ERR=''; DP_STATE='';
   var since=new Date(Date.now()-DP_WINDOW_H*3600000).toISOString();
   SBC.from('rf_passings')
-     .select('at,loop,track,kart_no,kart_id,transponder,strength,battery_low,session_label,participant,session_id,lap_time,loop_lap_time')
+     .select(DP_COLS)
      .eq('site',currentSite||'sydney').gte('at',since)
      .order('at',{ascending:false}).limit(DP_LIMIT)
      .then(function(r){
@@ -12851,6 +12876,7 @@ function dpLoad(cb){
            that reads as a quiet day. Work out the span actually covered and show it. */
         DP_TRUNC=(DP_ROWS.length>=DP_LIMIT);
         DP_SPAN=null;
+        DP_NEWEST=DP_ROWS.length?DP_ROWS[0].at:null;   // where dpTick resumes from
         if(DP_ROWS.length){
           var newest=DP_ROWS[0].at, oldest=DP_ROWS[DP_ROWS.length-1].at;
           DP_SPAN=Math.max(0,(Date.parse(newest)-Date.parse(oldest))/3600000);
@@ -12879,14 +12905,47 @@ function dpLoad(cb){
    the bill. Two minutes is well inside the useful life of this data. */
 function dpStartTimer(){
   dpStopTimer();
-  DP_TIMER=setInterval(function(){
-    if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH!=='dehaardt'){ dpStopTimer(); return; }
-    var el=document.getElementById('ki-ref-body');
-    if(!el||!el.offsetParent){ dpStopTimer(); return; }     // screen not on show: stop polling
-    dpLoad();
-  },120000);
+  DP_TIMER=setInterval(dpTick,DP_TICK_MS);
 }
 function dpStopTimer(){ if(DP_TIMER){ clearInterval(DP_TIMER); DP_TIMER=null; } }
+
+/* LIVE, AND CHEAP — the two used to be in conflict here.
+   The first version re-read the whole 12-hour window every two minutes, which meant the screen sat up
+   to two minutes behind RaceFacer (side by side you could watch it trail), and made going faster
+   unaffordable: DP_LIMIT is 6000 rows of the highest-volume table in the system, and a tablet parked
+   on this screen would have pulled that down all day for nothing.
+   The fix is to stop asking for what we already have. Every tick asks only for pickups NEWER than the
+   newest one held — a handful of rows during a race, an empty result the rest of the time — so a
+   ten-second cadence costs less than the old two-minute one did. Only a real refresh, or opening the
+   screen, reads the full window. */
+function dpTick(){
+  if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH!=='dehaardt'){ dpStopTimer(); return; }
+  var el=document.getElementById('ki-ref-body');
+  if(!el||!el.offsetParent){ dpStopTimer(); return; }        // screen not on show: stop polling
+  if(DP_TICKING||DP_LOADING||DP_ROWS==null) return;          // never stack requests
+  if(typeof SBC==='undefined'||!SBC||!DP_NEWEST) return;
+  DP_TICKING=true;
+  SBC.from('rf_passings')
+     .select(DP_COLS).eq('site',currentSite||'sydney').gt('at',DP_NEWEST)
+     .order('at',{ascending:false}).limit(1000)
+     .then(function(r){
+        DP_TICKING=false;
+        if(!r||r.error||!r.data||!r.data.length) return;      // nothing new is the normal case
+        /* Guard against a duplicate at the boundary: `gt` is exclusive, but two pickups can share a
+           timestamp to the millisecond, so the same row can arrive twice across two ticks. */
+        var have={};
+        DP_ROWS.forEach(function(x){ have[x.at+'|'+x.kart_no+'|'+x.loop+'|'+x.transponder]=1; });
+        var fresh=r.data.filter(function(x){ return !have[x.at+'|'+x.kart_no+'|'+x.loop+'|'+x.transponder]; });
+        if(!fresh.length) return;
+        DP_ROWS=fresh.concat(DP_ROWS);
+        DP_NEWEST=DP_ROWS[0].at;
+        // Hold the window steady, otherwise the row count creeps up all day and the caption lies.
+        var cut=Date.now()-DP_WINDOW_H*3600000;
+        DP_ROWS=DP_ROWS.filter(function(x){ return Date.parse(x.at)>=cut; });
+        if(DP_ROWS.length>DP_LIMIT){ DP_ROWS=DP_ROWS.slice(0,DP_LIMIT); DP_TRUNC=true; }
+        renderPickupsSection();
+     },function(){ DP_TICKING=false; });
+}
 
 function _dpMed(a){ if(!a.length) return null; var b=a.slice().sort(function(x,y){return x-y;}); var m=Math.floor(b.length/2);
   return b.length%2?b[m]:(b[m-1]+b[m])/2; }
@@ -12937,21 +12996,49 @@ function dpPeers(byKart){
   return peers;
 }
 
+/* DOUBLE-READS: THE THING THAT MADE THIS SCREEN LIE ON ITS FIRST DAY.
+   A kart cannot cross the same loop twice in a second, but RaceFacer records it happening — kart 66
+   posted two S2 pickups at 12:47:51 and 12:47:52, the second with a lap time of 0.322s. The beacon
+   triggered twice on one pass.
+   Left in, each double inflates that loop's count. Kart 66 came out as S/F 7 · S2 14 · S3 11 and the
+   imbalance rule concluded S/F was reading light — CHECK THAT BEACON — when what had really happened
+   is that S2 and S3 were reading everything twice. Strip the doubles and it is 7 · 7 · 7: a perfectly
+   healthy kart that the screen was sending a mechanic to investigate.
+   So a repeat crossing of the same loop by the same kart inside DP_DOUBLE_MS counts once. The count
+   of them is kept, because a beacon that double-triggers is worth knowing about in its own right —
+   it is just a different fault from a beacon that misses. */
+var DP_DOUBLE_MS=2500;
+function dpMarkDoubles(rows){
+  var last={}, doubles=0;
+  // Oldest first, so "the previous crossing" means what it says.
+  var ordered=rows.slice().sort(function(a,b){ return Date.parse(a.at)-Date.parse(b.at); });
+  ordered.forEach(function(r){
+    var key=_dpKey(r)+'|'+(r.loop||'?'), t=Date.parse(r.at);
+    r._dbl=(last[key]!=null && (t-last[key])<DP_DOUBLE_MS);
+    if(r._dbl) doubles++; else last[key]=t;
+  });
+  return doubles;
+}
+
 function dpAnalyse(rows){
   var byLoop={}, byKart={}, byTx={}, newest=0;
+  var totalDoubles=dpMarkDoubles(rows);
   rows.forEach(function(r){
     var lp=r.loop||'?', kk=_dpKey(r), t=Date.parse(r.at);
     if(t>newest) newest=t;
-    (byLoop[lp]=byLoop[lp]||{name:lp,n:0,karts:{},str:[]});
-    byLoop[lp].n++; byLoop[lp].karts[kk]=1;
+    (byLoop[lp]=byLoop[lp]||{name:lp,n:0,karts:{},str:[],dbl:0});
+    byLoop[lp].karts[kk]=1;
+    if(r._dbl){ byLoop[lp].dbl++; } else { byLoop[lp].n++; }
     if(r.strength!=null) byLoop[lp].str.push(Number(r.strength));
     var k=(byKart[kk]=byKart[kk]||{key:kk,kart:String(r.kart_no==null?'?':r.kart_no),kartId:(r.kart_id!=null?r.kart_id:null),
       type:_dpTypeOf(r.kart_id,r.kart_no),track:null,tracks:{},
-      n:0,tx:{},perLoop:{},slices:{},str:[],battLow:0,last:0,first:Infinity,gaps:[],sess:{}});
+      n:0,raw:0,dbl:0,dblAt:{},tx:{},perLoop:{},slices:{},str:[],battLow:0,last:0,first:Infinity,gaps:[],sess:{}});
     if(r.track) k.tracks[r.track]=(k.tracks[r.track]||0)+1;
-    k.n++;
+    k.raw++;                                     // everything RaceFacer sent, doubles included
     if(r.transponder){ k.tx[r.transponder]=(k.tx[r.transponder]||0)+1; (byTx[r.transponder]=byTx[r.transponder]||{})[kk]=1; }
-    k.perLoop[lp]=(k.perLoop[lp]||0)+1;
+    // Doubles are counted but never fed to the loop tallies the imbalance rule reads.
+    if(r._dbl){ k.dbl++; k.dblAt[lp]=(k.dblAt[lp]||0)+1; }
+    else { k.n++; k.perLoop[lp]=(k.perLoop[lp]||0)+1; }
     k.slices[_dpSlice(r.at)]=1;
     if(r.strength!=null) k.str.push(Number(r.strength));
     if(r.battery_low===true) k.battLow++;
@@ -12980,7 +13067,7 @@ function dpAnalyse(rows){
   });
 
   var loops=Object.keys(byLoop).map(function(n){ var L=byLoop[n];
-    return {name:n,n:L.n,karts:Object.keys(L.karts).length,med:_dpMed(L.str),
+    return {name:n,n:L.n,dbl:L.dbl,karts:Object.keys(L.karts).length,med:_dpMed(L.str),
             lo:L.str.length?Math.min.apply(null,L.str):null}; });
 
   var karts=Object.keys(byKart).map(function(kk){
@@ -12998,8 +13085,22 @@ function dpAnalyse(rows){
         var ratio=k.perLoop[l]/best;
         if(weakest==null||ratio<weakest.ratio) weakest={loop:l,ratio:ratio,n:k.perLoop[l],of:best};
       });
-      if(weakest&&weakest.ratio<0.5){ flag='bad'; why.push('read '+weakest.n+' times at '+weakest.loop+' but '+weakest.of+' times at its busiest loop'); }
-      else if(weakest&&weakest.ratio<0.75){ flag='warn'; why.push('reading '+Math.round((1-weakest.ratio)*100)+'% less often at '+weakest.loop); }
+      // Say the counts, not a ratio. "Reading light" meant nothing to anyone who read it.
+      if(weakest&&weakest.ratio<0.5){ flag='bad'; why.push('crossed '+weakest.loop+' only '+weakest.n+' times but its busiest loop '+weakest.of+' times — '+weakest.loop+' is missing about half this kart’s laps'); }
+      else if(weakest&&weakest.ratio<0.75){ flag='warn'; why.push('crossed '+weakest.loop+' '+weakest.n+' times against '+weakest.of+' at its busiest loop — a few laps are going unrecorded at '+weakest.loop); }
+    }
+
+    /* DOUBLE-READS. A loop recording the same kart twice on one pass. Its own fault, and the
+       opposite of a missed read: the beacon is too eager rather than deaf. Worth reporting because
+       it inflates lap counts and can hand a driver a 0.3-second lap. */
+    var dblLoops=Object.keys(k.dblAt).sort(function(a,b){return k.dblAt[b]-k.dblAt[a];});
+    if(k.dbl && k.raw){
+      var dblShare=k.dbl/k.raw;
+      if(dblShare>=0.15){
+        if(flag==='ok') flag='warn';
+        why.push('counted twice on one pass '+k.dbl+' time'+(k.dbl===1?'':'s')+' at '+dblLoops.join(', ')
+          +' — that beacon is triggering twice, so lap counts there read high');
+      }
     }
 
     /* A LOOP ITS PEERS CROSS AND IT NEVER DOES. Expected loops come only from karts that shared
@@ -13042,7 +13143,7 @@ function dpAnalyse(rows){
     if(k.battLow){ flag='bad'; why.push('transponder reported battery low '+k.battLow+'x'); }
     if(!enough) why.push('only '+k.n+' pickup'+(k.n===1?'':'s')+' — too little to judge');
 
-    return {key:kk,kart:k.kart,kartId:k.kartId,n:k.n,tx:txList,loopN:myLoops.length,
+    return {key:kk,kart:k.kart,kartId:k.kartId,n:k.n,raw:k.raw,dbl:k.dbl,dblAt:k.dblAt,tx:txList,loopN:myLoops.length,
             perLoop:k.perLoop,missing:missing,weakest:weakest,dark:darkFor,rate:k.rate,
             med:_dpMed(k.str),batt:(k.battLow?k.battLow:null),last:k.last,first:k.first,
             sessions:Object.keys(k.sess),enough:enough,flag:(enough?flag:'unknown'),why:why};
@@ -13078,7 +13179,10 @@ function dpAnalyse(rows){
     // that went dark is still that kart's problem regardless of any beacon.
     if(k.missing.length||k.dark||k.tx.length>1||k.batt) return;
     k.flag='warn';
-    k.why=['loop '+k.weakest.loop+' is reading light for '+loopFlag._n[k.weakest.loop]+' karts — check that beacon before this transponder'];
+    k.why=[loopFlag._n[k.weakest.loop]+' karts are all missing laps at '+k.weakest.loop
+      +' (this one crossed it '+k.weakest.n+' times against '+k.weakest.of+' at its busiest loop). '
+      +'When several karts show the same gap at the same loop it is the beacon, not the transponders — '
+      +'check '+k.weakest.loop+' first.'];
   });
 
   var rank={bad:0,warn:1,ok:2,unknown:3};
@@ -13086,7 +13190,7 @@ function dpAnalyse(rows){
     || (b.n-a.n)
     || (parseInt(a.kart,10)||999)-(parseInt(b.kart,10)||999); });
 
-  return {karts:karts,loops:loops,rows:rows.length,newest:newest,shared:shared,
+  return {karts:karts,loops:loops,rows:rows.length,newest:newest,shared:shared,doubles:totalDoubles,
           haveStrength:rows.some(function(r){return r.strength!=null;})};
 }
 function _dpDur(ms){
@@ -13114,7 +13218,7 @@ function dpSummary(A){
     +'<div class="dp-s'+(bad?' bad':(warn?' warn':''))+'"><i>Needs a look</i><b>'+(bad+warn)+'</b><u>'
       +(bad?(bad+' bad'+(warn?', ':'')):'')+(warn?(warn+' watch'):'')+(bad+warn?'':'none flagged')
       +(unk?(' · '+unk+' too quiet to judge'):'')+'</u></div>'
-    +'<div class="dp-s'+(badLoop.length?' bad':'')+'"><i>Weak beacon</i><b>'+(badLoop.length||'—')+'</b><u>'
+    +'<div class="dp-s'+(badLoop.length?' bad':'')+'"><i>Beacon to check</i><b>'+(badLoop.length||'—')+'</b><u>'
       +(badLoop.length?badLoop.map(function(l){return l.name;}).join(', '):'none flagged')+'</u></div>'
     +'</div>';
 }
@@ -13134,7 +13238,8 @@ function dpKartsView(A){
   out+=A.karts.map(function(k){
     var cls=k.flag==='bad'?' bad':(k.flag==='warn'?' warn':'');
     var sub=[];
-    sub.push(k.n+' pickup'+(k.n===1?'':'s')+' at '+k.loopN+' loop'+(k.loopN===1?'':'s'));
+    sub.push(k.n+' pickup'+(k.n===1?'':'s')+' at '+k.loopN+' loop'+(k.loopN===1?'':'s')
+      +(k.dbl?(' <span style="color:#F5D84E">('+k.raw+' recorded, '+k.dbl+' were the same pass counted twice)</span>'):''));
     // Per-loop counts are the evidence for every rule above, so show them rather than a score.
     var lp=Object.keys(k.perLoop).sort();
     if(lp.length) sub.push(lp.map(function(l){return _sdEsc(l)+'&nbsp;'+k.perLoop[l];}).join(' · '));
@@ -13163,9 +13268,10 @@ function dpKartsView(A){
 }
 
 function dpLoopsView(A){
-  return '<div class="dp-t2" style="margin-bottom:10px">A loop that reads light for <b>several</b> karts is the beacon, not the '
-    +'transponders. Each loop counts how many of the karts that crossed it were read noticeably less often there than at '
-    +'their own busiest loop.</div>'
+  return '<div class="dp-t2" style="margin-bottom:10px">Every kart should cross every loop on its track once a lap. '
+    +'This counts, for each loop, how many karts crossed it <b>noticeably fewer</b> times than they crossed their own '
+    +'busiest loop. One kart short is that kart’s transponder. <b>Several karts short at the same loop is the beacon</b> — '
+    +'and that is the one worth a trip out to the track.</div>'
     +A.loops.map(function(l){
       var cls=l.flag==='bad'?' bad':(l.flag==='warn'?' warn':'');
       var label=l.flag==='bad'?'CHECK BEACON':(l.flag==='warn'?'WATCH':'OK');
@@ -13176,17 +13282,122 @@ function dpLoopsView(A){
         +'<div class="dp-mid"><div class="dp-t1">Loop '+_sdEsc(l.name)
           +'<span class="dp-flag '+fcls+'">'+label+'</span></div>'
           +'<div class="dp-t2">'+l.n+' pickup'+(l.n===1?'':'s')+' from '+l.karts+' kart'+(l.karts===1?'':'s')
+          +(l.dbl?(' · '+l.dbl+' double-read'+(l.dbl===1?'':'s')):'')
           +(l.med!=null?(' · median signal '+Math.round(l.med)):'')+'</div></div>'
         +'<div class="dp-right"><div class="dp-str'+(l.flag==='bad'?' bad':(l.flag==='warn'?' warn':''))+'">'+big+'</div>'
-          +'<div class="dp-strl">reading light</div></div>'
+          +'<div class="dp-strl">karts short</div></div>'
       +'</div>';
     }).join('');
+}
+
+/* HOW TO READ THIS — written for a mechanic on the floor, not for whoever wrote the code.
+   It exists because the first version of this screen printed "loop S/F is reading light for 2 karts"
+   and nobody could tell what that meant or what to do about it. Every rule the analysis applies is
+   explained here in the same words the rows use, with what to actually go and check. */
+function dpHelpView(A){
+  var loops=(A&&A.loops&&A.loops.length)?A.loops.map(function(l){return l.name;}).join(', '):'S/F, S2, S3';
+  var dbl=(A&&A.doubles)||0;
+  return '<div class="dp-help">'
+    +'<h4>What this screen is</h4>'
+    +'<p>Every time a kart drives over a timing loop buried in the track, the Dehaardt beacon at that loop '
+    +'records it. That record is a <b>pickup</b>. This screen mirrors every pickup RaceFacer has, and uses them '
+    +'to spot transponders and beacons that are not reading properly — <b>before</b> a customer’s laps go missing.</p>'
+    +'<p>Right now the loops reporting are <code>'+_sdEsc(loops)+'</code>. On a healthy kart, every loop on its '
+    +'track should record it <b>once per lap</b>, so all its loop counts should be roughly equal. Nearly everything '
+    +'below is a variation on that one idea.</p>'
+
+    +'<h4>What it cannot see, and why</h4>'
+    +'<p>RaceFacer can report a transponder’s <b>signal strength</b> and a <b>low-battery</b> warning. On this system '
+    +'it reports neither — every record comes through with a dash. So this screen never guesses at signal. It works '
+    +'only from <b>where and when each kart was seen</b>, which is information we definitely have. If the hardware is '
+    +'ever changed and strength starts arriving, it will appear here automatically.</p>'
+
+    +'<h4>What it looks for</h4>'
+
+    +'<div class="dp-hcard bad"><div class="dp-hh">One transponder on two karts <span class="dp-hb">FIX FIRST</span></div>'
+    +'<div class="dp-hd">The same transponder number is reporting under two different karts. This is a setup mistake in '
+    +'RaceFacer, not a hardware fault — and while it lasts, <em>both</em> karts’ lap times are wrong, because the system '
+    +'cannot tell which kart crossed the line.</div>'
+    +'<div class="dp-hdo">→ Correct the transponder number in RaceFacer’s garage. Nothing else on this screen can be '
+    +'trusted for those two karts until you do.</div></div>'
+
+    +'<div class="dp-hcard bad"><div class="dp-hh">Missing laps at one loop <span class="dp-hb">CHECK TRANSPONDER</span></div>'
+    +'<div class="dp-hd">The kart crossed one loop far fewer times than it crossed its busiest loop. Since it physically '
+    +'drove over both the same number of times, the shortfall is reads that never happened.</div>'
+    +'<div class="dp-hex">Kart 24 · S2 81 · S3 17\n'
+    +'It cannot have driven over S2 five times for every one pass of S3.\nS3 is missing about 80% of this kart’s laps.</div>'
+    +'<div class="dp-hdo">→ If only this kart is short at that loop, it is the kart: check its transponder is seated and '
+    +'its antenna is not damaged. If several karts are short at the same loop, see the next one.</div></div>'
+
+    +'<div class="dp-hcard warn"><div class="dp-hh">Several karts short at the same loop <span class="dp-hb warn">CHECK BEACON</span></div>'
+    +'<div class="dp-hd">When two or more karts are all missing laps at the <em>same</em> loop, the common factor is the '
+    +'loop, not the karts. Those karts drop to a watch and point at the beacon instead, so nobody pulls three good '
+    +'transponders out over one faulty beacon.</div>'
+    +'<div class="dp-hdo">→ Open the <b>Loops</b> tab. It ranks loops by how many karts are short there. Check that '
+    +'beacon’s wiring and position on the track.</div></div>'
+
+    +'<div class="dp-hcard warn"><div class="dp-hh">Counted twice on one pass <span class="dp-hb warn">DOUBLE-READ</span></div>'
+    +'<div class="dp-hd">A beacon recording the same kart twice for a single pass — two pickups a fraction of a second '
+    +'apart. The opposite problem to a missed read: the beacon is too eager rather than deaf. It inflates lap counts and '
+    +'can hand a driver a nonsense lap time like <code>0.322</code>.</div>'
+    +'<div class="dp-hex">12:47:52  S2  kart 66  lap 0.322\n12:47:51  S2  kart 66  lap 1:16.829\n'
+    +'One real pass over S2, recorded twice, one second apart.</div>'
+    +'<div class="dp-hd" style="margin-top:6px">These are counted once here, deliberately. Left in, they made a healthy '
+    +'kart look faulty: kart 66 read S/F 7 · S2 14 · S3 11 and the screen accused the S/F beacon of missing laps, when '
+    +'really S2 and S3 were reading everything twice. Stripped of doubles it is 7 · 7 · 7 — nothing wrong at all.</div>'
+    +(dbl?('<div class="dp-hdo">→ '+dbl+' double-read'+(dbl===1?'':'s')+' in the current window. Worth mentioning to '
+      +'whoever services the beacons; it is not urgent and it does not stop anyone racing.</div>')
+      :'<div class="dp-hdo">→ None in the current window.</div>')
+    +'</div>'
+
+    +'<div class="dp-hcard bad"><div class="dp-hh">Stopped being seen <span class="dp-hb">CHECK TRANSPONDER</span></div>'
+    +'<div class="dp-hd">The kart was lapping steadily, then disappeared from the feed while the karts out on track with '
+    +'it kept being recorded. Either it lost its transponder or it came off the track.</div>'
+    +'<div class="dp-hd" style="margin-top:6px">A kart that only did a lap or two before stopping is <em>not</em> flagged '
+    +'— that is a customer getting out, or a kart being swapped, and it happens constantly. This only fires when a kart '
+    +'had clearly been in service for a while.</div>'
+    +'<div class="dp-hdo">→ Check the kart is actually in the pits. If it is out on track and not being seen, that is a '
+    +'dead transponder.</div></div>'
+
+    +'<div class="dp-hcard"><div class="dp-hh">Two transponders under one kart <span class="dp-hb grey">FOR INFO</span></div>'
+    +'<div class="dp-hd">The kart reported one transponder number and then a different one. Usually this simply means '
+    +'somebody swapped it, which is why it is reported as a fact rather than a fault.</div>'
+    +'<div class="dp-hdo">→ No action if you know it was swapped. If nobody swapped it, one of the two readings is wrong.</div></div>'
+
+    +'<h4>Reading a kart row</h4>'
+    +'<div class="dp-hd"><b>32 pickups at 3 loops</b> — how many times it was recorded, and how many different loops '
+    +'recorded it.<br>'
+    +'<b>S/F 7 · S2 14 · S3 11</b> — the count at each loop. These are the numbers every judgement above is made from. '
+    +'On a healthy kart they are roughly equal.<br>'
+    +'<b>742009</b> — its transponder number.<br>'
+    +'<b>50% weakest loop</b> — its worst loop as a share of its busiest. <b>100% is perfect</b>; under 75% is a watch, '
+    +'under 50% is a problem. Shows a dash when the kart has not run enough to judge.</div>'
+
+    +'<h4>The badges</h4>'
+    +'<div class="dp-hd"><span class="dp-hb ok">OK</span> &nbsp;Seen where and when it should have been. Nothing to do.<br>'
+    +'<span class="dp-hb warn">WATCH</span> &nbsp;Something is slightly off, or the cause is more likely a beacon than '
+    +'this kart. Not urgent.<br>'
+    +'<span class="dp-hb">CHECK TRANSPONDER</span> &nbsp;Worth physically looking at this kart.<br>'
+    +'<span class="dp-hb grey">NOT ENOUGH DATA</span> &nbsp;Fewer than '+DP_MIN_PICKUPS+' pickups in the window. Almost '
+    +'certainly just a kart that has barely been out — the screen says so rather than guessing.</div>'
+
+    +'<h4>How fresh it is</h4>'
+    +'<p>The runner copies RaceFacer’s passing history every '+DP_RUNNER_SEC+' seconds, and this screen picks up new '
+    +'pickups every '+Math.round(DP_TICK_MS/1000)+' seconds without reloading the page. The <b>Live feed</b> tab is the '
+    +'raw list, newest first — the same rows RaceFacer’s own Passing History shows, and a good way to confirm the two '
+    +'agree.</p>'
+    +'<p>In the Live feed, <b>Sector</b> is the split RaceFacer prints as its lap time, and <b>Lap</b> is the time from '
+    +'one crossing of a loop to the next crossing of that same loop — a real lap. A Lap shown as <code>idle</code> means '
+    +'the kart had been parked between crossings, not that it drove a ten-minute lap.</p>'
+    +'</div>';
 }
 
 function dpLiveView(rows){
   var head='<tr><th>Time</th><th>Loop</th><th>Kart</th><th>Transponder</th><th>Sector</th><th>Lap</th><th>Session</th><th>Driver</th></tr>';
   var body=rows.slice(0,300).map(function(r){
-    return '<tr><td>'+_sdSyd(r.at)+'</td><td>'+_sdEsc(r.loop||'—')+'</td><td><b>'+_sdEsc(String(r.kart_no==null?'—':r.kart_no))+'</b></td>'
+    return '<tr'+(r._dbl?' style="opacity:.55"':'')+'><td>'+_sdSyd(r.at)
+      +(r._dbl?' <span style="color:#F5D84E;font-weight:800" title="The same pass over this loop, recorded twice">2x</span>':'')
+      +'</td><td>'+_sdEsc(r.loop||'—')+'</td><td><b>'+_sdEsc(String(r.kart_no==null?'—':r.kart_no))+'</b></td>'
       +'<td class="dp-tx">'+_sdEsc(r.transponder||'—')+'</td>'
       +'<td>'+(r.lap_time!=null?Number(r.lap_time).toFixed(3):'—')+'</td>'
       +'<td>'+(r.loop_lap_time!=null?_dpLap(r.loop_lap_time):'—')+'</td>'
@@ -13194,8 +13405,11 @@ function dpLiveView(rows){
       +'<td>'+_sdEsc(r.participant||'—')+'</td></tr>';
   }).join('');
   return '<div class="dp-tblwrap"><table class="dp-tbl"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'
-    +'<div class="dp-t2" style="margin-top:8px">Showing the most recent '+Math.min(300,rows.length)+' of '+rows.length+' pickups. '
-    +'<b>Sector</b> is the transponder split RaceFacer shows as its lap time; <b>Lap</b> is the same loop to the same loop.</div>';
+    +'<div class="dp-t2" style="margin-top:8px">Showing the most recent '+Math.min(300,rows.length)+' of '+rows.length+' pickups, '
+    +'newest first — the same rows as RaceFacer’s own Passing History. '
+    +'<b>Sector</b> is the split RaceFacer prints as its lap time; <b>Lap</b> is one crossing of a loop to the next crossing '
+    +'of that same loop. Rows marked <span style="color:#F5D84E;font-weight:800">2x</span> are one pass recorded twice by the '
+    +'beacon and are only counted once in the Karts tab — see <b>How to read this</b>.</div>';
 }
 /* A lap time over a few minutes means the kart was parked between crossings, not that it did a
    four-minute lap. Printing "2365:01" as a lap time invites someone to read it as one. */

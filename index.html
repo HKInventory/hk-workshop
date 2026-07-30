@@ -508,6 +508,42 @@
     .sd-ahset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--t2)}
     .sd-ahset input{width:92px;padding:8px 10px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#fff;font-size:13px;font-weight:700;font-family:inherit}
     .sd-ahset button{padding:8px 14px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#5EEAD4;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+    /* ── DEHAARDT PICKUPS ───────────────────────────────────────────────────────────────────────
+       Beacon pickup health. The one design decision worth stating: thresholds are RELATIVE, not
+       absolute. Nobody knows what "good" signal strength is in RaceFacer's units, and it differs
+       per loop anyway (a beacon further from the racing line reads lower for every kart). So a
+       transponder is judged against what OTHER karts read AT THE SAME LOOP, which needs no magic
+       number and self-corrects if a beacon is moved. */
+    .dp-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+    .dp-tab{padding:8px 14px;border-radius:10px;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t2);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+    .dp-tab.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.45);color:#5EEAD4}
+    .dp-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+    .dp-s{background:var(--card2,#141821);border:1px solid var(--b1);border-radius:11px;padding:10px 12px}
+    .dp-s i{font-style:normal;display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin-bottom:3px}
+    .dp-s b{font-size:19px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;display:block;line-height:1.15}
+    .dp-s u{text-decoration:none;font-size:11px;color:var(--t2);font-weight:600}
+    .dp-s.bad{border-color:rgba(226,75,74,.5);background:rgba(226,75,74,.12)} .dp-s.bad b{color:#F09595}
+    .dp-s.warn{border-color:rgba(240,203,30,.45);background:rgba(240,203,30,.10)} .dp-s.warn b{color:#F5D84E}
+    .dp-row{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--b1);border-radius:13px;padding:11px 13px;margin-bottom:7px}
+    .dp-row.bad{border-color:rgba(226,75,74,.45);background:rgba(226,75,74,.07)}
+    .dp-row.warn{border-color:rgba(240,203,30,.40);background:rgba(240,203,30,.06)}
+    .dp-k{flex:0 0 auto;min-width:46px;height:46px;border-radius:11px;background:var(--card2,#141821);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;padding:0 8px}
+    .dp-mid{flex:1 1 auto;min-width:0}
+    .dp-t1{font-size:13.5px;font-weight:800;color:#fff;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+    .dp-t2{font-size:11.5px;color:var(--t2);font-weight:600;margin-top:3px;line-height:1.5;word-wrap:break-word}
+    .dp-tx{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#8fb8d6;font-weight:700}
+    .dp-right{flex:0 0 auto;text-align:right}
+    .dp-str{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;color:#7CFCA9;line-height:1.1}
+    .dp-str.warn{color:#F5D84E} .dp-str.bad{color:#F09595}
+    .dp-strl{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--t2)}
+    .dp-flag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(226,75,74,.18);color:#F09595;letter-spacing:.03em}
+    .dp-flag.warn{background:rgba(240,203,30,.16);color:#F5D84E}
+    .dp-flag.ok{background:rgba(34,197,94,.15);color:#7CFCA9}
+    .dp-tbl{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .dp-tbl th{position:sticky;top:0;background:var(--card2,#1a1f29);color:var(--t2);font-weight:700;padding:7px 6px;text-align:left;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--b2)}
+    .dp-tbl td{padding:6px;color:var(--t1);border-bottom:1px solid var(--b1)}
+    .dp-tblwrap{max-height:420px;overflow:auto;border:1px solid var(--b1);border-radius:12px}
+    .dp-empty{text-align:center;color:var(--t2);font-size:13px;padding:34px 16px;line-height:1.7}
     .sd-legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--t2);margin-top:8px}
     .sd-lg{display:flex;align-items:center;gap:4px}.sd-lg span{width:9px;height:9px;border-radius:2px}
     .sd-toolbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -3184,7 +3220,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IH · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-II · ZXing raw</div>
       </div>
     </div>
 
@@ -5161,7 +5197,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IH</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-II</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -9844,7 +9880,7 @@ function kiOpenRef(which){
   if(which==='wiring') renderWiringSection();
   else if(which==='cpu') renderCpuSection();
   else if(which==='beacons') renderBeaconsSection();
-  else if(which==='dehaardt') renderBeaconsSection();
+  else if(which==='dehaardt') renderPickupsSection();
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
@@ -10051,6 +10087,7 @@ function kiRefRefresh(){
   if(which==='repairs'){ loadRfKarts(function(){ if(RF_LOADED) rpBuild(); done(); }); return; }
   if(which==='notes'){ KI_NKMAP=null; renderKartNotesFeed(); done(); return; }
   if(which==='beacons'){ renderBeaconsSection(); done(); return; }
+  if(which==='dehaardt'){ DP_ROWS=null; dpLoad(function(){ done(); }); return; }
   kiOpenRef(which); done();
 }
 
@@ -12688,6 +12725,200 @@ function renderCpuSection(){
     +'</div></div>';
 }
 
+/* ===== DEHAARDT PICKUPS =========================================================================
+   Every beacon pickup RaceFacer records — kart, loop, transponder, signal strength, transponder
+   battery — mirrored into rf_passings by the runner (see rf_pickups.js).
+
+   WHY IT IS WORTH A SCREEN. A transponder does not fail cleanly. Its signal sags for days, then it
+   starts missing loops, and only then does a kart post a wrong lap and somebody notices. These two
+   numbers turn that into a Tuesday-morning swap.
+
+   THE JUDGEMENT IS RELATIVE. Nobody knows what a "good" strength number is in RaceFacer's units,
+   and it legitimately differs per loop — a beacon further off the racing line reads lower for every
+   kart that passes it. So each pickup is scored against the MEDIAN of every other kart at THAT loop
+   in the same window. No magic threshold to maintain, and it re-calibrates itself if a beacon moves.
+   A kart reading well under the pack at every loop is the transponder; a loop reading low for
+   everybody is the beacon. The screen separates those two cases, because the fix is different. */
+var DP_ROWS=null, DP_VIEW='karts', DP_LOADING=false, DP_ERR='';
+var DP_WINDOW_H=12;                       // hours of history the screen reads
+
+function renderPickupsSection(){
+  var body=document.getElementById('ki-ref-body'); if(!body) return;
+  if(DP_ROWS==null && !DP_LOADING){ dpLoad(); }
+  if(DP_LOADING){ body.innerHTML='<div class="dp-empty"><div class="fleet-spinner" style="margin:0 auto 12px"></div>Reading beacon pickups…</div>'; return; }
+  if(DP_ERR){ body.innerHTML='<div class="dp-empty">'+_sdEsc(DP_ERR)+'</div>'; return; }
+  var rows=DP_ROWS||[];
+  if(!rows.length){
+    body.innerHTML='<div class="dp-empty"><div style="font-size:32px;margin-bottom:10px">📡</div>'
+      +'No pickups recorded in the last '+DP_WINDOW_H+' hours.<br>'
+      +'<span style="font-size:11.5px">The runner mirrors RaceFacer’s passing history every 30 seconds. '
+      +'If nothing has run today there is nothing to show yet.</span></div>';
+    return;
+  }
+  var A=dpAnalyse(rows);
+  body.innerHTML=dpSummary(A)
+    +'<div class="dp-tabs">'
+    +  dpTab('karts','Karts',A.karts.length)
+    +  dpTab('loops','Loops',A.loops.length)
+    +  dpTab('live','Live feed',rows.length)
+    +'</div>'
+    +(DP_VIEW==='karts'?dpKartsView(A):(DP_VIEW==='loops'?dpLoopsView(A):dpLiveView(rows)));
+}
+function dpTab(id,label,n){
+  return '<button class="dp-tab'+(DP_VIEW===id?' on':'')+'" onclick="DP_VIEW=\''+id+'\';renderPickupsSection()">'
+    +_sdEsc(label)+' <span style="opacity:.65">'+n+'</span></button>';
+}
+function dpLoad(cb){
+  if(typeof SBC==='undefined'||!SBC){ DP_ERR='Not connected.'; if(cb)cb(); return; }
+  DP_LOADING=true; DP_ERR='';
+  var since=new Date(Date.now()-DP_WINDOW_H*3600000).toISOString();
+  SBC.from('rf_passings')
+     .select('at,loop,kart_no,transponder,strength,battery,session_label,lap_time')
+     .eq('site',currentSite||'sydney').gte('at',since)
+     .order('at',{ascending:false}).limit(6000)
+     .then(function(r){
+        DP_LOADING=false;
+        if(r&&r.error){
+          DP_ERR=/relation|does not exist|schema cache/i.test(r.error.message||'')
+            ? 'Beacon pickups aren’t set up yet — run rf_passings.sql in Supabase.'
+            : ('Couldn’t load pickups: '+(r.error.message||''));
+          DP_ROWS=[];
+        } else { DP_ROWS=(r&&r.data)||[]; }
+        renderPickupsSection(); if(cb)cb();
+     },function(){ DP_LOADING=false; DP_ERR='Couldn’t load pickups.'; DP_ROWS=[]; renderPickupsSection(); if(cb)cb(); });
+}
+function _dpMed(a){ if(!a.length) return null; var b=a.slice().sort(function(x,y){return x-y;}); var m=Math.floor(b.length/2);
+  return b.length%2?b[m]:(b[m-1]+b[m])/2; }
+
+function dpAnalyse(rows){
+  // Per-loop baseline first — everything else is measured against it.
+  var byLoop={}, byKart={};
+  rows.forEach(function(r){
+    var lp=r.loop||'?', kn=String(r.kart_no==null?'?':r.kart_no);
+    (byLoop[lp]=byLoop[lp]||{name:lp,str:[],n:0,karts:{}});
+    byLoop[lp].n++; byLoop[lp].karts[kn]=1;
+    if(r.strength!=null) byLoop[lp].str.push(Number(r.strength));
+    var k=(byKart[kn]=byKart[kn]||{kart:kn,n:0,tx:{},loops:{},str:[],batt:[],last:null,first:null,perLoop:{}});
+    k.n++; if(r.transponder) k.tx[r.transponder]=(k.tx[r.transponder]||0)+1;
+    k.loops[lp]=(k.loops[lp]||0)+1;
+    if(r.strength!=null){ k.str.push(Number(r.strength)); (k.perLoop[lp]=k.perLoop[lp]||[]).push(Number(r.strength)); }
+    if(r.battery!=null) k.batt.push(Number(r.battery));
+    if(!k.last||r.at>k.last) k.last=r.at;
+    if(!k.first||r.at<k.first) k.first=r.at;
+  });
+  var loops=Object.keys(byLoop).map(function(n){ var L=byLoop[n];
+    return {name:n,n:L.n,karts:Object.keys(L.karts).length,med:_dpMed(L.str),lo:L.str.length?Math.min.apply(null,L.str):null}; });
+  var fleetMed=_dpMed(loops.map(function(l){return l.med;}).filter(function(v){return v!=null;}));
+  loops.forEach(function(l){
+    // A loop reading well under the others, for everybody, is the BEACON — not the karts.
+    l.rel=(l.med!=null&&fleetMed)?(l.med/fleetMed):null;
+    l.flag=(l.rel!=null&&l.rel<0.75)?'bad':((l.rel!=null&&l.rel<0.9)?'warn':'ok');
+  });
+  loops.sort(function(a,b){ return (a.rel==null?9:a.rel)-(b.rel==null?9:b.rel); });
+  var loopMed={}; loops.forEach(function(l){ loopMed[l.name]=l.med; });
+
+  var maxLoops=loops.length;
+  var karts=Object.keys(byKart).map(function(kn){
+    var k=byKart[kn];
+    // Score each kart against the loop it was actually read at, then take the worst loop and the mean.
+    var rels=[];
+    Object.keys(k.perLoop).forEach(function(lp){
+      var base=loopMed[lp]; if(!base) return;
+      var mine=_dpMed(k.perLoop[lp]); if(mine==null) return;
+      rels.push({loop:lp,rel:mine/base,val:mine});
+    });
+    rels.sort(function(a,b){return a.rel-b.rel;});
+    var mean=rels.length?rels.reduce(function(s,x){return s+x.rel;},0)/rels.length:null;
+    var txList=Object.keys(k.tx);
+    var missing=loops.filter(function(l){ return !k.loops[l.name]; }).map(function(l){return l.name;});
+    var battLo=k.batt.length?Math.min.apply(null,k.batt):null;
+    var flag='ok', why=[];
+    if(mean!=null&&mean<0.7){ flag='bad'; why.push('reading '+Math.round((1-mean)*100)+'% under the other karts'); }
+    else if(mean!=null&&mean<0.85){ flag='warn'; why.push('reading '+Math.round((1-mean)*100)+'% under the other karts'); }
+    // Missing a loop everybody else crosses is the strongest signal there is.
+    if(missing.length && maxLoops>1 && k.n>=maxLoops){ flag='bad'; why.push('no pickup at '+missing.join(', ')); }
+    if(battLo!=null&&battLo<20){ flag='bad'; why.push('transponder battery '+Math.round(battLo)+'%'); }
+    else if(battLo!=null&&battLo<35&&flag==='ok'){ flag='warn'; why.push('transponder battery '+Math.round(battLo)+'%'); }
+    if(txList.length>1) why.push(txList.length+' transponders seen');
+    return {kart:kn,n:k.n,tx:txList,loops:Object.keys(k.loops).length,missing:missing,
+            med:_dpMed(k.str),mean:mean,worst:rels[0]||null,batt:battLo,last:k.last,flag:flag,why:why};
+  });
+  var rank={bad:0,warn:1,ok:2};
+  karts.sort(function(a,b){ return rank[a.flag]-rank[b.flag] || (a.mean==null?9:a.mean)-(b.mean==null?9:b.mean)
+    || (parseInt(a.kart,10)||999)-(parseInt(b.kart,10)||999); });
+  return {karts:karts,loops:loops,fleetMed:fleetMed,rows:rows.length};
+}
+function dpSummary(A){
+  var bad=A.karts.filter(function(k){return k.flag==='bad';}).length;
+  var warn=A.karts.filter(function(k){return k.flag==='warn';}).length;
+  var badLoop=A.loops.filter(function(l){return l.flag==='bad';});
+  return '<div class="dp-sum">'
+    +'<div class="dp-s"><i>Pickups</i><b>'+A.rows+'</b><u>last '+DP_WINDOW_H+'h</u></div>'
+    +'<div class="dp-s"><i>Karts seen</i><b>'+A.karts.length+'</b><u>across '+A.loops.length+' loop'+(A.loops.length===1?'':'s')+'</u></div>'
+    +'<div class="dp-s'+(bad?' bad':(warn?' warn':''))+'"><i>Needs a look</i><b>'+(bad+warn)+'</b><u>'
+      +(bad?(bad+' bad'+(warn?', ':'')):'')+(warn?(warn+' watch'):'')+(bad+warn?'':'all healthy')+'</u></div>'
+    +'<div class="dp-s'+(badLoop.length?' bad':'')+'"><i>Weak beacon</i><b>'+(badLoop.length||'—')+'</b><u>'
+      +(badLoop.length?badLoop.map(function(l){return l.name;}).join(', '):'none flagged')+'</u></div>'
+    +'</div>';
+}
+function dpKartsView(A){
+  var out='';
+  if(A.loops.length<2){
+    out+='<div class="dp-t2" style="margin-bottom:10px">Only one loop has reported so far, so a kart can only be '
+       +'compared on signal strength — not on missed loops.</div>';
+  }
+  out+=A.karts.map(function(k){
+    var cls=k.flag==='bad'?' bad':(k.flag==='warn'?' warn':'');
+    var strCls=k.flag==='bad'?' bad':(k.flag==='warn'?' warn':'');
+    var sub=[];
+    sub.push(k.n+' pickup'+(k.n===1?'':'s')+' · '+k.loops+'/'+A.loops.length+' loops');
+    if(k.tx.length) sub.push('<span class="dp-tx">'+_sdEsc(k.tx.join(', '))+'</span>');
+    if(k.batt!=null) sub.push('batt '+Math.round(k.batt)+'%');
+    if(k.last) sub.push('last '+_sdSyd(k.last));
+    var why=k.why.length?('<div class="dp-t2" style="color:'+(k.flag==='bad'?'#F09595':'#F5D84E')+'">'+_sdEsc(k.why.join(' · '))+'</div>'):'';
+    return '<div class="dp-row'+cls+'">'
+      +'<div class="dp-k">'+_sdEsc(k.kart)+'</div>'
+      +'<div class="dp-mid"><div class="dp-t1">Kart '+_sdEsc(k.kart)
+        +'<span class="dp-flag '+(k.flag==='ok'?'ok':(k.flag==='warn'?'warn':''))+'">'
+        +(k.flag==='bad'?'CHECK TRANSPONDER':(k.flag==='warn'?'WATCH':'OK'))+'</span></div>'
+        +'<div class="dp-t2">'+sub.join(' · ')+'</div>'+why+'</div>'
+      +'<div class="dp-right"><div class="dp-str'+strCls+'">'+(k.med!=null?Math.round(k.med):'—')+'</div>'
+        +'<div class="dp-strl">'+(k.mean!=null?(Math.round(k.mean*100)+'% of pack'):'signal')+'</div></div>'
+    +'</div>';
+  }).join('');
+  return out;
+}
+function dpLoopsView(A){
+  return '<div class="dp-t2" style="margin-bottom:10px">A loop reading low for <b>every</b> kart is the beacon, '
+    +'not the transponders. Each loop is compared against the median across all loops.</div>'
+    +A.loops.map(function(l){
+      var cls=l.flag==='bad'?' bad':(l.flag==='warn'?' warn':'');
+      var strCls=l.flag==='bad'?' bad':(l.flag==='warn'?' warn':'');
+      var label=l.flag==='bad'?'CHECK BEACON':(l.flag==='warn'?'WATCH':'OK');
+      return '<div class="dp-row'+cls+'">'
+        +'<div class="dp-k">'+_sdEsc(l.name)+'</div>'
+        +'<div class="dp-mid"><div class="dp-t1">Loop '+_sdEsc(l.name)
+          +'<span class="dp-flag '+(l.flag==='ok'?'ok':(l.flag==='warn'?'warn':''))+'">'+label+'</span></div>'
+          +'<div class="dp-t2">'+l.n+' pickup'+(l.n===1?'':'s')+' from '+l.karts+' kart'+(l.karts===1?'':'s')
+          +(l.lo!=null?(' · weakest read '+Math.round(l.lo)):'')+'</div></div>'
+        +'<div class="dp-right"><div class="dp-str'+strCls+'">'+(l.med!=null?Math.round(l.med):'\u2014')+'</div>'
+          +'<div class="dp-strl">'+(l.rel!=null?(Math.round(l.rel*100)+'% of median'):'signal')+'</div></div>'
+      +'</div>';
+    }).join('');
+}
+function dpLiveView(rows){
+  var head='<tr><th>Time</th><th>Loop</th><th>Kart</th><th>Transponder</th><th>Lap</th><th>Signal</th><th>Batt</th><th>Session</th></tr>';
+  var body=rows.slice(0,300).map(function(r){
+    return '<tr><td>'+_sdSyd(r.at)+'</td><td>'+_sdEsc(r.loop||'—')+'</td><td><b>'+_sdEsc(String(r.kart_no==null?'—':r.kart_no))+'</b></td>'
+      +'<td class="dp-tx">'+_sdEsc(r.transponder||'—')+'</td>'
+      +'<td>'+(r.lap_time!=null?Number(r.lap_time).toFixed(3):'—')+'</td>'
+      +'<td>'+(r.strength!=null?Math.round(r.strength):'—')+'</td>'
+      +'<td>'+(r.battery!=null?(Math.round(r.battery)+'%'):'—')+'</td>'
+      +'<td>'+_sdEsc(r.session_label||'—')+'</td></tr>';
+  }).join('');
+  return '<div class="dp-tblwrap"><table class="dp-tbl"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'
+    +'<div class="dp-t2" style="margin-top:8px">Showing the most recent '+Math.min(300,rows.length)+' of '+rows.length+' pickups.</div>';
+}
 function renderBeaconsSection(){
   document.getElementById('ki-ref-body').innerHTML=
     '<div class="mc"><div class="mct">📍 Dehaardt Beacon Logs</div>'
@@ -13068,7 +13299,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-II \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -19187,7 +19418,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-II \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19656,7 +19887,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IH';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-II';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

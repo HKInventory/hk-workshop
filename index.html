@@ -480,6 +480,17 @@
     .sd-verdict.bad{background:rgba(226,75,74,.12);border-color:rgba(226,75,74,.4)}
     .sd-verdict.bad b{color:#F09595}
     .sd-verdict.ok{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.35)}
+    .sd-lg-hint{color:var(--t2);opacity:.75;font-style:italic}
+    .sd-read{margin-top:8px;background:var(--card2);border:1px solid var(--b2);border-radius:10px;padding:9px 11px}
+    .sd-read-h{font-size:12.5px;font-weight:800;color:var(--t1);margin-bottom:6px;font-variant-numeric:tabular-nums}
+    .sd-read-top{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px}
+    .sd-read-top span{font-size:12.5px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+    .sd-read-top i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);display:block}
+    .sd-read-cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px}
+    .sd-rc{font-size:11.5px;font-variant-numeric:tabular-nums;color:#cfe0ee;background:rgba(255,255,255,.04);border-radius:6px;padding:3px 5px;text-align:center}
+    .sd-rc i{font-style:normal;display:block;font-size:9.5px;font-weight:800;color:var(--t2);letter-spacing:.04em}
+    .sd-rc.worst{background:rgba(226,75,74,.16);color:#ff9a99}
+    .sd-rc.worst i{color:#e24b4a}
     .sd-legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--t2);margin-top:8px}
     .sd-lg{display:flex;align-items:center;gap:4px}.sd-lg span{width:9px;height:9px;border-radius:2px}
     .sd-toolbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -3132,7 +3143,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IC · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-ID · ZXing raw</div>
       </div>
     </div>
 
@@ -4103,6 +4114,32 @@ var SBC=window.supabase.createClient(SB_URL,SB_KEY);
 var currentSite=sessionStorage.getItem('hk_site')||'sydney';
 var allSites=[], mySites=[];
 var mSitesLoaded=false, mSitesDraft=[], mMasterSites=[];
+/* AN INSTALLED APP SHOULD NOT PINCH-ZOOM LIKE A WEB PAGE.
+   On a Mac the app is a real window in the dock, and Cmd-+, Cmd-scroll and a trackpad pinch all
+   still resize it like a browser tab — which is the single thing that makes it read as a website
+   rather than as an application.
+
+   Scoped to display-mode: standalone ON PURPOSE. Blocking zoom in an ordinary browser tab takes
+   away a genuine accessibility control from someone who needs it; blocking it in a window the user
+   deliberately installed as an app is matching the platform. Text size has its own setting in
+   Account, which is the right way to make the app bigger. */
+function _appZoomLock(){
+  var standalone=false;
+  try{ standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true; }catch(e){}
+  if(!standalone) return;
+  document.addEventListener('wheel',function(e){ if(e.ctrlKey||e.metaKey) e.preventDefault(); },{passive:false});
+  document.addEventListener('keydown',function(e){
+    if(!(e.metaKey||e.ctrlKey)) return;
+    var k=e.key;
+    if(k==='+'||k==='='||k==='-'||k==='_'||k==='0') e.preventDefault();
+  });
+  // Safari's own pinch gesture events — separate from wheel, and the ones a trackpad actually fires.
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
+  });
+  try{ document.documentElement.style.touchAction='manipulation'; }catch(e){}
+}
+try{ _appZoomLock(); }catch(e){}
 var TRAINING=false, TRAIN_PARTS=null, TUT_ENABLED=false, TUT_VERSION=1, TUT_ACTIVE=null, TUT_I=0, TUT_ONDONE=null;
 function _isMgr(r){return r==='Manager'||r==='Assistant Manager';}
 function _rgba(hex,a){hex=String(hex||'#00CFFF').replace('#','');if(hex.length===3)hex=hex.replace(/(.)/g,'$1$1');var n=parseInt(hex,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
@@ -5083,7 +5120,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IC</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-ID</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -11196,7 +11233,7 @@ function rfqWhBanner(){
 }
 function rfqSetAvail(on){ RFQ_AVAIL=!!on; rfqRenderParts(); }
 function rfqAddPart(){ RFQ_PARTS.push({sku:'',name:'',qty:1,price:0}); rfqRenderParts(); }
-function rfqDelPart(i){ RFQ_PARTS.splice(i,1); rfqRenderParts(); }
+function rfqDelPart(i){ RFQ_PARTS.splice(i,1); rfqRenderParts(); rfqSuggestNote(); }
 function rfqPartSel(i,val){
   if(!RFQ_PARTS[i]) return;
   if(String(val).indexOf('rf:')===0){
@@ -11213,8 +11250,38 @@ function rfqPartSel(i,val){
     RFQ_PARTS[i].name=p?(p.desc||p.sku):val; if(p) RFQ_PARTS[i].price=Number(p.price)||_rfqInvPrice(p.desc||p.sku)||0;
   }
   rfqRenderParts();
+  rfqSuggestNote();
 }
-function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)||0); rfqTotal(); }
+/* STANDARDISE THE REPAIR NOTE FROM THE PARTS.
+   Notes on a repair are written by whoever is holding the spanner, so the same job comes back as
+   "replaced sblock", "silent block", "changed the LH silent block" and "sb x2". That is fine for a
+   human reading one repair and useless for counting anything — which is the whole promise of the
+   Intelligence screen later on.
+   Picking a part now writes "Replaced <part>" for you. It is a SUGGESTION, not a lock: type over it
+   and it never touches your words again. It only ever replaces text it wrote itself or an empty
+   box, so nobody's note is ever lost to it. */
+var _RFQ_AUTONOTE='';
+function rfqNoteFromParts(){
+  var names=(RFQ_PARTS||[]).filter(function(p){ return p&&p.sku&&p.name; })
+    .map(function(p){ var n=String(p.name).trim(); var q=Number(p.qty)||0; return (q>1?(q+'x '):'')+n; });
+  // Same part twice in the list reads as a mistake, not as two jobs.
+  names=names.filter(function(v,i){ return names.indexOf(v)===i; });
+  if(!names.length) return '';
+  var joined=(names.length===1)?names[0]
+    :(names.slice(0,-1).join(', ')+' and '+names[names.length-1]);
+  return 'Replaced '+joined;
+}
+function rfqSuggestNote(){
+  if(RFQ_MODE!=='repair') return;                       // never touch a kart note
+  if(typeof RFQ_EDIT_REPAIR!=='undefined' && RFQ_EDIT_REPAIR) return;   // an existing repair keeps its own words
+  var ta=document.getElementById('rfq-note'); if(!ta) return;
+  var cur=String(ta.value||'').trim();
+  if(cur && cur!==_RFQ_AUTONOTE) return;                // the mechanic has typed — leave it alone
+  var next=rfqNoteFromParts();
+  if(next===cur) return;
+  ta.value=next; _RFQ_AUTONOTE=next;
+}
+function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)||0); rfqTotal(); rfqSuggestNote(); }
 // ── Searchable parts picker (bottom sheet) ──────────────────────────────────
 var RFQ_PICK_ROW=-1;
 function _rfqNorm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
@@ -11347,6 +11414,7 @@ function rfqToggle(mode){
   if(mode==='repair') curStatus=_rfqDefaultStatus(KD_KART);
   RFQ_MODE=mode; RFQ_PARTS=[]; RFQ_STATUS=curStatus; if(!mode) RFQ_NOTE=null; RFQ_EDIT_NOTE=null;
   RFQ_EDIT_REPAIR=null;   // a New repair must never carry the last edit's target and overwrite it
+  _RFQ_AUTONOTE='';       // ...nor treat the last suggestion as text this form wrote
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
     rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
@@ -12927,7 +12995,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-ID \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -17843,7 +17911,7 @@ function sdRenderTrace(){
     verdict+
     '<div class="sd-card"><div class="sd-card-t"><span>Cell voltages over session (mV)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' samples · 16 cells</span></div>'+
       '<div style="position:relative;width:100%"><canvas id="sd-chart"></canvas></div>'+
-      '<div class="sd-legend"><div class="sd-lg"><span style="background:#378add"></span>L1\u2013L8</div><div class="sd-lg"><span style="background:#1d9e75"></span>R1\u2013R8</div>'+(a.worstIdx>=0&&isBad?'<div class="sd-lg"><span style="background:#e24b4a"></span>'+SD_CELL_NAMES[a.worstIdx]+' (worst)</div>':'')+'</div>'+
+      '<div class="sd-legend"><div class="sd-lg"><span style="background:#378add"></span>L1\u2013L8 (left bank)</div><div class="sd-lg"><span style="background:#1d9e75"></span>R1\u2013R8 (right bank)</div>'+(a.worstIdx>=0?'<div class="sd-lg"><span style="background:#e24b4a"></span><b>'+SD_CELL_NAMES[a.worstIdx]+'</b>\u2009\u2014 biggest swing'+(isBad?' (suspect)':'')+'</div>':'')+'<div class="sd-lg sd-lg-hint">Drag across the chart to read any moment</div></div>'+
     '</div>'+
     '<div class="sd-card-t"><span>Every 0.5s reading \u2014 all 16 cells (V)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' rows</span></div>'+
     '<div class="sd-tblwrap" id="sd-tblwrap"></div>'+
@@ -17857,13 +17925,15 @@ function _sdBucketMin(){
   // so a brief dropout stays visible. Returns {labels, perCell:[{name,data}], worstIdx}
   var TARGET=400, n=SD_ROWS.length, step=Math.max(1,Math.ceil(n/TARGET));
   var labels=[], series=SD_CELL_NAMES.map(function(nm){return {name:nm,data:[]};});
+  var rowIdx=[];
   for(var i=0;i<n;i+=step){
     var end=Math.min(n,i+step), mins=new Array(16).fill(null);
     for(var j=i;j<end;j++){ for(var c=0;c<16;c++){ var v=_sdCellVal(SD_ROWS[j],c); if(v==null)continue; if(mins[c]==null||v<mins[c])mins[c]=v; } }
     labels.push(_sdSyd(SD_ROWS[i].at));
+    rowIdx.push(i);                       // the scrubber reads pack / SOC / current off the real row
     for(var c=0;c<16;c++){ series[c].data.push(mins[c]); }
   }
-  return {labels:labels,series:series};
+  return {labels:labels,series:series,rowIdx:rowIdx};
 }
 function sdDrawChart(a){
   // Hand-rolled SVG (no external chart lib — app stays self-contained/offline).
@@ -17875,18 +17945,29 @@ function sdDrawChart(a){
   var lo=Infinity,hi=-Infinity;
   d.series.forEach(function(s){ s.data.forEach(function(v){ if(v==null)return; if(v<lo)lo=v; if(v>hi)hi=v; }); });
   if(!isFinite(lo)){ host.outerHTML='<div style="color:var(--t2);font-size:12px;padding:20px;text-align:center">No cell values to plot.</div>'; return; }
-  // Hug the actual data so small sags are visible, keep a sensible minimum window, and snap to clean
-  // round-number millivolt gridlines. Aim for ~10-12 lines so the axis is detailed and easy to read off.
+  /* FILL THE PLOT. The old rule forced a 250mV window whatever the data did, then snapped outward
+     to round gridlines on top of that. A session spanning 130mV — which is a normal session — was
+     drawn into half the height with white space above and below, so every sag looked shallow and
+     the differences between cells were invisible. That is the opposite of what this chart is for.
+     Now: a 40mV floor purely so a dead-flat session does not render as one thick line, ~6% padding,
+     and a gridline step chosen for 5-7 lines rather than 12. The lines reach top and bottom. */
   var loMv=Math.floor(lo*1000), hiMv=Math.ceil(hi*1000);
-  if(hiMv-loMv<250){ var midMv=Math.round((loMv+hiMv)/2); loMv=midMv-125; hiMv=midMv+125; }
-  var _niceMv=[10,20,25,50,100,150,200,250,500], _spanMv=hiMv-loMv, stepMv=_niceMv[_niceMv.length-1];
-  for(var _s=0;_s<_niceMv.length;_s++){ if(_spanMv/_niceMv[_s] <= 12){ stepMv=_niceMv[_s]; break; } }
-  loMv=Math.floor(loMv/stepMv)*stepMv; hiMv=Math.ceil(hiMv/stepMv)*stepMv;
+  var padMv=Math.max(3,Math.round((hiMv-loMv)*0.04));
+  loMv-=padMv; hiMv+=padMv;
+  if(hiMv-loMv<40){ var midMv=Math.round((loMv+hiMv)/2); loMv=midMv-20; hiMv=midMv+20; }
+  /* THE AXIS IS NOT ALLOWED TO GROW TO MEET ITS GRIDLINES.
+     Snapping the bounds outward to round millivolts is what was flattening the chart: 3156-3368mV
+     of real data became a 3100-3400 axis, so a third of the height was empty and every sag looked
+     shallower than it was. The bounds are now the data plus 4%, and the gridlines are drawn at
+     whatever round values fall INSIDE that — which is the way round that keeps a readable axis
+     without spending plot height on it. Lines now reach top and bottom. */
+  var _niceMv=[5,10,20,25,50,100,150,200,250,500], _spanMv=hiMv-loMv, stepMv=_niceMv[_niceMv.length-1];
+  for(var _s=0;_s<_niceMv.length;_s++){ if(_spanMv/_niceMv[_s] <= 7){ stepMv=_niceMv[_s]; break; } }
   lo=loMv/1000; hi=hiMv/1000;
   function X(i){ return P.l+(n>1?(i/(n-1))*iw:iw/2); }
   function Y(v){ return P.t+ih-((v-lo)/(hi-lo||1))*ih; }
   var grid='',gl='';
-  for(var gvMv=loMv; gvMv<=hiMv+0.5; gvMv+=stepMv){ var gy=Y(gvMv/1000);
+  for(var gvMv=Math.ceil(loMv/stepMv)*stepMv; gvMv<=hiMv+0.5; gvMv+=stepMv){ var gy=Y(gvMv/1000);
     grid+='<line x1="'+P.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-P.r)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.07)" stroke-width="1"/>';
     gl+='<text x="'+(P.l-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8a93a0">'+gvMv+'mV</text>'; }
   function pathFor(data){ var p=''; for(var i=0;i<data.length;i++){ if(data[i]==null)continue; p+=(p?' L':'M')+X(i).toFixed(1)+' '+Y(data[i]).toFixed(1); } return p; }
@@ -17897,9 +17978,86 @@ function sdDrawChart(a){
   // a few x labels
   var xl='', stepL=Math.max(1,Math.ceil(n/6));
   for(var j=0;j<n;j+=stepL){ xl+='<text x="'+X(j).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#8a93a0">'+_sdEsc(d.labels[j]||'')+'</text>'; }
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block" role="img" aria-label="Cell voltages over the session">'+grid+gl+paths+xl+'</svg>';
-  // replace the canvas element with the svg
-  var parent=host.parentNode; if(parent){ parent.innerHTML=svg; }
+  /* NAME THE LINE AT ITS OWN END. Sixteen labels would be a mess, so only the one that is drawn
+     differently gets one — the red trace. Until now it was drawn in red with no legend entry unless
+     the session was judged bad, so on a healthy session the chart had a bold red line on it that
+     nothing anywhere explained. */
+  var endLbl='';
+  if(a.worstIdx>=0){
+    var wd=d.series[a.worstIdx].data, lastI=-1;
+    for(var q=wd.length-1;q>=0;q--){ if(wd[q]!=null){ lastI=q; break; } }
+    if(lastI>=0){
+      var lx=Math.min(X(lastI)+6,W-P.r-2), ly=Y(wd[lastI]);
+      endLbl='<text x="'+lx.toFixed(1)+'" y="'+(ly-6).toFixed(1)+'" text-anchor="end" font-size="11.5" font-weight="700" fill="#e24b4a">'+_sdEsc(SD_CELL_NAMES[a.worstIdx])+'</text>';
+    }
+  }
+  // Scrubber furniture — hidden until the pointer is over the plot.
+  var scrub='<g id="sd-scrub" style="display:none">'
+    +'<line id="sd-scrub-l" x1="0" y1="'+P.t+'" x2="0" y2="'+(P.t+ih)+'" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-dasharray="3 3"/>'
+    +'<g id="sd-scrub-d"></g></g>'
+    +'<rect id="sd-hit" x="'+P.l+'" y="'+P.t+'" width="'+iw+'" height="'+ih+'" fill="transparent" style="cursor:crosshair"/>';
+  var svg='<svg id="sd-svg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;touch-action:none" aria-label="Cell voltages over the session">'+grid+gl+paths+endLbl+xl+scrub+'</svg>';
+  var parent=host.parentNode;
+  if(parent){
+    parent.innerHTML=svg+'<div id="sd-read" class="sd-read" style="display:none"></div>';
+    // Everything the scrubber needs, so the handler never recomputes the geometry.
+    _SD_CHART={d:d,a:a,W:W,H:H,P:P,iw:iw,ih:ih,n:n,lo:lo,hi:hi};
+    try{ _sdBindScrub(parent); }catch(e){}
+  }
+}
+/* SLIDE ACROSS THE SESSION AND READ IT.
+   A chart of sixteen overlapping traces answers "did anything sag" and nothing else. The question
+   after that is always "what was happening at 6:42?" — which cell, what the pack was doing, how
+   hard it was being driven. That needs a value readout at a point in time, not a shape. */
+var _SD_CHART=null;
+function _sdBindScrub(parent){
+  var svg=parent.querySelector('#sd-svg'), hit=parent.querySelector('#sd-hit');
+  var g=parent.querySelector('#sd-scrub'), line=parent.querySelector('#sd-scrub-l');
+  var dots=parent.querySelector('#sd-scrub-d'), read=parent.querySelector('#sd-read');
+  if(!svg||!hit||!g||!read) return;
+  var C=_SD_CHART; if(!C) return;
+  function at(clientX){
+    var r=svg.getBoundingClientRect();
+    var vx=((clientX-r.left)/r.width)*C.W;                     // client px -> viewBox units
+    var t=(vx-C.P.l)/(C.iw||1);
+    return Math.max(0,Math.min(C.n-1,Math.round(t*(C.n-1))));
+  }
+  function show(i){
+    var X=C.P.l+(C.n>1?(i/(C.n-1))*C.iw:C.iw/2);
+    var Y=function(v){ return C.P.t+C.ih-((v-C.lo)/((C.hi-C.lo)||1))*C.ih; };
+    g.style.display=''; line.setAttribute('x1',X.toFixed(1)); line.setAttribute('x2',X.toFixed(1));
+    var dd='';
+    for(var c=0;c<16;c++){ var v=C.d.series[c].data[i]; if(v==null) continue;
+      var worst=(c===C.a.worstIdx);
+      dd+='<circle cx="'+X.toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="'+(worst?3.4:2)+'" fill="'+(worst?'#e24b4a':(c<8?'#378add':'#1d9e75'))+'"/>';
+    }
+    dots.innerHTML=dd;
+    // The real row behind this bucket carries pack, SOC and current — the graph only holds cells.
+    var row=SD_ROWS[(C.d.rowIdx&&C.d.rowIdx[i]!=null)?C.d.rowIdx[i]:0]||{};
+    var cellHtml='';
+    for(var k=0;k<16;k++){
+      var cv=C.d.series[k].data[i];
+      cellHtml+='<span class="sd-rc'+(k===C.a.worstIdx?' worst':'')+'"><i>'+_sdEsc(SD_CELL_NAMES[k])+'</i>'+(cv!=null?(cv).toFixed(3):'–')+'</span>';
+    }
+    var pack=(row.pack_v!=null?row.pack_v:row.pack), soc=(row.soc!=null?row.soc:null), cur=(row.current_a!=null?row.current_a:row.current);
+    read.style.display='';
+    read.innerHTML='<div class="sd-read-h">'+_sdEsc(C.d.labels[i]||'')+'</div>'
+      +'<div class="sd-read-top">'
+      +(pack!=null?'<span><i>Pack</i>'+(+pack).toFixed(2)+' V</span>':'')
+      +(soc!=null?'<span><i>SOC</i>'+soc+'%</span>':'')
+      +(cur!=null?'<span><i>Current</i>'+(+cur).toFixed(1)+' A</span>':'')
+      +'</div><div class="sd-read-cells">'+cellHtml+'</div>';
+  }
+  function move(e){ var x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; if(x==null) return; show(at(x)); }
+  hit.addEventListener('pointermove',move);
+  hit.addEventListener('pointerdown',function(e){ move(e); try{ hit.setPointerCapture(e.pointerId); }catch(_){} });
+  hit.addEventListener('pointerleave',function(){ g.style.display='none'; read.style.display='none'; });
+  // Land on the worst moment rather than on nothing — that is the sample people are looking for.
+  try{
+    var wi=C.a.worstIdx, best=0;
+    if(wi>=0){ var lowV=Infinity; C.d.series[wi].data.forEach(function(v,i){ if(v!=null&&v<lowV){lowV=v;best=i;} }); }
+    show(best);
+  }catch(e){}
 }
 function _sdChartNoop(){}
 function sdRenderTable(){
@@ -18768,7 +18926,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IC \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-ID \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19237,7 +19395,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IC';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-ID';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

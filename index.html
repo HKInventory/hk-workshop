@@ -496,6 +496,18 @@
     /* the biggest-swing cell keeps its ring so it stays findable whatever tier it is in */
     .sd-rc.worst{box-shadow:inset 0 0 0 2px #e24b4a}
     .sd-rc.worst i{color:#e24b4a}
+    /* pack load / C-rating card */
+    .sd-load{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-top:2px}
+    .sd-lb{background:var(--card2,#141821);border:1px solid var(--b1);border-radius:10px;padding:9px 11px}
+    .sd-lb i{font-style:normal;display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin-bottom:3px}
+    .sd-lb b{font-size:17px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;display:block;line-height:1.15}
+    .sd-lb u{text-decoration:none;font-size:11px;color:var(--t2);font-weight:600}
+    .sd-lb.ok{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.10)} .sd-lb.ok b{color:#7CFCA9}
+    .sd-lb.warn{border-color:rgba(240,203,30,.45);background:rgba(240,203,30,.10)} .sd-lb.warn b{color:#F5D84E}
+    .sd-lb.bad{border-color:rgba(226,75,74,.5);background:rgba(226,75,74,.13)} .sd-lb.bad b{color:#F09595}
+    .sd-ahset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--t2)}
+    .sd-ahset input{width:92px;padding:8px 10px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#fff;font-size:13px;font-weight:700;font-family:inherit}
+    .sd-ahset button{padding:8px 14px;border-radius:9px;border:1px solid var(--b2);background:var(--card2,#141821);color:#5EEAD4;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
     .sd-legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--t2);margin-top:8px}
     .sd-lg{display:flex;align-items:center;gap:4px}.sd-lg span{width:9px;height:9px;border-radius:2px}
     .sd-toolbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -1852,8 +1864,9 @@
        marooned in the middle of a very large black screen — the PIN pad 320px wide with a thousand
        pixels of nothing under it, the site cards likewise. Size this furniture off the SHORT edge of
        the screen (vmin) instead, so it grows with the tablet and still fits in landscape.
-       Deliberately gated on both dimensions so no phone, in either orientation, can match it. */
-    @media (min-width: 700px) and (min-height: 700px) {
+       Gated on BOTH dimensions so no phone, in either orientation, can match it — and on a coarse
+       pointer, so it is a tablet and not a Mac browser window that happens to be 700 tall. */
+    @media (min-width: 700px) and (min-height: 700px) and (pointer: coarse) {
       .pin-wrap { max-width: none; gap: 26px; }
       .pin-h2 { font-size: clamp(30px, 4.4vmin, 44px); }
       .pin-p  { font-size: clamp(15px, 1.9vmin, 19px); }
@@ -3171,7 +3184,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IF · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IG · ZXing raw</div>
       </div>
     </div>
 
@@ -5148,7 +5161,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IF</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IG</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -13055,7 +13068,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -17944,6 +17957,78 @@ function _sdCellTier(v){
   if(v>=2.6) return 'cell-warn';
   return 'cell-bad';
 }
+/* ===== LOAD ON THE PACK (C-RATING) ==============================================================
+   RiMO SiNUS karts run LiFeMnPO4. RiMO rates the pack at 3.5C continuous and 10C peak, and notes
+   that at 3.5C you still get 95% of the rated capacity. Amps = C x capacity in Ah, so the only
+   number that is ours rather than the manual's is the pack capacity.
+   Current is already logged every 0.5s, which makes this the useful half: not "what is the limit"
+   but "did this kart go past it, and for how long". A pack repeatedly pushed over 3.5C is a pack
+   that will age out early, and that is invisible in a lap time. */
+var SD_PACK={contC:3.5,peakC:10};
+function sdPackAh(){ var v=parseFloat(localStorage.getItem('hk_pack_ah')||''); return (isFinite(v)&&v>0)?v:null; }
+function sdSavePackAh(){
+  var el=document.getElementById('sd-ah'); if(!el) return;
+  var v=parseFloat(el.value);
+  if(!isFinite(v)||v<=0){ localStorage.removeItem('hk_pack_ah'); } else { localStorage.setItem('hk_pack_ah',String(v)); }
+  try{ sdRenderTrace(); }catch(e){}
+}
+/* Discharge is what matters, and the sign convention is the BMS's, not ours — this pack logs
+   discharge NEGATIVE (-11.1 A mid-session). Rather than assume, read the convention off the session
+   itself: whichever sign carries the bulk of the current is discharge. Regen/charge then contributes
+   nothing to the load figures instead of being counted as a big draw. */
+function sdLoadAnalyse(){
+  var ah=sdPackAh();
+  var out={ah:ah,cont:ah?ah*SD_PACK.contC:null,peak:ah?ah*SD_PACK.peakC:null,
+           maxA:0,maxAt:null,avgA:0,n:0,overContSec:0,overPeakSec:0,totalSec:0,sign:-1};
+  var negSum=0,posSum=0;
+  SD_ROWS.forEach(function(r){ var a=Number(r.current_a!=null?r.current_a:r.current); if(!isFinite(a))return;
+    if(a<0) negSum-=a; else posSum+=a; });
+  if(!negSum && !posSum) return out;
+  out.sign=(negSum>=posSum)?-1:1;
+  var prev=null,sum=0;
+  SD_ROWS.forEach(function(r){
+    var a=Number(r.current_a!=null?r.current_a:r.current); if(!isFinite(a)) return;
+    var draw=out.sign<0?Math.max(0,-a):Math.max(0,a);
+    var t=Date.parse(r.at);
+    // Only count the gap between consecutive samples; a logger dropout is not time under load.
+    var dt=(prev!=null&&t-prev>0&&t-prev<8000)?(t-prev)/1000:0;
+    prev=t; out.totalSec+=dt;
+    if(draw>out.maxA){ out.maxA=draw; out.maxAt=r.at; }
+    sum+=draw; out.n++;
+    if(out.cont&&draw>out.cont) out.overContSec+=dt;
+    if(out.peak&&draw>out.peak) out.overPeakSec+=dt;
+  });
+  out.avgA=out.n?sum/out.n:0;
+  return out;
+}
+function _sdSecs(s){ s=Math.round(s||0); if(s<60) return s+'s'; return Math.floor(s/60)+'m '+(s%60)+'s'; }
+function sdLoadCard(){
+  var L=sdLoadAnalyse();
+  var head='<div class="sd-card-t"><span>Load on the pack</span>'
+    +'<span style="color:var(--t2);font-weight:600">LiFeMnPO₄ · '+SD_PACK.contC+'C continuous · '+SD_PACK.peakC+'C peak</span></div>';
+  if(!L.n) return '';
+  if(!L.ah){
+    return '<div class="sd-card">'+head
+      +'<div class="sd-ahset"><span>Pack capacity:</span><input id="sd-ah" type="number" step="0.1" min="0" placeholder="Ah" '
+      +'onkeydown="if(event.key===\'Enter\')sdSavePackAh()"><button onclick="sdSavePackAh()">Save</button>'
+      +'<span style="flex:1 1 140px">Enter the cell capacity in amp-hours and every session gets its '
+      +SD_PACK.contC+'C and '+SD_PACK.peakC+'C limits. Peak draw this session was <b style="color:#fff">'
+      +L.maxA.toFixed(1)+' A</b>.</span></div></div>';
+  }
+  var peakC=L.maxA/L.ah, avgC=L.avgA/L.ah;
+  var peakCls=(L.maxA>L.peak)?'bad':((L.maxA>L.cont)?'warn':'ok');
+  var overCls=L.overPeakSec>0?'bad':(L.overContSec>0?'warn':'ok');
+  return '<div class="sd-card">'+head+'<div class="sd-load">'
+    +'<div class="sd-lb '+peakCls+'"><i>Peak draw</i><b>'+L.maxA.toFixed(1)+' A</b><u>'+peakC.toFixed(1)+'C'+(L.maxAt?(' · '+_sdSyd(L.maxAt)):'')+'</u></div>'
+    +'<div class="sd-lb"><i>Average draw</i><b>'+L.avgA.toFixed(1)+' A</b><u>'+avgC.toFixed(1)+'C</u></div>'
+    +'<div class="sd-lb"><i>Continuous limit</i><b>'+L.cont.toFixed(0)+' A</b><u>'+SD_PACK.contC+'C × '+L.ah+' Ah</u></div>'
+    +'<div class="sd-lb"><i>Peak limit</i><b>'+L.peak.toFixed(0)+' A</b><u>'+SD_PACK.peakC+'C × '+L.ah+' Ah</u></div>'
+    +'<div class="sd-lb '+overCls+'"><i>Over '+SD_PACK.contC+'C</i><b>'+_sdSecs(L.overContSec)+'</b><u>'
+      +(L.totalSec?Math.round(L.overContSec/L.totalSec*100):0)+'% of '+_sdSecs(L.totalSec)
+      +(L.overPeakSec>0?(' · '+_sdSecs(L.overPeakSec)+' over '+SD_PACK.peakC+'C'):'')+'</u></div>'
+    +'</div><div class="sd-legend"><div class="sd-lg sd-lg-hint">Capacity set to '+L.ah+' Ah — '
+    +'<span style="color:#5EEAD4;cursor:pointer" onclick="localStorage.removeItem(\'hk_pack_ah\');sdRenderTrace()">change</span></div></div></div>';
+}
 function sdAnalyse(){
   // per-cell first/last/min + worst sag
   var per=SD_CELL_NAMES.map(function(){return {first:null,last:null,min:Infinity,max:-Infinity,minAt:null};});
@@ -17979,6 +18064,7 @@ function sdRenderTrace(){
   }
   box.innerHTML=
     verdict+
+    sdLoadCard()+
     '<div class="sd-card"><div class="sd-card-t"><span>Cell voltages over session (mV)</span><span style="color:var(--t2);font-weight:600">'+SD_ROWS.length+' samples · 16 cells</span></div>'+
       '<div style="position:relative;width:100%"><canvas id="sd-chart"></canvas></div>'+
       '<div class="sd-legend"><div class="sd-lg"><span style="background:#378add"></span>L1\u2013L8 (left bank)</div><div class="sd-lg"><span style="background:#1d9e75"></span>R1\u2013R8 (right bank)</div>'+(a.worstIdx>=0?'<div class="sd-lg"><span style="background:#e24b4a"></span><b>'+SD_CELL_NAMES[a.worstIdx]+'</b>\u2009\u2014 biggest swing'+(isBad?' (suspect)':'')+'</div>':'')+'<div class="sd-lg sd-lg-hint">Drag across the chart to read any moment</div></div>'+
@@ -18996,7 +19082,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IF \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19465,7 +19551,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IF';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-IG';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

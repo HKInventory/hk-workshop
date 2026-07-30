@@ -3184,7 +3184,7 @@
         </div>
         <button class="btnp" id="sbn" onclick="startScan()" style="display:none">Try Again</button>
         <button class="btns" id="ssp" onclick="stopScan()" style="display:none">Stop</button>
-        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IG · ZXing raw</div>
+        <div style="font-size:10px;color:var(--t2);opacity:.45;margin-top:2px">build 05Jul-IH · ZXing raw</div>
       </div>
     </div>
 
@@ -5161,7 +5161,7 @@ if('serviceWorker' in navigator){
     var dIh=last.ih-first.ih, dVh=last.vh-first.vh, dIb=last.ib-first.ib;
     var body=box.querySelector('.vpd-body'); if(!body) return;
     body.innerHTML=''
-      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IG</span> · +'+(last.t-first.t)+'ms</div>'
+      +'<div style="font-weight:800;color:#7CF;margin-bottom:4px">VIEWPORT DIAG · build <span style="color:#FD7">05Jul-IH</span> · +'+(last.t-first.t)+'ms</div>'
       +'<div>launch  '+fmt(first)+'</div>'
       +'<div>now     '+fmt(last)+'</div>'
       +'<div style="color:'+((dIh||dVh||dIb)?'#F87':'#6E9')+';margin-top:3px">&#916;  ih '+(dIh>=0?'+':'')+dIh+'   vv '+(dVh>=0?'+':'')+dVh+'   inB '+(dIb>=0?'+':'')+dIb+'</div>'
@@ -13068,7 +13068,7 @@ function mTab(name){
   if(name==='sites'&&!mSitesLoaded) siLoad();
   if(name==='ramp'){ mrLoad(); if(typeof mrFillSites==='function') mrFillSites(); }
   if(name==='phones'){ if(typeof mrPushLoad==='function') mrPushLoad(); }
-  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
+  if(name==='settings'){ var _al=document.getElementById('mset-logout'); if(_al&&!_al.value) _al.value=(typeof AUTO_LOGOUT_MIN!=='undefined'?AUTO_LOGOUT_MIN:30); var _ab=document.getElementById('mset-about'); if(_ab) _ab.textContent='HK Workshop \u00b7 build 05Jul-IH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable'); var _no=document.getElementById('mset-notif-msg'); if(_no) _no.textContent=''; try{ hoursLoad(); }catch(e){} try{ finResetPaint(); finResetMsg(''); }catch(e){} }
   if(name==='tools'){ mToolsStats(); mQRCount(); m3mfInfo(); if(typeof syncQrLayFromServer==='function') syncQrLayFromServer(null,true); qrDesignerInit(); }
   if(name==='tracks') mmOpen();
   if(name==='karts') mkOpen();
@@ -17965,27 +17965,52 @@ function _sdCellTier(v){
    but "did this kart go past it, and for how long". A pack repeatedly pushed over 3.5C is a pack
    that will age out early, and that is invisible in a lap time. */
 var SD_PACK={contC:3.5,peakC:10};
-function sdPackAh(){ var v=parseFloat(localStorage.getItem('hk_pack_ah')||''); return (isFinite(v)&&v>0)?v:null; }
-function sdSavePackAh(){
-  var el=document.getElementById('sd-ah'); if(!el) return;
-  var v=parseFloat(el.value);
-  if(!isFinite(v)||v<=0){ localStorage.removeItem('hk_pack_ah'); } else { localStorage.setItem('hk_pack_ah',String(v)); }
-  try{ sdRenderTrace(); }catch(e){}
+/* THE CAPACITY MEASURES ITSELF — nobody types it in.
+   Charge out of the pack over a session is the integral of current, which we already log every 0.5s.
+   Divide it by how far the state of charge fell and you have the pack's capacity:
+       Ah = (amp-seconds / 3600) / (SOC drop / 100)
+   Every session with a decent SOC drop produces one estimate. They are kept and the MEDIAN is used,
+   so one noisy session cannot move the number and it sharpens as the fleet is driven.
+   Honest about its limits: the BMS's own SOC is itself partly a guess, so this is good to roughly
+   ±10%, which is fine for "did this kart go past 3.5C" and not fine for warranty paperwork. */
+/* Keyed by SESSION, not appended to a list. Opening the same session twice must not count its
+   estimate twice — otherwise the median drifts towards whichever session gets looked at most. */
+function _sdAhStore(){ try{ var o=JSON.parse(localStorage.getItem('hk_pack_ah_obs')||'{}'); return (o&&typeof o==='object'&&!Array.isArray(o))?o:{}; }catch(e){ return {}; } }
+function _sdAhPush(v){
+  if(!isFinite(v)||v<=0) return;
+  var key=SD_SESSION||('k'+(SD_KART&&SD_KART.kart_no)+'-'+(SD_ROWS[0]&&SD_ROWS[0].at));
+  var o=_sdAhStore();
+  o[key]=Math.round(v*10)/10;
+  var ks=Object.keys(o);
+  if(ks.length>60){ ks.slice(0,ks.length-60).forEach(function(k){ delete o[k]; }); }
+  try{ localStorage.setItem('hk_pack_ah_obs',JSON.stringify(o)); }catch(e){}
 }
+function _sdAhList(){ var o=_sdAhStore(); return Object.keys(o).map(function(k){return o[k];}).filter(function(v){return isFinite(v)&&v>0;}); }
+function sdPackAh(){
+  var a=_sdAhList().sort(function(x,y){return x-y;});
+  if(!a.length) return null;
+  var mid=Math.floor(a.length/2);
+  return a.length%2?a[mid]:Math.round((a[mid-1]+a[mid])/2*10)/10;
+}
+function sdForgetPackAh(){ try{ localStorage.removeItem('hk_pack_ah_obs'); localStorage.removeItem('hk_pack_ah'); }catch(e){} try{ sdRenderTrace(); }catch(e){} }
 /* Discharge is what matters, and the sign convention is the BMS's, not ours — this pack logs
    discharge NEGATIVE (-11.1 A mid-session). Rather than assume, read the convention off the session
    itself: whichever sign carries the bulk of the current is discharge. Regen/charge then contributes
    nothing to the load figures instead of being counted as a big draw. */
 function sdLoadAnalyse(){
-  var ah=sdPackAh();
-  var out={ah:ah,cont:ah?ah*SD_PACK.contC:null,peak:ah?ah*SD_PACK.peakC:null,
-           maxA:0,maxAt:null,avgA:0,n:0,overContSec:0,overPeakSec:0,totalSec:0,sign:-1};
+  var out={ah:null,ahSrc:'',cont:null,peak:null,maxA:0,maxAt:null,avgA:0,sustA:0,sustAt:null,
+           n:0,overContSec:0,overPeakSec:0,totalSec:0,sign:-1,ampSec:0,wh:0,socFrom:null,socTo:null,ahThis:null};
   var negSum=0,posSum=0;
   SD_ROWS.forEach(function(r){ var a=Number(r.current_a!=null?r.current_a:r.current); if(!isFinite(a))return;
     if(a<0) negSum-=a; else posSum+=a; });
   if(!negSum && !posSum) return out;
   out.sign=(negSum>=posSum)?-1:1;
-  var prev=null,sum=0;
+
+  /* Pass one: charge and energy out, and a 10-second rolling mean. The instantaneous peak is a
+     single 0.5s sample and a pack shrugs those off; what actually cooks a cell is a load HELD.
+     RiMO's 3.5C is a continuous rating, so the honest comparison is a sustained figure. */
+  var prev=null, sum=0, win=[], winSec=0, winAmpSec=0, SUST_S=10;
+  var draws=[];
   SD_ROWS.forEach(function(r){
     var a=Number(r.current_a!=null?r.current_a:r.current); if(!isFinite(a)) return;
     var draw=out.sign<0?Math.max(0,-a):Math.max(0,a);
@@ -17993,41 +18018,121 @@ function sdLoadAnalyse(){
     // Only count the gap between consecutive samples; a logger dropout is not time under load.
     var dt=(prev!=null&&t-prev>0&&t-prev<8000)?(t-prev)/1000:0;
     prev=t; out.totalSec+=dt;
+    out.ampSec+=draw*dt;
+    var pv=Number(r.pack_v!=null?r.pack_v:r.pack); if(isFinite(pv)) out.wh+=draw*pv*dt/3600;
     if(draw>out.maxA){ out.maxA=draw; out.maxAt=r.at; }
-    sum+=draw; out.n++;
-    if(out.cont&&draw>out.cont) out.overContSec+=dt;
-    if(out.peak&&draw>out.peak) out.overPeakSec+=dt;
+    sum+=draw; out.n++; draws.push(draw);
+    win.push({d:draw,dt:dt}); winSec+=dt; winAmpSec+=draw*dt;
+    while(winSec>SUST_S && win.length>1){ var g=win.shift(); winSec-=g.dt; winAmpSec-=g.d*g.dt; }
+    if(winSec>=SUST_S*0.8){ var mean=winAmpSec/winSec; if(mean>out.sustA){ out.sustA=mean; out.sustAt=r.at; } }
+    var s=Number(r.soc); if(isFinite(s)){ if(out.socFrom==null) out.socFrom=s; out.socTo=s; }
   });
   out.avgA=out.n?sum/out.n:0;
+  if(!out.sustA) out.sustA=out.avgA;
+
+  /* MEASURE THE PACK RATHER THAN ASK FOR IT. Charge out divided by the fraction of charge used is
+     the capacity. Only trust a session that moved the SOC enough to divide by — under 3 points the
+     answer is mostly BMS rounding — and only over a couple of minutes. */
+  var ahOut=out.ampSec/3600, dSoc=(out.socFrom!=null&&out.socTo!=null)?(out.socFrom-out.socTo):0;
+  if(ahOut>0 && dSoc>=3 && out.totalSec>=120){
+    var est=ahOut/(dSoc/100);
+    if(est>5 && est<400){ out.ahThis=Math.round(est*10)/10; _sdAhPush(est); }
+  }
+  out.ah=sdPackAh();
+  out.ahSrc=out.ahThis!=null?'this session':'measured';
+  if(out.ah){ out.cont=out.ah*SD_PACK.contC; out.peak=out.ah*SD_PACK.peakC; }
+
+  // Pass two needs the limits, so time-over is counted here rather than above.
+  if(out.cont){
+    prev=null;
+    SD_ROWS.forEach(function(r){
+      var a=Number(r.current_a!=null?r.current_a:r.current); if(!isFinite(a)) return;
+      var draw=out.sign<0?Math.max(0,-a):Math.max(0,a);
+      var t=Date.parse(r.at);
+      var dt=(prev!=null&&t-prev>0&&t-prev<8000)?(t-prev)/1000:0; prev=t;
+      if(draw>out.cont) out.overContSec+=dt;
+      if(draw>out.peak) out.overPeakSec+=dt;
+    });
+  }
   return out;
 }
 function _sdSecs(s){ s=Math.round(s||0); if(s<60) return s+'s'; return Math.floor(s/60)+'m '+(s%60)+'s'; }
+/* Plain English, from the numbers — so the card says what it MEANS, not just what it measured. */
+function sdLoadVerdict(L){
+  if(!L.ah) return {cls:'',txt:'Working out this pack’s capacity from charge used vs SOC drop — it needs a session with at least a 3% SOC drop. Until then the amps below are real; the C figures are not available.'};
+  var sustC=L.sustA/L.ah, peakC=L.maxA/L.ah;
+  if(L.overPeakSec>0) return {cls:'bad',txt:'This kart went past the '+SD_PACK.peakC+'C peak rating for '+_sdSecs(L.overPeakSec)+'. That is above what RiMO rate the pack for at all — worth checking the kart for a dragging brake or a binding drivetrain before it goes out again.'};
+  if(L.overContSec>L.totalSec*0.15) return {cls:'bad',txt:'Held over '+SD_PACK.contC+'C for '+_sdSecs(L.overContSec)+' — '+Math.round(L.overContSec/L.totalSec*100)+'% of the session. Sustained loads past the continuous rating are what age a pack early, and this is well past occasional.'};
+  if(L.overContSec>0) return {cls:'warn',txt:'Brief spells over '+SD_PACK.contC+'C ('+_sdSecs(L.overContSec)+' of '+_sdSecs(L.totalSec)+'), which is normal for hard launches. Sustained draw peaked at '+sustC.toFixed(1)+'C.'};
+  return {cls:'ok',txt:'Comfortably inside the pack’s rating all session — sustained draw peaked at '+sustC.toFixed(1)+'C against a '+SD_PACK.contC+'C continuous limit'+(peakC>SD_PACK.contC?(', with instantaneous spikes to '+peakC.toFixed(1)+'C'):'')+'.'};
+}
 function sdLoadCard(){
   var L=sdLoadAnalyse();
+  if(!L.n) return '';
+  SD_LOAD=L;
+  var v=sdLoadVerdict(L);
   var head='<div class="sd-card-t"><span>Load on the pack</span>'
     +'<span style="color:var(--t2);font-weight:600">LiFeMnPO₄ · '+SD_PACK.contC+'C continuous · '+SD_PACK.peakC+'C peak</span></div>';
-  if(!L.n) return '';
-  if(!L.ah){
-    return '<div class="sd-card">'+head
-      +'<div class="sd-ahset"><span>Pack capacity:</span><input id="sd-ah" type="number" step="0.1" min="0" placeholder="Ah" '
-      +'onkeydown="if(event.key===\'Enter\')sdSavePackAh()"><button onclick="sdSavePackAh()">Save</button>'
-      +'<span style="flex:1 1 140px">Enter the cell capacity in amp-hours and every session gets its '
-      +SD_PACK.contC+'C and '+SD_PACK.peakC+'C limits. Peak draw this session was <b style="color:#fff">'
-      +L.maxA.toFixed(1)+' A</b>.</span></div></div>';
+  var boxes='';
+  var peakCls=L.ah?((L.maxA>L.peak)?'bad':((L.maxA>L.cont)?'warn':'ok')):'';
+  var sustCls=L.ah?((L.sustA>L.cont)?'bad':((L.sustA>L.cont*0.85)?'warn':'ok')):'';
+  boxes+='<div class="sd-lb '+sustCls+'"><i>Hardest 10s</i><b>'+L.sustA.toFixed(1)+' A</b><u>'
+    +(L.ah?((L.sustA/L.ah).toFixed(1)+'C'):'sustained')+(L.sustAt?(' · '+_sdSyd(L.sustAt)):'')+'</u></div>';
+  boxes+='<div class="sd-lb '+peakCls+'"><i>Peak draw</i><b>'+L.maxA.toFixed(1)+' A</b><u>'
+    +(L.ah?((L.maxA/L.ah).toFixed(1)+'C'):'instant')+(L.maxAt?(' · '+_sdSyd(L.maxAt)):'')+'</u></div>';
+  boxes+='<div class="sd-lb"><i>Average draw</i><b>'+L.avgA.toFixed(1)+' A</b><u>'
+    +(L.ah?((L.avgA/L.ah).toFixed(1)+'C · '):'')+_sdSecs(L.totalSec)+' on track</u></div>';
+  boxes+='<div class="sd-lb"><i>Energy used</i><b>'+(L.wh>=1000?(L.wh/1000).toFixed(2)+' kWh':Math.round(L.wh)+' Wh')+'</b><u>'
+    +(L.ampSec/3600).toFixed(2)+' Ah'+((L.socFrom!=null&&L.socTo!=null)?(' · SOC '+Math.round(L.socFrom)+'→'+Math.round(L.socTo)+'%'):'')+'</u></div>';
+  if(L.ah){
+    var overCls=L.overPeakSec>0?'bad':(L.overContSec>0?'warn':'ok');
+    boxes+='<div class="sd-lb"><i>Pack limits</i><b>'+L.cont.toFixed(0)+' / '+L.peak.toFixed(0)+' A</b><u>'
+      +SD_PACK.contC+'C and '+SD_PACK.peakC+'C × '+L.ah+' Ah</u></div>';
+    boxes+='<div class="sd-lb '+overCls+'"><i>Over '+SD_PACK.contC+'C</i><b>'+_sdSecs(L.overContSec)+'</b><u>'
+      +(L.totalSec?Math.round(L.overContSec/L.totalSec*100):0)+'% of the session'
+      +(L.overPeakSec>0?(' · '+_sdSecs(L.overPeakSec)+' over '+SD_PACK.peakC+'C'):'')+'</u></div>';
   }
-  var peakC=L.maxA/L.ah, avgC=L.avgA/L.ah;
-  var peakCls=(L.maxA>L.peak)?'bad':((L.maxA>L.cont)?'warn':'ok');
-  var overCls=L.overPeakSec>0?'bad':(L.overContSec>0?'warn':'ok');
-  return '<div class="sd-card">'+head+'<div class="sd-load">'
-    +'<div class="sd-lb '+peakCls+'"><i>Peak draw</i><b>'+L.maxA.toFixed(1)+' A</b><u>'+peakC.toFixed(1)+'C'+(L.maxAt?(' · '+_sdSyd(L.maxAt)):'')+'</u></div>'
-    +'<div class="sd-lb"><i>Average draw</i><b>'+L.avgA.toFixed(1)+' A</b><u>'+avgC.toFixed(1)+'C</u></div>'
-    +'<div class="sd-lb"><i>Continuous limit</i><b>'+L.cont.toFixed(0)+' A</b><u>'+SD_PACK.contC+'C × '+L.ah+' Ah</u></div>'
-    +'<div class="sd-lb"><i>Peak limit</i><b>'+L.peak.toFixed(0)+' A</b><u>'+SD_PACK.peakC+'C × '+L.ah+' Ah</u></div>'
-    +'<div class="sd-lb '+overCls+'"><i>Over '+SD_PACK.contC+'C</i><b>'+_sdSecs(L.overContSec)+'</b><u>'
-      +(L.totalSec?Math.round(L.overContSec/L.totalSec*100):0)+'% of '+_sdSecs(L.totalSec)
-      +(L.overPeakSec>0?(' · '+_sdSecs(L.overPeakSec)+' over '+SD_PACK.peakC+'C'):'')+'</u></div>'
-    +'</div><div class="sd-legend"><div class="sd-lg sd-lg-hint">Capacity set to '+L.ah+' Ah — '
-    +'<span style="color:#5EEAD4;cursor:pointer" onclick="localStorage.removeItem(\'hk_pack_ah\');sdRenderTrace()">change</span></div></div></div>';
+  var obs=_sdAhList().length;
+  var foot=L.ah
+    ? ('Capacity measured at <b>'+L.ah+' Ah</b> from '+obs+' session'+(obs===1?'':'s')+' of charge-out vs SOC drop'
+       +(L.ahThis!=null?(' — this one said '+L.ahThis+' Ah'):'')+'. Nothing to enter. '
+       +'<span style="color:#5EEAD4;cursor:pointer" onclick="sdForgetPackAh()">reset</span>')
+    : 'No capacity yet — it needs a session with a 3%+ SOC drop over two minutes or more.';
+  return '<div class="sd-card">'+head
+    +(v.txt?('<div class="sd-verdict '+v.cls+'" style="margin:0 0 10px">'+v.txt+'</div>'):'')
+    +'<div class="sd-load">'+boxes+'</div>'
+    +'<div class="sd-dl"><div class="sd-dlbtn" onclick="sdAskAI()">🤖 Ask HK AI to analyse this session</div></div>'
+    +'<div class="sd-legend"><div class="sd-lg sd-lg-hint">'+foot+'</div></div></div>';
+}
+/* Hand the whole session to HK AI as FACTS, not as a request to go and look things up. Everything
+   below is already computed on this screen; the AI's job is to read it as a mechanic would. */
+var SD_LOAD=null;
+function sdAskAI(){
+  var L=SD_LOAD||sdLoadAnalyse(), a=sdAnalyse();
+  var kart=SD_KART?String(SD_KART.kart_no):'?';
+  var sess=SD_SESS.filter(function(s){return s.uuid===SD_SESSION;})[0]||{};
+  var lines=[];
+  lines.push('Analyse this kart session for me as a workshop mechanic would. Here are the measured numbers - do not look anything up, just read these.');
+  lines.push('');
+  lines.push('Kart '+kart+(sess.label?(' · session '+sess.label):'')+(sess.scheduled_at?(' · '+_sdSyd(sess.scheduled_at)):''));
+  lines.push('Battery: RiMO SiNUS LiFeMnPO4, 16 cells (L1-L8 left bank, R1-R8 right bank). Rated 3.5C continuous, 10C peak.');
+  if(L.ah) lines.push('Pack capacity measured at '+L.ah+' Ah, so 3.5C = '+L.cont.toFixed(0)+' A and 10C = '+L.peak.toFixed(0)+' A.');
+  lines.push('Samples: '+SD_ROWS.length+' readings over '+_sdSecs(L.totalSec)+'.');
+  lines.push('Current: average '+L.avgA.toFixed(1)+' A, hardest sustained 10 seconds '+L.sustA.toFixed(1)+' A, instantaneous peak '+L.maxA.toFixed(1)+' A.');
+  if(L.ah) lines.push('Time above 3.5C: '+_sdSecs(L.overContSec)+' ('+(L.totalSec?Math.round(L.overContSec/L.totalSec*100):0)+'% of the session). Above 10C: '+_sdSecs(L.overPeakSec)+'.');
+  lines.push('Energy out: '+(L.ampSec/3600).toFixed(2)+' Ah / '+Math.round(L.wh)+' Wh'+((L.socFrom!=null)?(', SOC '+Math.round(L.socFrom)+'% to '+Math.round(L.socTo)+'%'):'')+'.');
+  lines.push('');
+  lines.push('Cell voltages (min / max / spread, in volts):');
+  a.per.forEach(function(p,i){ if(p.first==null) return;
+    lines.push('  '+SD_CELL_NAMES[i]+': min '+p.min.toFixed(3)+', max '+p.max.toFixed(3)+', spread '+(p.max-p.min).toFixed(3)); });
+  if(a.worstIdx>=0) lines.push('Biggest swing: '+SD_CELL_NAMES[a.worstIdx]+' at '+a.worstDrop.toFixed(3)+' V.');
+  var off=sdOfflineCheck();
+  if(off.length) lines.push('Logger dropouts / offline flags this session: '+off.length+'.');
+  lines.push('');
+  lines.push('Tell me: is this pack healthy, is any cell going, was the kart worked beyond what the pack is rated for, and what would you do about it this week? Be specific and short.');
+  var q=lines.join('\n');
+  try{ go('hkai'); }catch(e){}
+  setTimeout(function(){ try{ aiAskQuestion(q); }catch(e){ alert('HK AI isn’t available right now.'); } }, 260);
 }
 function sdAnalyse(){
   // per-cell first/last/min + worst sag
@@ -19082,7 +19187,7 @@ function accountRender(){
     else { av.classList.remove('ch-avimg'); av.style.background=userColor(cu); av.textContent=userEmoji(cu); } }
   var nm=document.getElementById('acct-name'); if(nm) nm.textContent=cu.name||'';
   var rl=document.getElementById('acct-role'); if(rl) rl.textContent=cu.role||'';
-  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IG \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
+  var ab=document.getElementById('acct-about'); if(ab) ab.textContent='HK Workshop \u00b7 build 05Jul-IH \u00b7 alerts on this device: '+((typeof Notification!=='undefined')?Notification.permission:'unavailable');
   var no=document.getElementById('mset-notif-msg'); if(no) no.textContent='';
   var ts=document.getElementById('acct-txtsz'); if(ts) ts.value=document.body.classList.contains('hugetext')?2:(document.body.classList.contains('bigtext')?1:0);
   var pm=document.getElementById('acct-pin-msg'); if(pm) pm.textContent='';
@@ -19551,7 +19656,7 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-IG';                 // running build (bumped by deploy)
+  var HK_BUILD='05Jul-IH';                 // running build (bumped by deploy)
   var last=0, banner=null;
   function showBanner(newB){
     if(banner) return;

@@ -20758,8 +20758,33 @@ function mrPushLoad(){
    higher marker, we know a newer version shipped. Checks on tab-focus (the common "switched back" case)
    and every few minutes, throttled so rapid tab-switching doesn't re-download the page. */
 (function(){
-  var HK_BUILD='05Jul-II';                 // running build (bumped by deploy)
-  var last=0, banner=null;
+  /* WHY THIS STOPPED WORKING, AND WHY IT NO LONGER DEPENDS ON ANYONE REMEMBERING ANYTHING.
+     It compared a hand-maintained marker: HK_BUILD held the running build, and the check below
+     looked for /05Jul-[A-Z]{2}/ in the deployed file. Both halves had to be bumped on every deploy,
+     by hand, and the date was baked into the pattern. So there were only two outcomes — the marker
+     was not bumped and the pattern matched the build already running, or it WAS bumped past July and
+     the pattern matched nothing at all. Either way the banner could never appear, and it has not for
+     weeks: people were quietly running old builds and re-reading screens that had already been fixed.
+
+     A deploy changes the file. That is the signal, and it needs no maintenance: fingerprint what the
+     server is serving, remember it, and say something when it changes. HK_BUILD stays as a label for
+     the banner to name, not as the mechanism. */
+  var HK_BUILD='31Jul';                    // display label only — the check below no longer reads it
+  var last=0, banner=null, fp=null;
+  /* Length plus a djb2 over every 4th character. Sparser sampling was tempting — a deploy usually
+     moves thousands of bytes — but measured against this file every 64th and every 16th character
+     both MISSED a same-length edit (a label changing case), which is exactly the kind of small fix
+     somebody would then not be told about. Every 4th catches that, and costs 3ms against 10ms for a
+     full pass, once every three minutes.
+     It is a sample, not a checksum: a deploy that changed a SINGLE character, at an unlucky offset,
+     could still slip past. No real deploy is one character, and the cost of the rare miss is one
+     person on a stale build for a few more minutes — the same thing that happens now, every time,
+     which is what this replaces. */
+  function _fp(t){
+    var h=5381,i;
+    for(i=0;i<t.length;i+=4) h=(((h<<5)+h)^t.charCodeAt(i))>>>0;
+    return t.length+':'+h;
+  }
   function showBanner(newB){
     if(banner) return;
     banner=document.createElement('div');
@@ -20768,7 +20793,7 @@ function mrPushLoad(){
       'padding:calc(10px + var(--satop,0px)) 16px 10px;background:linear-gradient(90deg,#2dd4bf,#22b8cf);'+
       'color:#04231f;font:700 14px system-ui,-apple-system,sans-serif;text-align:center;cursor:pointer;'+
       'box-shadow:0 3px 16px rgba(0,0,0,.45);letter-spacing:.01em';
-    banner.textContent='\u27f3 New version deployed \u2014 tap to update';
+    banner.textContent='\u27f3 New version deployed'+(newB?(' \u00b7 '+newB):'')+' \u2014 tap to update';
     banner.onclick=function(){ try{ location.reload(); }catch(e){ location.href=location.href; } };
     (document.body||document.documentElement).appendChild(banner);
   }
@@ -20776,9 +20801,11 @@ function mrPushLoad(){
     var now=Date.now(); if(now-last<25000) return; last=now;   // throttle: at most every 25s
     try{
       fetch(location.pathname+'?_hkv='+now,{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
-        if(!t) return;
-        var m=t.match(/05Jul-[A-Z]{2}\b/);                       // find the deployed build marker
-        if(m && m[0]!==HK_BUILD) showBanner(m[0]);
+        if(!t||t.length<1000) return;                            // a truncated or error body proves nothing
+        var f=_fp(t);
+        // The first successful check establishes what we are running; only a LATER change is a deploy.
+        if(fp===null){ fp=f; return; }
+        if(f!==fp) showBanner((t.match(/var HK_BUILD='([^']+)'/)||[])[1]||'');
       }).catch(function(){});
     }catch(e){}
   }

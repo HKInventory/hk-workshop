@@ -12582,6 +12582,11 @@ function rpFlatten(){
     (RF_REPAIRS_BY_ID[rfId]||[]).forEach(function(r){
       var base={
         id:r.id||0,
+        /* The RaceFacer kart id, carried onto the row rather than left as the key of the loop above.
+           Edit and delete both need to know which kart a repair belongs to, and from this screen
+           there is no kart context to fall back on — without it they could only report "that kart is
+           not in the current fleet" for every row on the page. */
+        rfKartId:Number(rfId),
         iso:r.iso||'', date:r.date||'', dateRepaired:r.dateRepaired||'',
         status:r.status, cost:r.cost||0, mileage:r.mileage||0,
         issue:r.issue||'', repairNotes:r.repairNotes||'', parts:r.parts||[], user:r.user||'\u2014'

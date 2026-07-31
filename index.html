@@ -11489,10 +11489,18 @@ function rfqCardHtml(){
       +'</div>';
   }
   var _sn=RFQ_NOTE?String(RFQ_NOTE.note||'').slice(0,60):'';
+  /* THE FORM HAS TO KNOW IT IS EDITING. It read "New repair", demanded working hours it had no way
+     to prefill, and so refused to save — which is what an edit looked like from the floor: a form
+     that opened with your note and parts already in it, called itself NEW, and would not send.
+     The submit handler already exempted an edit from the hours check (see !RFQ_EDIT_REPAIR below);
+     only the rendering never got the message. */
+  var _ed=RFQ_EDIT_REPAIR;
   return '<div class="mc rfq-card" style="text-align:left;margin:0 0 14px">'
-    +'<div class="mct">\ud83d\udd25 New repair \u00b7 '+kEsc(k.num||'')+'</div>'
+    +'<div class="mct">'+(_ed?('\u270e Edit repair \u00b7 '+kEsc(k.num||'')):('\ud83d\udd25 New repair \u00b7 '+kEsc(k.num||'')))+'</div>'
     +(RFQ_NOTE?('<div class="rfq-fornote">for note: \u201c'+kEsc(_sn)+(String(RFQ_NOTE.note||'').length>60?'\u2026':'')+'\u201d</div>'):'')
-    +'<div class="m-tool-desc">Adds the damage in RaceFacer \u2014 lands in seconds and is stored here, no re-scan.</div>'+info
+    +'<div class="m-tool-desc">'+(_ed
+        ? 'Updates this repair in RaceFacer. Anything you leave alone keeps what RaceFacer already has \u2014 including the working hours, which the app never knew.'
+        : 'Adds the damage in RaceFacer \u2014 lands in seconds and is stored here, no re-scan.')+'</div>'+info
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">'
     +'<div class="m-fld"><label>Date discovered</label><input id="rfq-disc" type="date" value="'+today+'"></div>'
     +'<div class="m-fld"><label>Date repaired</label><input id="rfq-date" type="date" value="'+today+'"></div></div>'
@@ -11502,7 +11510,8 @@ function rfqCardHtml(){
     +'<div id="rfq-parts"></div>'
     +'<div class="rfq-total">Total price: <b id="rfq-total">$0.00</b></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px">'
-    +'<div class="m-fld"><label>Working hours <span style="color:#F59E0B">*</span></label><input id="rfq-hours" type="text" inputmode="decimal" placeholder="required — e.g. 4433"></div>'
+    +'<div class="m-fld"><label>Working hours'+(_ed?'':' <span style="color:#F59E0B">*</span>')+'</label>'
+      +'<input id="rfq-hours" type="text" inputmode="decimal" placeholder="'+(_ed?'leave blank to keep RaceFacer\u2019s':'required — e.g. 4433')+'"></div>'
     +'<div class="m-fld"><label>Status</label>'+_rfqStatusSel()+'</div>'
     +'<div class="m-fld"><label>User</label>'+_rfqUserSel()+'</div></div>'
     +'<div class="m-fld" style="margin-top:8px"><label>Note</label><textarea id="rfq-note" rows="3" class="rfq-ta" placeholder="e.g. Replaced accelerator pedal, tightened mount"></textarea></div>'
@@ -11668,7 +11677,18 @@ function rfqSubmit(){
     if(_ed.mileage) row.repair_km=Math.round(Number(_ed.mileage)||0);
   }
   SBC.from('rf_repair_queue').insert(row).select('id').then(function(r){
-    if(r&&r.error){ say((/relation|does not exist|schema cache/i.test(r.error.message||''))?'Run rf_sync.sql in Supabase first':(r.error.message||'Failed')); okBtn('+ Save'); return; }
+    if(r&&r.error){
+      /* NAME THE COLUMN, DON'T BLAME THE WRONG SCRIPT. Every schema-shaped failure here said "Run
+         rf_sync.sql in Supabase first", which is the script that creates the QUEUE — and the queue
+         plainly exists if the insert got as far as being rejected. The real cause of an edit failing
+         is the queue missing the `repair_id` column an edit carries, which is in
+         rf_repair_queue_delete.sql, not rf_sync.sql. Sending someone to re-run the wrong migration
+         is worse than saying nothing. */
+      var _m=String(r.error.message||'');
+      say(/repair_id|action/i.test(_m) ? 'Run rf_repair_queue_delete.sql in Supabase — the queue is missing a column this needs.'
+        : (/relation|does not exist|schema cache/i.test(_m) ? ('Supabase rejected it: '+_m+' — check the SQL migrations have been run.')
+        : (_m||'Failed')));
+      okBtn('+ Save'); return; }
     // DID THE PARTS ACTUALLY REACH RACEFACER?
     // A part RaceFacer's list doesn't recognise is dropped and the repair is still sent — the right
     // trade, since losing the repair over one part would be worse. But that used to happen in

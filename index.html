@@ -1168,7 +1168,13 @@
     .rep-row .rep-desc{font-weight:600;max-width:340px;line-height:1.4}
     .rep-row .rep-mono{font-family:Monaco,Consolas,monospace;color:var(--t2);white-space:nowrap;font-size:12px}
     .rep-cost{color:#F59E0B;font-weight:700;white-space:nowrap}
-    .rep-expcell{width:42px;text-align:center}
+    .rep-expcell{width:74px;text-align:center;white-space:nowrap}
+    /* RaceFacer puts an edit control on every row of its Damages table; this one was hidden inside
+       the expanded panel, so editing a repair meant opening it first and knowing to look. */
+    .rep-editrow{width:26px;height:26px;border-radius:7px;border:1px solid var(--b2);background:rgba(255,255,255,.05);
+      color:#8fb8d6;font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;
+      justify-content:center;margin-right:5px;font-family:inherit}
+    .rep-editrow:hover{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.45);color:#5EEAD4}
     .rep-expbtn{width:26px;height:26px;border-radius:7px;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:#cbd5e1;font-size:17px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
     .rep-row.open .rep-expbtn{background:#2DD4BF;border-color:#2DD4BF;color:#04140a}
     .rep-detail > td{background:rgba(255,255,255,.02);padding:0 12px 14px}
@@ -12200,7 +12206,9 @@ function repTableHTML(){
       +'<td class="rep-mono">'+(r.mileage?r.mileage.toLocaleString():'\u2014')+'</td>'
       +'<td>'+costTxt+'</td>'
       +'<td class="rep-mono">'+kEsc(r.user)+'</td>'
-      +'<td class="rep-expcell">'+(hasDetail?('<button class="rep-expbtn" id="repbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
+      +'<td class="rep-expcell">'
+        +((r.id&&!r._pending)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();repEdit('+r.id+')">\u270e</button>'):'')
+        +(hasDetail?('<button class="rep-expbtn" id="repbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
       +'</tr>';
     if(!hasDetail) return head;
     var inner='';
@@ -12499,6 +12507,27 @@ function notifNewRepair(rfId, noteId){
 // Flattens every kart's synced repairs into one filterable/searchable table.
 // Read-only: repairs are created in RaceFacer and pulled in by the sync.
 var RP_ALL=[], RP_VIEW=[], RP_PER=25, RP_PAGE=1;
+
+/* EDIT FROM THE FLEET-WIDE REPAIRS SCREEN.
+   repEdit() is written for the kart page: it reads KD_KART and KD_REPAIRS, neither of which is set
+   here. Rather than duplicate the form's setup — and have two versions of it drift — this opens the
+   kart the repair belongs to and hands over to the same function, which is also what someone
+   editing a repair usually wants next anyway: the kart it happened to, in front of them. */
+function rpEditRepair(repairId){
+  var r=(RP_ALL||[]).filter(function(x){return x.id===repairId;})[0];
+  if(!r){ alert('That repair is no longer loaded — hit Refresh and try again.'); return; }
+  var k=(KART_LIST||[]).filter(function(x){return x.rfId===r.rfKartId;})[0];
+  if(!k){ alert('Kart '+(r.kartName||'?')+' is not in the current fleet, so its repair can’t be edited here.'); return; }
+  selectKart(k.rfId);
+  // selectKart renders the kart page and loads its repairs; wait for the one we want to appear
+  // rather than guessing at a delay, and give up rather than opening a blank form.
+  var tries=0;
+  (function waitForRepair(){
+    if((KD_REPAIRS||[]).some(function(x){return x.id===repairId;})){ repEdit(repairId); return; }
+    if(++tries>40){ alert('Opened kart '+(k.num||'')+', but its repairs are still loading — tap Edit on the row.'); return; }
+    setTimeout(waitForRepair,150);
+  })();
+}
 function rpFlatten(){
   // Walk EVERY synced repair (RF_REPAIRS_BY_ID holds them all), not just the karts
   // still in the fleet. Repairs whose kart is no longer in rf_karts (retired/scrapped)
@@ -12688,7 +12717,9 @@ function rpTableHTML(view){
       +'<td>'+costTxt+'</td>'
       +'<td class="rep-desc">'+kEsc(r.issue)+openTag+'</td>'
       +'<td class="rep-mono">'+kEsc(r.user)+'</td>'
-      +'<td class="rep-expcell">'+(hasDetail?('<button class="rep-expbtn" id="rpbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
+      +'<td class="rep-expcell">'
+        +((r.id&&!r._pending&&!r.retired)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();rpEditRepair('+r.id+')">\u270e</button>'):'')
+        +(hasDetail?('<button class="rep-expbtn" id="rpbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
       +'</tr>';
     if(!hasDetail) return head;
     var inner='';

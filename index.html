@@ -12952,6 +12952,10 @@ function dpTick(){
      },function(){ DP_TICKING=false; });
 }
 
+/* The p-th percentile, nearest-rank. _dpMed is _dpPct(a,0.5) but is kept separate: it reads better
+   at the call sites that genuinely want a middle value. */
+function _dpPct(a,p){ if(!a.length) return null; var b=a.slice().sort(function(x,y){return x-y;});
+  return b[Math.min(b.length-1,Math.max(0,Math.ceil(p*b.length)-1))]; }
 function _dpMed(a){ if(!a.length) return null; var b=a.slice().sort(function(x,y){return x-y;}); var m=Math.floor(b.length/2);
   return b.length%2?b[m]:(b[m-1]+b[m])/2; }
 function _dpKey(r){ return r.kart_id!=null?('#'+r.kart_id):('n'+String(r.kart_no==null?'?':r.kart_no)); }
@@ -13075,6 +13079,45 @@ function dpAnalyse(rows){
     return {name:n,n:L.n,dbl:L.dbl,karts:Object.keys(L.karts).length,med:_dpMed(L.str),
             lo:L.str.length?Math.min.apply(null,L.str):null}; });
 
+  /* NOT EVERY LOOP IS CROSSED ONCE A LAP — and assuming so is what made this screen cry wolf.
+     The rule below started from "a kart drives over every loop on its track the same number of times,
+     so its loop counts should be roughly equal". That is wrong on a real layout. On the Sydney adult
+     track every kart reads S/F at about 48% of its busiest loop — 12/25, 7/18, 8/16, 8/16, 7/15 —
+     because S2 is crossed about twice a lap and S/F once. All thirteen karts that touched S/F were
+     duly flagged and the S/F beacon was accused, at 13 out of 13.
+     THE SPREAD IS THE TELL. A failing beacon misses some karts and not others, so the ratios scatter.
+     These sat between 39% and 50% — the same figure for everybody, which is a property of the track,
+     not a fault. So the baseline for a loop is no longer "equal to your busiest"; it is WHAT EVERY
+     OTHER KART GETS AT THAT SAME LOOP. A kart is short only when it is short against its peers.
+     Self-calibrating: no thresholds per loop to maintain, and it re-learns if a layout changes. */
+  var ratioAt={};                              // "track|loop" -> every kart's share at that loop
+  Object.keys(byKart).forEach(function(kk){
+    var k=byKart[kk], ls=Object.keys(k.perLoop);
+    if(!ls.length || k.n<DP_MIN_PICKUPS) return;
+    var mx=Math.max.apply(null,ls.map(function(l){return k.perLoop[l];}));
+    if(!mx) return;
+    ls.forEach(function(l){
+      var key=(k.track||'*')+'|'+l;
+      (ratioAt[key]=ratioAt[key]||[]).push(k.perLoop[l]/mx);
+    });
+  });
+  /* THE BASELINE IS WHAT THE BEST-READING KARTS GET, NOT THE AVERAGE.
+     Using the median looked right and failed the case that matters most: when a beacon degrades for
+     MOST of the fleet, the median sinks with them, every kart then reads "normal" against it, and the
+     failure calibrates itself into invisibility. Three karts out of four missing half their laps at
+     one loop produced no flag at all.
+     The upper quartile fixes it without reintroducing the S/F false alarm. If a loop is capable of
+     reading a kart every lap, some karts will be achieving that, and they set the mark. Where a low
+     share is a property of the layout, EVERY kart sits at it — so the upper quartile sits there too
+     and nobody is short. Where it is a fault, the healthy minority hold the mark up and the affected
+     karts fall below it. A high percentile rather than the maximum so one over-reading kart cannot
+     raise the bar for the whole fleet. */
+  var baseAt={};                               // the share a well-read kart gets at that loop
+  Object.keys(ratioAt).forEach(function(key){
+    // Under three karts there is nothing to calibrate against, so that loop simply is not judged.
+    if(ratioAt[key].length>=3) baseAt[key]=_dpPct(ratioAt[key],0.9);
+  });
+
   var karts=Object.keys(byKart).map(function(kk){
     var k=byKart[kk], why=[], flag='ok', enough=(k.n>=DP_MIN_PICKUPS);
     var myLoops=Object.keys(k.perLoop);
@@ -13087,12 +13130,29 @@ function dpAnalyse(rows){
     var weakest=null;
     if(enough && best>=DP_MIN_PICKUPS){
       myLoops.forEach(function(l){
-        var ratio=k.perLoop[l]/best;
-        if(weakest==null||ratio<weakest.ratio) weakest={loop:l,ratio:ratio,n:k.perLoop[l],of:best};
+        var base=baseAt[(k.track||'*')+'|'+l];
+        if(base==null||base<=0) return;                  // that loop can't be calibrated — skip it
+        var mine=k.perLoop[l]/best;
+        var rel=mine/base;                               // 1.0 = exactly what the other karts get
+        /* IS THE SHORTFALL BIGGER THAN COUNTING NOISE? Reads are counts, so they wobble by roughly
+           their own square root: a kart expected to cross a loop 9 times and seen 7 is not evidence
+           of anything, and flagging it is how a screen earns its reputation for crying wolf. Only a
+           gap several standard deviations past what chance explains is called a fault, which also
+           means a kart with a handful of laps is left alone until it has done enough to judge. */
+        var expect=base*best, gap=expect-k.perLoop[l];
+        var z=(expect>0)?(gap/Math.sqrt(Math.max(expect,1))):0;
+        if(weakest==null||rel<weakest.rel)
+          weakest={loop:l,rel:rel,ratio:mine,base:base,n:k.perLoop[l],of:best,z:z,
+                   expect:Math.round(expect)};           // what a well-read kart would have got here
       });
-      // Say the counts, not a ratio. "Reading light" meant nothing to anyone who read it.
-      if(weakest&&weakest.ratio<0.5){ flag='bad'; why.push('crossed '+weakest.loop+' only '+weakest.n+' times but its busiest loop '+weakest.of+' times — '+weakest.loop+' is missing about half this kart’s laps'); }
-      else if(weakest&&weakest.ratio<0.75){ flag='warn'; why.push('crossed '+weakest.loop+' '+weakest.n+' times against '+weakest.of+' at its busiest loop — a few laps are going unrecorded at '+weakest.loop); }
+      // Say the counts against what the other karts got, which is the actual comparison being made.
+      /* One gate, then severity by size. Significance (z) answers "is this real?"; the shortfall
+         (rel) answers "how bad?". Tying severity to z as well meant a kart reading a fifth of what it
+         should came out as a mild watch purely because it had not done many laps yet. */
+      if(weakest&&weakest.rel<0.5&&weakest.z>2.5){ flag='bad'; why.push('crossed '+weakest.loop+' only '+weakest.n+' times where the karts reading best on this track get about '
+        +weakest.expect+' for the laps it did — '+weakest.loop+' is missing this kart'); }
+      else if(weakest&&weakest.rel<0.8&&weakest.z>2.5){ flag='warn'; why.push('crossed '+weakest.loop+' '+weakest.n+' times against about '+weakest.expect
+        +' for the karts reading best on this track — a few laps are going unrecorded at '+weakest.loop); }
     }
 
     /* DOUBLE-READS. A loop recording the same kart twice on one pass. Its own fault, and the
@@ -13159,7 +13219,7 @@ function dpAnalyse(rows){
   var lowAt={};
   karts.forEach(function(k){
     if(!k.enough||!k.weakest) return;
-    if(k.weakest.ratio<0.75) lowAt[k.weakest.loop]=(lowAt[k.weakest.loop]||0)+1;
+    if(k.weakest.rel<0.8&&k.weakest.z>2.5) lowAt[k.weakest.loop]=(lowAt[k.weakest.loop]||0)+1;
   });
   loops.forEach(function(l){
     l.lowKarts=lowAt[l.name]||0;
@@ -13258,7 +13318,7 @@ function dpKartsView(A){
     /* The big number on the right used to be signal strength. With no strength to show, the honest
        headline number is the kart's worst loop as a share of its busiest — the thing every rule
        here is actually reading. */
-    var big=(k.weakest&&k.enough)?(Math.round(k.weakest.ratio*100)+'%'):'—';
+    var big=(k.weakest&&k.enough)?(Math.round(k.weakest.rel*100)+'%'):'—';
     var bigCls=k.flag==='bad'?' bad':(k.flag==='warn'?' warn':'');
     return '<div class="dp-row'+cls+'">'
       +'<div class="dp-k">'+_sdEsc(k.kart)+'</div>'
@@ -13266,17 +13326,18 @@ function dpKartsView(A){
         +'<span class="dp-flag '+fcls+'">'+label+'</span></div>'
         +'<div class="dp-t2">'+sub.join(' · ')+'</div>'+why+'</div>'
       +'<div class="dp-right"><div class="dp-str'+bigCls+'">'+big+'</div>'
-        +'<div class="dp-strl">'+((k.weakest&&k.enough)?'weakest loop':'no reading')+'</div></div>'
+        +'<div class="dp-strl">'+((k.weakest&&k.enough)?'vs other karts':'no reading')+'</div></div>'
     +'</div>';
   }).join('');
   return out;
 }
 
 function dpLoopsView(A){
-  return '<div class="dp-t2" style="margin-bottom:10px">Every kart should cross every loop on its track once a lap. '
-    +'This counts, for each loop, how many karts crossed it <b>noticeably fewer</b> times than they crossed their own '
-    +'busiest loop. One kart short is that kart’s transponder. <b>Several karts short at the same loop is the beacon</b> — '
-    +'and that is the one worth a trip out to the track.</div>'
+  return '<div class="dp-t2" style="margin-bottom:10px">Loops are <b>not</b> all crossed the same number of times — on this '
+    +'track S/F is crossed about half as often as S2, for every kart. So each loop is measured against <b>what the other '
+    +'karts get at that same loop</b>, not against a fixed idea of how often it should read. The count below is how many '
+    +'karts came up short there against their peers. One kart short is that kart’s transponder. '
+    +'<b>Several karts short at the same loop is the beacon.</b></div>'
     +A.loops.map(function(l){
       var cls=l.flag==='bad'?' bad':(l.flag==='warn'?' warn':'');
       var label=l.flag==='bad'?'CHECK BEACON':(l.flag==='warn'?'WATCH':'OK');
@@ -13327,10 +13388,12 @@ function dpHelpView(A){
     +'trusted for those two karts until you do.</div></div>'
 
     +'<div class="dp-hcard bad"><div class="dp-hh">Missing laps at one loop <span class="dp-hb">CHECK TRANSPONDER</span></div>'
-    +'<div class="dp-hd">The kart crossed one loop far fewer times than it crossed its busiest loop. Since it physically '
-    +'drove over both the same number of times, the shortfall is reads that never happened.</div>'
-    +'<div class="dp-hex">Kart 24 · S2 81 · S3 17\n'
-    +'It cannot have driven over S2 five times for every one pass of S3.\nS3 is missing about 80% of this kart’s laps.</div>'
+    +'<div class="dp-hd">The kart crossed one loop far fewer times than <em>the other karts on the same track</em> crossed '
+    +'that same loop. The comparison is always kart-against-peers, never loop-against-loop — different loops are genuinely '
+    +'crossed at different rates (S/F about half as often as S2 here), and only a kart falling behind its peers at one '
+    +'loop means reads that never happened.</div>'
+    +'<div class="dp-hex">Kart 24 · S2 81 · S3 17   ← every other kart on this track reads S3 about 77 times\n'
+    +'So the shortfall is not the layout, it is this kart: S3 is missing it.</div>'
     +'<div class="dp-hdo">→ If only this kart is short at that loop, it is the kart: check its transponder is seated and '
     +'its antenna is not damaged. If several karts are short at the same loop, see the next one.</div></div>'
 
@@ -13375,8 +13438,11 @@ function dpHelpView(A){
     +'<b>S/F 7 · S2 14 · S3 11</b> — the count at each loop. These are the numbers every judgement above is made from. '
     +'On a healthy kart they are roughly equal.<br>'
     +'<b>742009</b> — its transponder number.<br>'
-    +'<b>50% weakest loop</b> — its worst loop as a share of its busiest. <b>100% is perfect</b>; under 75% is a watch, '
-    +'under 50% is a problem. Shows a dash when the kart has not run enough to judge.</div>'
+    +'<b>100% vs other karts</b> — its worst loop measured against what every other kart on the same track gets at that '
+    +'same loop. <b>100% means it is reading exactly like its peers</b>; under 80% is a watch, under 60% is a problem. '
+    +'It is deliberately <em>not</em> a comparison between one loop and another: loops are crossed at different rates by '
+    +'design — on this track S/F reads about half as often as S2 for every kart — so only the comparison against other '
+    +'karts at the <em>same</em> loop means anything. Shows a dash when the kart has not run enough to judge.</div>'
 
     +'<h4>The badges</h4>'
     +'<div class="dp-hd"><span class="dp-hb ok">OK</span> &nbsp;Seen where and when it should have been. Nothing to do.<br>'

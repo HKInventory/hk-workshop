@@ -1175,6 +1175,10 @@
       color:#8fb8d6;font-size:13px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;
       justify-content:center;margin-right:5px;font-family:inherit}
     .rep-editrow:hover{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.45);color:#5EEAD4}
+    .rep-delrow{width:26px;height:26px;border-radius:7px;border:1px solid rgba(226,75,74,.4);background:rgba(226,75,74,.10);
+      color:#F09595;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;
+      justify-content:center;margin-right:5px;font-family:inherit;font-weight:700}
+    .rep-delrow:hover{background:rgba(226,75,74,.24);border-color:rgba(226,75,74,.7);color:#fff}
     .rep-expbtn{width:26px;height:26px;border-radius:7px;border:1px solid var(--b2);background:rgba(255,255,255,.05);color:#cbd5e1;font-size:17px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
     .rep-row.open .rep-expbtn{background:#2DD4BF;border-color:#2DD4BF;color:#04140a}
     .rep-detail > td{background:rgba(255,255,255,.02);padding:0 12px 14px}
@@ -11521,6 +11525,42 @@ function _rfqDefaultStatus(k){
    about (hours spent, the notification it was raised from) cannot be blanked by editing the note.
 
    The form is the same one used to log a repair, prefilled. Nothing new to learn. */
+/* DELETE A REPAIR — the red X RaceFacer has on every row of its Damages table.
+   Destructive and not undoable, so it asks first and names what it is about to remove rather than
+   showing a bare "Are you sure?". The row disappears immediately: the push is queued and the runner
+   deletes it on RaceFacer and out of Supabase, but a mechanic who taps delete and watches the row
+   sit there taps again, so the local list is updated at once and the sync corrects it within a
+   couple of minutes if RaceFacer refuses. */
+function repDelete(repairId, rfKartIdHint){
+  var pool=(typeof KD_REPAIRS!=='undefined'&&KD_REPAIRS&&KD_REPAIRS.length)?KD_REPAIRS:(RP_ALL||[]);
+  var r=(pool||[]).filter(function(x){return x.id===repairId;})[0]
+     || ((RP_ALL||[]).filter(function(x){return x.id===repairId;})[0]);
+  var kartId=(r&&r.rfKartId)||rfKartIdHint||(typeof KD_KART!=='undefined'&&KD_KART&&KD_KART.rfId)||null;
+  if(!kartId){ alert('Can’t tell which kart that repair belongs to — hit Refresh and try again.'); return; }
+  var what=r?('“'+String(r.issue||r.note||'this repair').slice(0,70)+'”'
+      +(r.dateRepaired?(' · '+r.dateRepaired):'')+(r.cost?(' · $'+Number(r.cost).toFixed(2)):'')):('repair '+repairId);
+  if(!confirm('Delete '+what+' ?\n\nThis removes it from RaceFacer as well, and cannot be undone.')) return;
+  if(typeof SBC==='undefined'||!SBC){ alert('Not connected.'); return; }
+  // NOT `var cu` — that shadows the global of the same name and hoists to undefined, so the
+  // fallback would read the local it is trying to fall back from and always come out empty.
+  var who=(typeof cu!=='undefined'&&cu&&cu.name)?cu.name:'';
+  SBC.from('rf_repair_queue').insert({ site:(currentSite||'sydney'), rf_kart_id:kartId, action:'delete',
+      repair_id:repairId, user_name:who })
+    .then(function(res){
+      if(res&&res.error){ alert('Couldn’t queue the delete: '+(res.error.message||'')); return; }
+      // Take it off screen now; the sync is the authority and will restore it if RaceFacer refuses.
+      try{
+        if(typeof RF_REPAIRS_BY_ID!=='undefined'&&RF_REPAIRS_BY_ID[kartId])
+          RF_REPAIRS_BY_ID[kartId]=RF_REPAIRS_BY_ID[kartId].filter(function(x){return x.id!==repairId;});
+        if(typeof KD_REPAIRS!=='undefined'&&KD_REPAIRS)
+          KD_REPAIRS=KD_REPAIRS.filter(function(x){return x.id!==repairId;});
+        if(typeof RP_ALL!=='undefined'&&RP_ALL) RP_ALL=RP_ALL.filter(function(x){return x.id!==repairId;});
+      }catch(e){}
+      try{ if(typeof KD_KART!=='undefined'&&KD_KART&&typeof renderKartDetail==='function') renderKartDetail(KD_KART); }catch(e){}
+      try{ if(typeof rpBuild==='function') rpBuild(); }catch(e){}
+    },function(){ alert('Couldn’t queue the delete — check the connection.'); });
+}
+
 var RFQ_EDIT_REPAIR=null;
 function repEdit(repairId){
   var k=KD_KART; if(!k) return;
@@ -12207,7 +12247,8 @@ function repTableHTML(){
       +'<td>'+costTxt+'</td>'
       +'<td class="rep-mono">'+kEsc(r.user)+'</td>'
       +'<td class="rep-expcell">'
-        +((r.id&&!r._pending)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();repEdit('+r.id+')">\u270e</button>'):'')
+        +((r.id&&!r._pending)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();repEdit('+r.id+')">\u270e</button>'
+          +'<button class="rep-delrow" title="Delete this repair" aria-label="Delete this repair" onclick="event.stopPropagation();repDelete('+r.id+')">\u00d7</button>'):'')
         +(hasDetail?('<button class="rep-expbtn" id="repbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
       +'</tr>';
     if(!hasDetail) return head;
@@ -12718,7 +12759,8 @@ function rpTableHTML(view){
       +'<td class="rep-desc">'+kEsc(r.issue)+openTag+'</td>'
       +'<td class="rep-mono">'+kEsc(r.user)+'</td>'
       +'<td class="rep-expcell">'
-        +((r.id&&!r._pending&&!r.retired)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();rpEditRepair('+r.id+')">\u270e</button>'):'')
+        +((r.id&&!r._pending&&!r.retired)?('<button class="rep-editrow" title="Edit this repair" aria-label="Edit this repair" onclick="event.stopPropagation();rpEditRepair('+r.id+')">\u270e</button>'
+          +'<button class="rep-delrow" title="Delete this repair" aria-label="Delete this repair" onclick="event.stopPropagation();repDelete('+r.id+','+(r.rfKartId||0)+')">\u00d7</button>'):'')
         +(hasDetail?('<button class="rep-expbtn" id="rpbtn-'+i+'" aria-label="Show repair details">+</button>'):'')+'</td>'
       +'</tr>';
     if(!hasDetail) return head;

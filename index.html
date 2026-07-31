@@ -544,6 +544,44 @@
     .dp-tbl td{padding:6px;color:var(--t1);border-bottom:1px solid var(--b1)}
     .dp-tblwrap{max-height:420px;overflow:auto;border:1px solid var(--b1);border-radius:12px}
     .dp-empty{text-align:center;color:var(--t2);font-size:13px;padding:34px 16px;line-height:1.7}
+    /* ---- RIMO CONTROL. Buttons sized for a gloved thumb on an iPad mid-session, not a mouse. ---- */
+    .rc-note{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:10px}
+    .rc-err{background:rgba(226,75,74,.14);border:1px solid rgba(226,75,74,.45);color:#F09595;
+      border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
+    .rc-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .rc-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+    .rc-b{position:relative;min-height:54px;border-radius:12px;border:1px solid var(--b2);
+      background:var(--card2,#141821);color:#fff;font-size:13px;font-weight:800;font-family:inherit;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px 6px 12px;
+      text-align:center;line-height:1.25;-webkit-tap-highlight-color:transparent}
+    .rc-b.wide{min-height:52px;font-size:14.5px}
+    .rc-b i{position:absolute;left:12px;right:12px;bottom:8px;height:3px;border-radius:2px}
+    .rc-b:active{transform:scale(.97)}
+    .rc-b.busy{opacity:.55}
+    .rc-b.last{border-color:rgba(45,212,191,.7);box-shadow:0 0 0 1px rgba(45,212,191,.35) inset}
+    .rc-sep{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--t2);
+      margin:14px 0 8px}
+    .rc-all{width:100%;min-height:44px;border-radius:12px;font-family:inherit;font-size:12.5px;font-weight:700;
+      cursor:pointer;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t2);margin-bottom:10px}
+    .rc-all.on{border-color:rgba(45,212,191,.5);background:rgba(45,212,191,.12);color:#5EEAD4}
+    .rc-karts{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:7px}
+    .rc-kart{position:relative;min-height:46px;border-radius:10px;border:1px solid var(--b2);
+      background:var(--card2,#141821);color:#fff;font-size:14px;font-weight:800;font-family:inherit;
+      cursor:pointer;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
+    .rc-kart.on{background:rgba(45,212,191,.20);border-color:rgba(45,212,191,.75);color:#5EEAD4}
+    .rc-kart:active{transform:scale(.96)}
+    .rc-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%}
+    .rc-dot.ok{background:#22C55E} .rc-dot.warn{background:#F0CB1E} .rc-dot.bad{background:#E24B4A}
+    .rc-empty{text-align:center;color:var(--t2);font-size:12.5px;padding:18px 10px}
+    .rc-fr{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;background:var(--card2,#141821);
+      border:1px solid var(--b1);border-left-width:3px;border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:11.5px;color:var(--t2)}
+    .rc-fr b{font-size:12.5px;color:#fff;font-weight:800}
+    .rc-fr u{text-decoration:none;margin-left:auto;font-weight:800;font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+    .rc-fr.ok{border-left-color:#22C55E} .rc-fr.ok u{color:#7CFCA9}
+    .rc-fr.bad{border-left-color:#E24B4A} .rc-fr.bad u{color:#F09595}
+    .rc-fr.wait{border-left-color:#F0CB1E} .rc-fr.wait u{color:#F5D84E}
+    .rc-fr.dim{border-left-color:var(--b2);opacity:.6}
+    .rc-frerr{flex-basis:100%;color:#F09595;font-size:11px;margin-top:3px;word-break:break-word}
     /* "How to read this" — prose, not furniture. Wide measure hurts reading, so it is capped. */
     .dp-help{max-width:760px;font-size:13px;line-height:1.7;color:var(--t1)}
     .dp-help h4{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#5EEAD4;margin:20px 0 7px}
@@ -3150,6 +3188,7 @@
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
           <div class="tile facdeh"   id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
+          <div class="tile facdeh"   id="bcnrimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Kart speed</div></div>
           <div class="tile factools" id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
           <div class="tile facsoon"  id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
         </div>
@@ -5745,7 +5784,7 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
-var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups','bcn:rimoctl'];
 /* DESELECTING APP HEALTH DID NOTHING, AND HERE IS WHY.
    Two mechanisms had grown up side by side. Most tabs are a plain allow-list: the key is in the
    array or it is not. A few are default-ON and store a 'hide:<key>' token instead, so a config
@@ -5842,7 +5881,7 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
 var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
-var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'bcn:rimoctl',label:'RIMO Control',tile:'bcnrimoctl'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
 var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
@@ -5921,14 +5960,14 @@ function applyRoleVisibility(force){
     vis(t.id,show);
   });
   // Beacons' section sub-tiles are gated by their own default-on keys.
-  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcntsheet','bcn:sheet'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
+  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcntsheet','bcn:sheet'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups'],['bcnrimoctl','bcn:rimoctl']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
   // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is). Drives
   // Inventory, Dashboard, Comms and Beacons straight from their section tiles.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
   vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
-  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','wtools','wsess']));
+  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','bcnrimoctl','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}
@@ -9904,6 +9943,7 @@ function kiOpenRef(which){
   // Every section shares ki-ref-body, so the pickups auto-refresh must die the moment another
   // section takes the container — otherwise it repaints the pickups table over whatever is there.
   if(which!=='dehaardt'&&typeof dpStopTimer==='function') dpStopTimer();
+  if(which!=='rimoctl'&&typeof rcStopTimer==='function') rcStopTimer();
   var titles={wiring:'Wiring',cpu:'CPU / WiFi',beacons:'Dehaardt',dehaardt:'Dehaardt Pickups',help:'Help',notes:'Kart Notes',repairs:'Repairs',rimo:'RIMO Data',rimoctl:'RIMO Control'};
   var t=document.getElementById('ki-ref-title'); if(t) t.innerText=titles[which]||'Reference';
   // Refresh only matters on the live-data sections; static reference pages don't get the button.
@@ -9918,18 +9958,172 @@ function kiOpenRef(which){
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
-  else if(which==='rimoctl') renderRimoCtlSection();
+  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcLoadFeed(); rcStartTimer(); }
   else renderHelpSection();
   go('kartref');
 }
+/* ===== RIMO CONTROL ==============================================================================
+   RiMO's own control page (control.rimo-germany.com/control.php), rebuilt in this app's design so it
+   works from an iPad on the floor instead of only at the control PC.
+
+   THE LAYOUT IS DELIBERATELY THE SAME. Standard/Stop across the top, then the three mode rows, then
+   the speed ladder, then the karts. Whoever uses this already knows RiMO's page by muscle memory
+   during a session, and a session is exactly when nobody has attention spare to relearn where the
+   Pit button moved to. Only the styling changes.
+
+   OPEN TO EVERY ROLE, ON PURPOSE. Mechanics and marshals work off iPads and all of them need this
+   mid-session, so there is no permission gate. The control is the AUDIT TRAIL instead: every press
+   records who made it and what RiMO answered, kept for a fortnight. If the track goes to 25% during
+   a race, the question is who and when, and that always has an answer.
+
+   NOTHING IS SENT DIRECTLY FROM HERE. A press writes one row to rimo_control_queue; the runner holds
+   the RiMO session and does the talking. That keeps RiMO credentials out of the browser entirely,
+   and means a press from a tablet with a flaky connection either lands as a queued row or does not
+   happen at all — never half of it. */
+var RC_SEL={};                 // kart_no -> selected. Empty = every kart, same as RiMO's "Alle Karts".
+var RC_BUSY=null, RC_LAST=null, RC_FEED=[], RC_TIMER=null, RC_ERR='';
+
+/* RiMO's buttons, in RiMO's order. `v` is what goes on the wire; `c` tints the strip underneath,
+   matching the colour coding on their page so the muscle memory carries over too. */
+var RC_MODES=[
+  [['Pit','pit','#E24B4A'],['Pit Exit','pit_exit','#F0CB1E'],['Pit Exit Fast','pit_exit_fast','#F0CB1E'],['Holding','holding','#5B8DEF']],
+  [['Start','start','#7CFCA9'],['Release','release','#7CFCA9'],['2nd Slow','second_slow','#2F855A'],['Pit Entry','pit_entry','#B794F4']],
+  [['B2B','b2b','#7CFCA9'],['FN11','fn11','#E24B4A'],['FN47','fn47','#E24B4A'],['FN31','fn31','#E24B4A']]
+];
+var RC_SPEEDS=[25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100];
+function _rcSpeedColour(p){
+  // Low is loud, high is calm — the opposite of a warning gradient, because on this page the
+  // dangerous press is the one that makes a kart SLOW unexpectedly mid-race.
+  if(p<=35) return '#E24B4A'; if(p<=50) return '#F0895B'; if(p<=70) return '#F0CB1E';
+  if(p<=85) return '#7CC4FA'; return '#7CFCA9';
+}
+
 function renderRimoCtlSection(){
   var b=document.getElementById('ki-ref-body'); if(!b) return;
-  b.innerHTML='<div class="rcard" style="text-align:center">'
-    +'<div style="font-size:56px;margin-bottom:16px">\ud83c\udf9b\ufe0f</div>'
-    +'<div style="font-size:18px;font-weight:800;color:#38BDF8;margin-bottom:10px">Coming Soon</div>'
-    +'<div style="font-size:14px;color:var(--t2);line-height:1.9">Change kart presets, speedsets &amp; settings in RiMO from here.</div>'
-    +'</div>';
+  var karts=rcKarts();
+  var n=Object.keys(RC_SEL).length;
+  b.innerHTML=
+    '<div class="rc-note">Sends the command to RiMO through the runner. Every press is recorded '
+      +'against your name.</div>'
+    +(RC_ERR?('<div class="rc-err">'+kEsc(RC_ERR)+'</div>'):'')
+    +'<div class="rc-top">'
+      +rcBtn('mode','standard','Standard','#9aa5b1','wide')
+      +rcBtn('mode','stop','Stop','#E24B4A','wide')
+    +'</div>'
+    +RC_MODES.map(function(row){
+      return '<div class="rc-grid4">'+row.map(function(m){ return rcBtn('mode',m[1],m[0],m[2]); }).join('')+'</div>';
+    }).join('')
+    +'<div class="rc-sep">Speed</div>'
+    +(function(){
+        var out='',i;
+        for(i=0;i<RC_SPEEDS.length;i+=4){
+          out+='<div class="rc-grid4">'+RC_SPEEDS.slice(i,i+4).map(function(p){
+            return rcBtn('speed',String(p),p+' %',_rcSpeedColour(p));
+          }).join('')+'</div>';
+        }
+        return out;
+      })()
+    +'<div class="rc-sep">'+(n?('Applying to '+n+' selected kart'+(n===1?'':'s')):'Applying to every kart')+'</div>'
+    +'<button class="rc-all'+(n?'':' on')+'" onclick="rcClearSel()">'
+      +(n?('Alle Karts — tap to clear the '+n+' selected'):'Alle Karts · all karts will be sent the command')+'</button>'
+    +(karts.length
+        ? '<div class="rc-karts">'+karts.map(rcKartTile).join('')+'</div>'
+        : '<div class="rc-empty">No karts loaded yet — the fleet list is still coming in.</div>')
+    +rcFeed();
 }
+
+/* The kart grid comes from the app's own fleet, not from RiMO — this app already knows every kart,
+   its number, its type and whether it is damaged or parked, and showing a kart here that is sitting
+   in bits in the workshop would be worse than not showing it. */
+function rcKarts(){
+  return (typeof KART_LIST!=='undefined'&&KART_LIST?KART_LIST:[])
+    .filter(function(k){ return !k.longTerm && k.num!=null && k.num!==''; })
+    .sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); });
+}
+function rcKartTile(k){
+  var on=!!RC_SEL[k.num];
+  var dot=k.status==='damaged'?'bad':(k.status==='maint'?'warn':'ok');
+  return '<button class="rc-kart'+(on?' on':'')+'" onclick="rcToggleKart('+JSON.stringify(String(k.num))+')" '
+    +'title="'+kEsc(k.type||'')+' · '+kEsc(k.status||'')+'">'
+    +kEsc(String(k.num))+'<i class="rc-dot '+dot+'"></i></button>';
+}
+function rcBtn(action,value,label,colour,cls){
+  var busy=(RC_BUSY===action+':'+value);
+  var last=(RC_LAST===action+':'+value);
+  return '<button class="rc-b'+(cls?(' '+cls):'')+(busy?' busy':'')+(last?' last':'')+'" '
+    +'onclick="rcSend('+JSON.stringify(action)+','+JSON.stringify(value)+','+JSON.stringify(label)+')">'
+    +'<span>'+kEsc(label)+'</span><i style="background:'+colour+'"></i></button>';
+}
+function rcToggleKart(num){
+  if(RC_SEL[num]) delete RC_SEL[num]; else RC_SEL[num]=1;
+  renderRimoCtlSection();
+}
+function rcClearSel(){ RC_SEL={}; renderRimoCtlSection(); }
+
+/* A press writes one queue row. No confirmation dialog on purpose: this is used mid-session with one
+   hand, and a dialog in front of a Stop button is worse than the mis-tap it is trying to prevent —
+   RiMO's own page has none either. What it does instead is show, immediately and permanently, what
+   was sent and whether RiMO took it. */
+function rcSend(action,value,label){
+  if(typeof SBC==='undefined'||!SBC){ RC_ERR='Not connected.'; renderRimoCtlSection(); return; }
+  var karts=Object.keys(RC_SEL);
+  RC_BUSY=action+':'+value; RC_ERR=''; renderRimoCtlSection();
+  SBC.from('rimo_control_queue').insert({
+      site:(currentSite||'sydney'), action:action, value:String(value), label:String(label||''),
+      karts:(karts.length?karts.join(','):null),
+      user_name:((typeof cu!=='undefined'&&cu&&cu.name)?cu.name:'')
+    }).select('id')
+    .then(function(r){
+      RC_BUSY=null;
+      if(r&&r.error){
+        RC_ERR=/relation|does not exist|schema cache/i.test(r.error.message||'')
+          ? 'RIMO Control isn’t set up yet — run rimo_control.sql in Supabase.'
+          : ('Couldn’t send: '+(r.error.message||''));
+      } else { RC_LAST=action+':'+value; }
+      renderRimoCtlSection(); rcLoadFeed();
+    },function(){ RC_BUSY=null; RC_ERR='Couldn’t send — check the connection.'; renderRimoCtlSection(); });
+}
+
+/* WHAT ACTUALLY HAPPENED, not what was tapped. The queue row carries the runner's outcome back, so
+   this shows sent / failed / superseded rather than leaving someone to assume a press worked. */
+function rcFeed(){
+  if(!RC_FEED.length) return '<div class="rc-sep">Recent</div><div class="rc-empty">Nothing sent yet.</div>';
+  return '<div class="rc-sep">Recent</div>'
+    +RC_FEED.slice(0,12).map(function(r){
+      var st=String(r.status||'');
+      var cls=st==='sent'?'ok':(st==='failed'?'bad':(st==='superseded'?'dim':'wait'));
+      return '<div class="rc-fr '+cls+'">'
+        +'<b>'+kEsc(r.label||((r.action||'')+' '+(r.value||'')))+'</b>'
+        +'<span>'+kEsc(r.karts?('karts '+r.karts):'all karts')+'</span>'
+        +'<span>'+kEsc(r.user_name||'')+'</span>'
+        +'<span>'+kEsc(_sdSyd(r.created_at))+'</span>'
+        +'<u>'+kEsc(st==='superseded'?'replaced by a newer press':st)+'</u>'
+        +(r.error?('<div class="rc-frerr">'+kEsc(r.error)+'</div>'):'')
+      +'</div>';
+    }).join('');
+}
+function rcLoadFeed(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('rimo_control_queue')
+     .select('id,action,value,label,karts,user_name,status,error,created_at')
+     .eq('site',currentSite||'sydney').order('created_at',{ascending:false}).limit(12)
+     .then(function(r){
+        if(r&&!r.error&&r.data){ RC_FEED=r.data; if(KI_REF_WHICH==='rimoctl') renderRimoCtlSection(); }
+     },function(){});
+}
+function rcStartTimer(){
+  rcStopTimer();
+  // Short, because the interesting change is a command going from pending to sent or failed, and
+  // that resolves in about a second. The read is twelve rows.
+  RC_TIMER=setInterval(function(){
+    if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH!=='rimoctl'){ rcStopTimer(); return; }
+    var el=document.getElementById('ki-ref-body');
+    if(!el||!el.offsetParent){ rcStopTimer(); return; }
+    rcLoadFeed();
+  },4000);
+}
+function rcStopTimer(){ if(RC_TIMER){ clearInterval(RC_TIMER); RC_TIMER=null; } }
+
 var _rimoDataT=null, RIMO_DATA_ROWS=[], RIMO_DATA_Q='';
 function renderRimoSection(){
   var b=document.getElementById('ki-ref-body'); if(!b) return;

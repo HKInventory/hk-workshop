@@ -1718,15 +1718,19 @@
        re-rasters the entire thing to do either. While that raster is in flight the grid paints black,
        and the hovered tile — promoted to its own layer precisely BECAUSE of the z-index — keeps
        drawing. Hence five tiles gone and one still there.
-       Now the lift is a plain 2D transform and the brightening is an inset shadow, so hovering
-       repaints the tile and nothing else. The resting state declares the same three shadow layers at
-       zero alpha so the transition interpolates colour only — geometry never changes, which is what
-       keeps it a paint and not a re-layer. */
+       AND NO COLOUR CHANGE EITHER. The first replacement for the filter was a white inset wash, which
+       is a paint rather than a re-raster and fixed the flicker — but white over a saturated gradient
+       desaturates it, so every tile went visibly PALE under the cursor. The lift and the shadow
+       already say "this is the one"; nothing needs to be recoloured to say it, and on the kart grid
+       next door recolouring is actively wrong because there the colour is the kart's status.
+       So hover is a plain 2D transform plus a shadow. The resting state declares the same shadow
+       layers at zero alpha so the transition interpolates colour only — geometry never changes, which
+       is what keeps this a paint and not a re-layer. */
     @media (hover:hover){
       .tile{transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease;
-            box-shadow:0 14px 34px rgba(0,0,0,0),inset 0 0 0 1px rgba(255,255,255,0),inset 0 0 0 2000px rgba(255,255,255,0)}
-      .tile:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 0 2000px rgba(255,255,255,.07)}
-      .site-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1.5px var(--ac),inset 0 0 0 2000px rgba(255,255,255,.07)}
+            box-shadow:0 14px 34px rgba(0,0,0,0),inset 0 0 0 1px rgba(255,255,255,0)}
+      .tile:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16)}
+      .site-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1.5px var(--ac)}
       .site-card.locked:hover{transform:none;box-shadow:none}
       /* With a mouse, :hover and :active both match on a click and the hover rule (being later in the
          file) won — so a tile pressed on a Mac gave no feedback at all. Same press as touch, minus

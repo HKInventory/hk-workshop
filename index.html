@@ -13126,7 +13126,7 @@ var DP_ROWS=null, DP_VIEW='karts', DP_LOADING=false, DP_ERR='', DP_STATE='';
 var DP_WINDOW_H=12;                       // hours of history the screen reads
 var DP_LIMIT=6000;                        // row cap — dpLoad reports when it bites
 var DP_TICK_MS=10000;                     // how often new pickups are pulled in — see dpTick
-var DP_RUNNER_SEC=30;                     // the runner's own poll (RF_PICK_POLL_SEC), quoted below
+var DP_RUNNER_SEC=15;                     // the runner's own poll (RF_PICK_POLL_SEC), quoted below
 var DP_TRUNC=false, DP_SPAN=null, DP_TIMER=null, DP_NEWEST=null, DP_TICKING=false;
 var DP_MIN_PICKUPS=10;                    // below this a kart hasn't run enough to judge at all
 var DP_MIN_DARK=15;                       // and "went dark" needs more than that — see the rule
@@ -13821,9 +13821,7 @@ function dpHelpView(A){
     +'pickups every '+Math.round(DP_TICK_MS/1000)+' seconds without reloading the page — so worst case it is about '
     +'<b>'+DP_RUNNER_SEC+' seconds behind RaceFacer</b>, and the <b>Last pickup</b> tile at the top tells you the real '
     +'figure right now. If you compare this with RaceFacer’s own Passing History the newest rows will be missing here; '
-    +'that is the copy cycle, not lost data. The copy is kept at '+DP_RUNNER_SEC+'s on purpose: RaceFacer is shared with '
-    +'everything else this system does, and polling it harder to make one screen look fresher would slow the rest down. '
-    +'The <b>Live feed</b> tab is the '
+    +'that is the copy cycle, not lost data. The <b>Live feed</b> tab is the '
     +'raw list, newest first — the same rows RaceFacer’s own Passing History shows, and a good way to confirm the two '
     +'agree.</p>'
     +'<p>In the Live feed, <b>Sector</b> is the split RaceFacer prints as its lap time, and <b>Lap</b> is the time from '

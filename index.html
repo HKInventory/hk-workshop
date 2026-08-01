@@ -544,6 +544,15 @@
     .dp-tbl td{padding:6px;color:var(--t1);border-bottom:1px solid var(--b1)}
     .dp-tblwrap{max-height:420px;overflow:auto;border:1px solid var(--b1);border-radius:12px}
     .dp-empty{text-align:center;color:var(--t2);font-size:13px;padding:34px 16px;line-height:1.7}
+    /* Parts picker stock levels — the same green / amber / red the rest of the app uses for stock. */
+    .rfq-pick-item.ok  .pr{color:#7CFCA9}
+    .rfq-pick-item.low .pr{color:#F5D84E}
+    .rfq-pick-item.low .nm:after{content:'LOW';margin-left:7px;font-size:9px;font-weight:800;letter-spacing:.06em;
+      color:#F5D84E;background:rgba(240,203,30,.15);padding:1px 5px;border-radius:4px;vertical-align:middle}
+    .rfq-pick-item.out{opacity:.42;cursor:not-allowed}
+    .rfq-pick-item.out:hover{background:transparent}
+    .rfq-pick-item.out .pr{color:#F09595}
+    .rfq-pick-item.out .nm{text-decoration:line-through;text-decoration-color:rgba(240,149,149,.5)}
     /* ---- RIMO CONTROL. Buttons sized for a gloved thumb on an iPad mid-session, not a mouse. ---- */
     .rc-note{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:10px}
     .rc-err{background:rgba(226,75,74,.14);border:1px solid rgba(226,75,74,.45);color:#F09595;
@@ -11452,6 +11461,10 @@ function selectKart(rfId){
 // header card (status segments + stats) + tabs (Repairs / Maintenance / Cost / Kart Notes / Parts).
 var KD_KART=null, KD_REPAIRS=[], KD_TAB='Repairs';
 var RFQ_MODE=null, RFQ_PARTS=[], RFQ_STATUS='ok', RFQ_NOTE=null, RF_WH=null, RFQ_AVAIL=false, RFQ_EDIT_NOTE=null;
+/* At or below this and a part reads as running low. Deliberately a flat number rather than each
+   part's reorder level: these are RaceFacer's counts, and RaceFacer does not carry a reorder point.
+   When the two catalogues are matched up, this is the line that becomes `p.reorder`. */
+var RFQ_LOW=5;
 var _kdBodySig='';   // signature of what the kart-detail tab body currently shows, so a realtime refresh only rebuilds it when the data actually changed (kills the strobing)
 
 /* ===== TYPING LOCK ==========================================================================
@@ -11536,7 +11549,14 @@ function _rfqPartOpts(sel){
     // "Show only available parts" mirrors RaceFacer: hide anything with no stock left,
     // but never hide the row's own current selection or it would silently reset.
     RF_WH.filter(function(p){ return !RFQ_AVAIL || Number(p.max_qty)>0 || sel===('rf:'+p.part_id); })
-      .forEach(function(p){ var v='rf:'+p.part_id; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+kEsc(p.name)+(p.price?(' \u00b7 $'+Number(p.price).toFixed(2)):'')+'</option>'; });
+      .forEach(function(p){
+        var v='rf:'+p.part_id, q=(p.max_qty==null?null:Number(p.max_qty));
+        // Same rule as the search list: out of stock stays visible and is not selectable.
+        var dis=(q!=null&&q<=0&&sel!==v)?' disabled':'';
+        o+='<option value="'+v+'"'+(sel===v?' selected':'')+dis+'>'+kEsc(p.name)
+          +(p.price?(' \u00b7 $'+Number(p.price).toFixed(2)):'')
+          +(q!=null?(q<=0?' \u00b7 none in RaceFacer':(q<=RFQ_LOW?(' \u00b7 '+q+' left'):'')):'')+'</option>';
+      });
     return o;   // real RaceFacer warehouse (synced by the runner)
   }
   (parts||[]).slice().sort(function(a,b){return String(a.desc||a.sku).localeCompare(String(b.desc||b.sku));}).forEach(function(p){
@@ -11645,10 +11665,27 @@ function rfqFilterParts(q){
   if(RFQ_AVAIL) src=src.filter(function(p){ return p.max_qty==null||Number(p.max_qty)>0; });
   var out=src.filter(function(p){ return !q||_rfqNorm(p.name).indexOf(q)>=0; }).slice(0,250);
   if(!out.length){ list.innerHTML='<div class="rfq-pick-empty">No parts match \u201c'+kEsc(q)+'\u201d</div>'; return; }
+  /* OUT OF STOCK MEANS YOU CANNOT PICK IT. RaceFacer disables those options in its own picker, and
+     for good reason: attaching a part it has none of writes a repair against stock that does not
+     exist and quietly puts the warehouse count negative. It stays VISIBLE and greyed rather than
+     hidden — "we have none" is information a mechanic needs, and a part that silently vanishes from
+     a search looks like a broken search.
+     These counts are RACEFACER's, not this app's inventory. The two are not reconciled yet, so the
+     row says whose number it is; once the names are matched up this is where the two can be shown
+     side by side and the difference flagged. */
   list.innerHTML=out.map(function(p){
     var pr=(p.price?('$'+Number(p.price).toFixed(2)):'');
-    var st=(p.max_qty!=null?((pr?' \u00b7 ':'')+Number(p.max_qty)+' in stock'):'');
-    return '<div class="rfq-pick-item" data-pid="'+kEsc(String(p.id))+'" onclick="rfqPickPart(this.getAttribute(\'data-pid\'))"><span class="nm">'+kEsc(p.name)+'</span><span class="pr">'+pr+st+'</span></div>';
+    var q=(p.max_qty==null?null:Number(p.max_qty));
+    var cls='', st='';
+    if(q==null){ st=''; }
+    else if(q<=0){ cls=' out'; st=(pr?' \u00b7 ':'')+'none in RaceFacer'; }
+    else if(q<=RFQ_LOW){ cls=' low'; st=(pr?' \u00b7 ':'')+q+' left'; }
+    else { cls=' ok'; st=(pr?' \u00b7 ':'')+q+' in stock'; }
+    var dead=(q!=null&&q<=0);
+    return '<div class="rfq-pick-item'+cls+'" data-pid="'+kEsc(String(p.id))+'"'
+      +(dead?' title="RaceFacer has none of these — it can\u2019t be attached to a repair"'
+            :' onclick="rfqPickPart(this.getAttribute(\'data-pid\'))"')
+      +'><span class="nm">'+kEsc(p.name)+'</span><span class="pr">'+pr+st+'</span></div>';
   }).join('');
 }
 function rfqPickPart(id){
@@ -11714,11 +11751,18 @@ function rfqCardHtml(){
     +'</div>';
 }
 function _rfqDefaultStatus(k){
-  // Status AFTER this repair lands: the linked note clears, so if no OTHER active notes remain
-  // the kart becomes OK; any other open note keeps it For Maintenance.
+  /* Status AFTER this repair lands: the linked note clears, so if no OTHER active notes remain the
+     kart becomes OK; any other open note keeps it For Maintenance. Whatever the mechanic then picks
+     in the box wins — this only sets what the box opens on.
+
+     IT RETURNED THE WRONG WORD. 'maint' is what a KART's status field is called; the repair form
+     speaks 'for_maintenance' — see the segment, the dropdown, and RF_STATUS_ID in the pusher, all of
+     which key on that. So repairing a note on a kart with other notes still open selected nothing at
+     all: the box fell back to OK, and the one case this function exists for — kart 19 with two notes
+     left — was the case it silently failed. */
   var notes=(k&&k.rfId!=null&&RF_NOTES_BY_ID[k.rfId])||[];
   var others=notes.filter(function(n){ return n.active && !(RFQ_NOTE&&RFQ_NOTE.id!=null&&n.id===RFQ_NOTE.id); });
-  return others.length?'maint':'ok';
+  return others.length?'for_maintenance':'ok';
 }
 /* ===== EDIT A REPAIR THAT IS ALREADY IN RACEFACER =====
    RaceFacer lets you reopen a repair and change its note and its parts; the app could only ever

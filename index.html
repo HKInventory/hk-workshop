@@ -3197,7 +3197,6 @@
           <div class="tile race"     id="wrace" onclick="go('race')"><div class="ti">🧠</div><div class="tl">Intelligence</div><div class="ts">Damage prediction · in development</div></div>
           <div class="tile facdeh"   id="bcndeh" onclick="go('dehfn')"><div class="ti">🏁</div><div class="tl">Dehaardt Functions</div><div class="ts">Timing &amp; track</div></div>
           <div class="tile maccess"  id="bcnpickups" onclick="kiOpenRef('dehaardt')"><div class="ti">🏎️</div><div class="tl">Dehaardt Pickups</div><div class="ts">Kart pickups</div></div>
-          <div class="tile facdeh"   id="bcnrimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Kart speed</div></div>
           <div class="tile factools" id="wtools" onclick="go('tools')"><div class="ti">🧰</div><div class="tl">Tools</div><div class="ts">Workshop tools</div></div>
           <div class="tile facsoon"  id="wsess" style="display:none" onclick="go('sessions')"><div class="ti">📅</div><div class="tl">Sessions</div><div class="ts">Coming soon</div></div>
         </div>
@@ -3544,7 +3543,7 @@
             <div class="tile tlo" id="kit-repairs" onclick="kiOpenRef('repairs')"><div class="ti">🛠️</div><div class="tl">Repairs</div><div class="ts">Fleet repair log</div></div>
             <div class="tile kiwire" id="kit-wiring" onclick="kiOpenRef('wiring')"><div class="ti">🔌</div><div class="tl">Wiring</div><div class="ts">Loom reference</div></div>
             <div class="tile gord" id="wkcheck" style="background:linear-gradient(145deg,#EA580C,#9A3412);border-color:rgba(251,146,60,.55)" onclick="go('kartcheck')"><div class="ti">✅</div><div class="tl">Kart Check</div><div class="ts">Fleet checks</div></div>
-            <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Presets &amp; settings</div></div>
+            <div class="tile fin" id="kit-rimoctl" onclick="kiOpenRef('rimoctl')"><div class="ti">🎛️</div><div class="tl">RIMO Control</div><div class="ts">Kart speed &amp; modes</div></div>
             <div class="tile kidh" id="kit-rimo" onclick="kiOpenRef('rimo')"><div class="ti">📊</div><div class="tl">RIMO Data</div><div class="ts">Live kart telemetry</div></div>
             <div class="tile sessdata" id="kit-sessdata" onclick="go('sessdata')"><div class="ti">🔋</div><div class="tl">Session Data</div><div class="ts">Cell traces</div></div>
             <div class="tile kicpu" id="kit-cpu" onclick="kiOpenRef('cpu')"><div class="ti">📶</div><div class="tl">CPU / WiFi</div><div class="ts">Connectivity</div></div>
@@ -5793,7 +5792,7 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
-var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups','bcn:rimoctl'];
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
 /* DESELECTING APP HEALTH DID NOTHING, AND HERE IS WHY.
    Two mechanisms had grown up side by side. Most tabs are a plain allow-list: the key is in the
    array or it is not. A few are default-ON and store a 'hide:<key>' token instead, so a config
@@ -5890,7 +5889,7 @@ var KI_SECTION_KEYS=KI_SECTION_DEFS.map(function(d){return d.key;});
 var INV_SECTION_DEFS=[{key:'scan',label:'Scan QR',tile:'tscan'},{key:'search',label:'Search',tile:'tsearch'},{key:'lowstock',label:'Low Stock',tile:'tlow'},{key:'order',label:'Request Order',tile:'tord'}];
 var COMMS_SECTION_DEFS=[{key:'tasks',label:'Tasks',tile:'wtasks'},{key:'chats',label:'Chats',tile:'wchats'},{key:'handovers',label:'Handovers',tile:'whandover'}];
 var DASH_SECTION_DEFS=[{key:'manager',label:'Manager Dashboard',tile:'mgrt'},{key:'health',label:'App Health',tile:'whealth'},{key:'summary',label:'Daily Summary',tile:'wsummary'},{key:'finance',label:'Finance',tile:'wfin'},{key:'genorder',label:'Generate Order',tile:'wgord'},{key:'tvcast',label:'TV Display',tile:'wtv'}];
-var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'bcn:rimoctl',label:'RIMO Control',tile:'bcnrimoctl'},{key:'tools',label:'Tools',tile:'wtools'}];
+var BCN_SECTION_DEFS=[{key:'bcn:layouts',label:'Layouts',tile:'bcnlayouts'},{key:'bcn:design',label:'Layout Designer',tile:'bcndesign'},{key:'bcn:sheet',label:'Track Sheet',tile:'bcntsheet'},{key:'race',label:'Intelligence',tile:'wrace'},{key:'bcn:dehaardt',label:'Dehaardt Functions',tile:'bcndeh'},{key:'bcn:pickups',label:'Dehaardt Pickups',tile:'bcnpickups'},{key:'tools',label:'Tools',tile:'wtools'}];
 var KICHK_SECTION_DEFS=[{key:'kartcheck',label:'Kart Check',tile:'wkcheck'}];   // extra Kart Info section (regular toggle, sits with the ki:* ones)
 var HOME_HIDE_KEYS=['scan','search','lowstock','order','manager','finance','genorder','tvcast','summary','health','tasks','chats','handovers','kartcheck','tools','race','beacons'];   // shown under a hub group, not the home row
 function kiAllowedSections(user){
@@ -5969,14 +5968,14 @@ function applyRoleVisibility(force){
     vis(t.id,show);
   });
   // Beacons' section sub-tiles are gated by their own default-on keys.
-  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcntsheet','bcn:sheet'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups'],['bcnrimoctl','bcn:rimoctl']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
+  [['bcnlayouts','bcn:layouts'],['bcndesign','bcn:design'],['bcntsheet','bcn:sheet'],['bcndeh','bcn:dehaardt'],['bcnpickups','bcn:pickups']].forEach(function(p){ vis(p[0], eff.indexOf(p[1])>=0); });
   // Hub tiles auto-show when ANY of their sections is permitted (and auto-hide when none is). Drives
   // Inventory, Dashboard, Comms and Beacons straight from their section tiles.
   function anyVis(ids){ return ids.some(function(id){ var el=document.getElementById(id); return el&&el.style.display!=='none'; }); }
   vis('thubparts', anyVis(['tscan','tsearch','tlow','tord']));
   vis('thubdash',  anyVis(['mgrt','wfin','wgord','wtv','whealth','wsummary','wmaccess']));
   vis('thubcomms', anyVis(['wtasks','wchats','whandover']));
-  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','bcnrimoctl','wtools','wsess']));
+  vis('wbeacon',   anyVis(['bcnlayouts','bcndesign','bcntsheet','wrace','bcndeh','bcnpickups','wtools','wsess']));
   // Re-flow the grid (equal sizing + odd-count double-wide last tile)
   layoutHome();
   if(typeof refreshRfBadge==='function'){try{refreshRfBadge();}catch(e){}}

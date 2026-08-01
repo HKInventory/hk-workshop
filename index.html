@@ -1002,8 +1002,13 @@
     .kart-chip[data-status="maint"]{background:linear-gradient(160deg,#f0cb1e,#d1a808);border-color:rgba(253,224,71,.5)}
     .kart-chip[data-status="damaged"]{background:linear-gradient(160deg,#e2564d,#b3352c);border-color:rgba(248,113,113,.45)}
 .kart-chip .kc-num{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.5)}
-    .kart-chip:hover{filter:brightness(1.12)}
-    @media(hover:hover){.kart-chip:hover{transform:scale(1.05);z-index:2}}
+    /* Hover-capable only, and no filter / no z-index — same reason as .tile:hover, see the note
+       beside it. A filter here re-rasters the whole screen's 3D context on every chip the mouse
+       crosses, and this grid can hold forty of them. */
+    @media(hover:hover){
+      .kart-chip{transition:transform .12s,background .12s,border-color .12s,box-shadow .12s;box-shadow:inset 0 0 0 2000px rgba(255,255,255,0)}
+      .kart-chip:hover{transform:scale(1.05);box-shadow:inset 0 0 0 2000px rgba(255,255,255,.12)}
+    }
     .kart-chip.selected{outline:2px solid #fff;outline-offset:1px}
     /* Fleet status bar (OK / maintenance / damaged) shown above the chips for the selected type */
     .ksb-wrap{margin:2px 0 16px}
@@ -1084,7 +1089,9 @@
     .ktype-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
     .ktype-tab{flex:1 1 auto;min-width:72px;background:transparent;border:1.5px solid var(--b1);color:var(--t2);padding:10px 12px;border-radius:14px;font-weight:800;font-size:clamp(12px,3.2vw,15px);cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
     .ktype-tab:active{transform:scale(0.96)}
-    @media(hover:hover){.ktype-tab:hover{transform:scale(1.06);border-color:var(--b2);z-index:2}}
+    /* No z-index bump on hover — see the .tile:hover note. The tabs sit in a row with a gap, so a 6%
+       scale has room to grow without needing to paint over a neighbour. */
+    @media(hover:hover){.ktype-tab:hover{transform:scale(1.06);border-color:var(--b2)}}
     .ktype-tab .ktt-n{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.3px}
     /* Kart Check */
     .kc-sub{font-size:12.5px;color:var(--t2);line-height:1.7;margin:2px 2px 4px}
@@ -1675,12 +1682,31 @@
     .tkmsg-loading{background:rgba(0,207,255,0.08);border:1.5px solid rgba(0,207,255,0.25);color:#00CFFF;padding:10px 12px;border-radius:10px;font-weight:600;text-align:center;font-size:13px}
   
     /* Phase 2 — hover lift on tiles (desktop / hover-capable only). A pure lift + glow (no
-       horizontal scale) keeps the double-wide Master Access tile from bleeding over its neighbour. */
+       horizontal scale) keeps the double-wide Master Access tile from bleeding over its neighbour.
+
+       NO `filter` AND NO `z-index` CHANGE ON HOVER, deliberately. Both were here and both made the
+       home screen flicker badly on a Mac: moving the mouse across the grid blanked every tile except
+       the one under the cursor, for a frame or two at a time.
+       Every screen is a `.scr`, which carries will-change:transform, contain and preserve-3d so the
+       slide animation stays smooth — so the whole screen is ONE composited 3D context. A `filter` on
+       a descendant flattens that context and a z-index change re-sorts it, and Chrome on macOS
+       re-rasters the entire thing to do either. While that raster is in flight the grid paints black,
+       and the hovered tile — promoted to its own layer precisely BECAUSE of the z-index — keeps
+       drawing. Hence five tiles gone and one still there.
+       Now the lift is a plain 2D transform and the brightening is an inset shadow, so hovering
+       repaints the tile and nothing else. The resting state declares the same three shadow layers at
+       zero alpha so the transition interpolates colour only — geometry never changes, which is what
+       keeps it a paint and not a re-layer. */
     @media (hover:hover){
-      .tile{transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease,filter .2s ease}
-      .tile:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16);filter:brightness(1.06);z-index:3}
-      .site-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1.5px var(--ac);filter:brightness(1.06);}
-      .site-card.locked:hover{transform:none;box-shadow:none;filter:none;}
+      .tile{transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease;
+            box-shadow:0 14px 34px rgba(0,0,0,0),inset 0 0 0 1px rgba(255,255,255,0),inset 0 0 0 2000px rgba(255,255,255,0)}
+      .tile:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 0 2000px rgba(255,255,255,.07)}
+      .site-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1.5px var(--ac),inset 0 0 0 2000px rgba(255,255,255,.07)}
+      .site-card.locked:hover{transform:none;box-shadow:none}
+      /* With a mouse, :hover and :active both match on a click and the hover rule (being later in the
+         file) won — so a tile pressed on a Mac gave no feedback at all. Same press as touch, minus
+         the fight with the lift. */
+      .tile:hover:active{transform:translateY(-2px) scale(.97)}
     }
     /* Master access link on PIN screen */
     .master-link{margin-top:16px;background:none;border:none;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;padding:8px;letter-spacing:.3px}

@@ -13126,7 +13126,7 @@ var DP_ROWS=null, DP_VIEW='karts', DP_LOADING=false, DP_ERR='', DP_STATE='';
 var DP_WINDOW_H=12;                       // hours of history the screen reads
 var DP_LIMIT=6000;                        // row cap — dpLoad reports when it bites
 var DP_TICK_MS=10000;                     // how often new pickups are pulled in — see dpTick
-var DP_RUNNER_SEC=15;                     // the runner's own poll, quoted in the explainer
+var DP_RUNNER_SEC=30;                     // the runner's own poll (RF_PICK_POLL_SEC), quoted below
 var DP_TRUNC=false, DP_SPAN=null, DP_TIMER=null, DP_NEWEST=null, DP_TICKING=false;
 var DP_MIN_PICKUPS=10;                    // below this a kart hasn't run enough to judge at all
 var DP_MIN_DARK=15;                       // and "went dark" needs more than that — see the rule
@@ -13593,6 +13593,31 @@ function dpAnalyse(rows){
   return {karts:karts,loops:loops,rows:rows.length,newest:newest,shared:shared,doubles:totalDoubles,
           haveStrength:rows.some(function(r){return r.strength!=null;})};
 }
+/* SAY HOW FAR BEHIND THIS IS, FROM THE DATA RATHER THAN FROM A PROMISE.
+   The runner copies RaceFacer's passing history every DP_RUNNER_SEC, so this screen is up to that
+   far behind — put it side by side with RaceFacer's own Passing History and the last few rows will
+   be missing. That is latency, not loss, and the difference matters: somebody comparing the two
+   screens and finding rows absent reasonably concludes the mirror is broken.
+   The age is measured off the newest pickup actually held rather than printed as a fixed claim, so
+   it stays true if the poll is retuned on Render, and it turns into a real warning when the gap
+   grows past what the copy cycle can explain — which is the case that IS worth looking at. */
+function _dpAgo(t){
+  if(!t) return '—';
+  var s=Math.max(0,Math.round((Date.now()-t)/1000));
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.round(s/60)+' min ago';
+  return (Math.round(s/360)/10)+' h ago';
+}
+function _dpStale(t){
+  // Two copy cycles plus a little slack. Below that it is the mirror breathing; above it, something
+  // has stopped — nothing on track, or the runner is not writing.
+  return !!t && (Date.now()-t) > (DP_RUNNER_SEC*2+20)*1000;
+}
+function _dpFreshNote(t){
+  if(!t) return 'nothing yet';
+  return _dpStale(t) ? ('older than the '+DP_RUNNER_SEC+'s copy — check the runner')
+                     : ('copied every '+DP_RUNNER_SEC+'s');
+}
 function _dpDur(ms){
   var s=Math.round(ms/1000);
   if(s<90) return s+'s';
@@ -13609,10 +13634,14 @@ function dpSummary(A){
     :('last '+DP_WINDOW_H+'h');
   return (DP_TRUNC?('<div class="dp-t2" style="margin-bottom:10px;color:#F5D84E">Showing the newest '+DP_LIMIT
       +' pickups, which covers '+span.replace('last ','')+' of the '+DP_WINDOW_H+'h window — not the whole of it.</div>'):'')
+    +'<div class="dp-t2" style="margin-bottom:10px">This mirrors RaceFacer\u2019s passing history every <b>'+DP_RUNNER_SEC+' seconds</b>, '
+      +'so it runs up to about half a minute behind. Side by side with RaceFacer the newest few rows will be missing here \u2014 '
+      +'that is the copy cycle, not lost data. The tile below says how old the newest pickup actually is.</div>'
     +(A.haveStrength?'':'<div class="dp-t2" style="margin-bottom:10px">RaceFacer reports no signal strength or battery level on this system, so these '
       +'judgements are made on <b>where and when each kart was seen</b> rather than on signal. '
       +'A kart is compared against itself and against the karts that were out with it.</div>')
     +'<div class="dp-sum">'
+    +'<div class="dp-s'+(_dpStale(A.newest)?' warn':'')+'"><i>Last pickup</i><b>'+_dpAgo(A.newest)+'</b><u>'+_dpFreshNote(A.newest)+'</u></div>'
     +'<div class="dp-s"><i>Pickups</i><b>'+A.rows+'</b><u>'+span+'</u></div>'
     +'<div class="dp-s"><i>Karts seen</i><b>'+A.karts.length+'</b><u>across '+A.loops.length+' loop'+(A.loops.length===1?'':'s')+'</u></div>'
     +'<div class="dp-s'+(bad?' bad':(warn?' warn':''))+'"><i>Needs a look</i><b>'+(bad+warn)+'</b><u>'
@@ -13789,7 +13818,12 @@ function dpHelpView(A){
 
     +'<h4>How fresh it is</h4>'
     +'<p>The runner copies RaceFacer’s passing history every '+DP_RUNNER_SEC+' seconds, and this screen picks up new '
-    +'pickups every '+Math.round(DP_TICK_MS/1000)+' seconds without reloading the page. The <b>Live feed</b> tab is the '
+    +'pickups every '+Math.round(DP_TICK_MS/1000)+' seconds without reloading the page — so worst case it is about '
+    +'<b>'+DP_RUNNER_SEC+' seconds behind RaceFacer</b>, and the <b>Last pickup</b> tile at the top tells you the real '
+    +'figure right now. If you compare this with RaceFacer’s own Passing History the newest rows will be missing here; '
+    +'that is the copy cycle, not lost data. The copy is kept at '+DP_RUNNER_SEC+'s on purpose: RaceFacer is shared with '
+    +'everything else this system does, and polling it harder to make one screen look fresher would slow the rest down. '
+    +'The <b>Live feed</b> tab is the '
     +'raw list, newest first — the same rows RaceFacer’s own Passing History shows, and a good way to confirm the two '
     +'agree.</p>'
     +'<p>In the Live feed, <b>Sector</b> is the split RaceFacer prints as its lap time, and <b>Lap</b> is the time from '

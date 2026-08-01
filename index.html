@@ -357,7 +357,22 @@
     .scr.behind{pointer-events:none;z-index:1}
     .scr.active{transform:translate3d(0,0,0)}
     .scr.behind{transform:translate3d(-28%,0,0)}
-    
+
+    /* A LOOPING ANIMATION ON A SCREEN NOBODY IS LOOKING AT STILL COSTS EVERY FRAME.
+       There are 35 screens and they all stay in the DOM, parked off to the right. CSS animations do
+       not care that a screen is out of view — the beacon dots kept pulsing their box-shadow and the
+       scanner viewport kept sliding its background gradient, forever, on screens the user might not
+       open all day. Both are paint properties, so both invalidated on every frame of every screen.
+       Parked screens only: a screen mid-transition (nav-locked, swiping, behind) is on its way in or
+       out and must keep animating, or a pulse would visibly freeze during the slide. */
+    /* ::before/::after are listed explicitly — animation-play-state doesn't inherit, and `*` doesn't
+       match a pseudo-element. The scanner's shimmer lives on one, and it was the last thing still
+       ticking with every screen closed. */
+    #app:not(.nav-locked) .scr:not(.active):not(.swiping):not(.behind) *,
+    #app:not(.nav-locked) .scr:not(.active):not(.swiping):not(.behind) *::before,
+    #app:not(.nav-locked) .scr:not(.active):not(.swiping):not(.behind) *::after{animation-play-state:paused}
+
+
     .sb{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-top:0;padding-bottom:calc(max(env(safe-area-inset-bottom),12px) + 8px);padding-left:20px;padding-right:20px;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
     .sf{flex:1;overflow:hidden;padding:0 20px calc(max(env(safe-area-inset-bottom),0px) + 16px)}
     /* Touch devices only: drop the home-indicator gap so tiles reach the very bottom edge (matches the
@@ -408,12 +423,18 @@
 
     /* Animated accent line under the header — flows magenta↔cyan on the PIN screen,
        switches to the site / training colour (still flowing, subtler) once logged in */
-    #hdrAccent{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:2;pointer-events:none;
+    /* Flows on `transform`, not `background-position` — background-position is a paint property, so
+       the old version repainted this strip on every frame of every screen, forever. The gradient now
+       lives on a double-width child that slides inside a clipping box: same look, no repaint.
+       Half the distance per cycle as the old background-position sweep, so half the duration keeps
+       the speed identical. The custom properties stay on #hdrAccent — the pseudo inherits them, so
+       hdrAccentMode() still works untouched. */
+    #hdrAccent{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:2;pointer-events:none;overflow:hidden}
+    #hdrAccent::after{content:"";position:absolute;top:0;left:0;height:100%;width:200%;
       background-image:var(--accentGrad,linear-gradient(90deg,#00CFFF,#E040FB,#00CFFF,#E040FB,#00CFFF));
-      background-size:200% 100%;
-      animation:accentFlow var(--accentSpeed,7s) linear infinite;}
-    @keyframes accentFlow{0%{background-position:0% 0}100%{background-position:200% 0}}
-    @media (prefers-reduced-motion:reduce){ #hdrAccent{animation:none} }
+      animation:accentFlow calc(var(--accentSpeed,7s) / 2) linear infinite;}
+    @keyframes accentFlow{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    @media (prefers-reduced-motion:reduce){ #hdrAccent::after{animation:none} }
 
     /* ── HOME (unified grid — every tile equal size, fills screen, no scroll) ── */
     #s-home .sf{position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
@@ -1002,12 +1023,16 @@
     .kart-chip[data-status="maint"]{background:linear-gradient(160deg,#f0cb1e,#d1a808);border-color:rgba(253,224,71,.5)}
     .kart-chip[data-status="damaged"]{background:linear-gradient(160deg,#e2564d,#b3352c);border-color:rgba(248,113,113,.45)}
 .kart-chip .kc-num{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.5)}
-    /* Hover-capable only, and no filter / no z-index — same reason as .tile:hover, see the note
-       beside it. A filter here re-rasters the whole screen's 3D context on every chip the mouse
-       crosses, and this grid can hold forty of them. */
+    /* HOVER MUST NOT CHANGE A CHIP'S COLOUR. On this grid the colour IS the data — green/amber/red is
+       the kart's status — so brightening the chip under the cursor makes it read as a different
+       status to the fifty around it. A hovered amber chip looked like a lighter amber that means
+       nothing. The chip lifts instead: size and shadow say "this is the one", and the colour keeps
+       meaning exactly one thing.
+       Also hover-capable only (it used to apply everywhere, so on an iPad the highlight stuck to the
+       last chip tapped), and no filter / no z-index — see the note beside .tile:hover. */
     @media(hover:hover){
-      .kart-chip{transition:transform .12s,background .12s,border-color .12s,box-shadow .12s;box-shadow:inset 0 0 0 2000px rgba(255,255,255,0)}
-      .kart-chip:hover{transform:scale(1.05);box-shadow:inset 0 0 0 2000px rgba(255,255,255,.12)}
+      .kart-chip{transition:transform .12s,background .12s,border-color .12s,box-shadow .12s;box-shadow:0 0 0 0 rgba(0,0,0,0)}
+      .kart-chip:hover{transform:scale(1.06);box-shadow:0 6px 16px rgba(0,0,0,.5)}
     }
     .kart-chip.selected{outline:2px solid #fff;outline-offset:1px}
     /* Fleet status bar (OK / maintenance / damaged) shown above the chips for the selected type */
@@ -1963,8 +1988,14 @@
 @media (max-width:430px){ .sitebar{gap:6px;padding-left:80px;padding-right:80px}
   .sitebar .sb-hint{font-size:8.5px;letter-spacing:.02em} }
 @media (max-width:360px){ .sitebar .sb-hint{display:none} }
-.sitebar::after{content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;background:linear-gradient(90deg,transparent,var(--siteGlow,rgba(0,207,255,.2)),transparent);animation:sbsweep 5s ease-in-out infinite;}
-@keyframes sbsweep{0%{left:-45%;}55%,100%{left:130%;}}
+/* SWEEPS ON `transform`, NOT `left`. This animation never stops and the site bar is on every screen,
+   so whatever it costs, it costs forever. Animating `left` is a LAYOUT property: the page was running
+   33 layouts a second while sitting completely idle, no input, no script. Measured, not assumed.
+   `transform` is a compositor property — the same sweep now costs no layout and no repaint at all.
+   Same geometry: the strip is 45% of the bar, so left:-45% of the bar is translateX(-100%) of the
+   strip, and left:130% is 130/45 = 288.9% of it. */
+.sitebar::after{content:"";position:absolute;top:0;left:0;width:45%;height:100%;background:linear-gradient(90deg,transparent,var(--siteGlow,rgba(0,207,255,.2)),transparent);animation:sbsweep 5s ease-in-out infinite;}
+@keyframes sbsweep{0%{transform:translateX(-100%)}55%,100%{transform:translateX(288.9%)}}
 /* ----- site chooser ----- */
 .sitechoose{position:absolute;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 100% at 50% 0%,#0b1722 0%,#05080c 60%,#000 100%);opacity:0;transition:opacity .36s ease;overflow:hidden;}
 .sitechoose.in{opacity:1;} .sitechoose.out{opacity:0;}

@@ -18886,11 +18886,29 @@ function _tkOverdue(t){ if(!t||t.status==='done') return false; var v=_tkDueVal(
    just noise. A kart check is different: it is a fleet-wide announcement of a count everyone acts
    on, and the person who ran it wants the same confirmation on their phone as everybody else. So
    the skip is opt-out per call rather than absolute. */
+/* SAY WHAT HAPPENED. Every push in the app except the test button threw its result away — `.catch()`
+   and nothing else — so a chat or task alert that the function REFUSED looked exactly like one that
+   was delivered. "Chats aren't coming through" had no evidence attached to it anywhere, on either
+   device, which is why it could not be diagnosed.
+   These land in the console of the device that SENT the message, which is where the answer lives: it
+   is the sender's PIN the function checks and the sender's build doing the calling. One line per
+   recipient, saying which of the four things happened. */
 function hkNotify(toName,title,body,tag,url,allowSelf){
   try{
     if(!toName||!cu||typeof SB_FN==='undefined') return;
-    if(toName===cu.name && !allowSelf) return;
-    fetch(SB_FN+'notify-user',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu.pin||''),toName:toName,title:title,body:body||'',tag:tag||'hkws-msg',url:url||'./'})}).catch(function(){});
+    if(toName===cu.name && !allowSelf){
+      try{ console.info('[push] '+toName+': skipped — you are never pushed for your own message'); }catch(e){}
+      return;
+    }
+    fetch(SB_FN+'notify-user',{method:'POST',headers:HDRS,body:JSON.stringify({pin:(cu.pin||''),toName:toName,title:title,body:body||'',tag:tag||'hkws-msg',url:url||'./'})})
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        try{
+          if(res&&res.success&&res.sent>0) console.info('[push] '+toName+': sent to '+res.sent+' device(s)');
+          else if(res&&res.success) console.warn('[push] '+toName+': the function ran but that person has no live device subscribed — they need to tap Enable on the device they want alerts on.');
+          else console.warn('[push] '+toName+': REFUSED — '+((res&&res.message)||'no message')+'. A refusal here is usually the SENDER’s PIN not being in the staff table the function checks.');
+        }catch(e){}
+      },function(){ try{ console.warn('[push] '+toName+': could not reach notify-user at all.'); }catch(e){} });
   }catch(e){}
 }
 

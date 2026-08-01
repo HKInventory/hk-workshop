@@ -6225,7 +6225,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();notifRefresh();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
   try{ if(!TRAINING) startPresence(); }catch(e){}
@@ -18720,12 +18720,28 @@ function notifEnable(){
     var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), standalone=!!window.navigator.standalone;
     _pushSay(isIOS&&!standalone?'On iPhone: tap Share \u2192 Add to Home Screen, open HK from that icon, then try again.':'This browser can\u2019t do push notifications.','#F59E0B'); return;
   }
+  /* A ROW SAVED WITHOUT A NAME CAN NEVER REACH YOU. notify-user finds a device by the name on its
+     row, and this used to fall back to '' when cu hadn't loaded yet \u2014 a subscription that looks
+     enabled on the phone, sits in push_subs forever, and is matched to nobody. Say so instead. */
+  if(!cu||!cu.name){ _pushSay('Sign in first \u2014 a subscription saved before you sign in has no name on it, and alerts are matched to you by name.','#F59E0B'); return; }
   _pushSay('Enabling\u2026','var(--t2)');
   Promise.resolve(Notification.permission==='granted'?'granted':Notification.requestPermission()).then(function(perm){
     if(perm!=='granted'){ _pushSay('Notifications are blocked for this app. On iPhone: delete the Home-Screen icon, re-add it, open it, then Enable.','#FF5A52'); return; }
     return navigator.serviceWorker.getRegistration().then(function(reg){ return reg||navigator.serviceWorker.register('sw.js'); })
       .then(function(){ return navigator.serviceWorker.ready; })
-      .then(function(reg){ return reg.pushManager.getSubscription().then(function(ex){ return ex?ex.unsubscribe().catch(function(){}).then(function(){return reg;}):reg; }); })
+      /* AND TAKE THE OLD ROW WITH IT. Re-subscribing mints a NEW endpoint, and push_subs is keyed on
+         endpoint — so the row for the endpoint we just threw away stayed behind, permanently, with
+         your name on it. Enable twice on one phone and you have two rows, one of them dead; the
+         push service answers 410 for it forever. That is how a phone ends up "subscribed" and
+         silent, and it is the most likely reason one particular device stops getting alerts. */
+      .then(function(reg){ return reg.pushManager.getSubscription().then(function(ex){
+          if(!ex) return reg;
+          var dead=ex.endpoint;
+          return ex.unsubscribe().catch(function(){}).then(function(){
+            try{ if(dead) SBC.from('push_subs').delete().eq('endpoint',dead); }catch(e){}
+            return reg;
+          });
+        }); })
       .then(function(reg){ return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToU8(PUSH_PUBKEY)}); })
       .then(function(sub){ var j=sub.toJSON(); return SBC.from('push_subs').upsert({endpoint:sub.endpoint,sub:j,name:(cu&&cu.name)||'',site:(currentSite||'sydney'),updated_at:new Date().toISOString()},{onConflict:'endpoint'}); })
       .then(function(res){
@@ -18736,6 +18752,30 @@ function notifEnable(){
     var m=(err&&err.message)||String(err);
     _pushSay('Couldn\u2019t enable \u2014 '+m+(/applicationServerKey|key/i.test(m)?' (the VAPID public key in Supabase must exactly match the app).':''),'#FF5A52');
   });
+}
+/* KEEP THIS DEVICE'S ROW CURRENT, ON EVERY LAUNCH, WITHOUT ASKING.
+   Everything about a push subscription drifts: the browser rotates the endpoint, iOS drops it when
+   the Home-Screen app goes untouched for a while, and the name on the row is a snapshot from
+   whenever Enable was last tapped — so a device that was set up under an empty or old name never
+   corrects itself, no matter how many times you sign in. The phone looks enabled and is simply not
+   findable. This costs one upsert per app open and makes the row match reality: right endpoint,
+   right name, fresh timestamp. It never prompts and never subscribes on its own — if permission
+   was not granted, or there is no subscription, it does nothing at all. */
+function notifRefresh(){
+  try {
+    if(!cu||!cu.name) return;
+    if(typeof SBC==='undefined'||!SBC) return;
+    if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+    if(Notification.permission!=='granted') return;
+    navigator.serviceWorker.ready
+      .then(function(reg){ return reg.pushManager.getSubscription(); })
+      .then(function(sub){
+        if(!sub) return;
+        return SBC.from('push_subs').upsert({ endpoint:sub.endpoint, sub:sub.toJSON(), name:cu.name,
+          site:(currentSite||'sydney'), updated_at:new Date().toISOString() },{onConflict:'endpoint'});
+      })
+      .catch(function(){});   // best effort: a failed refresh must never block sign-in
+  } catch(e){}
 }
 /* ---- TV ramp countdown ---- */
 var _tvRampT=null,_tvRampList=null;

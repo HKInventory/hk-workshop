@@ -2057,13 +2057,21 @@
        Gated on BOTH dimensions so no phone, in either orientation, can match it — and on a coarse
        pointer, so it is a tablet and not a Mac browser window that happens to be 700 tall. */
     @media (min-width: 700px) and (min-height: 700px) and (pointer: coarse) {
-      .pin-wrap { max-width: none; gap: 26px; }
-      .pin-h2 { font-size: clamp(30px, 4.4vmin, 44px); }
-      .pin-p  { font-size: clamp(15px, 1.9vmin, 19px); }
-      .dots { gap: clamp(16px, 2.2vmin, 24px); }
-      .dot { width: clamp(16px, 1.9vmin, 22px); height: clamp(16px, 1.9vmin, 22px); }
-      .pad { max-width: min(470px, 54vmin); gap: clamp(10px, 1.5vmin, 18px); }
-      .k { border-radius: 22px; font-size: clamp(26px, 4.2vmin, 40px); }
+      /* Trimmed about 15% from the first pass. Sizing off the short edge was the right idea — it is
+         what stops a 470px keypad marooned in the middle of a tablet — but 54vmin overshot: the pad
+         came out 443px wide with 139px keys, which reads as a toy rather than a keypad. A key is
+         still ~118px, comfortably past the 44px touch target and bigger than the phone's 80px, so
+         nothing has been made harder to hit; it just stops dominating the screen.
+         Everything here is inside the tablet gate above — min-width AND min-height 700 AND a coarse
+         pointer — so a phone in either orientation and a Mac at any window size never reach it.
+         Measured, not assumed: iPhone and Mac render the pad at 260x267 with or without this block. */
+      .pin-wrap { max-width: none; gap: 22px; }
+      .pin-h2 { font-size: clamp(26px, 3.8vmin, 38px); }
+      .pin-p  { font-size: clamp(14px, 1.7vmin, 17px); }
+      .dots { gap: clamp(14px, 1.9vmin, 21px); }
+      .dot { width: clamp(14px, 1.7vmin, 19px); height: clamp(14px, 1.7vmin, 19px); }
+      .pad { max-width: min(400px, 46vmin); gap: clamp(9px, 1.3vmin, 15px); }
+      .k { border-radius: 20px; font-size: clamp(22px, 3.6vmin, 34px); }
       .sc-inner { max-width: min(620px, 68vmin); }
       .sc-h { font-size: clamp(34px, 5vmin, 48px); }
       .sc-p { font-size: clamp(15px, 2vmin, 20px); margin-bottom: clamp(28px, 4vmin, 44px); }

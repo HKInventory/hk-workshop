@@ -19268,10 +19268,24 @@ function sdLoadTrace(){
   if(_greenMs){ _fromMs=_greenMs-_PAD; _toMs=_greenMs+_lenMs+_PAD; }
   else { _fromMs=_schedMs-_PAD; _toMs=_schedMs+_lenMs+_PAD+(typeof SD_DRIFT==='number'?SD_DRIFT:0); }
   var from=new Date(_fromMs).toISOString(), to=new Date(_toMs).toISOString();
-  // query by serial (fleet_management_id) if we have it, else by kart number
-  var query=SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults,online').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000);
-  if(SD_KART.fleet_management_id){ query=query.eq('serial_no',SD_KART.fleet_management_id); }
-  else { query=query.eq('kart_no',parseInt(SD_KART.kart_no,10)); }
+  /* SERIAL FIRST, KART NUMBER AS THE SAFETY NET.
+     The serial is the precise key — it is what the logger records against — so it stays the first
+     choice. But it comes from RaceFacer's fleet_management_id on the RUN, and if that is stale or
+     simply wrong for one kart, an eq() on it matches nothing and the screen says "no cell data"
+     about a kart that was demonstrably on track for sixteen laps. That is kart 37 in this session:
+     every other kart in the same race returned a trace.
+     A miss on the serial now retries by kart number, which the logger also records. It costs one
+     extra query only when the first found nothing, and it cannot lose data — it can only find some
+     that the first lookup missed. */
+  var _base=function(){ return SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults,online').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000); };
+  var _kn=parseInt(SD_KART.kart_no,10);
+  var query=SD_KART.fleet_management_id
+    ? _base().eq('serial_no',SD_KART.fleet_management_id).then(function(r){
+        // Nothing under that serial — fall back to the number before declaring the kart unlogged.
+        if(r&&!r.error&&(!r.data||!r.data.length)&&Number.isFinite(_kn)) return _base().eq('kart_no',_kn);
+        return r;
+      })
+    : _base().eq('kart_no',_kn);
   query.then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ box.innerHTML='<div class="sd-empty">Cell history table isn\u2019t set up yet \u2014 run hk_ai.sql.</div>'; return; }
     SD_ROWS=(r&&r.data)||[];

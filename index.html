@@ -11702,6 +11702,26 @@ function rfqSuggestNote(){
 function rfqPartQty(i,v){ if(RFQ_PARTS[i]) RFQ_PARTS[i].qty=Math.max(0,Number(v)||0); rfqTotal(); rfqSuggestNote(); }
 // ── Searchable parts picker (bottom sheet) ──────────────────────────────────
 var RFQ_PICK_ROW=-1;
+/* The parts RaceFacer will accept for the kart currently open, loaded when the repair card opens.
+   Empty means "not mirrored yet" — see rfqFilterParts, which falls back to the warehouse list. */
+var RFQ_TYPE_PARTS=null, _RFQ_TP_TYPE=null;
+function rfqLoadTypeParts(){
+  try{
+    if(typeof SBC==='undefined'||!SBC) return;
+    var k=KD_KART||{}; if(!k.type) return;
+    var tid=(typeof _admTypeId==='function')?_admTypeId(k.type):null;
+    if(tid==null){ RFQ_TYPE_PARTS=null; _RFQ_TP_TYPE=null; return; }
+    if(_RFQ_TP_TYPE===tid&&RFQ_TYPE_PARTS) return;      // same kart type as last time — already held
+    _RFQ_TP_TYPE=tid;
+    SBC.from('rf_type_parts').select('part_id,stock_id,name,price,max_qty').eq('kart_type_id',tid).order('name')
+      .then(function(r){
+        // A missing table or an empty type both mean "fall back to the warehouse", which is what the
+        // app did before this existed. Never an error the mechanic has to read.
+        RFQ_TYPE_PARTS=(r&&!r.error&&r.data&&r.data.length)?r.data:null;
+        try{ var ov=document.getElementById('rfq-pick-ov'); if(ov&&ov.classList.contains('on')){ var q=document.getElementById('rfq-pick-q'); rfqFilterParts(q?q.value:''); } }catch(e){}
+      },function(){ RFQ_TYPE_PARTS=null; });
+  }catch(e){}
+}
 function _rfqNorm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
 // RaceFacer's warehouse feed only prices SOME parts, so most showed blank. The app already keeps the
 // inventory `parts` table priced (Finance uses it) — fall back to it, matched by name, so a part shows a
@@ -11719,7 +11739,18 @@ function rfqClosePartPick(){ var ov=document.getElementById('rfq-pick-ov'); if(o
 function rfqFilterParts(q){
   var list=document.getElementById('rfq-pick-list'); if(!list) return;
   q=_rfqNorm(q);
-  var src=(RF_WH&&RF_WH.length)
+  /* OFFER WHAT THIS KART CAN ACTUALLY BE GIVEN, NOT THE WHOLE BUILDING.
+     This listed all 155 warehouse parts for every kart. RaceFacer only accepts the ~127 in that
+     KART TYPE's own list, so a mechanic could pick something it would refuse — and before the id
+     fix it did not refuse, it attached whatever part shared that number. Picking a DGM Front
+     recorded a 250amp Fuse.
+     rf_type_parts mirrors RaceFacer's own per-type picker data, so this now asks the same question
+     RaceFacer asks. The warehouse stays as the fallback for a kart whose type has not been mirrored
+     yet and for the moments before the runner has read a damage page — that is exactly today's
+     behaviour, so nothing is worse than it was while the table fills. */
+  var src=(RFQ_TYPE_PARTS&&RFQ_TYPE_PARTS.length)
+    ? RFQ_TYPE_PARTS.map(function(p){ return {id:'rf:'+p.part_id, name:p.name, price:(Number(p.price)||_rfqInvPrice(p.name)), max_qty:p.max_qty}; })
+    : (RF_WH&&RF_WH.length)
     ? RF_WH.map(function(p){ return {id:'rf:'+p.part_id, name:p.name, price:(Number(p.price)||_rfqInvPrice(p.name)), max_qty:p.max_qty}; })
     : (parts||[]).map(function(p){ return {id:String(p.sku), name:(p.desc||p.sku), price:p.price, max_qty:null}; });
   if(RFQ_AVAIL) src=src.filter(function(p){ return p.max_qty==null||Number(p.max_qty)>0; });
@@ -11904,7 +11935,7 @@ function rfqToggle(mode){
   _RFQ_AUTONOTE='';       // ...nor treat the last suggestion as text this form wrote
   ktTab('Repairs');
   if(mode==='repair'){ RFQ_PARTS=[{sku:'',name:'',qty:0,price:0}];   // RaceFacer opens with one blank row
-    rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); }
+    rfqRenderParts(); rfqWhBanner(); loadRfWarehouse(); rfqLoadTypeParts(); }
   // Focus WITHOUT the jump: focus() alone makes iOS slam the keyboard open and scroll-snap to
   // the field, shifting the whole page. preventScroll + a smooth glide reads far cleaner.
   var t=document.getElementById('rfq-note');

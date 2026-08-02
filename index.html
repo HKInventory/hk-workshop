@@ -19289,7 +19289,29 @@ function sdLoadTrace(){
   query.then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ box.innerHTML='<div class="sd-empty">Cell history table isn\u2019t set up yet \u2014 run hk_ai.sql.</div>'; return; }
     SD_ROWS=(r&&r.data)||[];
-    if(!SD_ROWS.length){ box.innerHTML='<div class="sd-empty">No cell data logged for Kart '+_sdEsc(String(SD_KART.kart_no))+' in this session.<br><span style="font-size:11.5px">The logger records while a kart is on track and keeps 7 days. If the runner wasn\u2019t live during this session, there\u2019s nothing to show.</span></div>'; return; }
+    if(!SD_ROWS.length){
+      /* SAY WHOSE GAP IT IS. "No cell data logged" reads as "we lost it", and that was wrong often
+         enough to matter: only about 15% of the fleet reports into RiMO at any moment, so a race
+         routinely has karts with no trace through no fault of this app. One cheap follow-up
+         separates the two — has this kart reported AT ALL today? If not, it was not talking to RiMO
+         and that is worth knowing in its own right; a kart that stops reporting is a fault. If it
+         has reported today but not during this race, that is the interesting case and says so.
+         Runs only on the empty path, only when a kart is tapped. */
+      var _kn2=parseInt(SD_KART.kart_no,10);
+      var _dayFrom=new Date(_fromMs-12*3600000).toISOString();
+      var _any=SBC.from('rimo_bms_history').select('at').gte('at',_dayFrom).order('at',{ascending:false}).limit(1);
+      _any=SD_KART.fleet_management_id?_any.eq('serial_no',SD_KART.fleet_management_id):_any.eq('kart_no',_kn2);
+      _any.then(function(a){
+        var reported=!!(a&&!a.error&&a.data&&a.data.length);
+        var k=_sdEsc(String(SD_KART.kart_no));
+        box.innerHTML=reported
+          ? '<div class="sd-empty">Kart '+k+' was reporting today, but sent nothing during this race.<br><span style="font-size:11.5px">Its last reading was outside this session\u2019s window \u2014 usually a kart that dropped off the RiMO network partway through.</span></div>'
+          : '<div class="sd-empty">Kart '+k+' wasn\u2019t reporting to RiMO during this race.<br><span style="font-size:11.5px">No readings from it at all today, so there is nothing to review. A kart that stops reporting is worth checking in its own right \u2014 this isn\u2019t missing data, it never arrived.</span></div>';
+      },function(){
+        box.innerHTML='<div class="sd-empty">No cell data for Kart '+_sdEsc(String(SD_KART.kart_no))+' in this session.</div>';
+      });
+      return;
+    }
     sdRenderTrace();
   },function(){ box.innerHTML='<div class="sd-empty">Couldn\u2019t load cell data.</div>'; });
 }

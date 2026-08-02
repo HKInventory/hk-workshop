@@ -5300,16 +5300,25 @@ function refreshRfBadge(){
 
 var APP='';
 var parts=[],cu=null,pin3='',oSent=false,sp=null,qrs=null,homeAnimated=false,partsLastFetch=0,navLock=false;
-// Hardcoded staff as instant fallback — sheet fetch updates in background
+/* NO PIN EVER LIVES IN THIS FILE AGAIN.
+   This array carried every staff member's real 4-digit PIN in cleartext — in a page any browser can
+   view-source, in a public repo, and in git history forever. It was never used to log anyone in:
+   chk() has always POSTed to the verify-pin edge function, and the only editor that read these
+   values (saveStaffPins) has been disabled behind an early return for some time. So eight live
+   credentials, including both managers', were sitting in public for no working reason at all.
+   That mattered more than it looks: a manager's PIN is also the master-panel credential
+   (masterPin = cu.pin), so a leaked 4-digit number was not one account — it was the whole building.
+   What remains here is the display fallback only: name, role, emoji, so the roster still renders
+   before the live list loads. Anything that needs to know a PIN asks the server. */
 var STAFF=[
-  {name:'Ross McArthur',  role:'Manager',          pin:'1234',emoji:'⭐'},
-  {name:'Harvey Betts',   role:'Assistant Manager',pin:'2345',emoji:'⭐'},
-  {name:'Rafael Hewitt',  role:'Mechanic',         pin:'3456',emoji:'🔧'},
-  {name:'Alex Harper',    role:'Mechanic',         pin:'4567',emoji:'🔧'},
-  {name:'Sam Lally',      role:'Mechanic',         pin:'2075',emoji:'🔧'},
-  {name:'Jayden Aginsky', role:'Mechanic',         pin:'6969',emoji:'🔧'},
-  {name:'Will Webster',   role:'Mechanic',         pin:'7890',emoji:'🔧'},
-  {name:'Christian Oom',  role:'Mechanic',         pin:'8901',emoji:'🔧'},
+  {name:'Ross McArthur',  role:'Manager',          emoji:'⭐'},
+  {name:'Harvey Betts',   role:'Assistant Manager',emoji:'⭐'},
+  {name:'Rafael Hewitt',  role:'Mechanic',         emoji:'🔧'},
+  {name:'Alex Harper',    role:'Mechanic',         emoji:'🔧'},
+  {name:'Sam Lally',      role:'Mechanic',         emoji:'🔧'},
+  {name:'Jayden Aginsky', role:'Mechanic',         emoji:'🔧'},
+  {name:'Will Webster',   role:'Mechanic',         emoji:'🔧'},
+  {name:'Christian Oom',  role:'Mechanic',         emoji:'🔧'},
 ];
 
 // ── Sizing ──
@@ -14046,8 +14055,12 @@ function renderStaffPins(){
     mpi.innerHTML+='<button class="staff-add-btn" onclick="addStaffRow()">+ Add staff member</button>';
     if(hdr) hdr.innerHTML='<span>Staff PINs</span><span><button class="staff-edit-btn cancel" onclick="cancelStaffEdit()">Cancel</button><button class="staff-edit-btn save" id="staff-save-btn" onclick="saveStaffPins()">Save</button></span>';
   } else {
+    /* A SCREEN THAT PRINTS EVERYONE'S PIN IS A CREDENTIAL DUMP WITH A NICE FONT.
+       This listed every staff PIN in the clear to anyone holding an unlocked tablet — no master
+       access needed, just this panel open. PINs are write-only now: you can set a new one, you can
+       never read an existing one back. Nobody needs to READ a PIN, including a manager. */
     mpi.innerHTML=STAFF.map(function(x){
-      return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">'+x.pin+'</span></div>';
+      return '<div class="prow"><span style="font-size:13px;font-weight:500">'+x.emoji+' '+x.name+'<br><span style="font-size:11px;color:var(--t2)">'+x.role+'</span></span><span class="pval">••••</span></div>';
     }).join('');
     var canEdit = cu && (cu.role==='Manager' || cu.role==='Assistant Manager');
     if(hdr) hdr.innerHTML='<span>Staff PINs</span>'+(canEdit ? '<button class="staff-edit-btn" onclick="toggleStaffEdit()">Edit</button>' : '');

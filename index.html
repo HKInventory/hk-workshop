@@ -19249,7 +19249,25 @@ function sdLoadTrace(){
   if(!SD_KART){ box.innerHTML='<div class="sd-empty">Pick a kart to see its cell data.</div>'; return; }
   var sess=SD_SESS.filter(function(s){return s.uuid===SD_SESSION;})[0]; if(!sess){ return; }
   box.innerHTML='<div class="sd-empty">Loading cell data for Kart '+_sdEsc(String(SD_KART.kart_no))+'…</div>';
-  var from=sess.scheduled_at, to=sess.ends_at||new Date(Date.parse(sess.scheduled_at)+15*60000).toISOString();
+  /* THE TRACE WINDOW IS THE RACE, NOT THE TIMETABLE.
+     This asked for cell readings between the SCHEDULED start and the SCHEDULED end. Races here do
+     not run to the timetable — the page itself says "running 20 min behind today" — and RaceFacer
+     shows the 3:30pm race actually running 3:49 to 4:00. So it queried 3:30-3:40 while every reading
+     sat in 3:49-4:00, found nothing, and reported "No cell data logged for Kart 90", which reads as
+     a logging failure when the logger had done its job perfectly.
+     started_at is the green flag — the moment the race actually began — and it is already loaded.
+     Anchor on it, keep the booked length, and pad two minutes each side for karts rolling on and
+     off. Without a green flag, fall back to the timetable and stretch the tail by the lateness the
+     page has already measured, rather than pretending a race ran on time. */
+  var _schedMs=Date.parse(sess.scheduled_at)||0;
+  var _endMs=sess.ends_at?Date.parse(sess.ends_at):0;
+  var _lenMs=(_endMs&&_schedMs&&_endMs>_schedMs)?(_endMs-_schedMs):15*60000;
+  var _greenMs=sess.started_at?Date.parse(sess.started_at):0;
+  var _PAD=2*60000;
+  var _fromMs, _toMs;
+  if(_greenMs){ _fromMs=_greenMs-_PAD; _toMs=_greenMs+_lenMs+_PAD; }
+  else { _fromMs=_schedMs-_PAD; _toMs=_schedMs+_lenMs+_PAD+(typeof SD_DRIFT==='number'?SD_DRIFT:0); }
+  var from=new Date(_fromMs).toISOString(), to=new Date(_toMs).toISOString();
   // query by serial (fleet_management_id) if we have it, else by kart number
   var query=SBC.from('rimo_bms_history').select('at,soc,pack_v,avg_v,current_a,cells,faults,online').gte('at',from).lte('at',to).order('at',{ascending:true}).limit(6000);
   if(SD_KART.fleet_management_id){ query=query.eq('serial_no',SD_KART.fleet_management_id); }

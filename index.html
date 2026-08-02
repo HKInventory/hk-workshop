@@ -19214,6 +19214,14 @@ function sdRenderShell(){
   var runs=SD_RUNS[SD_SESSION]||[];
   var kartBlock='';
   if(SD_SESSION){
+    /* A CHIP YOU CANNOT TAP IS NOT A KART. Six of the twelve entrants in the 4:10pm Intermediate
+       race had no kart number, so they rendered as blank pills that do nothing: RaceFacer had an
+       entrant on the sheet with no kart assigned — a no-show, or someone who never made the grid.
+       Those are not karts that were on track, and this row is headed "Kart on track".
+       The kart count beside the session already counts entrants, which is the right number for the
+       session card; this list is about what you can actually review, so it only shows runs that
+       have a kart. */
+    runs=runs.filter(function(rn){ return rn && String(rn.kart_no||'').trim()!==''; });
     var kchips=runs.length?runs.map(function(rn){
       return '<div class="sd-kchip'+((SD_KART&&rn.kart_no===SD_KART.kart_no)?' on':'')+'" onclick="sdPickKart(\''+_sdEsc(String(rn.kart_no))+'\')">'+_sdEsc(String(rn.kart_no))+'</div>';
     }).join(''):'<div style="color:var(--t2);font-size:12px">No karts recorded for this session.</div>';

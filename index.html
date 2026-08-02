@@ -35,9 +35,26 @@
         var vh=(vv&&vv.height)||ih;
         var lay=Math.max(ih,vh)||ih;                 // layout viewport (what the frame should match; ignores keyboard shrink)
         var sh=(window.screen&&screen.height)||lay;  // physical screen — does NOT shrink on the launch resize
+        /* screen.height IS NOT THE HEIGHT OF A LANDSCAPE SCREEN.
+           iOS reports screen.width/height UNROTATED — a landscape iPad still says 820x1180 — so
+           Math.max(screen.height, lay) handed #app 1180px of height inside an 820px viewport. Three
+           hundred and sixty pixels of the app sat below the glass: the bottom row of home tiles was
+           simply off-screen, and because layoutHome measures the grid it then chose its column count
+           against a height that did not exist, picking 2 columns where 3 fit and making the tiles
+           taller still. That is the iPad "dimensions" bug, and it is self-reinforcing, which is why
+           reloading never cleared it.
+           The overscan itself is right — it is what defeats the iOS standalone letterbox — it was
+           just reading the wrong axis. In a landscape viewport the physical vertical extent is
+           screen.WIDTH. Take whichever dimension matches the orientation we are actually in.
+           Deliberately narrow: desktop is excluded outright, and in a portrait viewport this is the
+           expression it always was. So a phone in portrait — every phone this was written for —
+           computes exactly what it computed before, to the pixel. */
+        var iw=window.innerWidth||de.clientWidth||0;
+        var coarse=false; try{ coarse=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches); }catch(e){}
+        var physV=(coarse && lay<iw) ? ((window.screen&&screen.width)||sh) : sh;
         de.style.setProperty('--vhpx', lay+'px');
-        de.style.setProperty('--shpx', Math.max(sh,lay)+'px');
-        de.style.setProperty('--gapB', Math.max(0, sh-lay)+'px');   // physical rows below the webview window (39 on letterboxed iOS PWAs)
+        de.style.setProperty('--shpx', Math.max(physV,lay)+'px');
+        de.style.setProperty('--gapB', Math.max(0, physV-lay)+'px');   // physical rows below the webview window (39 on letterboxed iOS PWAs)
         // Measure the safe-area insets in JS. env() is unreliable inside calc() on this device, but a
         // probe element sized to env(...) reports the real value, so we read it once and hand it to the
         // ring as a plain px var. In fullscreen the fixed container is the SAFE AREA, so the ring must be

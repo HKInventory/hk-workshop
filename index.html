@@ -19076,65 +19076,25 @@ function sdEnter(){
          provisional pass had nothing to filter on. No amount of missing data makes a future race
          finished, so this one does not depend on any data being present. */
       if(startMs && startMs>nowMs){ if(_isToday) SD_WHY.notrun++; return false; }
-      var greenMs=s.started_at?_sydParse(s.started_at):0;
-      /* "OVER" IS MEASURED FROM THE GREEN FLAG, NOT FROM THE SCHEDULE.
-         This used to treat any race scheduled more than 30 minutes ago as finished. Races here run
-         badly late — a 10:30 slot can go green at 11:17 — so at 11:05 that race was listed as a
-         finished session you could open, while it had not yet turned a wheel. It then showed one
-         kart, or none, and looked broken. Worse, the 30-minute rule was checked BEFORE the
-         in-progress guard, so a late race that WAS running got listed as finished too.
-         RaceFacer's status is the truth. The clock is only used once we know when the race actually
-         began, and a race with no green flag at all is simply not shown. */
-      /* ORDER MATTERS, AND I HAD IT WRONG.
-         The green-flag test returned before the end-time test ever ran, so a race that RaceFacer had
-         already marked as ENDED still sat hidden until 30 minutes had passed since it went green.
-         A race that finished at 11:37 would not appear until 11:57. It should appear when it is
-         finished, because it IS finished — RaceFacer told us when.
-         So the explicit signals are consulted first, and the 30-minute rule is only the fallback for
-         a session that has no end time at all. */
-      /* THE RULE, STATED PLAINLY:
-           chequered flag  -> show
-           still running   -> do not show
-           not started yet -> do not show, however far past its slot time it is
-
-         What broke it was ends_at. That is a SCHEDULED end — start time plus the booked duration —
-         so a 1:00pm race that has not turned a wheel still has an end time of 1:10pm, and at 1:14pm
-         the page treated it as finished and listed it. A scheduled end proves nothing about whether
-         a race happened; only a green flag does.
-         So ends_at is now only consulted for a session that ACTUALLY STARTED. Without a green flag
-         there is exactly one way in — the six-hour backstop, for old rows that predate started_at. */
-      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;   // chequered
-      if(/progress|running|live|active|ongoing/.test(st)){ if(_isToday) SD_WHY.running++; return false; }   // on track now
-      if(greenMs){
-        // It ran. Over when its recorded end has passed, or its race time has elapsed since green.
-        var endAt=s.ends_at?_sydParse(s.ends_at):0;
-        if(endAt) return endAt<nowMs;
-        return (nowMs-greenMs)>SD_RACE_MS;
-      }
-      /* LAST RESORT: THE CLOCK, WITH ENOUGH GRACE TO BE HONEST.
-         Everything above needs the runner to have recorded something — a green flag, a status, or a
-         later race it did record. All three keep failing, and a page that shows nothing is worse
-         than one that occasionally shows a slot nobody turned up for. Races here run late, so the
-         original objection stands: a 1:00pm booking still has a 1:10pm scheduled end whether or not
-         a wheel turned, and at 1:14pm listing it was wrong.
-         Twenty minutes past its scheduled end is the answer to that. It is far longer than any
-         normal delay between a race ending and the next starting, so a genuinely-not-yet-run slot
-         stays hidden through the window where it might still go green — and a race that really did
-         run appears, at worst, twenty minutes later than ideal, instead of never.
-         An explicitly-running race is still hidden, and a future slot is still hidden. */
-      /* Held back for the laps test rather than judged on the clock. A race that has run has karts
-         that have completed laps, and a booked slot has none — that is proof, not inference, and it
-         is already stored against every entrant. See the laps filter after the runs load. */
-      var endMs=s.ends_at?_sydParse(s.ends_at):0;
-      var _late=!!(endMs && (nowMs-endMs)>(SD_LATE_MS+SD_DRIFT));   // + however late the venue is actually running
-      /* The clock-based evidence, remembered rather than acted on: if the laps column turns out to
-         carry data, laps decide and this is ignored. It is only the fallback for when it does not. */
-      s._sdEvid=_sdRanBySequence(s) || _late || !!(startMs && (nowMs-startMs)>SD_DAY_OVER_MS);
-      var _keep=s._sdEvid || (startMs && startMs<=nowMs);   // started, so laps get a chance to speak
-      if(!_keep && _isToday) SD_WHY.notrun++;
-      return _keep;
+      /* THE RULE, AS THE FLOOR STATES IT: A RACE APPEARS ONCE IT HAS BEEN CHEQUERED. NOTHING ELSE.
+         Everything that used to live here — green-flag timing, scheduled ends, a twenty-minute
+         grace, how late the venue is running today, laps as circumstantial proof — was scaffolding
+         built because RaceFacer's status was not trusted. It is trustworthy: the schedule reports
+         "ended" and the log confirms it every cycle ("status from schedule: 135 changed, 105 now
+         ended"). Each of those heuristics was a guess at a question RaceFacer answers directly, and
+         each one could be wrong in a way that put a race on the board before it had turned a wheel.
+         And the purpose settles it beyond neatness. This screen exists to review BMS cell data for a
+         race that HAPPENED. A race still running has an incomplete trace; a race that has not
+         started has none. Neither is reviewable, so neither belongs here.
+         The evidence agrees: of 128 runs with no kart recorded, 128 have a customer and ZERO turned
+         a lap. They are bookings, not races. Chequered-only removes them by asking the right
+         question instead of inferring around them. */
+      if(/finish|complete|closed|ended|done|checkered|chequered/.test(st)) return true;   // chequered flag — reviewable
+      if(/progress|running|live|active|ongoing/.test(st)){ if(_isToday) SD_WHY.running++; return false; }   // green flag, still on track
+      if(_isToday) SD_WHY.notrun++;
+      return false;                       // not chequered: booked, upcoming, or abandoned — nothing to review
     });
-    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No finished Adult or Intermediate sessions in the last 7 days.<br>A race appears here once it\u2019s over \u2014 measured from the green flag, so a delayed race still counts. If races HAVE run, the runner may not be capturing them: check the Render log for <b>[sessions]</b>.</div>'; return; }
+    if(!SD_SESS.length){ body.innerHTML='<div class="sd-empty">No chequered sessions in the last 7 days.<br>A race appears here once RaceFacer has chequered it \u2014 not while it is running, and not before it starts, because there is no complete trace to review until then. If races HAVE finished, the runner may not be capturing them: check the Render log for <b>[sessions]</b>.</div>'; return; }
     /* LOAD THE KARTS FOR EVERY LISTED SESSION — ALL OF THEM.
        This was one request with .limit(1500), and that single number is why races kept vanishing
        from this page as the day went on. A week here is roughly 700 sessions carrying some 7,000
@@ -19178,7 +19138,10 @@ function sdEnter(){
         // than showing an empty page and calling it correct.
         // Laps decide when the column carries data; when it does not, fall back to what the clock
         // and the running order could establish. Never simply "keep everything".
-        if(!_lapsSeen) return !!s._sdEvid;
+        // The session is already known to be chequered, so laps are no longer needed to prove it
+        // ran — they only decide whether there is anything worth opening. A chequered race whose
+        // lap column has not landed yet still belongs on the board.
+        if(!_lapsSeen) return true;
         return runs.some(function(r){ return (Number(r.total_laps)||0)>0; });
       });
       SD_WHY.kept=SD_SESS.filter(function(s){ return _sdDayKey(s.scheduled_at)===_tk; }).length;
@@ -19186,7 +19149,7 @@ function sdEnter(){
         var _d=document.getElementById('sd-why');
         if(_d) _d.innerHTML='<b>'+SD_WHY.today+'</b> session(s) stored for today \u2014 shown '+SD_WHY.kept
           +' \u00b7 wrong track '+SD_WHY.track+' \u00b7 still running '+SD_WHY.running
-          +' \u00b7 no green flag '+SD_WHY.notrun+' \u00b7 no karts recorded '+SD_WHY.noruns
+          +' \u00b7 not chequered '+SD_WHY.notrun+' \u00b7 no karts recorded '+SD_WHY.noruns
           +' \u00b7 '+SD_WHY.total+' rows in the last 7 days'
           +(SD_DRIFT>60000?('<br>Running <b>'+Math.round(SD_DRIFT/60000)+' min</b> behind the timetable today \u2014 a race is only counted as over once that long has passed on top of its slot.'):'');
       }catch(e){}

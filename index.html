@@ -15715,7 +15715,7 @@ function msRender(){
       +    msRoleOpts(x.role)
       +  '</select></div>'
       +'</div>'
-      +'<input class="pin-input" type="text" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="PIN"'+(lockPin?' readonly title="Harvey\u2019s PIN is changed from Owner controls only"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+      +'<input class="pin-input" type="password" autocomplete="new-password" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="\u2022\u2022\u2022\u2022"'+(lockPin?' readonly title="Harvey\u2019s PIN is changed from Owner controls only"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
       +'<div class="staff-sites"><span class="staff-sites-label">Site access'+(_isMgr(x.role)?' · managers get all':'')+'</span>'+ mMasterSites.map(function(s){ var on=_isMgr(x.role)||((x.sites||[]).indexOf(s.id)>=0); return '<button type="button" class="ssite'+(on?' on':'')+(_isMgr(x.role)?' lock':'')+'" style="--ac:'+s.accent+'" onclick="msToggleSite('+i+',\''+s.id+'\')">'+s.label+'</button>'; }).join('')+'</div>'
       +'</div>';
   }).join('');
@@ -21210,6 +21210,302 @@ function mrPushLoad(){
   window.addEventListener('focus',check);
   setInterval(check, 180000);                                    // and every 3 min while open
   setTimeout(check, 8000);                                       // one check shortly after load
+})();
+</script>
+<style>
+/* ===== NEW LOGIN (hk-auth) — off unless ?newauth=1 ================================== */
+#hka{position:fixed;inset:0;z-index:9000;background:#000;display:none;flex-direction:column;
+     align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#hka.on{display:flex}
+.hka-w{width:100%;max-width:min(420px,92vw);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+@media (min-width:820px){ .hka-w{max-width:min(520px,60vw)} }
+.hka-h{font-size:clamp(21px,5.4vw,27px);font-weight:800;letter-spacing:-.4px;color:#fff}
+.hka-p{font-size:13.5px;color:#8a93a0;line-height:1.5}
+.hka-err{font-size:13px;color:#ff6b6b;min-height:18px;font-weight:600}
+.hka-ok{font-size:13px;color:#34d399;min-height:18px;font-weight:600}
+.hka-in{width:100%;box-sizing:border-box;background:#111;border:1px solid #2a2a2a;border-radius:12px;
+        color:#fff;padding:14px;font-size:17px;text-align:center;letter-spacing:5px;font-family:Monaco,Consolas,monospace}
+.hka-in:focus{outline:none;border-color:#00CFFF}
+.hka-btn{width:100%;box-sizing:border-box;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;
+         color:#fff;background:linear-gradient(135deg,#00CFFF,#7C3AED);cursor:pointer}
+.hka-btn[disabled]{opacity:.5}
+.hka-btn2{background:#161616;border:1px solid #2a2a2a;color:#9aa4b2}
+.hka-names{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.hka-name{background:#121212;border:1px solid #262626;border-radius:12px;padding:11px 14px;font-size:14px;
+          font-weight:600;color:#e7e9ee;cursor:pointer}
+.hka-name:active{transform:scale(.97)}
+.hka-name.on{border-color:#00CFFF;color:#00CFFF}
+.hka-dots{display:flex;gap:14px;justify-content:center;margin:2px 0}
+.hka-dot{width:14px;height:14px;border-radius:50%;background:#1e1e1e;border:1px solid #333}
+.hka-dot.on{background:#00CFFF;border-color:#00CFFF}
+.hka-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:300px}
+.hka-k{background:#121212;border:1px solid #262626;border-radius:14px;padding:16px 0;font-size:21px;
+       font-weight:700;color:#fff;cursor:pointer}
+.hka-k:active{background:#1c1c1c}
+.hka-k.blank{background:none;border:none;cursor:default}
+.hka-code{font-family:Monaco,Consolas,monospace;font-size:12px;color:#00CFFF;word-break:break-all;
+          background:#0d0d0d;border:1px dashed #2a2a2a;border-radius:10px;padding:10px;width:100%;box-sizing:border-box}
+.hka-shake{animation:hkaShake .4s}
+@keyframes hkaShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+</style>
+<div id="hka"><div class="hka-w" id="hka-w"></div></div>
+<script>
+/* ============================================================================
+   NEW LOGIN — pick your name, then your own PIN, on a device we approved.
+   ---------------------------------------------------------------------------
+   OFF BY DEFAULT. It only takes over when the URL carries ?newauth=1, so the
+   floor keeps using the existing PIN pad exactly as before while this is proven.
+   That flag is the kill switch: nothing here reads a database table to decide
+   whether to run, because the table it would read is one of the things being
+   locked down — a switch an attacker can flip, or that stops being readable
+   halfway through the rollout, is not a switch.
+
+   WHY A NAME FIRST, WHEN THE OLD PAD ASKED ONLY FOR DIGITS
+   The old screen worked out WHO you were from the PIN itself, which is why every
+   PIN in the building had to be different and why a wrong guess could not be
+   blamed on anyone. Naming yourself first fixes three things at once: two people
+   may now share a PIN harmlessly, a wrong guess is counted against ONE account so
+   five fat fingers cannot lock out the venue behind its single wifi address, and
+   the server compares against one stored value, which is what allows that value
+   to be stored slowly and unreadably.
+   On a shared iPad you get the picker. On a personal phone the device remembers
+   who it belongs to and goes straight to the pad, so it is fewer taps than today.
+   ========================================================================== */
+(function(){
+  var ON = /[?&]newauth=1/.test(location.search || '');
+  if (!ON) return;                       // absolute no-op for everyone else
+
+  var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
+  var DEVKEY = 'hk_dev_v1';
+  var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'' };
+
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function el(){ return document.getElementById('hka-w'); }
+  function show(){ var o=document.getElementById('hka'); if(o) o.classList.add('on'); }
+  function hide(){ var o=document.getElementById('hka'); if(o) o.classList.remove('on'); }
+
+  /* The device's own secret. Asking the browser to keep its storage permanently
+     matters more here than anywhere else in the app: iOS clears storage for web
+     pages left unused for about a week, and losing this silently un-approves the
+     device. It is not a lockout when it happens — the device simply asks again and
+     a manager taps approve — but it should be rare, and an installed home-screen
+     app is treated far more kindly than a browser tab. */
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  function loadDev(){ try { return JSON.parse(localStorage.getItem(DEVKEY)||'null'); } catch(e){ return null; } }
+  function saveDev(d){ try { localStorage.setItem(DEVKEY, JSON.stringify(d)); } catch(e){} S.dev=d; }
+  function dropDev(){ try { localStorage.removeItem(DEVKEY); } catch(e){} S.dev=null; }
+
+  function call(op, extra){
+    var body = { op: op };
+    if (S.dev){ body.device_id=S.dev.device_id; body.device_key=S.dev.device_key; }
+    Object.assign(body, extra||{});
+    return fetch(FN, { method:'POST', headers:HDRS, body:JSON.stringify(body) })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return { success:false, message:'Connection error — try again.' }; });
+  }
+
+  function roster(cb){
+    if (S.roster.length) return cb();
+    /* Fail soft. If the Supabase library has not loaded — offline, blocked CDN —
+       this screen must still draw rather than throwing and leaving a black page
+       with no way forward. An empty picker says so; it never becomes a dead end. */
+    if (typeof SBC === 'undefined' || !SBC || !SBC.from){ S.roster=[]; return cb(); }
+    SBC.from('staff_public').select('name,role,emoji').order('name').then(function(r){
+      S.roster = (r && r.data) ? r.data : []; cb();
+    }, function(){ S.roster=[]; cb(); });
+  }
+  function emojiFor(n){
+    var m = S.roster.filter(function(x){ return x.name===n; })[0];
+    return (m && m.emoji) || '🔧';
+  }
+
+  // ---- screens -------------------------------------------------------------
+  function go(stage){ S.stage=stage; S.err=''; render(); }
+  function fail(m){ S.err=m||'Something went wrong.'; render();
+    var w=el(); if(w){ w.classList.remove('hka-shake'); void w.offsetWidth; w.classList.add('hka-shake'); } }
+
+  function render(){
+    var w = el(); if (!w) return;
+    show();
+    var h = '';
+    if (S.stage === 'boot'){
+      h = '<div class="hka-h">HK Workshop</div><div class="hka-p">Checking this device…</div>';
+    }
+    else if (S.stage === 'join'){
+      h = '<div class="hka-h">Set up this device</div>'
+        + '<div class="hka-p">Enter the join code a manager gave you, then choose your name.</div>'
+        + '<input class="hka-in" id="hka-code" inputmode="numeric" maxlength="8" placeholder="Join code">'
+        + '<div class="hka-names">'
+        + S.roster.map(function(x){
+            return '<div class="hka-name'+(S.name===x.name?' on':'')+'" data-n="'+esc(x.name)+'">'+esc((x.emoji||'🔧')+' '+x.name)+'</div>';
+          }).join('')
+        + (S.roster.length ? '' : '<div class="hka-p">Couldn\'t load the staff list.</div>')
+        + '</div>'
+        + '<div class="hka-err">'+esc(S.err)+'</div>'
+        + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>';
+    }
+    else if (S.stage === 'wait'){
+      h = '<div class="hka-h">Waiting for approval</div>'
+        + '<div class="hka-p">A manager needs to approve this device. It usually takes a moment — this screen updates on its own.</div>'
+        + '<div class="hka-p" style="color:#5a6270">Device ID</div>'
+        + '<div class="hka-code">'+esc(S.dev?S.dev.device_id:'')+'</div>'
+        + '<div class="hka-ok">'+esc(S.msg)+'</div>'
+        + '<button class="hka-btn hka-btn2" id="hka-start-over">Start over</button>';
+    }
+    else if (S.stage === 'pick'){
+      h = '<div class="hka-h">Who\'s this?</div>'
+        + '<div class="hka-names">'
+        + S.roster.map(function(x){
+            return '<div class="hka-name" data-n="'+esc(x.name)+'">'+esc((x.emoji||'🔧')+' '+x.name)+'</div>';
+          }).join('')
+        + '</div>'
+        + '<div class="hka-err">'+esc(S.err)+'</div>';
+    }
+    else if (S.stage === 'pin' || S.stage === 'setpin' || S.stage === 'setpin2'){
+      var title, sub;
+      if (S.stage === 'pin'){ title = 'Hey ' + (S.name.split(' ')[0]||''); sub = 'Enter your PIN'; }
+      else if (S.stage === 'setpin'){ title = 'Create your PIN'; sub = 'Pick 4 digits only you know. Nobody can see it — not even a manager.'; }
+      else { title = 'Once more'; sub = 'Type the same 4 digits again to confirm.'; }
+      var n = (S.stage==='setpin2' ? S.pin2 : S.pin).length;
+      h = '<div class="hka-h">'+esc(title)+'</div><div class="hka-p">'+esc(sub)+'</div>'
+        + '<div class="hka-dots">'+[0,1,2,3].map(function(i){ return '<div class="hka-dot'+(i<n?' on':'')+'"></div>'; }).join('')+'</div>'
+        + '<div class="hka-err">'+esc(S.err)+'</div>'
+        + '<div class="hka-pad">'
+        + [1,2,3,4,5,6,7,8,9].map(function(d){ return '<div class="hka-k" data-d="'+d+'">'+d+'</div>'; }).join('')
+        + '<div class="hka-k blank"></div><div class="hka-k" data-d="0">0</div><div class="hka-k" data-d="del">⌫</div>'
+        + '</div>'
+        + (S.stage==='pin' ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>' : '');
+    }
+    w.innerHTML = h;
+  }
+
+  // ---- actions -------------------------------------------------------------
+  function boot(){
+    S.dev = loadDev();
+    go('boot');
+    roster(function(){
+      if (!S.dev){ return go('join'); }
+      call('device-status', {}).then(function(r){
+        if (!r || !r.success || r.status === 'unknown' || r.status === 'revoked'){ dropDev(); return go('join'); }
+        if (r.status === 'pending'){ go('wait'); startPoll(); return; }
+        // approved
+        if (r.kind === 'personal' && r.owner_name){ S.name = r.owner_name; return go('pin'); }
+        go('pick');
+      });
+    });
+  }
+
+  function startPoll(){
+    clearInterval(S.poll);
+    S.poll = setInterval(function(){
+      call('device-status', {}).then(function(r){
+        if (r && r.success && r.status === 'approved'){
+          clearInterval(S.poll);
+          S.msg = 'Approved!';
+          if (r.kind === 'personal' && r.owner_name){ S.name = r.owner_name; go('pin'); }
+          else go('pick');
+        }
+      });
+    }, 4000);
+  }
+
+  function requestDevice(){
+    var codeEl = document.getElementById('hka-code');
+    var code = codeEl ? codeEl.value.trim() : '';
+    if (!code) return fail('Enter the join code.');
+    if (!S.name) return fail('Choose your name.');
+    S.busy = true; render();
+    call('request-device', {
+      join_code: code, requested_name: S.name,
+      platform: (navigator.platform||'') + ' · ' + (navigator.userAgent.indexOf('iPad')>=0 ? 'iPad' : navigator.userAgent.indexOf('iPhone')>=0 ? 'iPhone' : 'Other'),
+      label: S.name + "'s device"
+    }).then(function(r){
+      S.busy = false;
+      if (!r || !r.success) return fail((r && r.message) || 'Could not request access.');
+      saveDev({ device_id:r.device_id, device_key:r.device_key });
+      S.msg = ''; go('wait'); startPoll();
+    });
+  }
+
+  function submitPin(){
+    if (S.stage === 'setpin'){ S.pin2=''; return go('setpin2'); }
+    if (S.stage === 'setpin2'){
+      if (S.pin !== S.pin2){ S.pin=''; S.pin2=''; go('setpin'); return fail('Those didn\'t match. Try again.'); }
+      S.busy = true;
+      return call('set-pin', { name:S.name, pin:S.pin }).then(function(r){
+        S.busy=false;
+        if (!r || !r.success){ S.pin=''; S.pin2=''; go('setpin'); return fail((r&&r.message)||'Could not set your PIN.'); }
+        enter(r);
+      });
+    }
+    // normal login
+    S.busy = true;
+    call('login', { name:S.name, pin:S.pin }).then(function(r){
+      S.busy = false;
+      if (r && r.code === 'set-pin'){ S.pin=''; return go('setpin'); }
+      if (!r || !r.success){ S.pin=''; return fail((r && r.message) || 'That PIN doesn\'t match.'); }
+      enter(r);
+    });
+  }
+
+  /* Hand over to the app. setSession is the whole point: from here every request
+     the app makes carries a real signed session for THIS person, instead of the
+     one public key that is printed in the page source. Nothing else in the app
+     has to change for that to be true. */
+  function enter(r){
+    clearInterval(S.poll);
+    try {
+      if (r.access_token && SBC && SBC.auth && SBC.auth.setSession)
+        SBC.auth.setSession({ access_token:r.access_token, refresh_token:r.refresh_token });
+    } catch(e){}
+    hide();
+    var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
+    /* The existing master screens still authorise with cu.pin, so it is passed
+       through unchanged. During the changeover those screens only work if this
+       PIN also matches the old staff table — they move onto the session in the
+       next step, and that is the point at which the old table stops mattering. */
+    try { onLoginOk(m, S.pin); } catch(e){ try{ cu=m; showRoot('home'); }catch(_){ } }
+    S.pin=''; S.pin2='';
+  }
+
+  // ---- one delegated handler for everything --------------------------------
+  document.addEventListener('click', function(ev){
+    var o = document.getElementById('hka'); if (!o || !o.classList.contains('on')) return;
+    var t = ev.target;
+    var nameEl = t.closest && t.closest('.hka-name');
+    if (nameEl){
+      var nm = nameEl.getAttribute('data-n') || '';
+      if (S.stage === 'join'){ S.name = nm; return render(); }
+      if (S.stage === 'pick'){ S.name = nm; S.pin=''; return go('pin'); }
+    }
+    if (t.id === 'hka-req') return requestDevice();
+    if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
+    if (t.id === 'hka-notme'){ S.pin=''; S.name=''; return go('pick'); }
+    var k = t.closest && t.closest('.hka-k');
+    if (k && !k.classList.contains('blank')){
+      var d = k.getAttribute('data-d');
+      var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
+      if (d === 'del'){ S[field] = S[field].slice(0,-1); return render(); }
+      if (S[field].length >= 4 || S.busy) return;
+      S[field] += d; render();
+      if (S[field].length === 4) setTimeout(submitPin, 120);
+    }
+  }, true);
+
+  document.addEventListener('keydown', function(ev){
+    var o = document.getElementById('hka'); if (!o || !o.classList.contains('on')) return;
+    if (S.stage !== 'pin' && S.stage !== 'setpin' && S.stage !== 'setpin2') return;
+    var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
+    if (ev.key >= '0' && ev.key <= '9'){
+      if (S[field].length >= 4 || S.busy) return;
+      S[field] += ev.key; render();
+      if (S[field].length === 4) setTimeout(submitPin, 120);
+    } else if (ev.key === 'Backspace'){ S[field] = S[field].slice(0,-1); render(); }
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.HKA = { boot:boot, reset:function(){ dropDev(); location.reload(); }, state:function(){ return S; } };
 })();
 </script>
 </body>

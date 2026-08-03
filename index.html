@@ -21298,7 +21298,16 @@ function mrPushLoad(){
   var qs = location.search || '';
   var FORCE_NEW = /[?&]newauth=1/.test(qs);
   var FORCE_OLD = /[?&]oldauth=1/.test(qs);
-  var ON = FORCE_NEW || (!FORCE_OLD && (ls(OPTKEY) === '1' || !!loadDev()));
+  /* THE OLD PAD IS THE HOLE, SO ONCE IT IS CLOSED IT STAYS CLOSED.
+     Read from cache first and synchronously, because the answer is needed before a
+     single pixel is drawn and a network round trip would either delay the sign-in
+     screen or, worse, briefly show the old pad and then swap it. The live value is
+     fetched a moment later and cached for next time.
+     Cached rather than fetched each boot for the obvious reason: if this depended
+     on reaching the server, losing wifi would reopen the door we just shut. */
+  var LEGACYKEY = 'hk_legacy_off_v1';
+  var legacyOff = ls(LEGACYKEY) === '1';
+  var ON = FORCE_NEW || (legacyOff && !FORCE_OLD) || (!FORCE_OLD && (ls(OPTKEY) === '1' || !!loadDev()));
 
   /* Not on? Offer the way in, once, on the pad people already use. Without this
      there is no route to the new login from inside an installed app at all. */
@@ -21318,8 +21327,26 @@ function mrPushLoad(){
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountEntry);
     else mountEntry();
     setTimeout(mountEntry, 1200);
+    /* Still ask the server, so a device that has never seen the new sign-in finds
+       out the old pad has been retired. Only ever switches TOWARDS the new one. */
+    try {
+      fetch((typeof SB_FN!=='undefined'?SB_FN:'')+'hk-auth', { method:'POST', headers:HDRS, body:JSON.stringify({op:'status'}) })
+        .then(function(r){ return r.json(); })
+        .then(function(r){
+          if (r && r.success && r.legacy_login_off){
+            try { localStorage.setItem(LEGACYKEY,'1'); } catch(e){}
+            location.reload();
+          }
+        }, function(){});
+    } catch(e){}
     return;
   }
+  // Kept fresh on every run of the new sign-in too, so re-opening it propagates.
+  try {
+    fetch((typeof SB_FN!=='undefined'?SB_FN:'')+'hk-auth', { method:'POST', headers:HDRS, body:JSON.stringify({op:'status'}) })
+      .then(function(r){ return r.json(); })
+      .then(function(r){ if (r && r.success) { try { localStorage.setItem(LEGACYKEY, r.legacy_login_off ? '1' : '0'); } catch(e){} } }, function(){});
+  } catch(e){}
 
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function el(){ return document.getElementById('hka-w'); }
@@ -21419,7 +21446,7 @@ function mrPushLoad(){
         + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>'
         /* Never a dead end. Someone who taps the button without a join code, or whose
            device gets revoked, must be able to get back to the pad that still works. */
-        + '<button class="hka-btn hka-btn2" id="hka-back">Use the old sign-in</button>';
+        + (legacyOff ? '' : '<button class="hka-btn hka-btn2" id="hka-back">Use the old sign-in</button>');
     }
     else if (S.stage === 'wait'){
       /* A 32-CHARACTER ID IS NOT SOMETHING A HUMAN SHOULD RETYPE.
@@ -21847,6 +21874,22 @@ function mrPushLoad(){
          + 'you never see it, and you never have to make one up for them.</div>';
     }
 
+    // ---- retire the old sign-in -----------------------------------------
+    var ready = (st.accounts_ready||0), tot = (st.accounts_total||0);
+    h += '<div style="background:var(--card);border:1px solid '+(st.legacy_login_off?'rgba(52,211,153,.45)':'rgba(255,82,82,.35)')+';'
+       + 'border-radius:12px;padding:13px;margin-top:20px">'
+       + '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin-bottom:6px">OLD SIGN-IN</div>'
+       + (st.legacy_login_off
+          ? '<div style="font-size:13px;color:#34d399;line-height:1.6"><b>Closed.</b> The only way in is a name, that person\'s own PIN, and a device you approved.</div>'
+          : '<div style="font-size:13px;color:var(--t1);line-height:1.6"><b>Still open.</b> The old keypad still accepts the old PINs \u2014 '
+            + 'including the eight that were published. Until this is closed, everything else here can be walked around.</div>')
+       + '<div style="font-size:11.5px;color:var(--t2);margin-top:7px">'+ready+' of '+tot+' staff have set a PIN.</div>'
+       + '<button class="m-add" id="hka-legacy" style="margin-top:10px;'
+       +   (st.legacy_login_off ? 'background:var(--card2);color:var(--t1);border:1px solid var(--b2)' : '')
+       +   '">' + (st.legacy_login_off ? 'Re-open the old sign-in' : 'Close the old sign-in') + '</button>'
+       + '<div id="hka-legacy-msg" style="font-size:12px;margin-top:7px"></div>'
+       + '</div>';
+
     h += '<div style="margin-top:18px"><button class="m-add" id="hka-dev-refresh" '
        + 'style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)">↻ Refresh</button></div>';
 
@@ -21861,6 +21904,22 @@ function mrPushLoad(){
 
     if (t.id === 'hka-dev-refresh') return load();
 
+    if (t.id === 'hka-legacy'){
+      var lm = document.getElementById('hka-legacy-msg');
+      var closing = /Close/.test(t.textContent);
+      if (closing && !confirm('Close the old keypad?\n\nFrom then on the only way in is a name, that person\'s own PIN, and an approved device. Anyone who has not set a PIN will be locked out.')) return;
+      t.disabled = true;
+      return call('set-legacy-login', { off: closing }).then(function(r){
+        t.disabled = false;
+        if (r && r.blocked){
+          if (lm){ lm.style.color = '#FBBF24';
+            lm.textContent = 'Not yet — no PIN set for: ' + (r.waiting||[]).join(', '); }
+          return;
+        }
+        if (!r || !r.success){ if (lm){ lm.style.color='var(--red)'; lm.textContent=(r&&r.message)||'Could not change.'; } return; }
+        load();
+      });
+    }
     if (t.id === 'hka-jc-save'){
       var v = (document.getElementById('hka-jc')||{}).value || '';
       var msg = document.getElementById('hka-jc-msg');

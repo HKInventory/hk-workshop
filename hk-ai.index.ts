@@ -23,7 +23,10 @@
 //  Returns: { success:true, answer:"...", role:"Mechanic", model:"..." }
 //        or { success:false, message:"..." }
 // ===========================================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+/* Same landmine as hk-auth: an unpinned esm.sh URL is resolved fresh at deploy
+   time, so this deploys as a different library than it did last time and a CDN
+   hiccup fails the deploy outright. npm: goes to the registry directly. */
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

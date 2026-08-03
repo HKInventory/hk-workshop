@@ -585,6 +585,74 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       }
 
+      /* ---- 7b-ii. "I'm not on this list" -------------------------------------
+         The only way to ask for an account used to be to enrol a brand new
+         device, because that is the screen where you type your name. On a
+         workshop iPad or Mac that is already approved, nobody ever sees that
+         screen — so a new starter at a shared machine had no route in at all,
+         and wiping the accounts to start fresh would have stranded the whole
+         floor behind Harvey. This is that route.
+
+         The row is created as 'pending', and `roster` only ever returns
+         'active', so asking does not put your name in front of anyone until a
+         manager has approved it and chosen your role. Requires an approved
+         device, so it cannot be reached from the open internet. */
+      case "request-account": {
+        const dev = await approvedDevice();
+        if (!dev) return json(req, { success: false, message: "This device isn't approved." });
+        const name = String(body?.name || "").trim().slice(0, 60);
+        if (name.length < 2) return json(req, { success: false, message: "Type your full name." });
+
+        const { data: existing } = await db.from("hk_accounts").select("id,status").eq("name", name).maybeSingle();
+        if (existing?.status === "active") {
+          /* Already has one. Say the same thing either way — a stranger must not
+             be able to use this to find out who works here. */
+          await log("account_request_dupe", name, did, ip);
+          return json(req, { success: true });
+        }
+        if (existing) {
+          await db.from("hk_accounts").update({ status: "pending", updated_at: new Date().toISOString() }).eq("id", existing.id);
+        } else {
+          await db.from("hk_accounts").insert({
+            name, app_role: "Mechanic", site: String(body?.site || "sydney").slice(0, 40),
+            status: "pending", must_set_pin: true,
+          });
+        }
+        await log("account_requested", name, did, ip);
+        pushAdmins("Someone wants an account",
+          name + " has asked for access on a workshop device. Master Access -> Devices to approve and set their role.",
+          "hk-account");
+        return json(req, { success: true });
+      }
+
+      /* ---- 7b-iii. Approve or decline that request ---------------------------
+         Approving is where the role is chosen, exactly as it is when approving a
+         device — one decision, one place. Declining removes the row outright: an
+         account nobody agreed to should leave no trace behind, and the person can
+         always ask again. */
+      case "account-decide": {
+        const mgr = await callerManager();
+        if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
+        const name = String(body?.target_name || "").trim().slice(0, 60);
+        const decision = String(body?.decision || "");
+        if (!name) return json(req, { success: false, message: "Name required" });
+        if (!["approved", "declined"].includes(decision)) return json(req, { success: false, message: "Unknown decision" });
+
+        if (decision === "declined") {
+          await db.from("hk_accounts").delete().eq("name", name).eq("status", "pending");
+          await log("account_declined", mgr.name, null, ip, { target: name });
+          return json(req, { success: true });
+        }
+        await db.from("hk_accounts").update({
+          status: "active",
+          app_role: String(body?.app_role || "Mechanic").slice(0, 40),
+          site: String(body?.site || "sydney").slice(0, 40),
+          updated_at: new Date().toISOString(),
+        }).eq("name", name).eq("status", "pending");
+        await log("account_approved", mgr.name, null, ip, { target: name, role: body?.app_role });
+        return json(req, { success: true });
+      }
+
       /* ---- 7c. The people list, for the manager's Staff panel ----------------
          Never returns a PIN or a hash — there is nothing here that could be turned
          back into someone's PIN, which is the point. */
@@ -605,7 +673,8 @@ Deno.serve(async (req) => {
         if (!mgr) return json(req, { success: false }, 403);
         const { count: devs } = await db.from("hk_devices").select("*", { count: "exact", head: true }).eq("status", "pending");
         const { count: pins } = await db.from("hk_accounts").select("*", { count: "exact", head: true }).not("reset_requested_at", "is", null);
-        return json(req, { success: true, devices: devs || 0, resets: pins || 0 });
+        const { count: accs } = await db.from("hk_accounts").select("*", { count: "exact", head: true }).eq("status", "pending");
+        return json(req, { success: true, devices: devs || 0, resets: pins || 0, accounts: accs || 0 });
       }
 
       /* ---- 8. The join code --------------------------------------------------- */

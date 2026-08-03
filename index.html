@@ -21545,8 +21545,13 @@ function mrPushLoad(){
       else { t = 'Once more'; sub = 'Type the same 4 digits to confirm'; }
       h = head(t, sub) + pad()
         + (S.stage==='pin'
-            ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>'
-              + '<button class="hka-btn hka-btn2" id="hka-forgot">Forgotten your PIN?</button>'
+            /* The app uses a quiet text link here (.train-link), not a filled button.
+               Two grey slabs stacked under the keypad were the cheapest-looking thing
+               on the screen and pulled more attention than the keypad itself. */
+            ? '<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">'
+              + '<button class="train-link" id="hka-notme">Not you?</button>'
+              + '<button class="train-link" id="hka-forgot">Forgotten your PIN?</button>'
+              + '</div>'
             : '');
     }
     w.innerHTML = h;
@@ -21709,8 +21714,11 @@ function mrPushLoad(){
       S.pin=''; return go('forgot');
     }
     if (t.id === 'hka-forgot-back'){ S.pin=''; return go(S.name ? 'pin' : 'pick'); }
-    var k = t.closest && t.closest('.hka-k');
-    if (k && !k.classList.contains('blank')){
+    /* .k / .emp, not .hka-k / .blank. Rebuilding these screens on the app's own
+       classes renamed the keys and left this handler looking for the old ones, so
+       every tap on the keypad hit nothing at all. */
+    var k = t.closest && t.closest('.k');
+    if (k && !k.classList.contains('emp')){
       var d = k.getAttribute('data-d');
       var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
       if (d === 'del'){ S[field] = S[field].slice(0,-1); return render(); }

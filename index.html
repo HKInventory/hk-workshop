@@ -6234,6 +6234,13 @@ function animTiles(){
 }
 
 // ── PIN ──
+/* IS THE NEW SIGN-IN THE THING ON SCREEN RIGHT NOW?
+   It draws itself INSIDE #s-pin, on top of this keypad, so "#s-pin is active" is
+   true for both of them at once. Everything below has to stand down while it is up. */
+function _newAuthUp(){
+  var w=document.getElementById('hka-w');
+  return !!(w && w.style.display!=='none' && w.offsetParent!==null);
+}
 // Keyboard support for desktop / external keyboards
 document.addEventListener('keydown',function(e){
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
@@ -6241,6 +6248,14 @@ document.addEventListener('keydown',function(e){
   var mo=document.getElementById('master'); if(mo&&mo.classList.contains('show')) return;
   var pinActive=document.getElementById('s-pin').classList.contains('active');
   if(!pinActive) return;
+  /* ONE TYPED PIN WAS SIGNING PEOPLE IN TWICE.
+     This listener and the new sign-in's own listener were both live on any device
+     with a real keyboard — the workshop Mac, Harvey's Mac. Typing 1234 filled BOTH
+     pads, so the new sign-in called hk-auth AND this one called verify-pin, and the
+     whole post-login sequence ran twice: welcome twice, site chooser twice, tiles
+     twice. It was also a hole — the retired keypad could still let you in from the
+     keyboard even with the old sign-in closed. */
+  if(_newAuthUp()) return;
   if(e.key>='0'&&e.key<='9'){pp(e.key);e.preventDefault();}
   else if(e.key==='Backspace'){pd2();e.preventDefault();}
   else if(e.key==='Enter'&&pin3.length===4){chk();e.preventDefault();}
@@ -6252,6 +6267,9 @@ function udots(){for(var i=0;i<4;i++){var d=document.getElementById('d'+i);i<pin
 
 function chk(){
   var entered=pin3;
+  /* The old sign-in is retired wherever the new one is on screen. Closing the screen
+     is not the same as closing the door, and this is the door. */
+  if(_newAuthUp()){ pin3=''; udots(); return; }
   if(TRAINING){ if(entered==='0000'){ trainLogin(); } else { pinFail('Training PIN is 0000'); } return; }
   var _pd=document.getElementById('pd'); if(_pd) _pd.classList.add('checking');
   document.getElementById('pe').innerHTML='<span class="pchk">Checking\u2026</span>';
@@ -6265,7 +6283,14 @@ function pinFail(msg){
   pin3='';udots();var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');document.getElementById('pe').innerText=msg;
   var pd=document.getElementById('pd');pd.classList.add('sh');setTimeout(function(){pd.classList.remove('sh');},440);
 }
+var _loginRan=false;
 function onLoginOk(m,entered){
+  /* BELT AND BRACES. Below this line is the entire post-login sequence — welcome,
+     site chooser, tile reveal — and running it twice is very visible. Two callers
+     racing has already caused that once; this makes it structurally impossible
+     rather than relying on every caller behaving. logout() clears it. */
+  if(_loginRan) return;
+  _loginRan=true;
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
   cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}try{loadAccessCfg();}catch(e){}applyRoleVisibility();try{rampCheck();notifCtaCheck();notifRefresh();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
@@ -6397,7 +6422,7 @@ function logout(){
   try{ if(_presenceT){ clearInterval(_presenceT); _presenceT=null; } }catch(e){}
   try{ if(cu&&cu.name&&typeof SBC!=='undefined'&&SBC) SBC.from('presence').delete().eq('name',cu.name).then(function(){},function(){}); }catch(e){}
   try{ if(typeof sessionClose==='function') sessionClose(); }catch(e){}   // stamp the sign-out time for Last online
-  TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
+  TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;_loginRan=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
 /* Auto sign-out after inactivity (security). Default 30 min; AUTO_LOGOUT_MIN can be
    driven from an owner setting later. Only runs for a signed-in user — never the
    TV board, never the PIN screen. Any tap/key/scroll resets the countdown. */
@@ -21859,12 +21884,15 @@ function mrPushLoad(){
     var w = document.getElementById('hka-w'); if (!w || w.style.display === 'none') return;
     if (S.stage !== 'pin' && S.stage !== 'setpin' && S.stage !== 'setpin2') return;
     var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
+    /* This pad owns the keyboard while it is up. Consuming the event keeps the digit
+       out of anything else listening — the retired pad underneath included. */
     if (ev.key >= '0' && ev.key <= '9'){
+      ev.preventDefault(); ev.stopPropagation();
       if (S[field].length >= 4 || S.busy) return;
       S[field] += ev.key; paintDots();
       if (S[field].length === 4) setTimeout(submitPin, 120);
-    } else if (ev.key === 'Backspace'){ S[field] = S[field].slice(0,-1); paintDots(); }
-  });
+    } else if (ev.key === 'Backspace'){ ev.preventDefault(); ev.stopPropagation(); S[field] = S[field].slice(0,-1); paintDots(); }
+  }, true);
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

@@ -21348,6 +21348,11 @@ function mrPushLoad(){
 /* The caption under the heading is the app's own .pin-p, to the pixel. */
 .hka-cap{font-size:14px;color:var(--t2);text-align:center;margin-top:4px}
 .hka-bar{display:none}
+/* On desktop .pin-p::after appends " · or use your keyboard", which was right when
+   the only .pin-p on the app sat directly under the keypad. These screens reuse the
+   class for ordinary body text, so it was being tacked onto the end of the red
+   warning on "Your PIN is yours alone" — a screen with no keypad on it at all. */
+#hka-w .pin-p::after{content:none}
 
 /* Inputs, buttons, the picker chips. Same tokens as the keypad beside them —
    var(--card) fill, var(--b1) hairline, 18px radius, exactly like .k — so these
@@ -21881,6 +21886,15 @@ function mrPushLoad(){
       S.busy = true; checking(true);
       return call('set-pin', { name:S.name, pin:S.pin }).then(function(r){
         S.busy=false; checking(false);
+        /* ONE PIN PER PERSON, ON EVERY DEVICE THEY ARE ALLOWED TO USE.
+           The roster this screen was drawn from can be a few seconds old, so a
+           device could still believe someone needs to choose a PIN after they have
+           just set one on their phone — and then dead-end them on "this account
+           already has a PIN". It is the same PIN everywhere; if the server says
+           they already have it, the right screen is the keypad, not an error. */
+        if (r && !r.success && /already has a PIN/i.test(r.message || '')){
+          S.pin=''; S.pin2=''; return go('pin');
+        }
         if (!r || !r.success){ S.pin=''; S.pin2=''; go('setpin'); return fail((r&&r.message)||'Could not set your PIN.'); }
         enter(r);
       });
@@ -22157,6 +22171,9 @@ function mrPushLoad(){
     });
   }
 
+  // Who is looking at this screen — the one row whose buttons must behave differently.
+  function _isMe(n){ try { return !!(cu && cu.name && n === cu.name); } catch(e){ return false; } }
+
   function render(b, list, st, accounts){
     accounts = accounts || [];
     var pending  = list.filter(function(d){ return d.status === 'pending'; });
@@ -22323,9 +22340,17 @@ function mrPushLoad(){
            + 'display:flex;justify-content:space-between;align-items:center;gap:10px;opacity:.6">'
            + '<div style="font-size:13px;color:var(--t2)">'+esc(d.label || was || 'Device')+' · '+esc(kindOf(d.user_agent,d.platform))
            +   (wasShared || !was ? '' : ' · '+esc(was))+'</div>'
-           + '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2);flex-shrink:0" '
-           +   'data-ok="'+esc(d.device_id)+'" data-kind="'+(wasShared?'shared':'personal')+'" '
-           +   'data-who="'+esc(was)+'" data-label="'+esc(d.label||'')+'" data-keeprole="1">Re-approve</button>'
+           + '<div style="display:flex;gap:6px;flex-shrink:0">'
+           +   '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" '
+           +     'data-ok="'+esc(d.device_id)+'" data-kind="'+(wasShared?'shared':'personal')+'" '
+           +     'data-who="'+esc(was)+'" data-label="'+esc(d.label||'')+'" data-keeprole="1">Re-approve</button>'
+           /* Revoked rows are kept deliberately — a lost phone should stay on the
+              record rather than quietly reappear — but once it is dealt with, a
+              stack of dead rows is just something to scroll past on the way to
+              the staff list. */
+           +   '<button class="m-add" title="Remove from this list" style="background:var(--card2);color:var(--t2);'
+           +     'border:1px solid var(--b2);padding:11px 13px" data-forget="'+esc(d.device_id)+'">✕</button>'
+           + '</div>'
            + '</div>';
       });
     }
@@ -22355,17 +22380,35 @@ function mrPushLoad(){
            +   '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(a.name)+(a.status!=='active'?' <span style="color:#FF5252;font-size:11px">disabled</span>':'')+'</div>'
            +   '<div style="font-size:11.5px;color:'+colour+';margin-top:2px">'+esc(a.app_role||'')+' \u00b7 '+esc(state)+'</div>'
            + '</div>'
+           /* THESE TWO BUTTONS POINT AT YOURSELF TOO, AND BOTH LOCK YOU OUT.
+              Reset PIN clears your own PIN and kills your session mid-click, so the
+              screen turns into "Managers only" while you are still looking at it.
+              Remove is worse: it disables the account and bans the login, and the
+              only screen that can undo it is the one you have just lost. Neither is
+              ever the thing you meant on your own row — clearing your own reset
+              request is, so that is what your row offers instead. */
            + '<div style="display:flex;gap:6px;flex-shrink:0">'
-           + (a.must_set_pin ? ''
-              : '<button class="m-add" style="background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.4)" '
-                + 'data-reset="'+esc(a.name)+'">Reset PIN</button>')
+           /* "They told me in person they don't need it now" is the commonest
+              outcome of a reset request, and there was no button for it — the
+              only ways to make the request go away were to clear their PIN or to
+              remove them. Dismiss clears the flag and nothing else. */
+           + (a.reset_requested_at
+              ? '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" '
+                + 'data-clearreq="'+esc(a.name)+'">Dismiss request</button>'
+              : '')
+           + (_isMe(a.name)
+              ? (a.reset_requested_at ? '' : '<span style="font-size:11.5px;color:var(--t2);white-space:nowrap">this is you</span>')
+              : (a.must_set_pin ? ''
+                 : '<button class="m-add" style="background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.4)" '
+                   + 'data-reset="'+esc(a.name)+'">Reset PIN</button>'))
            /* REVOKING A DEVICE IS NOT REMOVING A PERSON, AND IT LOOKED LIKE IT WAS.
               Revoking Alex's Mac stopped that Mac. His account stayed active, so his
               name kept appearing on every shared device \u2014 which reads as the revoke
               having done nothing. These are two different things and both need a
               button. Removing hides them from every picker, cuts their live sessions
               and bans the login behind it. */
-           + (a.status === 'active'
+           + (_isMe(a.name) ? ''
+              : a.status === 'active'
               ? '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
                 + 'data-acctoff="'+esc(a.name)+'">Remove</button>'
               : '<button class="m-add" style="background:var(--card2);color:#34d399;border:1px solid rgba(52,211,153,.4)" '
@@ -22494,6 +22537,25 @@ function mrPushLoad(){
         account_role: roleSel ? roleSel.value : 'Mechanic'
       }).then(function(r){
         if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
+        load();
+      });
+    }
+
+    var fgt = t.getAttribute && t.getAttribute('data-forget');
+    if (fgt){
+      if (!confirm('Take this device off the list?\n\nIt stays revoked — if it ever asks for access again it comes back as a new request you have to approve.')) return;
+      t.disabled = true; t.textContent = '…';
+      return call('device-forget', { target_device_id: fgt }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not remove it.');
+        load();
+      });
+    }
+
+    var clr = t.getAttribute && t.getAttribute('data-clearreq');
+    if (clr){
+      t.disabled = true; t.textContent = '…';
+      return call('clear-reset-request', { target_name: clr }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not clear that.');
         load();
       });
     }

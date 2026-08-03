@@ -21285,18 +21285,28 @@ function mrPushLoad(){
    the first paint rather than after the old markup has already been shown. */
 .hka-on #s-pin > .pin-wrap:not(#hka-w){display:none !important}
 
-/* Two slow colour fields, drifting against each other. Low enough to read as
-   depth rather than decoration. */
-.hka-on #s-pin::before{
-  content:'';position:absolute;inset:-25%;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(45% 40% at 20% 18%, rgba(0,207,255,.16), rgba(0,207,255,0) 70%),
-    radial-gradient(45% 40% at 80% 84%, rgba(110,66,255,.16), rgba(110,66,255,0) 70%);
-  animation:hkaDrift 22s ease-in-out infinite alternate;
-  will-change:transform;
+/* THE SITE CHOOSER IS THE REFERENCE, AND IT ALWAYS SHOULD HAVE BEEN.
+   Two coloured fields drifting in opposite corners read as two blobs in a large
+   black room, because nothing sat between them — the colour had no subject. The
+   screen two taps later solves exactly this problem and solves it well: one wash
+   falling from the top centre, and one soft glow directly behind the content. The
+   light points at the thing you are meant to look at. Same two rules here, same
+   values, so the sign-in and the site chooser are visibly one app.
+   No filter:blur — a radial gradient is already soft, and this layer lives inside
+   the sliding screen stack, where a blurred layer forces a full re-raster every
+   frame of the transition off this screen. */
+.hka-on #s-pin{
+  background:radial-gradient(120% 100% at 50% 0%,#0b1722 0%,#05080c 60%,#000 100%);
 }
-@keyframes hkaDrift{ from{transform:translate3d(-2.5%,-1.5%,0) scale(1)}
-                     to  {transform:translate3d(2.5%,1.5%,0)  scale(1.07)} }
+.hka-on #s-pin::before{
+  content:'';position:absolute;z-index:0;pointer-events:none;
+  width:min(560px,92vw);height:min(560px,92vw);border-radius:50%;
+  top:46%;left:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(0,207,255,.15),rgba(0,207,255,.05) 45%,transparent 68%);
+  animation:hkaGlow 5s ease-in-out infinite;
+}
+@keyframes hkaGlow{ 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}
+                    50%    {opacity:.9;transform:translate(-50%,-50%) scale(1.1)} }
 #hka-w{position:relative;z-index:1}
 
 /* The mark, so the screen is branded rather than anonymous. */
@@ -21308,11 +21318,16 @@ function mrPushLoad(){
 /* Typography: the name carries the screen, the label sits under it as a quiet
    tracked caption — the same treatment the welcome screen already uses. */
 /* .wname / .wrole / .wbar, exactly — the treatment the welcome screen uses. */
-#hka-w .pin-h2{font-size:clamp(28px,8vw,38px);font-weight:900;letter-spacing:-.9px;
-               text-shadow:0 0 40px rgba(0,207,255,.40)}
-.hka-cap{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;
-         color:rgba(0,207,255,.85);text-align:center;margin-top:5px}
-.hka-bar{width:32px;height:2px;background:var(--grad);border-radius:2px;margin:13px auto 0}
+/* Matched to .sc-h / .sc-p rather than invented again. The heading carried a
+   40px cyan bloom that softened its own edges — it read as blurred, not as lit,
+   and the caption's cyan-on-cyan tracking fought the keypad underneath for the
+   same colour. The reference screen states the question in plain white and keeps
+   the accent for the things you actually press. */
+#hka-w .pin-h2{font-size:clamp(26px,7vw,32px);font-weight:900;letter-spacing:-.02em;
+               line-height:1.05}
+.hka-cap{font-size:13px;font-weight:600;letter-spacing:.01em;
+         color:#8aa3b0;text-align:center;margin-top:7px}
+.hka-bar{width:30px;height:2px;background:var(--grad);border-radius:2px;margin:16px auto 0;opacity:.8}
 
 /* Bigger targets with a lit ring as they fill, rather than four flat circles. */
 #hka-w .dots{gap:16px}
@@ -21332,10 +21347,16 @@ function mrPushLoad(){
 #hka-w .k:active{background:linear-gradient(135deg,rgba(0,207,255,.26),rgba(110,66,255,.18));
                  border-color:var(--acc);transform:scale(.93);
                  box-shadow:inset 0 0 0 1.5px var(--acc),0 0 22px rgba(0,207,255,.35)}
-#hka-w .k.del{border-color:rgba(255,59,48,.35);
-              background:linear-gradient(135deg,rgba(255,59,48,.10),rgba(255,59,48,.04))}
-#hka-w .k.del{color:var(--red);font-size:20px}
-@media (min-width:820px) and (min-height:700px){ #hka-w .pad{max-width:280px} }
+/* Backspace is not a warning. In red it was the loudest element on the screen —
+   brighter than the name, brighter than the keys you are meant to press. It keeps
+   the same shape as every other key and simply reads quieter. */
+#hka-w .k.del{color:rgba(255,255,255,.55);font-size:20px}
+/* A 330px column centred in a 2000px window is a phone screen on a monitor. The
+   site chooser widens on desktop for the same reason; this follows it. */
+@media (min-width:820px) and (min-height:700px){
+  .hka-card{max-width:376px;gap:18px}
+  #hka-w .pad{max-width:300px}
+}
 
 /* Inputs, primary action, segmented control and name chips — one family. */
 .hka-in{width:100%;max-width:300px;box-sizing:border-box;
@@ -21355,7 +21376,12 @@ function mrPushLoad(){
 .hka-btn2{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
           border:1px solid rgba(255,255,255,.10);color:var(--t2);font-weight:700;box-shadow:none}
 .hka-seg{display:flex;gap:9px;width:100%;max-width:300px}
-.hka-seg>div{flex:1;background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
+/* Both halves stretch to the tallest, and on a phone "Shared workshop device"
+   wraps to two lines while "One person" stays on one — so as a plain block its
+   single line sat hard against the top of its box while its neighbour filled the
+   height. Centred on both axes, not just horizontally. */
+.hka-seg>div{flex:1;display:flex;align-items:center;justify-content:center;
+             background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
              border:1.5px solid rgba(0,207,255,.22);border-radius:18px;padding:14px 8px;font-size:13px;
              font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;transition:all .16s}
 .hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.10);
@@ -21632,9 +21658,29 @@ function mrPushLoad(){
         + S.roster.map(function(x){
             return '<div class="hka-name" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
           }).join('')
-        + (S.roster.length ? '' : '<div class="pin-p">No accounts yet.</div>')
+        + (S.roster.length ? '' : '<div class="pin-p">Nobody has an account on this device yet.</div>')
         + '</div>'
-        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>';
+        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>'
+        /* THE ONLY WAY IN USED TO BE ENROLLING A NEW DEVICE.
+           That is the screen where you type your name — and on a workshop iPad or
+           Mac that is already approved, nobody ever sees it. So a new starter at a
+           shared machine had no route at all, and starting everyone fresh would
+           have left the floor locked out behind one account. */
+        + '<button class="train-link" id="hka-askacct">I’m not on this list</button>';
+    }
+    else if (S.stage === 'askname'){
+      h = head('Ask for an account', 'A manager approves it and sets what you can see.')
+        + '<input class="hka-in" id="hka-askwho" maxlength="60" placeholder="Your full name" value="'+esc(S.name)+'" autocomplete="name" style="letter-spacing:0;font-family:inherit">'
+        + '<div class="pin-p">Use the name your manager knows you by.</div>'
+        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>'
+        + '<button class="hka-btn" id="hka-asksend"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Ask for access')+'</button>'
+        + '<button class="hka-btn hka-btn2" id="hka-askback">Back</button>';
+    }
+    else if (S.stage === 'asked'){
+      h = head('We’ve asked the managers', 'They get a notification now.')
+        + '<div class="hka-note">Once one of them approves you, your name appears on this screen and you can choose your PIN.'
+        +   '<br><br>Nobody issues you a PIN — you pick it yourself, and nobody can read it back.</div>'
+        + '<button class="hka-btn" id="hka-askdone">Back to the list</button>';
     }
     else if (S.stage === 'forgot'){
       h = head('We\'ve told the managers', 'They can clear your PIN.')
@@ -21695,6 +21741,20 @@ function mrPushLoad(){
   }
 
   // ---- actions -------------------------------------------------------------
+  /* WHERE DOES THIS PERSON GO — THE KEYPAD, OR CREATING THEIR FIRST PIN?
+     There is exactly one right answer and it comes from the roster's must_set_pin,
+     so it belongs in one function. It was inlined at the picker only, which left
+     the two paths that matter most to a NEW person — their device being approved,
+     and reopening the app straight afterwards — asking for a PIN they had never
+     been given the chance to set. If we do not know them yet, assume they are new:
+     showing the notice to someone who already has a PIN costs one tap, while the
+     other way round invites them to guess. */
+  function goForName(nm){
+    S.name = nm; S.pin = '';
+    var who = S.roster.filter(function(x){ return x.name === nm; })[0];
+    return go((!who || who.must_set_pin) ? 'notice' : 'pin');
+  }
+
   function boot(){
     _handedOver = false;
     S.dev = loadDev();
@@ -21714,7 +21774,7 @@ function mrPushLoad(){
         if (r.status === 'unknown' || r.status === 'revoked'){ dropDev(); return go('join'); }
         if (r.status === 'pending'){ go('wait'); startPoll(); return; }
         // approved
-        if (r.kind === 'personal' && r.owner_name){ S.name = r.owner_name; return go('pin'); }
+        if (r.kind === 'personal' && r.owner_name) return goForName(r.owner_name);
         go('pick');
       });
     });
@@ -21727,8 +21787,14 @@ function mrPushLoad(){
         if (r && r.success && r.status === 'approved'){
           clearInterval(S.poll);
           S.msg = 'Approved!';
-          if (r.kind === 'personal' && r.owner_name){ S.name = r.owner_name; go('pin'); }
-          else go('pick');
+          /* The account is created at the moment of approval, which is AFTER the
+             roster we loaded on the way in. Without re-reading it, the person we
+             just approved is not in the list we are about to consult, and the very
+             first thing a new starter sees is a demand for a PIN nobody has set. */
+          roster(function(){
+            if (r.kind === 'personal' && r.owner_name) goForName(r.owner_name);
+            else go('pick');
+          });
         }
       });
     }, 4000);
@@ -21843,8 +21909,7 @@ function mrPushLoad(){
            Tapping a name went to the keypad, which then bounced to "create a PIN"
            once the server said they had none. The roster now says who still needs
            one, so a new person is taken straight to creating theirs. */
-        var who = S.roster.filter(function(x){ return x.name === nm; })[0];
-        return go(who && who.must_set_pin ? 'notice' : 'pin');
+        return goForName(nm);
       }
     }
     if (t.id === 'hka-notice-ok'){ S.pin=''; S.pin2=''; return go('setpin'); }
@@ -21866,6 +21931,24 @@ function mrPushLoad(){
       S.pin=''; return go('forgot');
     }
     if (t.id === 'hka-forgot-back'){ S.pin=''; return go(S.name ? 'pin' : 'pick'); }
+    if (t.id === 'hka-askacct'){ S.err=''; S.name=''; return go('askname'); }
+    if (t.id === 'hka-askback'){ S.err=''; return go('pick'); }
+    if (t.id === 'hka-askdone'){ S.err=''; S.name=''; roster(function(){ go('pick'); }); return; }
+    if (t.id === 'hka-asksend'){
+      var el = document.getElementById('hka-askwho');
+      var nm = el ? el.value.trim() : '';
+      if (nm.length < 2){ S.err = 'Type your full name.'; return render(); }
+      if (S.busy) return;
+      S.busy = true; S.name = nm; S.err = ''; render();
+      call('request-account', { name: nm }).then(function(r){
+        S.busy = false;
+        /* Answers the same whether or not that name already has an account, so
+           this cannot be used to work out who works here. */
+        if (r && r.success) return go('asked');
+        S.err = (r && r.message) || 'Could not send that. Try again.'; render();
+      });
+      return;
+    }
     /* .k / .emp, not .hka-k / .blank. Rebuilding these screens on the app's own
        classes renamed the keys and left this handler looking for the old ones, so
        every tap on the keypad hit nothing at all. */
@@ -22083,6 +22166,33 @@ function mrPushLoad(){
       h += '<div style="height:8px"></div>';
     }
 
+    /* ---- people asking for an account on a device that is already approved ----
+       Different queue, different decision. The one above is "is this machine
+       allowed?"; this one is "is this person staff?". A new starter at a shared
+       workshop Mac only ever raises this one, because the Mac was approved long
+       before they arrived. */
+    var pendAcct = accounts.filter(function(a){ return a.status === 'pending'; });
+    if (pendAcct.length){
+      h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:0 0 8px">'
+         + 'ASKING FOR AN ACCOUNT (' + pendAcct.length + ')</div>';
+      pendAcct.forEach(function(a){
+        var roleOpts2 = ['Mechanic','Facilities','Office','Manager','Assistant Manager','Owner']
+          .map(function(r){ return '<option value="'+r+'">'+r+'</option>'; }).join('');
+        h += '<div style="background:var(--card);border:1px solid rgba(251,191,36,.45);border-radius:12px;padding:12px;margin-bottom:10px">'
+           + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(a.name)+'</div>'
+           + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">🆕 asked on a workshop device · they choose their own PIN once you approve</div>'
+           + '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.4px;margin-bottom:5px">ROLE</div>'
+           + '<select data-arole="'+esc(a.name)+'" style="width:100%;background:var(--card2);border:1px solid var(--b2);'
+           + 'border-radius:9px;color:var(--t1);padding:8px 10px;font-size:13px;margin-bottom:10px">'+roleOpts2+'</select>'
+           + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
+           +   '<button class="m-add" data-acctok="'+esc(a.name)+'">✓ Approve</button>'
+           +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
+           +     'data-acctno="'+esc(a.name)+'">✕ Decline</button>'
+           + '</div></div>';
+      });
+      h += '<div style="height:8px"></div>';
+    }
+
     // ---- approved --------------------------------------------------------
     h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:10px 0 8px">'
        + 'APPROVED' + (approved.length ? ' ('+approved.length+')' : '') + '</div>';
@@ -22134,6 +22244,9 @@ function mrPushLoad(){
     }
 
     // ---- people: who has a PIN, who is asking for a reset ---------------
+    // Anyone still pending is in the queue above, awaiting a decision — listing
+    // them here as well would read as though they were already staff.
+    accounts = accounts.filter(function(a){ return a.status !== 'pending'; });
     if (accounts.length){
       var asking = accounts.filter(function(a){ return a.reset_requested_at; });
       h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:20px 0 8px">'
@@ -22155,14 +22268,29 @@ function mrPushLoad(){
            +   '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(a.name)+(a.status!=='active'?' <span style="color:#FF5252;font-size:11px">disabled</span>':'')+'</div>'
            +   '<div style="font-size:11.5px;color:'+colour+';margin-top:2px">'+esc(a.app_role||'')+' \u00b7 '+esc(state)+'</div>'
            + '</div>'
+           + '<div style="display:flex;gap:6px;flex-shrink:0">'
            + (a.must_set_pin ? ''
-              : '<button class="m-add" style="background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.4);flex-shrink:0" '
+              : '<button class="m-add" style="background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.4)" '
                 + 'data-reset="'+esc(a.name)+'">Reset PIN</button>')
+           /* REVOKING A DEVICE IS NOT REMOVING A PERSON, AND IT LOOKED LIKE IT WAS.
+              Revoking Alex's Mac stopped that Mac. His account stayed active, so his
+              name kept appearing on every shared device \u2014 which reads as the revoke
+              having done nothing. These are two different things and both need a
+              button. Removing hides them from every picker, cuts their live sessions
+              and bans the login behind it. */
+           + (a.status === 'active'
+              ? '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
+                + 'data-acctoff="'+esc(a.name)+'">Remove</button>'
+              : '<button class="m-add" style="background:var(--card2);color:#34d399;border:1px solid rgba(52,211,153,.4)" '
+                + 'data-accton="'+esc(a.name)+'" data-role="'+esc(a.app_role||'Mechanic')+'">Restore</button>')
+           + '</div>'
            + '</div>';
       });
       h += '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin:2px 0 4px">'
          + 'Resetting clears their PIN. They choose the new one themselves on their own device \u2014 '
-         + 'you never see it, and you never have to make one up for them.</div>';
+         + 'you never see it, and you never have to make one up for them.<br>'
+         + '<b>Remove</b> takes them off every sign-in screen straight away and ends any session they have open. '
+         + 'Revoking a device only stops that one device \u2014 it does not remove the person.</div>';
     }
 
     // ---- retire the old sign-in -----------------------------------------
@@ -22287,6 +22415,45 @@ function mrPushLoad(){
       });
     }
 
+    var offNm = t.getAttribute && t.getAttribute('data-acctoff');
+    if (offNm){
+      if (!confirm('Remove ' + offNm + "?\n\nThey disappear from every sign-in screen, any session they have open ends, and their PIN stops working. You can restore them later.")) return;
+      t.disabled = true; t.textContent = '…';
+      return call('account-upsert', { name: offNm, status: 'disabled' }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not remove.');
+        load();
+      });
+    }
+    var onNm = t.getAttribute && t.getAttribute('data-accton');
+    if (onNm){
+      t.disabled = true; t.textContent = '…';
+      return call('account-upsert', { name: onNm, status: 'active', app_role: t.getAttribute('data-role') || 'Mechanic' }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not restore.');
+        load();
+      });
+    }
+    var yesAcct = t.getAttribute && t.getAttribute('data-acctok');
+    if (yesAcct){
+      var arSel = document.querySelector('[data-arole="' + yesAcct + '"]');
+      t.disabled = true; t.textContent = 'Approving…';
+      return call('account-decide', {
+        target_name: yesAcct, decision: 'approved',
+        app_role: arSel ? arSel.value : 'Mechanic'
+      }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
+        load();
+      });
+    }
+    var noAcct = t.getAttribute && t.getAttribute('data-acctno');
+    if (noAcct){
+      if (!confirm('Decline ' + noAcct + "'s request?\n\nNothing is kept. They can ask again.")) return;
+      t.disabled = true; t.textContent = '…';
+      return call('account-decide', { target_name: noAcct, decision: 'declined' }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not decline.');
+        load();
+      });
+    }
+
     var noId = t.getAttribute && t.getAttribute('data-no');
     if (noId){
       if (!confirm('Revoke this device? Anyone signed in on it is signed out.')) return;
@@ -22307,7 +22474,7 @@ function mrPushLoad(){
     if (!tok()) return;
     call('pending-count').then(function(r){
       if (!r || !r.success) return;
-      var n = (r.devices||0) + (r.resets||0);
+      var n = (r.devices||0) + (r.resets||0) + (r.accounts||0);
       var t = document.getElementById('mtab-devices'); if (!t) return;
       t.textContent = '📲 Devices' + (n ? ' (' + n + ')' : '');
       t.style.borderColor = n ? 'rgba(0,207,255,.6)' : '';

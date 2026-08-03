@@ -21293,10 +21293,25 @@ function mrPushLoad(){
    the first paint rather than after the old markup has already been shown. */
 .hka-on #s-pin > .pin-wrap:not(#hka-w){display:none !important}
 
-/* #s-pin keeps its own background (#000) and #s-welcome keeps welIn, efloat and
-   its heading glow — the animation that shipped. Nothing here overrides either. */
+/* Checked the pre-work copy of the file: #s-pin was plain #000 — there was no
+   backdrop glow, and what you remember lighting up is the DOTS (they already
+   carried a 14px cyan bloom and a 1.22 scale). Adding one anyway, on request,
+   but genuinely subtle this time — a third the strength of the one that was
+   rejected, static rather than pulsing, and sitting low behind the keypad so it
+   lifts the black off the screen without becoming a feature of it. */
+.hka-on #s-pin::before{
+  content:'';position:absolute;z-index:0;pointer-events:none;
+  width:min(620px,120vw);height:min(620px,120vw);border-radius:50%;
+  top:52%;left:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(0,207,255,.055),rgba(0,207,255,.02) 45%,transparent 70%);
+}
 #hka-w{position:relative;z-index:1}
 .hka-mark{display:none}
+
+/* More glow on the dots, as asked. The app's own .dot.on keeps its colour, its
+   1.22 scale and its transition — this only deepens the bloom and adds a wider,
+   fainter second ring so a filled dot reads as lit rather than merely coloured. */
+#hka-w .dot.on{box-shadow:0 0 16px rgba(0,207,255,.75),0 0 34px rgba(0,207,255,.34)}
 
 /* The caption under the heading is the app's own .pin-p, to the pixel. */
 .hka-cap{font-size:14px;color:var(--t2);text-align:center;margin-top:4px}
@@ -21772,22 +21787,34 @@ function mrPushLoad(){
     });
   }
 
+  /* THE FOURTH DIGIT HAS TO ACKNOWLEDGE ITSELF.
+     The old keypad added .checking to the dots the moment the PIN was complete —
+     all four pulse together while the server is asked, with "Checking…" under
+     them — so you knew it had taken your PIN and was working. That is the
+     animation the new pad was missing: it filled the fourth dot and then sat
+     there, silent, until the screen changed. Same class, same keyframes, same
+     wording as before; nothing new invented. */
+  function checking(on){
+    var d = document.querySelector('#hka-w .dots'); if (d) d.classList.toggle('checking', !!on);
+    var e = document.querySelector('#hka-w .perr');
+    if (e && on) e.innerHTML = '<span class="pchk">Checking…</span>';
+  }
   function submitPin(){
     if (S.busy) return;            // a queued second submit would log in twice
     if (S.stage === 'setpin'){ S.pin2=''; return go('setpin2'); }
     if (S.stage === 'setpin2'){
       if (S.pin !== S.pin2){ S.pin=''; S.pin2=''; go('setpin'); return fail('Those didn\'t match. Try again.'); }
-      S.busy = true;
+      S.busy = true; checking(true);
       return call('set-pin', { name:S.name, pin:S.pin }).then(function(r){
-        S.busy=false;
+        S.busy=false; checking(false);
         if (!r || !r.success){ S.pin=''; S.pin2=''; go('setpin'); return fail((r&&r.message)||'Could not set your PIN.'); }
         enter(r);
       });
     }
     // normal login
-    S.busy = true;
+    S.busy = true; checking(true);
     call('login', { name:S.name, pin:S.pin }).then(function(r){
-      S.busy = false;
+      S.busy = false; checking(false);
       if (r && r.code === 'set-pin'){ S.pin=''; return go('notice'); }
       if (!r || !r.success){ S.pin=''; return fail((r && r.message) || 'That PIN doesn\'t match.'); }
       enter(r);

@@ -426,6 +426,17 @@ Deno.serve(async (req) => {
         }
 
         await db.from("hk_accounts").update({ failed_count: 0, locked_until: null }).eq("id", acct.id);
+        /* CLAIM AN UNOWNED PERSONAL DEVICE ON FIRST USE.
+           The ownership check below only bites once owner_name is set, and approval
+           does not always set it — a personal device approved without a name would
+           accept ANY staff member, indefinitely, which is precisely what "personal"
+           is supposed to prevent. set-pin bound it, but somebody signing in with an
+           existing PIN never went through set-pin. It binds here too now, to the
+           first person who successfully signs in on it. */
+        if (dev.kind === "personal" && !dev.owner_name){
+          await db.from("hk_devices").update({ owner_name: acct.name }).eq("device_id", did);
+          await log("device_bound", acct.name, did, ip);
+        }
         await log("login_ok", name, did, ip);
         return json(req, { success: true, ...(await issueSession(acct, did)) });
       }

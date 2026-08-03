@@ -21863,19 +21863,34 @@ function mrPushLoad(){
     if (!approved.length){
       h += '<div style="color:var(--t2);font-size:13px;margin-bottom:18px">None yet.</div>';
     } else {
+      /* WHO A DEVICE BELONGS TO IS A SETTING, NOT A DECISION FROZEN AT APPROVAL.
+         It could only be chosen at the moment of approval, so a device approved as
+         shared stayed shared forever unless it was revoked and re-enrolled — which
+         is how Harvey's own phone ended up joint after being bootstrapped that way.
+         The dropdown says the model out loud: this device belongs to one person, or
+         it is a shared one anybody approved can use. */
       approved.forEach(function(d){
-        h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:11px 12px;margin-bottom:8px;'
-           + 'display:flex;justify-content:space-between;align-items:center;gap:10px">'
-           + '<div style="min-width:0">'
-           +   '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(d.label || d.owner_name || d.requested_name || 'Device')+'</div>'
-           +   '<div style="font-size:11.5px;color:var(--t2);margin-top:2px">'
-           +     (d.kind === 'shared' ? '👥 Shared' : '👤 ' + esc(d.owner_name || 'personal'))
-           +     ' · ' + esc(kindOf(d.user_agent,d.platform)) + ' · seen ' + esc(ago(d.last_seen)) + '</div>'
+        var opts = '<option value="__shared__"'+(d.kind==='shared'?' selected':'')+'>👥 Shared — anyone approved</option>';
+        accounts.filter(function(a){ return a.status === 'active'; }).forEach(function(a){
+          opts += '<option value="'+esc(a.name)+'"'+((d.kind!=='shared'&&d.owner_name===a.name)?' selected':'')+'>👤 '+esc(a.name)+' only</option>';
+        });
+        h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:11px 12px;margin-bottom:8px">'
+           + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+           +   '<div style="min-width:0">'
+           +     '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(d.label || d.owner_name || d.requested_name || 'Device')+'</div>'
+           +     '<div style="font-size:11.5px;color:var(--t2);margin-top:2px">'
+           +       esc(kindOf(d.user_agent,d.platform)) + ' · seen ' + esc(ago(d.last_seen)) + '</div>'
+           +   '</div>'
+           +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4);flex-shrink:0" '
+           +     'data-no="'+esc(d.device_id)+'">Revoke</button>'
            + '</div>'
-           + '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4);flex-shrink:0" '
-           +   'data-no="'+esc(d.device_id)+'">Revoke</button>'
+           + '<select data-owner="'+esc(d.device_id)+'" style="margin-top:9px;width:100%;background:var(--card2);'
+           +   'border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 10px;font-size:13px">'+opts+'</select>'
            + '</div>';
       });
+      h += '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin:2px 0 4px">'
+         + 'A device set to one person will only ever sign that person in, whoever knows a PIN. '
+         + 'Shared is for the workshop iPads and Macs \u2014 anyone approved can use their own PIN on them.</div>';
     }
 
     // ---- revoked ---------------------------------------------------------
@@ -21945,6 +21960,23 @@ function mrPushLoad(){
 
     b.innerHTML = h;
   }
+
+  document.addEventListener('change', function(ev){
+    var b = document.getElementById('hka-dev-body');
+    if (!b || !b.contains(ev.target)) return;
+    var id = ev.target.getAttribute && ev.target.getAttribute('data-owner');
+    if (!id) return;
+    var v = ev.target.value, shared = (v === '__shared__');
+    ev.target.disabled = true;
+    call('device-decide', {
+      target_device_id: id, decision: 'approved',
+      kind: shared ? 'shared' : 'personal',
+      owner_name: shared ? '' : v
+    }).then(function(r){
+      if (!r || !r.success) alert((r&&r.message) || 'Could not change.');
+      load();
+    });
+  }, true);
 
   // one delegated handler for the whole pane
   document.addEventListener('click', function(ev){

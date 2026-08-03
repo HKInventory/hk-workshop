@@ -21276,12 +21276,50 @@ function mrPushLoad(){
    who it belongs to and goes straight to the pad, so it is fewer taps than today.
    ========================================================================== */
 (function(){
-  var ON = /[?&]newauth=1/.test(location.search || '');
-  if (!ON) return;                       // absolute no-op for everyone else
-
   var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
-  var DEVKEY = 'hk_dev_v1';
+  var DEVKEY = 'hk_dev_v1', OPTKEY = 'hk_newauth_v1';
   var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'' };
+
+  function ls(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function loadDev(){ try { return JSON.parse(ls(DEVKEY)||'null'); } catch(e){ return null; } }
+
+  /* HOW THIS SCREEN DECIDES TO APPEAR, AND WHY IT IS NO LONGER A URL.
+     It was gated on ?newauth=1, which was fine for testing and useless for staff:
+     the installed app opens at start_url with no query string, so on a phone with
+     the app on its home screen the new login simply never appeared — and there is
+     nowhere to type a URL in an installed app anyway.
+     So the device decides. Already enrolled, or tapped the button on the old PIN
+     pad once? This screen is yours from now on, every launch, no URL. Otherwise
+     nothing happens and the old pad runs exactly as before. That makes the
+     changeover per-device and gradual: people move across as they are approved,
+     instead of everyone at midnight.
+     The query strings remain as overrides for testing and as an escape hatch —
+     ?oldauth=1 forces the old pad back even on an enrolled device. */
+  var qs = location.search || '';
+  var FORCE_NEW = /[?&]newauth=1/.test(qs);
+  var FORCE_OLD = /[?&]oldauth=1/.test(qs);
+  var ON = FORCE_NEW || (!FORCE_OLD && (ls(OPTKEY) === '1' || !!loadDev()));
+
+  /* Not on? Offer the way in, once, on the pad people already use. Without this
+     there is no route to the new login from inside an installed app at all. */
+  if (!ON){
+    var mountEntry = function(){
+      if (document.getElementById('hka-entry')) return;
+      var wrap = document.querySelector('#s-pin .pin-wrap');
+      if (!wrap) return;
+      var btn = document.createElement('button');
+      btn.id = 'hka-entry';
+      btn.textContent = '🔐 Set up secure sign-in';
+      btn.style.cssText = 'margin-top:16px;background:none;border:1px solid rgba(255,255,255,.16);border-radius:11px;'
+        + 'color:#8a93a0;font-size:12.5px;font-weight:600;padding:10px 18px;cursor:pointer';
+      btn.onclick = function(){ try { localStorage.setItem(OPTKEY,'1'); } catch(e){} location.reload(); };
+      wrap.appendChild(btn);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountEntry);
+    else mountEntry();
+    setTimeout(mountEntry, 1200);
+    return;
+  }
 
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function el(){ return document.getElementById('hka-w'); }
@@ -21295,7 +21333,6 @@ function mrPushLoad(){
      a manager taps approve — but it should be rare, and an installed home-screen
      app is treated far more kindly than a browser tab. */
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
-  function loadDev(){ try { return JSON.parse(localStorage.getItem(DEVKEY)||'null'); } catch(e){ return null; } }
   function saveDev(d){ try { localStorage.setItem(DEVKEY, JSON.stringify(d)); } catch(e){} S.dev=d; }
   function dropDev(){ try { localStorage.removeItem(DEVKEY); } catch(e){} S.dev=null; }
 
@@ -21379,7 +21416,10 @@ function mrPushLoad(){
         + (S.roster.length ? '' : '<div class="hka-p">Couldn\'t load the staff list.</div>')
         + '</div>'
         + '<div class="hka-err">'+esc(S.err)+'</div>'
-        + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>';
+        + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>'
+        /* Never a dead end. Someone who taps the button without a join code, or whose
+           device gets revoked, must be able to get back to the pad that still works. */
+        + '<button class="hka-btn hka-btn2" id="hka-back">Use the old sign-in</button>';
     }
     else if (S.stage === 'wait'){
       /* A 32-CHARACTER ID IS NOT SOMETHING A HUMAN SHOULD RETYPE.
@@ -21552,6 +21592,7 @@ function mrPushLoad(){
     }
     if (t.id === 'hka-req') return requestDevice();
     if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
+    if (t.id === 'hka-back'){ try { localStorage.removeItem(OPTKEY); } catch(e){} dropDev(); location.reload(); return; }
     if (t.id === 'hka-notme'){ S.pin=''; S.name=''; return go('pick'); }
     var k = t.closest && t.closest('.hka-k');
     if (k && !k.classList.contains('blank')){
@@ -21581,7 +21622,7 @@ function mrPushLoad(){
      worth using. HKA.go('notice') jumps to any screen, HKA.reset() forgets this
      device and starts the whole setup again. Read-only on its own — none of it
      bypasses the server, which decides every actual answer. */
-  window.HKA = { boot:boot, go:go, reset:function(){ dropDev(); location.reload(); }, state:function(){ return S; } };
+  window.HKA = { boot:boot, go:go, reset:function(){ dropDev(); try{localStorage.removeItem(OPTKEY);}catch(e){} location.reload(); }, state:function(){ return S; } };
 })();
 
 /* ===== DEVICES — approve the phones and iPads that may log anyone in ==========
@@ -21660,9 +21701,9 @@ function mrPushLoad(){
          new login, and someone signed in the old way simply has no session for it
          yet — which is a step of the rollout, not a permissions problem. */
       b.innerHTML = '<div style="color:var(--t2);font-size:13px;line-height:1.7">'
-        + '<b style="color:var(--t1)">Not signed in to the new login yet.</b><br>'
-        + 'Device approvals run on the new sign-in. Open the app with '
-        + '<code style="color:#00CFFF">?newauth=1</code>, log in with your name and PIN, then come back here.'
+        + '<b style="color:var(--t1)">Not signed in to the new sign-in yet.</b><br>'
+        + 'Device approvals run on it. Log out, tap <b style="color:var(--t1)">\ud83d\udd10 Set up secure sign-in</b> '
+        + 'under the keypad, then sign in with your name and PIN. This tab works from then on, on this device.'
         + '</div>';
       return;
     }

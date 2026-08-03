@@ -5426,7 +5426,12 @@ var stk=[];
   var u=sessionStorage.getItem('hk_u'),ud=sessionStorage.getItem('hk_ud');
   // Pre-fetch staff in background immediately
   fetchStaff(null);
-  loadAccessCfg();   // pull role/account tab access (anon-readable); re-applies visibility when it lands
+  /* NOT BEFORE SIGNING IN. This pulled the role and tab configuration on boot,
+     which meant it had to be readable by anyone who opened the page — and it is
+     only ever used to decide which tiles a SIGNED-IN person sees. Nobody looking
+     at a sign-in screen needs it, so it now waits until there is someone to
+     configure for, and the table stops needing to be public at all. */
+  if (u && ud === new Date().toDateString()) loadAccessCfg();
   if(u&&ud===new Date().toDateString()){
     try{
       cu=JSON.parse(u);applyRoleVisibility();stk=['home'];showRoot('home');playSplash(false);loadSites(function(){applySiteAccent('home');});
@@ -6263,7 +6268,7 @@ function pinFail(msg){
 function onLoginOk(m,entered){
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
-  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}applyRoleVisibility();try{rampCheck();notifCtaCheck();notifRefresh();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
+  cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}try{loadAccessCfg();}catch(e){}applyRoleVisibility();try{rampCheck();notifCtaCheck();notifRefresh();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
   if(!TRAINING){try{SBC.from('logins').insert({name:m.name,role:m.role,ts:new Date().toISOString()}).then(function(){},function(){});}catch(e){}}
   try{ if(!TRAINING) startPresence(); }catch(e){}

@@ -119,14 +119,32 @@ const LOCK_SECONDS     = 60;     // first pause; doubles each time
 const LOCK_CAP_SECONDS = 900;
 const MAIL_DOMAIN      = "hkws.hyperkarting.com.au";   // never receives mail; a stable unique handle
 
-/* THE ROLES THAT COUNT AS A MANAGER, READ OFF THE REAL ROSTER RATHER THAN GUESSED.
-   This listed only Manager and Assistant Manager, which quietly excluded "Owner" —
-   the most senior role in the building. Andrew happened to also carry is_master so
-   he would have got in anyway, and the gap would only have surfaced the first time
-   an Owner without that flag tried to approve a device and was told "Managers only".
-   The live roster also runs Facilities and Office, which are correctly NOT here:
-   they are ordinary accounts and should not be approving devices or resetting PINs. */
-const MANAGER_ROLES = ["Owner", "Manager", "Assistant Manager"];
+/* TWO TIERS, AND THEY ARE NOT THE SAME THING.
+     is_master  — the builder. Harvey, and only Harvey. Grants and revokes admin,
+                  sets the recovery code, changes who counts as an admin at all.
+                  It is the root of the whole system, so it is one person.
+     admin role — the day-to-day job: approving devices, resetting PINs, creating
+                  accounts. Andrew (Owner) and Ross (Manager) do this through their
+                  ROLE, without needing to be the builder.
+   Splitting them means the people who run the floor can run the floor, while the
+   one account that can rewrite who is trusted stays a single, deliberate thing.
+
+   THE ROLE LIST IS DATA, NOT CODE.
+   It was hardcoded here, which meant every new role Hyper Karting invented would
+   silently have no admin rights until someone redeployed this function — and the
+   roster already carries Owner, Facilities and Office, none of which I knew about
+   when I first wrote the list. It now lives in hk_auth_config so Harvey can change
+   it from the owner screen, and this constant is only the fallback for a fresh
+   install. Facilities and Office are deliberately absent: ordinary accounts. */
+const MANAGER_ROLES_DEFAULT = ["Owner", "Manager", "Assistant Manager"];
+async function managerRoles(): Promise<string[]> {
+  try {
+    const { data } = await db.from("hk_auth_config").select("manager_roles").eq("id", 1).maybeSingle();
+    const list = (data?.manager_roles as string[] | null) || null;
+    if (list && list.length) return list;
+  } catch { /* fall through to the default */ }
+  return MANAGER_ROLES_DEFAULT;
+}
 
 /* Every account is backed by a Supabase login. Created on demand, with a random
    password nobody ever sees and email confirmation pre-set so no mail is sent.
@@ -233,7 +251,7 @@ Deno.serve(async (req) => {
     if (error || !data?.user) return null;
     const { data: acct } = await db.from("hk_accounts").select("*").eq("auth_user_id", data.user.id).maybeSingle();
     if (!acct || acct.status !== "active") return null;
-    const mgr = acct.is_master || MANAGER_ROLES.includes(String(acct.app_role || ""));
+    const mgr = acct.is_master || (await managerRoles()).includes(String(acct.app_role || ""));
     return mgr ? acct : null;
   }
 
@@ -479,6 +497,21 @@ Deno.serve(async (req) => {
         }
         return json(req, { success: true, device_id, device_key, ...(await issueSession(master, device_id)),
                            message: "Recovery used. Set a new recovery code from Master Access." });
+      }
+      /* ---- 9b. Which roles count as an admin -------------------------------
+         Builder only. Lets new roles be given admin rights without redeploying
+         this function — which matters because roles here are clearly not fixed.
+         Harvey cannot lock himself out with it: is_master is checked before the
+         role list, so even removing every role leaves him in. */
+      case "set-manager-roles": {
+        const mgr = await callerManager();
+        if (!mgr?.is_master) return json(req, { success: false, message: "Builder only." }, 403);
+        const roles = Array.isArray(body?.roles)
+          ? body.roles.map((r: unknown) => String(r).trim()).filter(Boolean).slice(0, 20) : [];
+        if (!roles.length) return json(req, { success: false, message: "Need at least one role." });
+        await db.from("hk_auth_config").update({ manager_roles: roles, updated_at: new Date().toISOString() }).eq("id", 1);
+        await log("manager_roles_set", mgr.name, null, ip, { roles });
+        return json(req, { success: true, roles });
       }
       case "set-recovery": {
         const mgr = await callerManager();

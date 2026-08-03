@@ -21382,10 +21382,20 @@ function mrPushLoad(){
         + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>';
     }
     else if (S.stage === 'wait'){
+      /* A 32-CHARACTER ID IS NOT SOMETHING A HUMAN SHOULD RETYPE.
+         The first version printed the raw device id and the very first person to use
+         it dropped a character copying it off a phone, so the approval matched no rows
+         and the screen simply sat there — with nothing on either end saying why.
+         Now the big text is a short reference for reading aloud ("it says 7C87CF"),
+         the full id is one tap to copy, and after this first device nobody sees either
+         again: approvals happen in Master Access -> Devices. */
+      var _id = S.dev ? S.dev.device_id : '';
       h = '<div class="hka-h">Waiting for approval</div>'
-        + '<div class="hka-p">A manager needs to approve this device. It usually takes a moment — this screen updates on its own.</div>'
-        + '<div class="hka-p" style="color:#5a6270">Device ID</div>'
-        + '<div class="hka-code">'+esc(S.dev?S.dev.device_id:'')+'</div>'
+        + '<div class="hka-p">A manager needs to approve this device. It updates on its own — you can leave this screen open.</div>'
+        + '<div class="hka-p" style="color:#5a6270">Show a manager this code</div>'
+        + '<div style="font-size:30px;font-weight:800;letter-spacing:6px;color:#00CFFF;font-family:Monaco,Consolas,monospace">'
+        +   esc(_id.slice(-6).toUpperCase()) + '</div>'
+        + '<div class="hka-code" id="hka-copy" title="Tap to copy">'+esc(_id)+'<div style="color:#5a6270;margin-top:6px;letter-spacing:0">tap to copy</div></div>'
         + '<div class="hka-ok">'+esc(S.msg)+'</div>'
         + '<button class="hka-btn hka-btn2" id="hka-start-over">Start over</button>';
     }
@@ -21512,6 +21522,8 @@ function mrPushLoad(){
       if (r.access_token && SBC && SBC.auth && SBC.auth.setSession)
         SBC.auth.setSession({ access_token:r.access_token, refresh_token:r.refresh_token });
     } catch(e){}
+    // The Devices tab proves who it is with this, so it has to outlive this screen.
+    try { if (window.hkaSetToken) window.hkaSetToken(r.access_token || ''); } catch(e){}
     hide();
     var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
     /* The existing master screens still authorise with cu.pin, so it is passed
@@ -21533,6 +21545,11 @@ function mrPushLoad(){
       if (S.stage === 'pick'){ S.name = nm; S.pin=''; return go('pin'); }
     }
     if (t.id === 'hka-notice-ok'){ S.pin=''; S.pin2=''; return go('setpin'); }
+    if (t.closest && t.closest('#hka-copy')){
+      var full = S.dev ? S.dev.device_id : '';
+      try { navigator.clipboard.writeText(full); S.msg = 'Copied.'; render(); } catch(e){}
+      return;
+    }
     if (t.id === 'hka-req') return requestDevice();
     if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
     if (t.id === 'hka-notme'){ S.pin=''; S.name=''; return go('pick'); }
@@ -21565,6 +21582,236 @@ function mrPushLoad(){
      device and starts the whole setup again. Read-only on its own — none of it
      bypasses the server, which decides every actual answer. */
   window.HKA = { boot:boot, go:go, reset:function(){ dropDev(); location.reload(); }, state:function(){ return S; } };
+})();
+
+/* ===== DEVICES — approve the phones and iPads that may log anyone in ==========
+   Lives in Master Access, so Harvey, Ross and Andrew can all use it. Owner
+   controls stays what it is: Harvey deciding who gets Master Access in the first
+   place. Approving a device is the day job, not an ownership decision.
+
+   Mounted from JavaScript rather than added to the markup, and mTab is wrapped
+   rather than edited, so nothing in the existing Master Access screen is touched.
+   If any of this failed to load, the other ten tabs carry on exactly as before.
+   ========================================================================== */
+(function(){
+  var TOKKEY = 'hk_tok_v1';
+  function tok(){ try { return sessionStorage.getItem(TOKKEY) || ''; } catch(e){ return ''; } }
+  window.hkaSetToken = function(t){ try { t ? sessionStorage.setItem(TOKKEY,t) : sessionStorage.removeItem(TOKKEY); } catch(e){} };
+
+  var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
+  function call(op, extra){
+    var body = Object.assign({ op:op, token:tok() }, extra||{});
+    return fetch(FN, { method:'POST', headers:HDRS, body:JSON.stringify(body) })
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return { success:false, message:'Connection error' }; });
+  }
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function ago(iso){
+    if (!iso) return 'never';
+    var s = Math.max(0, Math.round((Date.now() - Date.parse(iso))/1000));
+    if (s < 60) return s+'s ago';
+    if (s < 3600) return Math.round(s/60)+'m ago';
+    if (s < 86400) return Math.round(s/3600)+'h ago';
+    return Math.round(s/86400)+'d ago';
+  }
+  function kindOf(ua, plat){
+    var t = (plat||'') + ' ' + (ua||'');
+    if (/iPad/i.test(t)) return '📱 iPad';
+    if (/iPhone/i.test(t)) return '📱 iPhone';
+    if (/Android/i.test(t)) return '📱 Android';
+    if (/Mac/i.test(t)) return '💻 Mac';
+    if (/Win/i.test(t)) return '💻 Windows';
+    return '📱 Device';
+  }
+
+  function mount(){
+    var tabs = document.querySelector('.m-tabs');
+    if (!tabs || document.getElementById('mtab-devices')) return;
+    var btn = document.createElement('button');
+    btn.className = 'm-tab'; btn.id = 'mtab-devices'; btn.textContent = '📲 Devices';
+    btn.onclick = function(){ try { mTab('devices'); } catch(e){} };
+    tabs.appendChild(btn);
+    var pane = document.createElement('div');
+    pane.className = 'm-pane'; pane.id = 'm-pane-devices';
+    pane.innerHTML = '<div id="hka-dev-body" style="padding:14px 18px 40px"></div>';
+    tabs.parentNode.appendChild(pane);
+
+    /* Wrap rather than edit. mTab's own list does not know about this tab, which is
+       fine — calling it with 'devices' switches every other tab off, and this puts
+       ours on afterwards. Editing that list would mean touching a function ten other
+       screens depend on. */
+    if (typeof window.mTab === 'function' && !window.mTab._hka){
+      var orig = window.mTab;
+      window.mTab = function(name){
+        try { orig(name); } catch(e){}
+        var t = document.getElementById('mtab-devices'), p = document.getElementById('m-pane-devices');
+        if (t) t.classList.toggle('active', name === 'devices');
+        if (p) p.classList.toggle('active', name === 'devices');
+        if (name === 'devices') load();
+      };
+      window.mTab._hka = true;
+    }
+  }
+
+  function load(){
+    var b = document.getElementById('hka-dev-body'); if (!b) return;
+    if (!tok()){
+      /* Honest about WHY rather than a bare "not allowed". This screen speaks to the
+         new login, and someone signed in the old way simply has no session for it
+         yet — which is a step of the rollout, not a permissions problem. */
+      b.innerHTML = '<div style="color:var(--t2);font-size:13px;line-height:1.7">'
+        + '<b style="color:var(--t1)">Not signed in to the new login yet.</b><br>'
+        + 'Device approvals run on the new sign-in. Open the app with '
+        + '<code style="color:#00CFFF">?newauth=1</code>, log in with your name and PIN, then come back here.'
+        + '</div>';
+      return;
+    }
+    b.innerHTML = '<div style="color:var(--t2);font-size:13px">Loading devices…</div>';
+    Promise.all([ call('devices-list'), call('status') ]).then(function(res){
+      var r = res[0], st = res[1];
+      if (!r || !r.success){
+        b.innerHTML = '<div style="color:var(--red);font-size:13px">'+esc((r&&r.message)||'Could not load devices.')+'</div>';
+        return;
+      }
+      render(b, r.devices || [], st || {});
+    });
+  }
+
+  function render(b, list, st){
+    var pending  = list.filter(function(d){ return d.status === 'pending'; });
+    var approved = list.filter(function(d){ return d.status === 'approved'; });
+    var revoked  = list.filter(function(d){ return d.status === 'revoked'; });
+
+    var h = '';
+
+    // ---- join code -------------------------------------------------------
+    h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:13px;margin-bottom:16px">'
+       + '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin-bottom:6px">JOIN CODE</div>'
+       + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+       +   '<input id="hka-jc" value="" placeholder="' + (st.join_code_set ? 'set — type a new one to change' : 'not set yet') + '" '
+       +     'inputmode="numeric" maxlength="8" style="flex:1;min-width:130px;background:var(--card2);border:1px solid var(--b2);'
+       +     'border-radius:9px;color:var(--t1);padding:9px 11px;font-size:15px;letter-spacing:3px;font-family:Monaco,Consolas,monospace">'
+       +   '<button class="m-add" id="hka-jc-save">Save</button>'
+       + '</div>'
+       + '<div style="font-size:11.5px;color:var(--t2);margin-top:7px;line-height:1.6">'
+       +   'Read this out to anyone setting up a new phone. It only keeps strangers out of this list — '
+       +   'you still approve every device yourself.</div>'
+       + '<div id="hka-jc-msg" style="font-size:12px;margin-top:6px"></div>'
+       + '</div>';
+
+    // ---- waiting ---------------------------------------------------------
+    h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:0 0 8px">'
+       + 'WAITING FOR APPROVAL' + (pending.length ? ' ('+pending.length+')' : '') + '</div>';
+    if (!pending.length){
+      h += '<div style="color:var(--t2);font-size:13px;margin-bottom:18px">Nothing waiting.</div>';
+    } else {
+      pending.forEach(function(d){
+        h += '<div style="background:var(--card);border:1px solid rgba(0,207,255,.35);border-radius:12px;padding:12px;margin-bottom:10px">'
+           + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(d.requested_name||'(no name given)')+'</div>'
+           + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">'+esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
+           + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
+           +   '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="personal" data-who="'+esc(d.requested_name||'')+'">✓ Their own phone</button>'
+           +   '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" '
+           +     'data-ok="'+esc(d.device_id)+'" data-kind="shared">✓ Shared workshop device</button>'
+           +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
+           +     'data-no="'+esc(d.device_id)+'">✕ Reject</button>'
+           + '</div></div>';
+      });
+      h += '<div style="height:8px"></div>';
+    }
+
+    // ---- approved --------------------------------------------------------
+    h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:10px 0 8px">'
+       + 'APPROVED' + (approved.length ? ' ('+approved.length+')' : '') + '</div>';
+    if (!approved.length){
+      h += '<div style="color:var(--t2);font-size:13px;margin-bottom:18px">None yet.</div>';
+    } else {
+      approved.forEach(function(d){
+        h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:11px 12px;margin-bottom:8px;'
+           + 'display:flex;justify-content:space-between;align-items:center;gap:10px">'
+           + '<div style="min-width:0">'
+           +   '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(d.label || d.owner_name || d.requested_name || 'Device')+'</div>'
+           +   '<div style="font-size:11.5px;color:var(--t2);margin-top:2px">'
+           +     (d.kind === 'shared' ? '👥 Shared' : '👤 ' + esc(d.owner_name || 'personal'))
+           +     ' · ' + esc(kindOf(d.user_agent,d.platform)) + ' · seen ' + esc(ago(d.last_seen)) + '</div>'
+           + '</div>'
+           + '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4);flex-shrink:0" '
+           +   'data-no="'+esc(d.device_id)+'">Revoke</button>'
+           + '</div>';
+      });
+    }
+
+    // ---- revoked ---------------------------------------------------------
+    if (revoked.length){
+      h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:16px 0 8px">'
+         + 'REVOKED ('+revoked.length+')</div>';
+      revoked.forEach(function(d){
+        h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:10px 12px;margin-bottom:7px;'
+           + 'display:flex;justify-content:space-between;align-items:center;gap:10px;opacity:.6">'
+           + '<div style="font-size:13px;color:var(--t2)">'+esc(d.label || d.requested_name || 'Device')+' · '+esc(kindOf(d.user_agent,d.platform))+'</div>'
+           + '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2);flex-shrink:0" '
+           +   'data-ok="'+esc(d.device_id)+'" data-kind="shared">Re-approve</button>'
+           + '</div>';
+      });
+    }
+
+    h += '<div style="margin-top:18px"><button class="m-add" id="hka-dev-refresh" '
+       + 'style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)">↻ Refresh</button></div>';
+
+    b.innerHTML = h;
+  }
+
+  // one delegated handler for the whole pane
+  document.addEventListener('click', function(ev){
+    var b = document.getElementById('hka-dev-body');
+    if (!b || !b.contains(ev.target)) return;
+    var t = ev.target;
+
+    if (t.id === 'hka-dev-refresh') return load();
+
+    if (t.id === 'hka-jc-save'){
+      var v = (document.getElementById('hka-jc')||{}).value || '';
+      var msg = document.getElementById('hka-jc-msg');
+      if (!/^\d{4,8}$/.test(v.trim())){ if(msg){ msg.style.color='var(--red)'; msg.textContent='4 to 8 digits.'; } return; }
+      t.disabled = true; t.textContent = 'Saving…';
+      return call('set-join-code', { code: v.trim() }).then(function(r){
+        t.disabled = false; t.textContent = 'Save';
+        if (msg){ msg.style.color = (r&&r.success) ? 'var(--grn)' : 'var(--red)';
+                  msg.textContent = (r&&r.success) ? 'Saved ✓' : ((r&&r.message)||'Could not save.'); }
+        if (r && r.success) load();
+      });
+    }
+
+    var okId = t.getAttribute && t.getAttribute('data-ok');
+    if (okId){
+      var kind = t.getAttribute('data-kind') || 'personal';
+      var who  = t.getAttribute('data-who') || '';
+      t.disabled = true; t.textContent = 'Approving…';
+      return call('device-decide', {
+        target_device_id: okId, decision: 'approved', kind: kind,
+        owner_name: kind === 'personal' ? who : '',
+        label: kind === 'personal' ? (who ? who + "'s device" : 'Personal device') : 'Shared workshop device'
+      }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
+        load();
+      });
+    }
+
+    var noId = t.getAttribute && t.getAttribute('data-no');
+    if (noId){
+      if (!confirm('Revoke this device? Anyone signed in on it is signed out.')) return;
+      t.disabled = true; t.textContent = '…';
+      return call('device-decide', { target_device_id: noId, decision: 'revoked' }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not revoke.');
+        load();
+      });
+    }
+  }, true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+  else mount();
+  setTimeout(mount, 1500);   // the master screen is built late on some boots
+  window.hkaDevLoad = load;
 })();
 </script>
 </body>

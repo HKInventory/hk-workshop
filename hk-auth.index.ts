@@ -339,8 +339,11 @@ Deno.serve(async (req) => {
       case "roster": {
         const dev = await approvedDevice();
         if (!dev) return json(req, { success: true, roster: [] });
+        /* must_set_pin travels with the roster so the sign-in screen can send someone
+           who has never set one straight to creating it, instead of showing a keypad
+           for a PIN that does not exist yet. */
         const { data } = await db.from("hk_accounts")
-          .select("name,app_role").eq("status", "active").order("name");
+          .select("name,app_role,must_set_pin").eq("status", "active").order("name");
         return json(req, { success: true, roster: data || [] });
       }
 

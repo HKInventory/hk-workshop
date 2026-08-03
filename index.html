@@ -21297,37 +21297,47 @@ function mrPushLoad(){
 
 /* Keys get a top-lit edge and a real pressed state. Still the app's .k geometry. */
 #hka-w .pad{max-width:270px;gap:10px}
-#hka-w .k{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
-          border:1px solid rgba(255,255,255,.09);border-radius:19px;font-weight:600;
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 10px rgba(0,0,0,.35)}
-#hka-w .k:active{background:rgba(0,207,255,.14);border-color:rgba(0,207,255,.45);transform:scale(.9)}
+/* THE SITE CARDS ARE THE REFERENCE. They read as solid because of three things
+   the keypad had none of: a 1.5px border in the accent colour, a fill tinted from
+   that same accent rather than neutral grey, and an inset ring on press. Copied
+   here so the sign-in belongs to the same app as the screen two taps later. */
+#hka-w .k{background:linear-gradient(135deg,rgba(0,207,255,.10),rgba(110,66,255,.07));
+          border:1.5px solid rgba(0,207,255,.30);border-radius:19px;font-weight:700;
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.4)}
+#hka-w .k:active{background:linear-gradient(135deg,rgba(0,207,255,.26),rgba(110,66,255,.18));
+                 border-color:var(--acc);transform:scale(.93);
+                 box-shadow:inset 0 0 0 1.5px var(--acc),0 0 22px rgba(0,207,255,.35)}
+#hka-w .k.del{border-color:rgba(255,59,48,.35);
+              background:linear-gradient(135deg,rgba(255,59,48,.10),rgba(255,59,48,.04))}
 #hka-w .k.del{color:var(--red);font-size:20px}
 @media (min-width:820px) and (min-height:700px){ #hka-w .pad{max-width:280px} }
 
 /* Inputs, primary action, segmented control and name chips — one family. */
 .hka-in{width:100%;max-width:300px;box-sizing:border-box;
-        background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
-        border:1px solid rgba(255,255,255,.10);border-radius:15px;color:var(--t1);padding:15px;
+        background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
+        border:1.5px solid rgba(0,207,255,.24);border-radius:18px;color:var(--t1);padding:16px;
         font-size:17px;text-align:center;letter-spacing:5px;font-family:Monaco,Consolas,monospace;
         transition:border-color .18s,box-shadow .18s}
 .hka-in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.14)}
 .hka-in::placeholder{letter-spacing:1px;color:var(--t3)}
-.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:none;border-radius:15px;padding:16px;
-         font-size:15px;font-weight:800;letter-spacing:.2px;color:#fff;background:var(--grad);
-         cursor:pointer;box-shadow:0 8px 26px rgba(0,207,255,.20);transition:transform .08s,box-shadow .18s}
+.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:1.5px solid rgba(0,207,255,.55);
+         border-radius:18px;padding:17px;font-size:15px;font-weight:800;letter-spacing:.2px;color:#fff;
+         background:linear-gradient(135deg,rgba(0,207,255,.30),rgba(110,66,255,.26));
+         cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10);
+         transition:transform .08s,box-shadow .18s}
 .hka-btn:active{transform:scale(.97);box-shadow:0 4px 14px rgba(0,207,255,.16)}
 .hka-btn[disabled]{opacity:.45;box-shadow:none}
 .hka-btn2{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
           border:1px solid rgba(255,255,255,.10);color:var(--t2);font-weight:700;box-shadow:none}
 .hka-seg{display:flex;gap:9px;width:100%;max-width:300px}
-.hka-seg>div{flex:1;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
-             border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:13px 8px;font-size:13px;
+.hka-seg>div{flex:1;background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
+             border:1.5px solid rgba(0,207,255,.22);border-radius:18px;padding:14px 8px;font-size:13px;
              font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;transition:all .16s}
 .hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.10);
                 box-shadow:0 0 0 3px rgba(0,207,255,.10)}
 .hka-names{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;width:100%;max-width:340px}
-.hka-name{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
-          border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:12px 16px;font-size:14px;
+.hka-name{background:linear-gradient(135deg,rgba(0,207,255,.09),rgba(110,66,255,.06));
+          border:1.5px solid rgba(0,207,255,.26);border-radius:18px;padding:13px 17px;font-size:14px;
           font-weight:700;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;
           gap:6px;transition:transform .08s,border-color .16s,box-shadow .16s}
 .hka-name:active{transform:scale(.96)}

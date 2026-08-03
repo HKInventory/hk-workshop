@@ -134,7 +134,7 @@ issue a temporary), **new phone**, and **new starter**. One mechanism, four prob
 | # | Step | Who | Reversible |
 |---|------|-----|-----------|
 | 1.1 | New tables for accounts, devices, sessions — all locked to the server, nothing in the browser can touch them | CLAUDE ✅ `security_stage1_schema.sql` | drop them; old login untouched |
-| 1.2 | The `hk-auth` server function: request, approve, set PIN, log in, stay logged in, reset, recovery | CLAUDE ✅ `hk-auth.index.ts` | delete it; nothing calls it yet |
+| 1.2 | The `hk-auth` server function: request, approve, set PIN, log in, stay logged in, reset, recovery | CLAUDE ✅ `supabase/functions/hk-auth/index.ts` | delete it; nothing calls it yet |
 | 1.3 | Run the schema, deploy the function, add the signing secret | YOU | undo block at the bottom of the file |
 | 1.4 | New login screen + the **Devices** tab in Master Access | CLAUDE | kill-switch reverts to old login |
 | 1.5 | You enrol the workshop iPads and Macs, and set your own PIN and recovery code | YOU | revoke any device with one tap |

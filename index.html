@@ -21295,8 +21295,16 @@ function mrPushLoad(){
    No filter:blur — a radial gradient is already soft, and this layer lives inside
    the sliding screen stack, where a blurred layer forces a full re-raster every
    frame of the transition off this screen. */
+/* VERTICAL ONLY, AND THAT IS THE WHOLE TRICK.
+   The site chooser's wash is radial — fine there, because that screen FADES in and
+   never moves. These two SLIDE horizontally past each other, and a gradient that
+   varies across the screen can never line up with a copy of itself at a different
+   offset: you get a visible vertical edge travelling across the display, which is
+   exactly what the recording shows. A gradient that varies only top-to-bottom is
+   identical in every column, so the two screens match at every point of the slide
+   no matter where they are. Seamless by construction, not by tuning. */
 .hka-on #s-pin{
-  background:radial-gradient(120% 100% at 50% 0%,#0b1722 0%,#05080c 60%,#000 100%);
+  background:linear-gradient(180deg,#0b1722 0%,#05080c 60%,#000 100%);
 }
 .hka-on #s-pin::before{
   content:'';position:absolute;z-index:0;pointer-events:none;
@@ -21308,6 +21316,56 @@ function mrPushLoad(){
 @keyframes hkaGlow{ 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}
                     50%    {opacity:.9;transform:translate(-50%,-50%) scale(1.1)} }
 #hka-w{position:relative;z-index:1}
+
+/* ===== THE HANDOVER: SIGN-IN -> "HEY HARVEY" =========================
+   Filmed it a frame at a time. Three separate faults, compounding:
+
+   1. The card was deleted the instant the server said yes, so by the time the
+      slide started the departing screen was an EMPTY lit rectangle. The eye
+      follows the card; the card was not there.
+   2. The two screens had different backgrounds — this one a lit gradient, the
+      welcome flat #000 — so the slide dragged a HARD VERTICAL SEAM across the
+      display, lit on one side and black on the other. That is the "colours
+      don't flow smoothly": not a gradient problem, an edge between two of them.
+   3. .wel-content springs in from scale(.8) with an overshoot to 1.04 AT THE
+      SAME TIME as its screen slides in sideways. Two motions, same pixels,
+      different curves — which is what reads as wobbly rather than deliberate.
+
+   Fixed by making the two screens one continuous surface, and letting exactly
+   one thing move at a time. */
+
+/* 1. The card leaves under its own power, over the length of the slide. */
+#hka-w.hka-out .hka-card{
+  animation:hkaCardOut .3s cubic-bezier(.4,0,.7,.2) both;
+}
+@keyframes hkaCardOut{ from{opacity:1;transform:none}
+                       to  {opacity:0;transform:translateY(-10px) scale(.97)} }
+
+/* 2. The welcome wears the SAME backdrop, so there is no seam to see. Identical
+      values to #s-pin above — if one is ever changed, change both. */
+.hka-on #s-welcome{
+  background:linear-gradient(180deg,#0b1722 0%,#05080c 60%,#000 100%);
+  overflow:hidden;
+}
+.hka-on #s-welcome::before{
+  content:'';position:absolute;z-index:0;pointer-events:none;
+  width:min(560px,92vw);height:min(560px,92vw);border-radius:50%;
+  top:46%;left:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(0,207,255,.15),rgba(0,207,255,.05) 45%,transparent 68%);
+  animation:hkaGlow 5s ease-in-out infinite;
+}
+
+/* 3. One motion at a time. The screen slides (420ms); the content waits for it
+      and then fades up gently. No scale, no overshoot, nothing to fight. */
+.hka-on .wel-content{ animation:hkaWelIn .42s cubic-bezier(.2,.8,.2,1) .16s both }
+@keyframes hkaWelIn{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+/* The emoji bobbing on an infinite loop is the third thing moving. It settles
+   in, once, and then holds still. */
+.hka-on .we{ animation:none }
+/* Same heading treatment as the sign-in one it replaces — the 40px cyan bloom
+   softened its own edges, and these two are seen back to back. */
+.hka-on .wname{ text-shadow:none; letter-spacing:-.02em }
+.hka-on .wrole{ letter-spacing:2px; color:#8aa3b0 }
 
 /* The mark, so the screen is branded rather than anonymous. */
 /* No entry animation. The header already shows the mark, and anything animated
@@ -21519,7 +21577,17 @@ function mrPushLoad(){
     return w;
   }
   function show(){ var w=el(); if(w) w.style.display=''; }
-  function hide(){ var w=document.getElementById('hka-w'); if(w) w.style.display='none'; }
+  /* THE SCREEN THAT SLIDES AWAY MUST STILL HAVE SOMETHING ON IT.
+     This was display:none, fired the instant the server said yes — so the card
+     vanished, and what slid off to the left was an empty lit rectangle. That is
+     most of why the handover read as cheap: the eye tracks the card, the card is
+     deleted, and then a blank panel moves. It leaves under its own power now,
+     over the same 420ms the slide takes, and is only removed once it has gone. */
+  function hide(){
+    var w = document.getElementById('hka-w'); if (!w) return;
+    w.classList.add('hka-out');
+    setTimeout(function(){ w.style.display = 'none'; w.classList.remove('hka-out'); }, 300);
+  }
 
   /* The device's own secret. Asking the browser to keep its storage permanently
      matters more here than anywhere else in the app: iOS clears storage for web
@@ -22233,12 +22301,21 @@ function mrPushLoad(){
     if (revoked.length){
       h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:16px 0 8px">'
          + 'REVOKED ('+revoked.length+')</div>';
+      /* RE-APPROVE PUTS IT BACK AS IT WAS. It used to hardcode kind="shared" and
+         send no label, so the server wiped owner_name and named it "Shared
+         workshop device" — Alex Harper's Mac came back as an anonymous shared
+         machine, and the whole point of revoking it was that it was HIS. Whatever
+         the device was is carried through the round trip. */
       revoked.forEach(function(d){
+        var wasShared = d.kind === 'shared';
+        var was = d.owner_name || d.requested_name || '';
         h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:10px 12px;margin-bottom:7px;'
            + 'display:flex;justify-content:space-between;align-items:center;gap:10px;opacity:.6">'
-           + '<div style="font-size:13px;color:var(--t2)">'+esc(d.label || d.requested_name || 'Device')+' · '+esc(kindOf(d.user_agent,d.platform))+'</div>'
+           + '<div style="font-size:13px;color:var(--t2)">'+esc(d.label || was || 'Device')+' · '+esc(kindOf(d.user_agent,d.platform))
+           +   (wasShared || !was ? '' : ' · '+esc(was))+'</div>'
            + '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2);flex-shrink:0" '
-           +   'data-ok="'+esc(d.device_id)+'" data-kind="shared">Re-approve</button>'
+           +   'data-ok="'+esc(d.device_id)+'" data-kind="'+(wasShared?'shared':'personal')+'" '
+           +   'data-who="'+esc(was)+'" data-label="'+esc(d.label||'')+'" data-keeprole="1">Re-approve</button>'
            + '</div>';
       });
     }
@@ -22391,13 +22468,19 @@ function mrPushLoad(){
       var who  = t.getAttribute('data-who') || '';
       t.disabled = true; t.textContent = 'Approving…';
       var roleSel = document.querySelector('[data-role="' + okId + '"]');
+      /* Re-approving an old device is not the same decision as approving a new
+         one. There is no role dropdown on a revoked row and the person already
+         has an account, so sending account_name would re-band them to whatever
+         the default happens to be. Restore, don't re-decide. */
+      var keepRole = t.getAttribute('data-keeprole') === '1';
+      var lbl = (t.getAttribute('data-label') || '').trim();
       return call('device-decide', {
         target_device_id: okId, decision: 'approved', kind: kind,
         owner_name: kind === 'personal' ? who : '',
-        label: kind === 'personal' ? (who ? who + "'s device" : 'Personal device')
-                                   : ((t.getAttribute('data-label') || '').trim() || 'Shared workshop device'),
+        label: lbl || (kind === 'personal' ? (who ? who + "'s device" : 'Personal device')
+                                           : 'Shared workshop device'),
         // Creates the account if it is new, or updates the role if it is not.
-        account_name: kind === 'personal' ? who : '',
+        account_name: (keepRole || kind !== 'personal') ? '' : who,
         account_role: roleSel ? roleSel.value : 'Mechanic'
       }).then(function(r){
         if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');

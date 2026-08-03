@@ -339,6 +339,18 @@ Deno.serve(async (req) => {
       case "roster": {
         const dev = await approvedDevice();
         if (!dev) return json(req, { success: true, roster: [] });
+        /* A PERSONAL DEVICE GETS ONE NAME: ITS OWNER'S.
+           It was handing back the whole staff list, which is how "Not you?" on
+           Harvey's own Mac could offer to sign in as Alex. The server refuses that
+           login, so nobody was getting in — but the machine still displayed every
+           name who works here, and it invited an attempt that then failed with a
+           confusing message. A device bound to one person has no business knowing
+           anyone else exists. The picker is for shared machines. */
+        if (dev.kind === "personal" && dev.owner_name) {
+          const { data: mine } = await db.from("hk_accounts")
+            .select("name,app_role,must_set_pin").eq("status", "active").eq("name", dev.owner_name);
+          return json(req, { success: true, roster: mine || [] });
+        }
         /* must_set_pin travels with the roster so the sign-in screen can send someone
            who has never set one straight to creating it, instead of showing a keypad
            for a PIN that does not exist yet. */
@@ -365,6 +377,16 @@ Deno.serve(async (req) => {
         if (!dev) return json(req, { success: false, message: "This device isn't approved." });
         const name = String(body?.name || "");
         const pin  = String(body?.pin || "");
+        /* THE SAME OWNER CHECK login HAS, WHICH THIS WAS MISSING.
+           login refuses a name that is not the personal device's owner; set-pin did
+           not, and set-pin is the more dangerous of the two — every new starter sits
+           at must_set_pin=true until they choose, so anyone at somebody else's
+           personal machine could have picked a colleague's first PIN for them and
+           owned the account from the moment it was created. */
+        if (dev.kind === "personal" && dev.owner_name && dev.owner_name !== name) {
+          await log("setpin_wrong_device", name, did, ip, { owner: dev.owner_name });
+          return json(req, { success: false, message: "This device belongs to someone else." });
+        }
         if (!/^\d{4}$/.test(pin)) return json(req, { success: false, message: "PIN must be 4 digits." });
         /* THE OLD PINS ARE BURNED AND MUST NOT COME BACK.
            Eight staff PINs sat in the page source and in git history for months, so
@@ -576,6 +598,8 @@ Deno.serve(async (req) => {
         const dev = await approvedDevice();
         if (!dev) return json(req, { success: true });          // deliberately silent
         const name = String(body?.name || "");
+        // Same rule again: a personal device can only ever act for its owner.
+        if (dev.kind === "personal" && dev.owner_name && dev.owner_name !== name) return json(req, { success: true });
         const { data: acct } = await db.from("hk_accounts").select("id,name,status").eq("name", name).maybeSingle();
         if (acct && acct.status === "active"){
           await db.from("hk_accounts").update({ reset_requested_at: new Date().toISOString() }).eq("id", acct.id);

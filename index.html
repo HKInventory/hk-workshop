@@ -21448,6 +21448,17 @@ function mrPushLoad(){
         + '</div>'
         + '<div class="hka-err">'+esc(S.err)+'</div>';
     }
+    else if (S.stage === 'forgot'){
+      /* Nobody is left stranded at a pad they cannot get past. Asking here reaches
+         all three managers at once, so a mechanic on a Sunday is not hunting for one
+         particular person. Note what it does NOT do: it does not clear anything and
+         it does not let anyone in. A manager still has to act, and even then the new
+         PIN is chosen by the person, never issued to them. */
+      h = '<div class="hka-h">We\'ve told the managers</div>'
+        + '<div class="hka-p">Harvey, Ross and Andrew can clear your PIN. Once one of them has, come back here — '
+        +   'you will be asked to choose a new one.<br><br>Nobody sees your old PIN, and nobody sees the new one either.</div>'
+        + '<button class="hka-btn" id="hka-forgot-back">Back to sign in</button>';
+    }
     else if (S.stage === 'notice'){
       /* SAY WHAT THE PROMISE ACTUALLY IS, BEFORE THEY PICK.
          Staff have every reason to assume the boss can see their PIN, because in
@@ -21478,7 +21489,8 @@ function mrPushLoad(){
         + [1,2,3,4,5,6,7,8,9].map(function(d){ return '<div class="hka-k" data-d="'+d+'">'+d+'</div>'; }).join('')
         + '<div class="hka-k blank"></div><div class="hka-k" data-d="0">0</div><div class="hka-k" data-d="del">⌫</div>'
         + '</div>'
-        + (S.stage==='pin' ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>' : '');
+        + (S.stage==='pin' ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>'
+                            + '<button class="hka-btn hka-btn2" id="hka-forgot" style="margin-top:-8px">Forgotten your PIN?</button>' : '');
     }
     w.innerHTML = h;
   }
@@ -21594,6 +21606,12 @@ function mrPushLoad(){
     if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
     if (t.id === 'hka-back'){ try { localStorage.removeItem(OPTKEY); } catch(e){} dropDev(); location.reload(); return; }
     if (t.id === 'hka-notme'){ S.pin=''; S.name=''; return go('pick'); }
+    if (t.id === 'hka-forgot'){
+      if (!S.name) return;
+      call('request-reset', { name:S.name });   // always answers the same, so no one can probe who works here
+      S.pin=''; return go('forgot');
+    }
+    if (t.id === 'hka-forgot-back'){ S.pin=''; return go(S.name ? 'pin' : 'pick'); }
     var k = t.closest && t.closest('.hka-k');
     if (k && !k.classList.contains('blank')){
       var d = k.getAttribute('data-d');
@@ -21708,17 +21726,18 @@ function mrPushLoad(){
       return;
     }
     b.innerHTML = '<div style="color:var(--t2);font-size:13px">Loading devices…</div>';
-    Promise.all([ call('devices-list'), call('status') ]).then(function(res){
-      var r = res[0], st = res[1];
+    Promise.all([ call('devices-list'), call('status'), call('accounts-list') ]).then(function(res){
+      var r = res[0], st = res[1], ac = res[2];
       if (!r || !r.success){
         b.innerHTML = '<div style="color:var(--red);font-size:13px">'+esc((r&&r.message)||'Could not load devices.')+'</div>';
         return;
       }
-      render(b, r.devices || [], st || {});
+      render(b, r.devices || [], st || {}, (ac && ac.accounts) || []);
     });
   }
 
-  function render(b, list, st){
+  function render(b, list, st, accounts){
+    accounts = accounts || [];
     var pending  = list.filter(function(d){ return d.status === 'pending'; });
     var approved = list.filter(function(d){ return d.status === 'approved'; });
     var revoked  = list.filter(function(d){ return d.status === 'revoked'; });
@@ -21796,6 +21815,38 @@ function mrPushLoad(){
       });
     }
 
+    // ---- people: who has a PIN, who is asking for a reset ---------------
+    if (accounts.length){
+      var asking = accounts.filter(function(a){ return a.reset_requested_at; });
+      h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:20px 0 8px">'
+         + 'STAFF PINS' + (asking.length ? ' \u2014 ' + asking.length + ' asking for a reset' : '') + '</div>';
+      /* Sorted so anyone waiting on you is at the top. A list of twelve names where
+         the one that needs action is seventh is a list nobody reads. */
+      accounts.slice().sort(function(x,y){
+        var rx = x.reset_requested_at?0:(x.must_set_pin?1:2), ry = y.reset_requested_at?0:(y.must_set_pin?1:2);
+        return rx-ry || String(x.name).localeCompare(String(y.name));
+      }).forEach(function(a){
+        var state, colour;
+        if (a.reset_requested_at){ state = 'asked for a reset ' + ago(a.reset_requested_at); colour = '#FBBF24'; }
+        else if (a.must_set_pin){ state = 'no PIN yet \u2014 will choose one on first sign-in'; colour = 'var(--t2)'; }
+        else if (a.locked_until && Date.parse(a.locked_until) > Date.now()){ state = 'locked for a moment (too many tries)'; colour = '#FF5252'; }
+        else { state = 'PIN set ' + ago(a.pin_set_at); colour = 'var(--t2)'; }
+        h += '<div style="background:var(--card);border:1px solid '+(a.reset_requested_at?'rgba(251,191,36,.45)':'var(--b2)')+';'
+           + 'border-radius:12px;padding:11px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px">'
+           + '<div style="min-width:0">'
+           +   '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(a.name)+(a.status!=='active'?' <span style="color:#FF5252;font-size:11px">disabled</span>':'')+'</div>'
+           +   '<div style="font-size:11.5px;color:'+colour+';margin-top:2px">'+esc(a.app_role||'')+' \u00b7 '+esc(state)+'</div>'
+           + '</div>'
+           + (a.must_set_pin ? ''
+              : '<button class="m-add" style="background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.4);flex-shrink:0" '
+                + 'data-reset="'+esc(a.name)+'">Reset PIN</button>')
+           + '</div>';
+      });
+      h += '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin:2px 0 4px">'
+         + 'Resetting clears their PIN. They choose the new one themselves on their own device \u2014 '
+         + 'you never see it, and you never have to make one up for them.</div>';
+    }
+
     h += '<div style="margin-top:18px"><button class="m-add" id="hka-dev-refresh" '
        + 'style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)">↻ Refresh</button></div>';
 
@@ -21838,6 +21889,16 @@ function mrPushLoad(){
       });
     }
 
+    var rs = t.getAttribute && t.getAttribute('data-reset');
+    if (rs){
+      if (!confirm('Clear ' + rs + "'s PIN?\n\nThey pick a new one themselves next time they sign in. You will not see it.")) return;
+      t.disabled = true; t.textContent = '…';
+      return call('reset-pin', { target_name: rs }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message) || 'Could not reset.');
+        load();
+      });
+    }
+
     var noId = t.getAttribute && t.getAttribute('data-no');
     if (noId){
       if (!confirm('Revoke this device? Anyone signed in on it is signed out.')) return;
@@ -21849,10 +21910,29 @@ function mrPushLoad(){
     }
   }, true);
 
+  /* A COUNT ON THE TAB, BECAUSE NOBODY OPENS A SCREEN TO CHECK IF IT IS EMPTY.
+     Real push — the phone buzzing with the app closed — needs the VAPID key that
+     lives in the existing notify-user function, which is not in this repo. Until
+     that is wired up this at least means a manager with the app open finds out
+     within the minute instead of when somebody mentions it. */
+  function badge(){
+    if (!tok()) return;
+    call('pending-count').then(function(r){
+      if (!r || !r.success) return;
+      var n = (r.devices||0) + (r.resets||0);
+      var t = document.getElementById('mtab-devices'); if (!t) return;
+      t.textContent = '📲 Devices' + (n ? ' (' + n + ')' : '');
+      t.style.borderColor = n ? 'rgba(0,207,255,.6)' : '';
+      t.style.color = n ? '#00CFFF' : '';
+    });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
   setTimeout(mount, 1500);   // the master screen is built late on some boots
+  setTimeout(badge, 4000);
+  setInterval(badge, 60000);
   window.hkaDevLoad = load;
+  window.hkaBadge = badge;
 })();
 </script>
 </body>

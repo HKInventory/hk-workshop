@@ -329,7 +329,8 @@ Deno.serve(async (req) => {
         await db.from("hk_accounts").update({
           pin_hash: await hashSecret(pin, salt), pin_salt: salt,
           must_set_pin: false, pin_set_at: new Date().toISOString(),
-          failed_count: 0, locked_until: null, updated_at: new Date().toISOString(),
+          failed_count: 0, locked_until: null, reset_requested_at: null,
+          updated_at: new Date().toISOString(),
         }).eq("id", acct.id);
         if (dev.kind === "personal" && !dev.owner_name)
           await db.from("hk_devices").update({ owner_name: name }).eq("device_id", did);
@@ -458,11 +459,55 @@ Deno.serve(async (req) => {
         if (!a) return json(req, { success: false, message: "No such account" });
         await db.from("hk_accounts").update({
           pin_hash: null, pin_salt: null, must_set_pin: true,
-          failed_count: 0, locked_until: null, updated_at: new Date().toISOString(),
+          failed_count: 0, locked_until: null, reset_requested_at: null,
+          updated_at: new Date().toISOString(),
         }).eq("id", a.id);
         await db.from("hk_sessions").update({ revoked: true }).eq("account_id", a.id);
         await log("pin_reset", mgr.name, null, ip, { target: name });
         return json(req, { success: true });
+      }
+
+      /* ---- 7b. "I've forgotten my PIN" ---------------------------------------
+         Raised from the sign-in screen, so the person does not have to find a
+         manager first and a manager does not have to be told twice. It only marks
+         the account; nothing is cleared until a manager actually taps Reset, and
+         even then the new PIN is chosen by the person, not issued to them.
+         Requires an approved device, so this cannot be used to harass an account
+         from outside. Answers the same either way, so it cannot be used to find
+         out who works here. */
+      case "request-reset": {
+        const dev = await approvedDevice();
+        if (!dev) return json(req, { success: true });          // deliberately silent
+        const name = String(body?.name || "");
+        const { data: acct } = await db.from("hk_accounts").select("id,name,status").eq("name", name).maybeSingle();
+        if (acct && acct.status === "active"){
+          await db.from("hk_accounts").update({ reset_requested_at: new Date().toISOString() }).eq("id", acct.id);
+          await log("reset_requested", name, did, ip);
+        }
+        return json(req, { success: true });
+      }
+
+      /* ---- 7c. The people list, for the manager's Staff panel ----------------
+         Never returns a PIN or a hash — there is nothing here that could be turned
+         back into someone's PIN, which is the point. */
+      case "accounts-list": {
+        const mgr = await callerManager();
+        if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
+        const { data } = await db.from("hk_accounts")
+          .select("name,app_role,site,status,must_set_pin,pin_set_at,is_master,reset_requested_at,locked_until")
+          .order("name");
+        return json(req, { success: true, accounts: data || [] });
+      }
+
+      /* ---- 7d. How many things need a manager's attention --------------------
+         Cheap enough to poll, so the Devices tab can carry a badge and a manager
+         with the app open finds out without being told. */
+      case "pending-count": {
+        const mgr = await callerManager();
+        if (!mgr) return json(req, { success: false }, 403);
+        const { count: devs } = await db.from("hk_devices").select("*", { count: "exact", head: true }).eq("status", "pending");
+        const { count: pins } = await db.from("hk_accounts").select("*", { count: "exact", head: true }).not("reset_requested_at", "is", null);
+        return json(req, { success: true, devices: devs || 0, resets: pins || 0 });
       }
 
       /* ---- 8. The join code --------------------------------------------------- */

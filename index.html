@@ -19386,6 +19386,21 @@ function sdLoadTrace(){
     : _base().eq('kart_no',_kn);
   query.then(function(r){
     if(r&&r.error&&/relation|does not exist/i.test(r.error.message||'')){ _sdRelease(); box.innerHTML='<div class="sd-empty">Cell history table isn\u2019t set up yet \u2014 run hk_ai.sql.</div>'; return; }
+    /* A REFUSED READ IS NOT AN ABSENT KART.
+       Every failure below this line used to fall through into the empty path, which
+       then prints "no readings from it at all today \u2014 it never arrived" with total
+       confidence. The code cannot tell those apart, so it must not claim to: a
+       permission denial, a dropped connection and a genuinely silent kart looked
+       identical on screen, and the screen picked the most categorical wording of
+       the three. Same family as the banner that told the floor collection had
+       stopped when the read had merely failed. */
+    if(r&&r.error){ _sdRelease();
+      try{ console.warn('[sd] rimo_bms_history read failed:', r.error.code, r.error.message); }catch(e){}
+      box.innerHTML='<div class="sd-empty">Couldn\u2019t read the cell history for Kart '+_sdEsc(String(SD_KART.kart_no))+'.'
+        +'<br><span style="font-size:11.5px">The database refused or failed the request: '
+        +_sdEsc(String(r.error.code||'')+' '+String(r.error.message||''))+'</span>'
+        +'<br><span style="font-size:11.5px">Nothing is known about this kart either way \u2014 this is not a kart that stopped reporting.</span></div>';
+      return; }
     SD_ROWS=(r&&r.data)||[];
     if(!SD_ROWS.length){
       /* SAY WHOSE GAP IT IS. "No cell data logged" reads as "we lost it", and that was wrong often
@@ -19398,7 +19413,15 @@ function sdLoadTrace(){
       var _kn2=parseInt(SD_KART.kart_no,10);
       var _dayFrom=new Date(_fromMs-12*3600000).toISOString();
       var _any=SBC.from('rimo_bms_history').select('at').gte('at',_dayFrom).order('at',{ascending:false}).limit(1);
-      _any=SD_KART.fleet_management_id?_any.eq('serial_no',SD_KART.fleet_management_id):_any.eq('kart_no',_kn2);
+      /* PROBE BY KART NUMBER, NOT BY fleet_management_id.
+         The logger writes serial_no straight from the RiMO grid, and the runner states
+         as established fact that fleet_management_id is NOT that serial ("0578" versus
+         "092018291"). So for any kart carrying an fm_id this compared two value spaces
+         that never intersect and came back empty whatever was in the table — which then
+         chose the "never reported at all today" wording every single time. The main
+         query above already falls back to kart_no for exactly this reason; this one
+         never did. Kart number is what both systems agree on. */
+      _any=_any.eq('kart_no',_kn2);
       _any.then(function(a){
         var reported=!!(a&&!a.error&&a.data&&a.data.length);
         var k=_sdEsc(String(SD_KART.kart_no));
@@ -21557,7 +21580,7 @@ function mrPushLoad(){
   }
 
   // ---- screens -------------------------------------------------------------
-  function go(stage){ S.stage=stage; S.err=''; render(); }
+  function go(stage){ S.stage=stage; S.err=''; render(); idleArm(); }
   function fail(m){ S.err=m||'Something went wrong.'; render();
     // The app already has a shake for a wrong PIN — use it rather than inventing one.
     var d=document.querySelector('#hka-w .dots');
@@ -21665,7 +21688,13 @@ function mrPushLoad(){
     }
     else if (S.stage === 'pin' || S.stage === 'setpin' || S.stage === 'setpin2'){
       var t, sub;
-      if (S.stage === 'pin'){ t = 'Hey ' + esc(S.name.split(' ')[0]||''); sub = 'Enter your PIN'; }
+      if (S.stage === 'pin'){
+        /* The role emoji, the same one the picker and the welcome screen use, so a
+           shared iPad confirms WHO it thinks you are before you type anything. */
+        var _me = S.roster.filter(function(x){ return x.name === S.name; })[0];
+        t = 'Hey ' + esc(S.name.split(' ')[0]||'') + ' ' + emoOf(_me);
+        sub = 'Enter your PIN';
+      }
       else if (S.stage === 'setpin'){ t = 'Create your PIN'; sub = 'Pick 4 digits only you know'; }
       else { t = 'Once more'; sub = 'Type the same 4 digits to confirm'; }
       h = head(t, sub) + pad()
@@ -21673,8 +21702,16 @@ function mrPushLoad(){
             /* The app uses a quiet text link here (.train-link), not a filled button.
                Two grey slabs stacked under the keypad were the cheapest-looking thing
                on the screen and pulled more attention than the keypad itself. */
+            /* "Not you?" ONLY EXISTS ON A SHARED MACHINE.
+               On a device bound to one person it opened the full staff picker, so
+               Harvey's own Mac offered to sign him in as Alex. The server refuses
+               that login and always did — but offering it at all is wrong, and it
+               displayed every name who works here on a machine that has no business
+               knowing anyone else exists. A personal device has exactly one person
+               to be, so there is nothing to switch to. */
             ? '<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">'
-              + '<button class="train-link" id="hka-notme">Not you?</button>'
+              + (S.shared || S.roster.length > 1
+                 ? '<button class="train-link" id="hka-notme">Not you?</button>' : '')
               + '<button class="train-link" id="hka-forgot">Forgotten your PIN?</button>'
               + '</div>'
             : '');
@@ -21713,6 +21750,34 @@ function mrPushLoad(){
      been given the chance to set. If we do not know them yet, assume they are new:
      showing the notice to someone who already has a PIN costs one tap, while the
      other way round invites them to guess. */
+  /* WALK AWAY MID-SIGN-IN AND IT PUTS ITSELF BACK.
+     Someone taps their name on the workshop iPad, gets called to a kart, and their
+     name sits on screen with a keypad under it — or worse, "create your PIN" — until
+     the next person walks up and finds a half-finished sign-in belonging to somebody
+     else. A minute of nothing at all returns it to the start: the picker on a shared
+     machine, the owner's own pad on a personal one. Anything you touch resets the
+     clock, and it never runs on a screen where there is nothing private to abandon. */
+  var IDLE_MS = 60000;
+  var _idleT = null;
+  var IDLE_STAGES = { pin:1, setpin:1, setpin2:1, notice:1, askname:1, forgot:1, asked:1 };
+  function idleClear(){ if (_idleT){ clearTimeout(_idleT); _idleT = null; } }
+  function idleArm(){
+    idleClear();
+    if (!IDLE_STAGES[S.stage]) return;
+    _idleT = setTimeout(function(){
+      if (S.busy) return idleArm();        // a request is in flight — do not yank it out
+      S.pin = ''; S.pin2 = ''; S.err = ''; S.msg = '';
+      boot();                              // back to whatever this device's start screen is
+    }, IDLE_MS);
+  }
+  // Any deliberate act counts, including keys that never reach a click handler.
+  ['pointerdown','keydown'].forEach(function(ev){
+    document.addEventListener(ev, function(){
+      var w = document.getElementById('hka-w');
+      if (w && w.style.display !== 'none' && _idleT) idleArm();
+    }, true);
+  });
+
   function goForName(nm){
     S.name = nm; S.pin = '';
     var who = S.roster.filter(function(x){ return x.name === nm; })[0];
@@ -22027,7 +22092,13 @@ function mrPushLoad(){
     tabs.appendChild(btn);
     var pane = document.createElement('div');
     pane.className = 'm-pane'; pane.id = 'm-pane-devices';
-    pane.innerHTML = '<div id="hka-dev-body" style="padding:14px 18px 40px"></div>';
+    /* .m-pane is a flex COLUMN with min-height:0 — every other tab puts a
+       flex:1/overflow-y:auto list inside it, and this one put a plain padded div.
+       So the content grew past the pane with nothing able to scroll it, and
+       anything below the fold — the account requests, the staff PINs, the old
+       sign-in switch — was simply unreachable. */
+    pane.innerHTML = '<div id="hka-dev-body" style="flex:1;min-height:0;overflow-y:auto;'
+                   + '-webkit-overflow-scrolling:touch;padding:14px 18px calc(env(safe-area-inset-bottom) + 40px)"></div>';
     tabs.parentNode.appendChild(pane);
 
     /* Wrap rather than edit. mTab's own list does not know about this tab, which is

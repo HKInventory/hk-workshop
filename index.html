@@ -21378,10 +21378,13 @@ function mrPushLoad(){
     /* Fail soft. If the Supabase library has not loaded — offline, blocked CDN —
        this screen must still draw rather than throwing and leaving a black page
        with no way forward. An empty picker says so; it never becomes a dead end. */
-    if (typeof SBC === 'undefined' || !SBC || !SBC.from){ S.roster=[]; return cb(); }
-    SBC.from('staff_public').select('name,role,emoji').order('name').then(function(r){
-      S.roster = (r && r.data) ? r.data : []; cb();
-    }, function(){ S.roster=[]; cb(); });
+    /* Asked through hk-auth, which only answers an approved device. A fresh device
+       gets an empty list and types a name instead — which is the whole point: the
+       staff list is no longer readable by anyone who opens the page. */
+    call('roster', {}).then(function(r){
+      S.roster = (r && r.success && r.roster) ? r.roster.map(function(x){ return { name:x.name, role:x.app_role }; }) : [];
+      cb();
+    });
   }
   /* THE ROLE DECIDES THE ICON, NOT A COLUMN THAT WENT STALE.
      staff_public.emoji is whatever was saved when each person was added, so Ivy
@@ -21455,13 +21458,16 @@ function mrPushLoad(){
         + (S.shared
            ? '<input class="hka-in" id="hka-label" maxlength="40" placeholder="Workshop iPad 1" style="letter-spacing:0;font-family:inherit">'
              + '<div class="hka-p" style="margin-top:-6px">Anyone approved can sign in on it with their own PIN, and it logs out sooner because it gets left on a bench.</div>'
-           : '')
-        + '<div class="hka-names"'+(S.shared?' style="display:none"':'')+'>'
-        + S.roster.map(function(x){
-            return '<div class="hka-name'+(S.name===x.name?' on':'')+'" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
-          }).join('')
-        + (S.roster.length ? '' : '<div class="hka-p">Couldn\'t load the staff list.</div>')
-        + '</div>'
+           /* TYPE YOUR NAME, DO NOT PICK IT OFF A LIST.
+              The list is gone from this screen for two reasons. It handed every
+              visitor the name and role of all staff before anyone had signed in, and
+              it meant accounts had to exist before they were asked for — pre-made,
+              with a role inherited from an old roster. Typing it means the manager
+              approving decides, in the same tap, whether this person gets an account
+              and what they are. */
+           : '<input class="hka-in" id="hka-who" maxlength="60" placeholder="Your full name" '
+             + 'value="'+esc(S.name)+'" autocomplete="name" style="letter-spacing:0;font-family:inherit">'
+             + '<div class="hka-p" style="margin-top:-6px">Use the name your manager knows you by \u2014 they confirm it when approving.</div>')
         + '<div class="hka-err">'+esc(S.err)+'</div>'
         + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>'
         /* Never a dead end. Someone who taps the button without a join code, or whose
@@ -21586,8 +21592,9 @@ function mrPushLoad(){
     var code = codeEl ? codeEl.value.trim() : '';
     if (!code) return fail('Enter the join code.');
     var lbl = (document.getElementById('hka-label')||{}).value || '';
+    if (!S.shared) S.name = ((document.getElementById('hka-who')||{}).value || '').trim();
     if (S.shared && !lbl.trim()) return fail('Give this device a name, e.g. "Workshop iPad 1".');
-    if (!S.shared && !S.name) return fail('Choose your name.');
+    if (!S.shared && S.name.length < 2) return fail('Enter your full name.');
     S.busy = true; render();
     call('request-device', {
       join_code: code,
@@ -21857,14 +21864,26 @@ function mrPushLoad(){
       pending.forEach(function(d){
         // No name on the request means it asked to be a shared device — lead with that.
         var wantsShared = !d.requested_name;
+        var known = accounts.filter(function(a){ return a.name === d.requested_name; })[0];
+        /* THE ROLE IS CHOSEN HERE, AT THE MOMENT OF APPROVAL.
+           Somebody asking for access types their name; what they ARE is the manager's
+           call, made in the same tap that lets them in. Someone who already has an
+           account shows their current role instead, so approving a second device for
+           them does not silently re-band them. */
+        var roleOpts = ['Mechanic','Facilities','Office','Manager','Assistant Manager','Owner']
+          .map(function(r){ return '<option value="'+r+'"'+((known&&known.app_role===r)?' selected':'')+'>'+r+'</option>'; }).join('');
         h += '<div style="background:var(--card);border:1px solid rgba(0,207,255,.35);border-radius:12px;padding:12px;margin-bottom:10px">'
            + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(d.requested_name || d.label || '(unnamed device)')+'</div>'
            + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">'
-           +   (wantsShared ? '👥 asking to be a shared device · ' : '')
+           +   (wantsShared ? '👥 asking to be a shared device · ' : (known ? 'already has an account · ' : '🆕 new person · '))
            +   esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
+           + (wantsShared ? '' :
+               '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.4px;margin-bottom:5px">ROLE</div>'
+               + '<select data-role="'+esc(d.device_id)+'" style="width:100%;background:var(--card2);border:1px solid var(--b2);'
+               + 'border-radius:9px;color:var(--t1);padding:8px 10px;font-size:13px;margin-bottom:10px">'+roleOpts+'</select>')
            + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
            + (wantsShared ? '' :
-               '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="personal" data-who="'+esc(d.requested_name||'')+'">✓ Their own phone</button>')
+               '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="personal" data-who="'+esc(d.requested_name||'')+'">✓ Approve — their own device</button>')
            +   '<button class="m-add"'+(wantsShared?'':' style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)"')+' '
            +     'data-ok="'+esc(d.device_id)+'" data-kind="shared" data-label="'+esc(d.label||'')+'">✓ Shared workshop device</button>'
            +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
@@ -22053,11 +22072,15 @@ function mrPushLoad(){
       var kind = t.getAttribute('data-kind') || 'personal';
       var who  = t.getAttribute('data-who') || '';
       t.disabled = true; t.textContent = 'Approving…';
+      var roleSel = document.querySelector('[data-role="' + okId + '"]');
       return call('device-decide', {
         target_device_id: okId, decision: 'approved', kind: kind,
         owner_name: kind === 'personal' ? who : '',
         label: kind === 'personal' ? (who ? who + "'s device" : 'Personal device')
-                                   : ((t.getAttribute('data-label') || '').trim() || 'Shared workshop device')
+                                   : ((t.getAttribute('data-label') || '').trim() || 'Shared workshop device'),
+        // Creates the account if it is new, or updates the role if it is not.
+        account_name: kind === 'personal' ? who : '',
+        account_role: roleSel ? roleSel.value : 'Mechanic'
       }).then(function(r){
         if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
         load();

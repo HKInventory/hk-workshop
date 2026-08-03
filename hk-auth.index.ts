@@ -302,8 +302,22 @@ Deno.serve(async (req) => {
         const name = String(body?.name || "");
         const pin  = String(body?.pin || "");
         if (!/^\d{4}$/.test(pin)) return json(req, { success: false, message: "PIN must be 4 digits." });
-        if (/^(\d)\1{3}$/.test(pin) || ["1234", "4321", "0123", "1122"].includes(pin))
+        /* THE OLD PINS ARE BURNED AND MUST NOT COME BACK.
+           Eight staff PINs sat in the page source and in git history for months, so
+           every one of them is public forever. The likeliest way this whole exercise
+           gets quietly undone is somebody typing their familiar four digits at the
+           "create your PIN" screen out of pure habit — which would hand the account
+           straight back to anyone who read that file. Refusing them here is the only
+           place that can be enforced; a note asking people not to would not survive
+           first contact with a busy Saturday.
+           Kept as a list rather than a rule because these are specific burned values,
+           not a pattern. If another leaks, add it. */
+        const BURNED = ["1234", "2345", "3456", "4567", "2075", "6969", "7890", "8901"];
+        const WEAK   = ["4321", "0123", "1122", "1212", "2580"];
+        if (/^(\d)\1{3}$/.test(pin) || WEAK.includes(pin))
           return json(req, { success: false, message: "Too easy to guess — pick another." });
+        if (BURNED.includes(pin))
+          return json(req, { success: false, message: "That was an old workshop PIN and is public now. Pick a different one." });
 
         const { data: acct } = await db.from("hk_accounts").select("*").eq("name", name).maybeSingle();
         if (!acct || acct.status !== "active") return json(req, { success: false, message: "No account for that name." });

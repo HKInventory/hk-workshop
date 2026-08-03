@@ -43,6 +43,7 @@
 // ===========================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import webpush from "npm:web-push@3";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -104,6 +105,48 @@ async function hashSecret(secret: string, salt: string): Promise<string> {
 }
 async function sha256(s: string): Promise<string> {
   return b64url(await crypto.subtle.digest("SHA-256", enc.encode(s)));
+}
+
+/* TELL THE MANAGERS, WITHOUT MAKING ANYONE WATCH A SCREEN.
+   Uses the VAPID keys already set project-wide for notify-user and ramp-tick, so
+   there is nothing new to configure. Deliberately does NOT go through notify-user:
+   that function authorises its caller by matching a PIN against the old staff
+   table, and this one is the thing replacing that table — it already knows who is
+   asking, because it decided.
+   Never allowed to fail a request. A push that does not send is a missed
+   notification; a push that throws would be a staff member unable to sign up. */
+async function pushAdmins(title: string, body: string, tag: string) {
+  try {
+    /* Named vapidPub, not pub: there is a module-level `pub` holding the anon
+       Supabase client, and shadowing it inside this function is a trap waiting for
+       whoever edits it next. */
+    const vapidPub  = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+    const vapidPriv = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+    if (!vapidPub || !vapidPriv) return;
+    webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:workshop@hyperkarting.com.au", vapidPub, vapidPriv);
+
+    const roles = await managerRoles();
+    const { data: accts } = await db.from("hk_accounts")
+      .select("name,app_role,is_master").eq("status", "active");
+    const names = (accts || [])
+      .filter((a: any) => a.is_master || roles.includes(String(a.app_role || "")))
+      .map((a: any) => a.name);
+    if (!names.length) return;
+
+    const { data: subs } = await db.from("push_subs").select("endpoint,sub").in("name", names);
+    for (const sub of (subs || [])) {
+      try {
+        await webpush.sendNotification(
+          (sub as any).sub,
+          JSON.stringify({ title, body, tag, url: "./" }),
+          { TTL: 3600 });
+      } catch (e: any) {
+        // A phone that has been wiped or reinstalled answers 404/410 forever. Drop it.
+        const code = e && (e.statusCode || e.status);
+        if (code === 404 || code === 410) await db.from("push_subs").delete().eq("endpoint", (sub as any).endpoint);
+      }
+    }
+  } catch { /* a notification is never worth failing a sign-up over */ }
 }
 
 const ipOf = (req: Request) =>
@@ -279,6 +322,9 @@ Deno.serve(async (req) => {
           kind: "personal", status: "pending",
         });
         await log("device_request", String(body?.requested_name || ""), device_id, ip);
+        pushAdmins("New device waiting",
+          (String(body?.requested_name || "Someone")) + " wants to sign in on a new device. Master Access -> Devices to approve.",
+          "hk-device");
         // Handed over once, and only ever lives on that device.
         return json(req, { success: true, device_id, device_key });
       }
@@ -483,6 +529,7 @@ Deno.serve(async (req) => {
         if (acct && acct.status === "active"){
           await db.from("hk_accounts").update({ reset_requested_at: new Date().toISOString() }).eq("id", acct.id);
           await log("reset_requested", name, did, ip);
+          pushAdmins("PIN reset needed", name + " has forgotten their PIN. Master Access -> Devices to clear it.", "hk-reset");
         }
         return json(req, { success: true });
       }
@@ -586,10 +633,47 @@ Deno.serve(async (req) => {
          Read-only and harmless: the first-run screen uses it to decide whether to
          show "set the join code" or the normal login. */
       case "status": {
-        const { data: cfg } = await db.from("hk_auth_config").select("join_code,recovery_hash").eq("id", 1).maybeSingle();
+        const { data: cfg } = await db.from("hk_auth_config").select("join_code,recovery_hash,legacy_login_off").eq("id", 1).maybeSingle();
         const { count: approved } = await db.from("hk_devices").select("*", { count: "exact", head: true }).eq("status", "approved");
+        const { count: total } = await db.from("hk_accounts").select("*", { count: "exact", head: true }).eq("status", "active");
+        const { count: ready } = await db.from("hk_accounts").select("*", { count: "exact", head: true })
+          .eq("status", "active").eq("must_set_pin", false);
         return json(req, { success: true,
-          join_code_set: !!cfg?.join_code, recovery_set: !!cfg?.recovery_hash, approved_devices: approved || 0 });
+          join_code_set: !!cfg?.join_code, recovery_set: !!cfg?.recovery_hash,
+          approved_devices: approved || 0,
+          /* Read without a session, because the sign-in screen has to know this
+             BEFORE anyone has signed in. It is the only thing here that is public,
+             and it reveals nothing: a boolean saying which sign-in screen to draw. */
+          legacy_login_off: !!cfg?.legacy_login_off,
+          accounts_total: total || 0, accounts_ready: ready || 0 });
+      }
+
+      /* ---- 11. Close the old sign-in ----------------------------------------
+         THE OLD PAD IS THE HOLE, AND THIS IS WHAT SHUTS IT.
+         Everything else here is worth nothing while the previous screen still
+         accepts the eight PINs that were published — someone holding one simply
+         uses that instead. It stays open through the changeover only so nobody is
+         stranded, and this is the switch that ends that, under the builder's hand
+         rather than on a date I picked.
+         Refuses while anyone still has no PIN, because flipping it early is exactly
+         how the floor gets locked out on a Saturday. Turning it back ON is always
+         allowed — the way out is never blocked. */
+      case "set-legacy-login": {
+        const mgr = await callerManager();
+        if (!mgr?.is_master) return json(req, { success: false, message: "Builder only." }, 403);
+        const off = !!body?.off;
+        if (off) {
+          const { data: notReady } = await db.from("hk_accounts")
+            .select("name").eq("status", "active").eq("must_set_pin", true);
+          if (notReady && notReady.length) {
+            return json(req, { success: false, blocked: true,
+              waiting: notReady.map((a: any) => a.name),
+              message: notReady.length + " people have not set a PIN yet. They would be locked out." });
+          }
+        }
+        await db.from("hk_auth_config").update({ legacy_login_off: off, updated_at: new Date().toISOString() }).eq("id", 1);
+        await log(off ? "legacy_login_closed" : "legacy_login_opened", mgr.name, null, ip);
+        return json(req, { success: true, legacy_login_off: off });
       }
 
       default:

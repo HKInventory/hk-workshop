@@ -238,7 +238,15 @@ async function ensureAuthUser(acct: any) {
       userId = data.user.id;
     }
   } else {
-    await db.auth.admin.updateUserById(userId, { app_metadata: meta, ban_duration: "none" });
+    /* RE-ASSERT THE PASSWORD, NOT JUST THE BAN.
+       Disabling an account bans this login AND replaces its password with a random
+       string that is never recorded anywhere. This branch lifted the ban but left
+       the password alone, so `secret` — the value we still have on file — no longer
+       opened the account: Restore appeared to work, and then every sign-in failed
+       at signInWithPassword with nothing on screen to explain it. There was no way
+       back from Remove short of hand-editing the database. Setting the password
+       here is what makes Restore mean restored. */
+    await db.auth.admin.updateUserById(userId, { password: secret, app_metadata: meta, ban_duration: "none" });
   }
 
   await db.from("hk_accounts").update({
@@ -559,13 +567,44 @@ Deno.serve(async (req) => {
         const name = String(body?.name || "").trim().slice(0, 60);
         if (!name) return json(req, { success: false, message: "Name required" });
         const disabling = body?.status === "disabled";
-        await db.from("hk_accounts").upsert({
+        /* NOBODY REMOVES THEMSELVES.
+           Removing an account disables it and bans the login behind it — and the
+           only screen that can undo that is the one you just locked yourself out
+           of. Harvey did exactly this to his own row: the session went first, so
+           the page said "Managers only", and then his PIN stopped working because
+           login fails on status long before it looks at a PIN. A manager can still
+           remove anyone else; this is the one row the button must refuse. */
+        if (disabling && name === mgr.name)
+          return json(req, { success: false, message: "You can't remove your own account — ask another manager." });
+        const { data: existing } = await db.from("hk_accounts").select("id,is_master,app_role,site").eq("name", name).maybeSingle();
+
+        /* THE MASTER ACCOUNT'S ROLE IS ITS OWNER'S BUSINESS AND NOBODY ELSE'S.
+           Whoever holds master is the person who can put everything back when it
+           breaks; letting another manager re-band or disable them is the one edit
+           that can leave the system with no way in. Harvey can still change his own. */
+        if (existing?.is_master && name !== mgr.name)
+          return json(req, { success: false, message: "That account can only be changed by the person who holds it." }, 403);
+
+        /* DO NOT OVERWRITE WHAT WAS NOT SENT.
+           This was an upsert with `app_role: body.app_role || "Mechanic"`, so any
+           call that did not happen to include a role silently rewrote one. Remove
+           sends only a name and a status — and demoted Harvey from Owner to
+           Mechanic on its way past. A default is for creating a row, never for
+           updating one; an absent field means "leave it alone". */
+        const patch: Record<string, unknown> = {
+          status: disabling ? "disabled" : "active",
+          updated_at: new Date().toISOString(),
+        };
+        if (body?.app_role) patch.app_role = String(body.app_role).slice(0, 40);
+        if (body?.site)     patch.site     = String(body.site).slice(0, 40);
+
+        if (existing) await db.from("hk_accounts").update(patch).eq("id", existing.id);
+        else await db.from("hk_accounts").insert({
           name,
           app_role: String(body?.app_role || "Mechanic"),
           site: String(body?.site || "sydney"),
-          status: disabling ? "disabled" : "active",
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "name" });
+          ...patch,
+        });
 
         if (disabling) {
           const { data: a } = await db.from("hk_accounts").select("id,auth_user_id").eq("name", name).maybeSingle();
@@ -582,12 +621,48 @@ Deno.serve(async (req) => {
         await log("account_upsert", mgr.name, null, ip, { target: name, status: disabling ? "disabled" : "active" });
         return json(req, { success: true });
       }
+      /* Cancel your OWN reset request, without touching the PIN.
+         The only way to clear a request used to be Reset PIN, which clears the PIN
+         and revokes the sessions — so "I've remembered it, ignore that" cost you
+         your own login. Your own row, your own flag, nothing else changed. */
+      case "clear-reset-request": {
+        const mgr = await callerManager();
+        if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
+        const name = String(body?.target_name || "");
+        if (!name) return json(req, { success: false, message: "Name required" });
+        await db.from("hk_accounts").update({ reset_requested_at: null, updated_at: new Date().toISOString() }).eq("name", name);
+        await log("reset_request_cleared", mgr.name, did, ip, { target: name });
+        return json(req, { success: true });
+      }
+
+      /* Take a revoked device off the list for good. Revoking keeps the row on
+         purpose — a lost phone should stay on the record and not quietly return —
+         but once it is dealt with, three dead rows above the staff list is just
+         clutter you have to scroll past. Only ever touches a REVOKED row: an
+         approved device has to be revoked first, so this can never be the fast
+         way to cut somebody off by accident. */
+      case "device-forget": {
+        const mgr = await callerManager();
+        if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
+        const target = String(body?.target_device_id || "");
+        if (!target) return json(req, { success: false, message: "Device required" });
+        const { data: d } = await db.from("hk_devices").select("device_id,status,label").eq("device_id", target).maybeSingle();
+        if (!d) return json(req, { success: true });                    // already gone
+        if (d.status !== "revoked") return json(req, { success: false, message: "Revoke it first." });
+        await db.from("hk_devices").delete().eq("device_id", target);
+        await log("device_forgotten", mgr.name, target, ip, { label: d.label });
+        return json(req, { success: true });
+      }
+
       case "reset-pin": {
         const mgr = await callerManager();
         if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
         const name = String(body?.target_name || "");
-        const { data: a } = await db.from("hk_accounts").select("id,auth_user_id").eq("name", name).maybeSingle();
+        const { data: a } = await db.from("hk_accounts").select("id,auth_user_id,is_master").eq("name", name).maybeSingle();
         if (!a) return json(req, { success: false, message: "No such account" });
+        // The master's PIN is theirs to change and nobody else's — same rule as their role.
+        if (a.is_master && name !== mgr.name)
+          return json(req, { success: false, message: "That account's PIN can only be reset by the person who holds it." }, 403);
         await db.from("hk_accounts").update({
           pin_hash: null, pin_salt: null, must_set_pin: true,
           failed_count: 0, locked_until: null, reset_requested_at: null,

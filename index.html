@@ -15842,18 +15842,28 @@ function vhStart(){
    whether because the venue is closed, the runner is off, or it crashed. All three matter equally
    to someone reading a kart's status, and none of them are visible otherwise. */
 var VH_STALE_MS=70*60000;   // two missed snapshots plus a margin
+var VH_UNKNOWN=false;       // true when the heartbeat could not be read at all — say nothing, do not accuse
 function vhRefresh(){
   var closed=!venueIsOpen();
-  var stale=(VH_LASTSEEN!=null)&&((Date.now()-VH_LASTSEEN)>VH_STALE_MS);
+  /* A FAILED READ IS NOT EVIDENCE THE RUNNER STOPPED.
+     Both branches below used to land on VH_LASTSEEN=0, so "I could not read the
+     heartbeat" and "the heartbeat is old" produced the same banner — telling the
+     floor collection had stopped when the truth might be that this user simply
+     cannot read the table. Now a failure leaves it unknown and says nothing, while
+     a successful read of an old or absent heartbeat still raises the alarm. Claiming
+     a fault that is not there costs trust in every warning after it. */
+  var stale=(VH_LASTSEEN!=null)&&!VH_UNKNOWN&&((Date.now()-VH_LASTSEEN)>VH_STALE_MS);
   var open=!(closed||stale);
   // Always know when data was last collected, not just once we already suspect a problem — that is
   // what lets a stopped runner raise the banner on its own.
   if(VH_LASTSEEN==null&&typeof SBC!=='undefined'&&SBC&&!VH_LOADING){
     VH_LOADING=true;
     SBC.from('app_health').select('at').order('at',{ascending:false}).limit(1)
-      .then(function(r){ VH_LOADING=false; var row=r&&r.data&&r.data[0];
+      .then(function(r){ VH_LOADING=false;
+        if(r&&r.error){ VH_UNKNOWN=true; try{ console.warn('[health] cannot read app_health:', r.error.message); }catch(e){} return; }
+        VH_UNKNOWN=false; var row=r&&r.data&&r.data[0];
         VH_LASTSEEN=row?_sydParse(row.at):0; if(VH_LASTSEEN) vhRefresh(); },
-            function(){ VH_LOADING=false; VH_LASTSEEN=0; });
+            function(){ VH_LOADING=false; VH_UNKNOWN=true; });
   }
   // Re-read the heartbeat periodically so the banner clears once collection resumes.
   if(VH_LASTSEEN&&(Date.now()-VH_LASTHIT)>300000&&typeof SBC!=='undefined'&&SBC&&!VH_LOADING){

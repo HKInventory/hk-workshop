@@ -21642,12 +21642,26 @@ function mrPushLoad(){
      has to change for that to be true. */
   function enter(r){
     clearInterval(S.poll);
-    try {
-      if (r.access_token && SBC && SBC.auth && SBC.auth.setSession)
-        SBC.auth.setSession({ access_token:r.access_token, refresh_token:r.refresh_token });
-    } catch(e){}
     // The Devices tab proves who it is with this, so it has to outlive this screen.
     try { if (window.hkaSetToken) window.hkaSetToken(r.access_token || ''); } catch(e){}
+    /* WAIT FOR THE SESSION BEFORE LETTING THE APP LOOSE.
+       setSession is asynchronous and this did not wait for it, so the app started
+       querying in the same tick — as anon, which no longer has access to anything.
+       Every one of those first reads came back empty, and the code that handles an
+       empty read does not say "denied", it quietly falls back to a default: the site
+       list dropped to a hardcoded Sydney and Melbourne appeared to have vanished.
+       A race with a silent fallback is the worst combination to debug, because
+       nothing anywhere reports an error. */
+    if (r.access_token && SBC && SBC.auth && SBC.auth.setSession){
+      var done = function(){ finish(r); };
+      try {
+        var p = SBC.auth.setSession({ access_token:r.access_token, refresh_token:r.refresh_token });
+        if (p && p.then) { p.then(done, done); return; }
+      } catch(e){}
+    }
+    finish(r);
+  }
+  function finish(r){
     hide();
     var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
     /* The existing master screens still authorise with cu.pin, so it is passed

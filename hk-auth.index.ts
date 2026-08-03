@@ -42,7 +42,19 @@
 //  are untouched. Until the new login screen ships, nothing calls this at all.
 // ===========================================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+/* npm:, NOT esm.sh, AND PINNED.
+   "https://esm.sh/@supabase/supabase-js@2" is resolved fresh by esm.sh at deploy
+   time, so the version this function runs on changed without anybody editing it —
+   and a deploy failed outright with "Module not found
+   .../@supabase/auth-js@2.112.0/denonext/auth-js.mjs" when esm.sh could not serve
+   a sub-dependency of whatever @2 meant that day. Nothing here had changed; the
+   CDN had. That is a third party able to break sign-in for the whole workshop at
+   a moment nobody chose.
+   Deno resolves npm: specifiers from the npm registry directly, which is what
+   web-push already uses below and what Supabase recommends. Pinned to a minor
+   line so a deploy is reproducible: the same source deploys to the same thing
+   tomorrow as it did today. */
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 import webpush from "npm:web-push@3";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;

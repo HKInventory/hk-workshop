@@ -21784,11 +21784,17 @@ function mrPushLoad(){
       /* Honest about WHY rather than a bare "not allowed". This screen speaks to the
          new login, and someone signed in the old way simply has no session for it
          yet — which is a step of the rollout, not a permissions problem. */
-      b.innerHTML = '<div style="color:var(--t2);font-size:13px;line-height:1.7">'
-        + '<b style="color:var(--t1)">Not signed in to the new sign-in yet.</b><br>'
-        + 'Device approvals run on it. Log out, tap <b style="color:var(--t1)">\ud83d\udd10 Set up secure sign-in</b> '
-        + 'under the keypad, then sign in with your name and PIN. This tab works from then on, on this device.'
-        + '</div>';
+      /* Every device enrols on its own — that is the point, and it is why a phone
+         being approved does not approve the Mac sitting next to it. But telling
+         someone standing in this exact screen to go and find a button on another one
+         is a poor way to say so, so the button is here. */
+      b.innerHTML = '<div style="color:var(--t2);font-size:13px;line-height:1.7;max-width:640px">'
+        + '<b style="color:var(--t1)">This device isn\'t set up yet.</b><br>'
+        + 'Each phone, iPad and Mac is approved separately \u2014 that is what stops a PIN working '
+        + 'from a device you have never seen. Approving one does not approve the others.<br><br>'
+        + 'Set this one up and a manager (including you, from an already-approved device) can approve it.'
+        + '</div>'
+        + '<button class="m-add" id="hka-dev-setup" style="margin-top:12px">\ud83d\udd10 Set up this device</button>';
       return;
     }
     b.innerHTML = '<div style="color:var(--t2);font-size:13px">Loading devices…</div>';
@@ -21947,6 +21953,10 @@ function mrPushLoad(){
     var t = ev.target;
 
     if (t.id === 'hka-dev-refresh') return load();
+    if (t.id === 'hka-dev-setup'){
+      try { localStorage.setItem('hk_newauth_v1','1'); } catch(e){}
+      location.reload(); return;
+    }
 
     if (t.id === 'hka-legacy-force'){
       t.disabled = true; t.textContent = 'Closing…';

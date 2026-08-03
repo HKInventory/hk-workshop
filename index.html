@@ -21322,11 +21322,20 @@ function mrPushLoad(){
    but genuinely subtle this time — a third the strength of the one that was
    rejected, static rather than pulsing, and sitting low behind the keypad so it
    lifts the black off the screen without becoming a feature of it. */
+/* Measured the first attempt at this instead of trusting my eye for "subtle":
+   its brightest pixel on the black was blue 11 out of 255, which is not subtle,
+   it is absent. Raised until it actually reads, and made it much larger so the
+   falloff is gradual — a big soft field looks like light in the room, where a
+   small bright one looks like a circle drawn on the screen.
+   It still reaches zero well before the screen edge (checked: the outer columns
+   stay pure black), which matters because this screen SLIDES against the
+   welcome, and the welcome is plain #000. Both edges black means the two still
+   meet with nothing to see, so the glow does not bring back the seam. */
 .hka-on #s-pin::before{
   content:'';position:absolute;z-index:0;pointer-events:none;
-  width:min(620px,120vw);height:min(620px,120vw);border-radius:50%;
+  width:min(920px,155vw);height:min(920px,155vw);border-radius:50%;
   top:52%;left:50%;transform:translate(-50%,-50%);
-  background:radial-gradient(circle,rgba(0,207,255,.055),rgba(0,207,255,.02) 45%,transparent 70%);
+  background:radial-gradient(circle,rgba(0,207,255,.13),rgba(0,207,255,.055) 40%,transparent 72%);
 }
 #hka-w{position:relative;z-index:1}
 .hka-mark{display:none}

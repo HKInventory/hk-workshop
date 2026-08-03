@@ -21278,7 +21278,7 @@ function mrPushLoad(){
 (function(){
   var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
   var DEVKEY = 'hk_dev_v1', OPTKEY = 'hk_newauth_v1';
-  var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'' };
+  var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'', shared:false };
 
   function ls(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function loadDev(){ try { return JSON.parse(ls(DEVKEY)||'null'); } catch(e){ return null; } }
@@ -21433,10 +21433,23 @@ function mrPushLoad(){
       h = '<div class="hka-h">HK Workshop</div><div class="hka-p">Checking this device…</div>';
     }
     else if (S.stage === 'join'){
+      /* A WORKSHOP IPAD IS NOT A PERSON, AND ENROLLING IT AS ONE WAS THE ONLY OPTION.
+         Without this you had to pick somebody's name to set up a shared Mac, which
+         then had to be corrected at approval and left the device labelled "Harvey's
+         device". Saying so up front means the request arrives already describing
+         what it is, and the approver just confirms. */
       h = '<div class="hka-h">Set up this device</div>'
-        + '<div class="hka-p">Enter the join code a manager gave you, then choose your name.</div>'
+        + '<div class="hka-p">Enter the join code a manager gave you, then say who this device is for.</div>'
         + '<input class="hka-in" id="hka-code" inputmode="numeric" maxlength="8" placeholder="Join code">'
-        + '<div class="hka-names">'
+        + '<div style="display:flex;gap:8px;width:100%">'
+        +   '<div class="hka-name'+(S.shared?'':' on')+'" id="hka-mode-me" style="flex:1;text-align:center">One person</div>'
+        +   '<div class="hka-name'+(S.shared?' on':'')+'" id="hka-mode-shared" style="flex:1;text-align:center">Shared workshop device</div>'
+        + '</div>'
+        + (S.shared
+           ? '<input class="hka-in" id="hka-label" maxlength="40" placeholder="Workshop iPad 1" style="letter-spacing:0;font-family:inherit">'
+             + '<div class="hka-p" style="margin-top:-6px">Anyone approved can sign in on it with their own PIN, and it logs out sooner because it gets left on a bench.</div>'
+           : '')
+        + '<div class="hka-names"'+(S.shared?' style="display:none"':'')+'>'
         + S.roster.map(function(x){
             return '<div class="hka-name'+(S.name===x.name?' on':'')+'" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
           }).join('')
@@ -21556,12 +21569,16 @@ function mrPushLoad(){
     var codeEl = document.getElementById('hka-code');
     var code = codeEl ? codeEl.value.trim() : '';
     if (!code) return fail('Enter the join code.');
-    if (!S.name) return fail('Choose your name.');
+    var lbl = (document.getElementById('hka-label')||{}).value || '';
+    if (S.shared && !lbl.trim()) return fail('Give this device a name, e.g. "Workshop iPad 1".');
+    if (!S.shared && !S.name) return fail('Choose your name.');
     S.busy = true; render();
     call('request-device', {
-      join_code: code, requested_name: S.name,
+      join_code: code,
+      // Blank name = a shared device asking to be one. The approver sees that and confirms.
+      requested_name: S.shared ? '' : S.name,
       platform: (navigator.platform||'') + ' · ' + (navigator.userAgent.indexOf('iPad')>=0 ? 'iPad' : navigator.userAgent.indexOf('iPhone')>=0 ? 'iPhone' : 'Other'),
-      label: S.name + "'s device"
+      label: S.shared ? lbl.trim() : (S.name + "'s device")
     }).then(function(r){
       S.busy = false;
       if (!r || !r.success) return fail((r && r.message) || 'Could not request access.');
@@ -21617,7 +21634,11 @@ function mrPushLoad(){
   document.addEventListener('click', function(ev){
     var o = document.getElementById('hka'); if (!o || !o.classList.contains('on')) return;
     var t = ev.target;
-    var nameEl = t.closest && t.closest('.hka-name');
+    /* Only chips that carry a person match here. The shared/personal toggles reuse
+       the same class for styling, and without this guard they were swallowed by the
+       name handler — which set the name to blank and returned before the toggle was
+       ever read, so tapping "Shared workshop device" silently did nothing. */
+    var nameEl = t.closest && t.closest('.hka-name[data-n]');
     if (nameEl){
       var nm = nameEl.getAttribute('data-n') || '';
       if (S.stage === 'join'){ S.name = nm; return render(); }
@@ -21629,6 +21650,8 @@ function mrPushLoad(){
       try { navigator.clipboard.writeText(full); S.msg = 'Copied.'; render(); } catch(e){}
       return;
     }
+    if (t.id === 'hka-mode-me'){ S.shared=false; return render(); }
+    if (t.id === 'hka-mode-shared'){ S.shared=true; S.name=''; return render(); }
     if (t.id === 'hka-req') return requestDevice();
     if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
     if (t.id === 'hka-back'){ try { localStorage.removeItem(OPTKEY); } catch(e){} dropDev(); location.reload(); return; }
@@ -21667,6 +21690,22 @@ function mrPushLoad(){
      worth using. HKA.go('notice') jumps to any screen, HKA.reset() forgets this
      device and starts the whole setup again. Read-only on its own — none of it
      bypasses the server, which decides every actual answer. */
+  /* LOGGING OUT OF A SHARED IPAD MUST LAND ON THE PICKER, NOT THE OLD PAD.
+     The overlay hides itself on sign-in, and nothing brought it back — so the next
+     person at a workshop iPad got the old keypad, which is the screen this whole
+     exercise exists to retire. On a shared device boot() returns to the staff
+     picker; on a personal one, straight to its owner's pad. */
+  if (typeof window.logout === 'function' && !window.logout._hka){
+    var _origLogout = window.logout;
+    window.logout = function(){
+      try { _origLogout.apply(this, arguments); } catch(e){}
+      try { if (window.hkaSetToken) window.hkaSetToken(''); } catch(e){}
+      S.pin = ''; S.pin2 = ''; S.name = '';
+      try { boot(); } catch(e){}
+    };
+    window.logout._hka = true;
+  }
+
   window.HKA = { boot:boot, go:go, reset:function(){ dropDev(); try{localStorage.removeItem(OPTKEY);}catch(e){} location.reload(); }, state:function(){ return S; } };
 })();
 
@@ -21793,13 +21832,18 @@ function mrPushLoad(){
       h += '<div style="color:var(--t2);font-size:13px;margin-bottom:18px">Nothing waiting.</div>';
     } else {
       pending.forEach(function(d){
+        // No name on the request means it asked to be a shared device — lead with that.
+        var wantsShared = !d.requested_name;
         h += '<div style="background:var(--card);border:1px solid rgba(0,207,255,.35);border-radius:12px;padding:12px;margin-bottom:10px">'
-           + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(d.requested_name||'(no name given)')+'</div>'
-           + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">'+esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
+           + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(d.requested_name || d.label || '(unnamed device)')+'</div>'
+           + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">'
+           +   (wantsShared ? '👥 asking to be a shared device · ' : '')
+           +   esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
            + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
-           +   '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="personal" data-who="'+esc(d.requested_name||'')+'">✓ Their own phone</button>'
-           +   '<button class="m-add" style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)" '
-           +     'data-ok="'+esc(d.device_id)+'" data-kind="shared">✓ Shared workshop device</button>'
+           + (wantsShared ? '' :
+               '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="personal" data-who="'+esc(d.requested_name||'')+'">✓ Their own phone</button>')
+           +   '<button class="m-add"'+(wantsShared?'':' style="background:var(--card2);color:var(--t1);border:1px solid var(--b2)"')+' '
+           +     'data-ok="'+esc(d.device_id)+'" data-kind="shared" data-label="'+esc(d.label||'')+'">✓ Shared workshop device</button>'
            +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
            +     'data-no="'+esc(d.device_id)+'">✕ Reject</button>'
            + '</div></div>';
@@ -21941,7 +21985,8 @@ function mrPushLoad(){
       return call('device-decide', {
         target_device_id: okId, decision: 'approved', kind: kind,
         owner_name: kind === 'personal' ? who : '',
-        label: kind === 'personal' ? (who ? who + "'s device" : 'Personal device') : 'Shared workshop device'
+        label: kind === 'personal' ? (who ? who + "'s device" : 'Personal device')
+                                   : ((t.getAttribute('data-label') || '').trim() || 'Shared workshop device')
       }).then(function(r){
         if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
         load();

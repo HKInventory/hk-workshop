@@ -15675,6 +15675,10 @@ var MS_ORIG={};
    ACCESS_CFG still wins when it is loaded (roles are editable there), but it is only fetched for
    the Access tab, so on every other screen this map IS the answer rather than a stopgap. */
 var ROLE_EMOJI={
+  /* Owner is the business owner, which is not the same thing as a Manager and was
+     landing on the same star via the fallback regex below. Given its own mark so the
+     staff picker and every avatar in the app can tell them apart at a glance. */
+  'Owner':'\ud83d\udc51',
   'Manager':'\u2b50','Assistant Manager':'\u2b50','Admin':'\ud83d\udd11',
   'Mechanic':'\ud83d\udd27','Facilities':'\ud83c\udfd7\ufe0f','Office':'\ud83d\uddc2\ufe0f',
   'Instructor':'\ud83c\udfc1','Marshal':'\ud83c\udfc1','Supervisor':'\ud83d\udccb'
@@ -21314,9 +21318,42 @@ function mrPushLoad(){
       S.roster = (r && r.data) ? r.data : []; cb();
     }, function(){ S.roster=[]; cb(); });
   }
+  /* THE ROLE DECIDES THE ICON, NOT A COLUMN THAT WENT STALE.
+     staff_public.emoji is whatever was saved when each person was added, so Ivy
+     (Office) and Andrew (Owner) were both showing a mechanic's wrench. The app
+     already has roleEmojiFor(), which reads the live role config and falls back to
+     matching on what a role is CALLED — so a role invented next month gets a
+     sensible icon without anyone editing a list. Use that, and keep the stored
+     value only as a last resort. */
+  /* THIS SCREEN DRAWS BEFORE THE REST OF THE APP EXISTS, SO IT CARRIES ITS OWN MAP.
+     First attempt just called the app's roleEmojiFor(). A browser test showed Owner
+     and Office still rendering a mechanic's wrench: the login overlay is the very
+     first thing on screen, well before the main script has finished setting itself
+     up, so that function is not reliably defined yet — and if it throws, the silent
+     fallback was the stale per-person emoji, which is exactly the wrong value.
+     So the mapping lives here, matching ROLE_EMOJI, and the app's version is used
+     only when it is genuinely available (it also honours any custom role emoji set
+     in the access config). Last resort matches on what the role is CALLED, so a role
+     invented next month still gets something sensible rather than a wrench. */
+  var HKA_EMOJI = { 'Owner':'👑', 'Manager':'⭐', 'Assistant Manager':'⭐',
+                    'Admin':'🔑', 'Mechanic':'🔧', 'Facilities':'🏗️',
+                    'Office':'🗂️', 'Instructor':'🏁', 'Marshal':'🏁',
+                    'Supervisor':'📋' };
+  function emoOf(x){
+    if (!x) return '🔧';
+    try { if (typeof roleEmojiFor === 'function'){ var e = roleEmojiFor(x.role); if (e) return e; } } catch(err){}
+    var k = String(x.role || '').trim();
+    if (HKA_EMOJI[k]) return HKA_EMOJI[k];
+    var l = k.toLowerCase();
+    if (/owner|director/.test(l))              return '👑';
+    if (/manager|supervis/.test(l))            return '⭐';
+    if (/facilit|maint|clean|ground/.test(l))  return '🏗️';
+    if (/office|admin|recept|front/.test(l))   return '🗂️';
+    if (/instruct|marshal|track|race/.test(l)) return '🏁';
+    return x.emoji || '🔧';
+  }
   function emojiFor(n){
-    var m = S.roster.filter(function(x){ return x.name===n; })[0];
-    return (m && m.emoji) || '🔧';
+    return emoOf(S.roster.filter(function(x){ return x.name===n; })[0]);
   }
 
   // ---- screens -------------------------------------------------------------
@@ -21337,7 +21374,7 @@ function mrPushLoad(){
         + '<input class="hka-in" id="hka-code" inputmode="numeric" maxlength="8" placeholder="Join code">'
         + '<div class="hka-names">'
         + S.roster.map(function(x){
-            return '<div class="hka-name'+(S.name===x.name?' on':'')+'" data-n="'+esc(x.name)+'">'+esc((x.emoji||'🔧')+' '+x.name)+'</div>';
+            return '<div class="hka-name'+(S.name===x.name?' on':'')+'" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
           }).join('')
         + (S.roster.length ? '' : '<div class="hka-p">Couldn\'t load the staff list.</div>')
         + '</div>'
@@ -21356,10 +21393,27 @@ function mrPushLoad(){
       h = '<div class="hka-h">Who\'s this?</div>'
         + '<div class="hka-names">'
         + S.roster.map(function(x){
-            return '<div class="hka-name" data-n="'+esc(x.name)+'">'+esc((x.emoji||'🔧')+' '+x.name)+'</div>';
+            return '<div class="hka-name" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
           }).join('')
         + '</div>'
         + '<div class="hka-err">'+esc(S.err)+'</div>';
+    }
+    else if (S.stage === 'notice'){
+      /* SAY WHAT THE PROMISE ACTUALLY IS, BEFORE THEY PICK.
+         Staff have every reason to assume the boss can see their PIN, because in
+         this app he genuinely could — the old staff screen printed the lot. Asking
+         people to trust a change they cannot inspect only works if you tell them
+         plainly what it now does, so this is deliberately specific rather than
+         reassuring noise. Every line is literally true of the system behind it. */
+      h = '<div class="hka-h">Your PIN is yours alone</div>'
+        + '<div class="hka-p" style="text-align:left;line-height:1.75">'
+        +   '<b style="color:#e7e9ee">Nobody can see it.</b> Not a manager, not the owner, not whoever built this app.<br><br>'
+        +   '<b style="color:#e7e9ee">It is scrambled before it is saved</b>, so it cannot be read back out of the system.<br><br>'
+        +   '<b style="color:#e7e9ee">Forgot it?</b> A manager clears it and you choose a new one yourself. They never see that one either.<br><br>'
+        +   '<b style="color:#e7e9ee">It only works on approved devices.</b> Someone who watched you type it still cannot use it from their own phone.'
+        + '</div>'
+        + '<div class="hka-p" style="color:#e88b8a">Do not reuse an old workshop PIN, your bank PIN, or your birthday.</div>'
+        + '<button class="hka-btn" id="hka-notice-ok">Got it \u2014 choose my PIN</button>';
     }
     else if (S.stage === 'pin' || S.stage === 'setpin' || S.stage === 'setpin2'){
       var title, sub;
@@ -21442,7 +21496,7 @@ function mrPushLoad(){
     S.busy = true;
     call('login', { name:S.name, pin:S.pin }).then(function(r){
       S.busy = false;
-      if (r && r.code === 'set-pin'){ S.pin=''; return go('setpin'); }
+      if (r && r.code === 'set-pin'){ S.pin=''; return go('notice'); }
       if (!r || !r.success){ S.pin=''; return fail((r && r.message) || 'That PIN doesn\'t match.'); }
       enter(r);
     });
@@ -21478,6 +21532,7 @@ function mrPushLoad(){
       if (S.stage === 'join'){ S.name = nm; return render(); }
       if (S.stage === 'pick'){ S.name = nm; S.pin=''; return go('pin'); }
     }
+    if (t.id === 'hka-notice-ok'){ S.pin=''; S.pin2=''; return go('setpin'); }
     if (t.id === 'hka-req') return requestDevice();
     if (t.id === 'hka-start-over'){ clearInterval(S.poll); dropDev(); S.name=''; return go('join'); }
     if (t.id === 'hka-notme'){ S.pin=''; S.name=''; return go('pick'); }
@@ -21505,7 +21560,11 @@ function mrPushLoad(){
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-  window.HKA = { boot:boot, reset:function(){ dropDev(); location.reload(); }, state:function(){ return S; } };
+  /* A small hook for diagnosing this on a real phone, where there is no console
+     worth using. HKA.go('notice') jumps to any screen, HKA.reset() forgets this
+     device and starts the whole setup again. Read-only on its own — none of it
+     bypasses the server, which decides every actual answer. */
+  window.HKA = { boot:boot, go:go, reset:function(){ dropDev(); location.reload(); }, state:function(){ return S; } };
 })();
 </script>
 </body>

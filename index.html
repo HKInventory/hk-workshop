@@ -21948,6 +21948,13 @@ function mrPushLoad(){
 
     if (t.id === 'hka-dev-refresh') return load();
 
+    if (t.id === 'hka-legacy-force'){
+      t.disabled = true; t.textContent = 'Closing…';
+      return call('set-legacy-login', { off:true, force:true }).then(function(r){
+        if (!r || !r.success) alert((r&&r.message)||'Could not close.');
+        load();
+      });
+    }
     if (t.id === 'hka-legacy'){
       var lm = document.getElementById('hka-legacy-msg');
       var closing = /Close/.test(t.textContent);
@@ -21956,8 +21963,13 @@ function mrPushLoad(){
       return call('set-legacy-login', { off: closing }).then(function(r){
         t.disabled = false;
         if (r && r.blocked){
-          if (lm){ lm.style.color = '#FBBF24';
-            lm.textContent = 'Not yet — no PIN set for: ' + (r.waiting||[]).join(', '); }
+          if (lm){
+            lm.style.color = '#FBBF24';
+            lm.innerHTML = 'No PIN set yet for: <b>' + (r.waiting||[]).map(esc).join(', ') + '</b>.<br>'
+              + 'They are not locked out — they will be sent to set one up, which needs the join code '
+              + 'and your approval first.<br><button class="m-add" id="hka-legacy-force" '
+              + 'style="margin-top:8px;background:var(--card2);color:#FBBF24;border:1px solid rgba(251,191,36,.45)">Close it anyway</button>';
+          }
           return;
         }
         if (!r || !r.success){ if (lm){ lm.style.color='var(--red)'; lm.textContent=(r&&r.message)||'Could not change.'; } return; }

@@ -662,13 +662,22 @@ Deno.serve(async (req) => {
         const mgr = await callerManager();
         if (!mgr?.is_master) return json(req, { success: false, message: "Builder only." }, 403);
         const off = !!body?.off;
-        if (off) {
+        /* THE GUARD WARNS, IT DOES NOT DECIDE.
+           It refused outright while anyone still had no PIN, which was right for a
+           venue mid-shift and wrong here: nobody is actually locked out by closing
+           this. A device with nothing enrolled lands on "Set up this device", and
+           that path never asks for an old PIN — so closing early is a redirect, not
+           a wall. It costs someone a join code and an approval before they can work,
+           which is a delay the owner is entitled to accept.
+           So it still lists who is affected, and still stops an accidental click, but
+           the builder can say "yes, I know" and proceed. Re-opening remains free. */
+        if (off && !body?.force) {
           const { data: notReady } = await db.from("hk_accounts")
             .select("name").eq("status", "active").eq("must_set_pin", true);
           if (notReady && notReady.length) {
             return json(req, { success: false, blocked: true,
               waiting: notReady.map((a: any) => a.name),
-              message: notReady.length + " people have not set a PIN yet. They would be locked out." });
+              message: notReady.length + " have not set a PIN yet. They can still set one up — it just means doing that before they can work." });
           }
         }
         await db.from("hk_auth_config").update({ legacy_login_off: off, updated_at: new Date().toISOString() }).eq("id", 1);

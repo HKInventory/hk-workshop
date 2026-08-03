@@ -329,6 +329,21 @@ Deno.serve(async (req) => {
         return json(req, { success: true, device_id, device_key });
       }
 
+      /* ---- 1b. Who has an account, for the picker on a shared device --------
+         Requires an approved device on purpose. The sign-in screen used to read the
+         staff list straight from a public table, which handed anyone who opened the
+         page the name and role of every employee. A brand new device does not need
+         the list — its owner types their own name — and a shared iPad that needs the
+         picker has already been approved. So the list stops being public without
+         anyone losing anything. */
+      case "roster": {
+        const dev = await approvedDevice();
+        if (!dev) return json(req, { success: true, roster: [] });
+        const { data } = await db.from("hk_accounts")
+          .select("name,app_role").eq("status", "active").order("name");
+        return json(req, { success: true, roster: data || [] });
+      }
+
       /* ---- 2. "Am I approved yet?" — the waiting screen polls this ---------- */
       case "device-status": {
         if (!did) return json(req, { success: false });
@@ -468,6 +483,28 @@ Deno.serve(async (req) => {
           patch.label = String(body?.label || "").slice(0, 60) || null;
           if (patch.kind === "personal" && body?.owner_name) patch.owner_name = String(body.owner_name).slice(0, 60);
           if (patch.kind === "shared") patch.owner_name = null;
+
+          /* CREATE THE ACCOUNT AT THE MOMENT OF APPROVAL, WITH THE ROLE.
+             Accounts used to be seeded ahead of time from the old roster, which meant
+             a name existed before anyone had asked for it and the role came from
+             whatever that list happened to say. Now the person types their name when
+             they ask, and the manager approving decides — in the same tap — whether
+             they get an account and what they are. One decision, one place, and no
+             pre-made accounts sitting unclaimed.
+             upsert on name, so approving a second device for someone who already has
+             an account updates their role rather than duplicating them, and never
+             touches a PIN they have already set. */
+          const nm = String(body?.account_name || "").trim().slice(0, 60);
+          if (nm) {
+            await db.from("hk_accounts").upsert({
+              name: nm,
+              app_role: String(body?.account_role || "Mechanic").slice(0, 40),
+              site: String(body?.account_site || "sydney").slice(0, 40),
+              status: "active", updated_at: new Date().toISOString(),
+            }, { onConflict: "name" });
+            if (patch.kind === "personal") patch.owner_name = nm;
+            await log("account_created", mgr.name, target, ip, { target: nm, role: body?.account_role });
+          }
         }
         await db.from("hk_devices").update(patch).eq("device_id", target);
         if (decision === "revoked") await db.from("hk_sessions").update({ revoked: true }).eq("device_id", target);

@@ -21236,7 +21236,8 @@ function mrPushLoad(){
 .hka-btn2{background:#161616;border:1px solid #2a2a2a;color:#9aa4b2}
 .hka-names{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
 .hka-name{background:#121212;border:1px solid #262626;border-radius:12px;padding:11px 14px;font-size:14px;
-          font-weight:600;color:#e7e9ee;cursor:pointer}
+          font-weight:600;color:#e7e9ee;cursor:pointer;display:flex;align-items:center;justify-content:center;
+          text-align:center;line-height:1.25}
 .hka-name:active{transform:scale(.97)}
 .hka-name.on{border-color:#00CFFF;color:#00CFFF}
 .hka-dots{display:flex;gap:14px;justify-content:center;margin:2px 0}
@@ -21432,6 +21433,12 @@ function mrPushLoad(){
     if (S.stage === 'boot'){
       h = '<div class="hka-h">HK Workshop</div><div class="hka-p">Checking this device…</div>';
     }
+    else if (S.stage === 'offline'){
+      h = '<div class="hka-h">Can\'t reach the server</div>'
+        + '<div class="hka-p">This device is still set up \u2014 nothing has been lost. It just could not check in '
+        +   'just now. Check the connection and try again.</div>'
+        + '<button class="hka-btn" id="hka-retry">Try again</button>';
+    }
     else if (S.stage === 'join'){
       /* A WORKSHOP IPAD IS NOT A PERSON, AND ENROLLING IT AS ONE WAS THE ONLY OPTION.
          Without this you had to pick somebody's name to set up a shared Mac, which
@@ -21542,7 +21549,16 @@ function mrPushLoad(){
     roster(function(){
       if (!S.dev){ return go('join'); }
       call('device-status', {}).then(function(r){
-        if (!r || !r.success || r.status === 'unknown' || r.status === 'revoked'){ dropDev(); return go('join'); }
+        /* NEVER FORGET A DEVICE BECAUSE ONE REQUEST FAILED.
+           This treated "could not reach the server" the same as "this device is not
+           approved", so a dropped connection, a flat moment of wifi or any hiccup
+           silently wiped the enrolment and threw an approved device back to the
+           setup screen — needing a join code and a manager to get back in. That is
+           how an approved phone locks its owner out on the way to work.
+           Only a definite answer from the server can un-enrol a device now. No
+           answer means try again. */
+        if (!r || !r.success){ S.err = ''; return go('offline'); }
+        if (r.status === 'unknown' || r.status === 'revoked'){ dropDev(); return go('join'); }
         if (r.status === 'pending'){ go('wait'); startPoll(); return; }
         // approved
         if (r.kind === 'personal' && r.owner_name){ S.name = r.owner_name; return go('pin'); }
@@ -21650,6 +21666,7 @@ function mrPushLoad(){
       try { navigator.clipboard.writeText(full); S.msg = 'Copied.'; render(); } catch(e){}
       return;
     }
+    if (t.id === 'hka-retry'){ return boot(); }
     if (t.id === 'hka-mode-me'){ S.shared=false; return render(); }
     if (t.id === 'hka-mode-shared'){ S.shared=true; S.name=''; return render(); }
     if (t.id === 'hka-req') return requestDevice();

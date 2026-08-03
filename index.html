@@ -21236,8 +21236,16 @@ function mrPushLoad(){
 #hka{position:fixed;inset:0;z-index:9000;background:#000;display:none;flex-direction:column;
      align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 #hka.on{display:flex}
-.hka-w{width:100%;max-width:min(420px,92vw);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
-@media (min-width:820px){ .hka-w{max-width:min(520px,60vw)} }
+@media (min-width:820px) and (min-height:700px){
+  .hka-h{font-size:30px}
+  .hka-k{padding:20px 0;font-size:23px}
+  .hka-pad{gap:12px}
+}
+.hka-w{width:100%;max-width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+/* One column width for everything. It was 420/520 wide while the keypad inside it
+   was capped at 300, so the pad, the buttons and the name chips were three
+   different widths stacked down the middle of a large screen. */
+@media (min-width:820px){ .hka-w{max-width:400px} }
 .hka-h{font-size:clamp(21px,5.4vw,27px);font-weight:800;letter-spacing:-.4px;color:#fff}
 .hka-p{font-size:13.5px;color:#8a93a0;line-height:1.5}
 .hka-err{font-size:13px;color:#ff6b6b;min-height:18px;font-weight:600}
@@ -21258,7 +21266,7 @@ function mrPushLoad(){
 .hka-dots{display:flex;gap:14px;justify-content:center;margin:2px 0}
 .hka-dot{width:14px;height:14px;border-radius:50%;background:#1e1e1e;border:1px solid #333}
 .hka-dot.on{background:#00CFFF;border-color:#00CFFF}
-.hka-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:300px}
+.hka-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
 .hka-k{background:#121212;border:1px solid #262626;border-radius:14px;padding:16px 0;font-size:21px;
        font-weight:700;color:#fff;cursor:pointer}
 .hka-k:active{background:#1c1c1c}

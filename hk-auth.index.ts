@@ -2,52 +2,62 @@
 //  Supabase Edge Function:  hk-auth
 //  ---------------------------------------------------------------------------
 //  The whole login system in one place. Requesting access, your approval, a
-//  person choosing their own PIN, logging in, staying logged in, PIN resets, and
-//  your break-glass recovery code.
+//  person choosing their own PIN, logging in, staying logged in, PIN resets,
+//  device revocation, and the break-glass recovery code.
 //
 //  WHAT THIS CHANGES, IN ONE LINE
 //  Today the PIN is checked on the screen and the database trusts a key that is
 //  printed in the page source. After this, the database trusts nothing except a
-//  short-lived pass this function issues, and it only issues one to a real person
-//  with the right PIN on a device you approved.
+//  real session, and a session is only ever handed out to a real person with the
+//  right PIN on a device you approved.
+//
+//  WHY THIS DOES NOT MINT ITS OWN TOKENS
+//  The first version signed its own passes with the project's shared HS256
+//  secret. Then the dashboard showed what this project actually looks like: it
+//  moved to ECC (P-256) signing keys two months ago, and the shared secret is now
+//  the PREVIOUS key — still accepted while old tokens drain, with a Revoke button
+//  sitting next to it. Self-signed passes would have worked perfectly until the
+//  day someone tidied that up, then logged out the entire venue with no visible
+//  cause. So this hands the token part to Supabase's own login system instead:
+//  it always signs with whatever the current key is, renewal is native, and key
+//  rotations stop being our problem. It also means there is no secret for you to
+//  copy anywhere — the two keys this needs are injected automatically.
+//
+//  HOW THE PIN STILL GOVERNS EVERYTHING
+//  Each person has a Supabase login whose password is 48 random characters
+//  generated here and never shown to anyone — not to them, not to you, not in
+//  this file. Nobody can use it because nobody knows it. The ONLY way to reach it
+//  is to satisfy this function first: correct PIN, active account, approved
+//  device. So the PIN and the device remain the real credentials; the random
+//  password is just the mechanism that turns a passed check into a real session.
 //
 //  DEPLOY
-//    Supabase Dashboard -> Edge Functions -> Create a new function
-//    -> name it exactly  hk-auth  -> paste this whole file -> Deploy.
+//    Supabase Dashboard -> Edge Functions -> hk-auth -> paste this whole file
+//    -> Deploy.  (Replaces the earlier version.)
 //
-//  ONE SECRET TO ADD (Edge Functions -> Secrets):
-//    HK_JWT_SECRET = your project's JWT secret
-//      Find it: Settings -> API -> JWT Settings -> JWT Secret -> Reveal.
-//    SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically; the
-//    JWT secret is NOT, which is why it has to be added by hand.
+//  NO SECRETS TO ADD. SUPABASE_URL, SUPABASE_ANON_KEY and
+//  SUPABASE_SERVICE_ROLE_KEY are injected for you. Nothing else is needed.
 //
-//    Treat that secret as the crown jewel. It signs the pass this function
-//    issues, and it is the same secret behind your existing keys. It must never
-//    appear in the app, in the repo, or in a message. It lives here and nowhere
-//    else.
-//
-//  NOTHING BREAKS BY DEPLOYING THIS.
-//  verify-pin, hk-ai and every master-* function are untouched and keep working.
-//  Until the new login screen ships, nothing in the app even calls this. You can
-//  deploy it now and the floor will not notice.
+//  NOTHING BREAKS BY DEPLOYING THIS. verify-pin, hk-ai and every master-* screen
+//  are untouched. Until the new login screen ships, nothing calls this at all.
 // ===========================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const JWT_SECRET   = Deno.env.get("HK_JWT_SECRET") || "";
+const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+// Full access, used for everything this function decides. Never leaves the server.
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+// Public-level client, used ONLY to turn a passed check into a real session and
+// to validate a token someone hands back to us.
+const pub = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
 
-/* CORS: the app is served from GitHub Pages today and moves to Cloudflare later,
-   so both origins are allowed and nothing else. This used to be "*" on the other
-   functions, which lets any website on the internet call them from a visitor's
-   browser. Named origins cost nothing and close that. */
-const ALLOWED = [
-  "https://hkinventory.github.io",
-  "http://localhost:8000",
-];
+/* CORS: the app is on GitHub Pages today and moves to Cloudflare later, so both
+   are named and nothing else is. The other functions in this project use "*",
+   which lets any site on the internet call them from a visitor's browser. */
+const ALLOWED = ["https://hkinventory.github.io", "http://localhost:8000"];
 function corsFor(req: Request) {
   const origin = req.headers.get("origin") || "";
   const ok = ALLOWED.some((a) => origin === a || origin.startsWith(a));
@@ -61,7 +71,7 @@ function corsFor(req: Request) {
 const json = (req: Request, b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsFor(req), "Content-Type": "application/json" } });
 
-// ---- little helpers --------------------------------------------------------
+// ---- helpers ---------------------------------------------------------------
 const enc = new TextEncoder();
 const b64url = (buf: ArrayBuffer | Uint8Array) => {
   const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -69,12 +79,10 @@ const b64url = (buf: ArrayBuffer | Uint8Array) => {
 };
 const randHex = (bytes = 32) =>
   Array.from(crypto.getRandomValues(new Uint8Array(bytes))).map((b) => b.toString(16).padStart(2, "0")).join("");
-const nowSec = () => Math.floor(Date.now() / 1000);
 
-/* Constant-time compare. A normal === returns as soon as two strings differ, and
+/* Constant-time compare. A normal === stops at the first differing character, and
    how long that takes is measurable over a network — enough, with patience, to
-   work out a secret one character at a time. Everything compared here is a
-   secret, so everything uses this. */
+   recover a secret one character at a time. Everything compared here is a secret. */
 function sameSecret(a: string, b: string): boolean {
   const x = enc.encode(a), y = enc.encode(b);
   if (x.length !== y.length) return false;
@@ -83,11 +91,11 @@ function sameSecret(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/* PBKDF2-SHA256. Deliberately slow, so the stored value cannot be turned back
-   into a PIN by reading it. See the honest note in the schema file: against
-   someone holding the whole table a 4-digit PIN falls regardless of hashing —
-   the real defences are device approval and per-account lockout. This is what
-   stops it being readable, which is what stops anyone (you included) seeing it. */
+/* PBKDF2-SHA256, deliberately slow, so a PIN cannot be read back out of the
+   database — which is what stops anyone seeing it, you included.
+   Said plainly: against someone holding this whole table a 4-digit PIN falls
+   regardless of how it is stored, because there are only 10,000 of them. Hashing
+   is not what makes a short PIN safe. Device approval and per-account lockout are. */
 async function hashSecret(secret: string, salt: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
@@ -98,39 +106,6 @@ async function sha256(s: string): Promise<string> {
   return b64url(await crypto.subtle.digest("SHA-256", enc.encode(s)));
 }
 
-/* The pass itself. Signed with the project's JWT secret and carrying
-   role:"authenticated", which is what makes the database accept it as a real
-   logged-in user rather than the anonymous public key. The extra claims — who,
-   which site, what role, which device — are what the new database rules read to
-   decide whether a given row may be touched. */
-async function signPass(payload: Record<string, unknown>): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const data = `${b64url(enc.encode(JSON.stringify(header)))}.${b64url(enc.encode(JSON.stringify(payload)))}`;
-  const key = await crypto.subtle.importKey("raw", enc.encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
-  return `${data}.${b64url(sig)}`;
-}
-
-/* Verifying a pass someone hands back to us (for manager-only operations).
-   The algorithm is PINNED to HS256 and the header is checked before anything
-   else. Without that, a caller can send alg:"none" — a token with no signature
-   at all — and a lazy verifier accepts it. That single check is the difference
-   between this being a lock and being a suggestion. */
-async function readPass(token: string): Promise<Record<string, any> | null> {
-  try {
-    const parts = String(token || "").split(".");
-    if (parts.length !== 3) return null;
-    const header = JSON.parse(atob(parts[0].replace(/-/g, "+").replace(/_/g, "/")));
-    if (header?.alg !== "HS256" || header?.typ !== "JWT") return null;   // no alg:none, ever
-    const key = await crypto.subtle.importKey("raw", enc.encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const expect = b64url(await crypto.subtle.sign("HMAC", key, enc.encode(`${parts[0]}.${parts[1]}`)));
-    if (!sameSecret(expect, parts[2])) return null;
-    const body = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (!body?.exp || body.exp < nowSec()) return null;                  // expiry enforced here, not trusted
-    return body;
-  } catch { return null; }
-}
-
 const ipOf = (req: Request) =>
   (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
 
@@ -139,29 +114,105 @@ async function log(event: string, name: string | null, device_id: string | null,
 }
 
 // ---- tuning ---------------------------------------------------------------
-const PASS_MINUTES     = 30;      // how long a pass lasts. Also how long revoking takes to bite.
-const REFRESH_DAYS     = 14;      // how long a device can renew without a PIN, if used regularly
-const MAX_FAILS        = 5;       // wrong PINs before an account pauses
-const LOCK_SECONDS     = 60;      // first pause; doubles each time, capped
+const MAX_FAILS        = 5;      // wrong PINs before an account pauses
+const LOCK_SECONDS     = 60;     // first pause; doubles each time
 const LOCK_CAP_SECONDS = 900;
+const MAIL_DOMAIN      = "hkws.hyperkarting.com.au";   // never receives mail; a stable unique handle
+
+/* THE ROLES THAT COUNT AS A MANAGER, READ OFF THE REAL ROSTER RATHER THAN GUESSED.
+   This listed only Manager and Assistant Manager, which quietly excluded "Owner" —
+   the most senior role in the building. Andrew happened to also carry is_master so
+   he would have got in anyway, and the gap would only have surfaced the first time
+   an Owner without that flag tried to approve a device and was told "Managers only".
+   The live roster also runs Facilities and Office, which are correctly NOT here:
+   they are ordinary accounts and should not be approving devices or resetting PINs. */
+const MANAGER_ROLES = ["Owner", "Manager", "Assistant Manager"];
+
+/* Every account is backed by a Supabase login. Created on demand, with a random
+   password nobody ever sees and email confirmation pre-set so no mail is sent.
+   app_metadata carries who this is — those values land inside the session token,
+   which is what the new database rules will read to decide what each person may
+   touch. Refreshed on every login so a change of role or site takes effect at
+   once rather than whenever someone next happens to be recreated. */
+async function ensureAuthUser(acct: any) {
+  let userId = acct.auth_user_id as string | null;
+  let email  = acct.auth_email as string | null;
+  let secret = acct.auth_secret as string | null;
+
+  if (!email)  email  = `${acct.id}@${MAIL_DOMAIN}`;
+  if (!secret) secret = randHex(24);   // 48 hex characters
+
+  const meta = {
+    hk_name: acct.name,
+    hk_role: acct.app_role,
+    hk_site: acct.site,
+    hk_master: !!acct.is_master,
+  };
+
+  if (!userId) {
+    const { data, error } = await db.auth.admin.createUser({
+      email, password: secret, email_confirm: true,
+      app_metadata: meta, user_metadata: { display_name: acct.name },
+    });
+    if (error || !data?.user) {
+      // Already there from an earlier attempt — find it and reset it to a known state.
+      const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const found = (list?.users || []).find((u: any) => u.email === email);
+      if (!found) throw new Error("could not create login");
+      userId = found.id;
+      await db.auth.admin.updateUserById(userId, { password: secret, app_metadata: meta });
+    } else {
+      userId = data.user.id;
+    }
+  } else {
+    await db.auth.admin.updateUserById(userId, { app_metadata: meta, ban_duration: "none" });
+  }
+
+  await db.from("hk_accounts").update({
+    auth_user_id: userId, auth_email: email, auth_secret: secret,
+    updated_at: new Date().toISOString(),
+  }).eq("id", acct.id);
+
+  return { userId, email, secret };
+}
+
+/* Turn a passed check into a real session. This is the only place the random
+   password is ever used, and it never leaves the server. */
+async function issueSession(acct: any, device_id: string) {
+  const { email, secret } = await ensureAuthUser(acct);
+  const { data, error } = await pub.auth.signInWithPassword({ email: email!, password: secret! });
+  if (error || !data?.session) throw new Error("could not start session");
+
+  await db.from("hk_sessions").insert({
+    account_id: acct.id, device_id,
+    refresh_hash: await sha256(data.session.refresh_token),
+    expires_at: new Date(Date.now() + 14 * 86400000).toISOString(),
+  });
+
+  return {
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+    expires_at: data.session.expires_at,
+    name: acct.name, role: acct.app_role, site: acct.site, is_master: !!acct.is_master,
+  };
+}
 
 // ===========================================================================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST")    return json(req, { success: false, message: "POST only" }, 405);
-  if (!JWT_SECRET)              return json(req, { success: false, message: "Server not configured: HK_JWT_SECRET is missing" }, 500);
 
   let body: any;
   try { body = await req.json(); } catch { return json(req, { success: false, message: "Bad request" }, 400); }
 
-  const op  = String(body?.op || "");
-  const ip  = ipOf(req);
-  const did = String(body?.device_id || "");
+  const op   = String(body?.op || "");
+  const ip   = ipOf(req);
+  const did  = String(body?.device_id || "");
   const dkey = String(body?.device_key || "");
 
-  /* Confirms the caller is a device we approved. It must present the secret it
-     generated at request time; we only ever stored its hash, so this table
-     cannot be used to impersonate a device even by someone holding it. */
+  /* Is the caller a device we approved? It must present the secret it generated
+     when it first asked for access; only the hash is stored, so this table cannot
+     be used to impersonate a device even by someone holding all of it. */
   async function approvedDevice() {
     if (!did || !dkey) return null;
     const { data } = await db.from("hk_devices").select("*").eq("device_id", did).maybeSingle();
@@ -171,48 +222,27 @@ Deno.serve(async (req) => {
     return data;
   }
 
-  /* Confirms the caller is a logged-in manager. Note it re-reads the account from
-     the database rather than believing the role written in the pass: a pass is
-     valid for up to half an hour, and someone demoted or disabled in that window
-     must lose manager powers immediately, not when their pass runs out. */
+  /* Is the caller a logged-in manager? The token is validated by Supabase itself,
+     then the account is re-read from the database rather than believed from the
+     token: a session lasts up to an hour, and someone demoted or disabled inside
+     that hour must lose manager powers at once, not when their token runs out. */
   async function callerManager() {
-    const claims = await readPass(String(body?.token || ""));
-    if (!claims?.name) return null;
-    const { data } = await db.from("hk_accounts").select("*").eq("name", claims.name).maybeSingle();
-    if (!data || data.status !== "active") return null;
-    const mgr = data.is_master || data.app_role === "Manager" || data.app_role === "Assistant Manager";
-    return mgr ? data : null;
-  }
-
-  async function issue(account: any, device_id: string) {
-    const pass = await signPass({
-      iss: "hk-auth",
-      role: "authenticated",           // the claim the database reads to accept this as a real user
-      aud: "authenticated",
-      sub: account.id,                 // a real uuid — some database rules cast this, and a non-uuid breaks them
-      name: account.name,
-      app_role: account.app_role,
-      site: account.site,
-      is_master: !!account.is_master,
-      device_id,
-      iat: nowSec(),
-      exp: nowSec() + PASS_MINUTES * 60,
-    });
-    const refresh = randHex(32);
-    await db.from("hk_sessions").insert({
-      account_id: account.id, device_id,
-      refresh_hash: await sha256(refresh),
-      expires_at: new Date(Date.now() + REFRESH_DAYS * 86400000).toISOString(),
-    });
-    return { pass, refresh, expires_in: PASS_MINUTES * 60 };
+    const token = String(body?.token || "");
+    if (!token) return null;
+    const { data, error } = await pub.auth.getUser(token);
+    if (error || !data?.user) return null;
+    const { data: acct } = await db.from("hk_accounts").select("*").eq("auth_user_id", data.user.id).maybeSingle();
+    if (!acct || acct.status !== "active") return null;
+    const mgr = acct.is_master || MANAGER_ROLES.includes(String(acct.app_role || ""));
+    return mgr ? acct : null;
   }
 
   try {
     switch (op) {
 
-      /* ---- 1. "Let me in" — a new device asks for access -------------------
+      /* ---- 1. A new device asks for access ---------------------------------
          Gated on the join code, so the queue cannot be reached from the open
-         internet. Creates a PENDING device. Approves nothing by itself. */
+         internet. Creates a PENDING device and approves nothing by itself. */
       case "request-device": {
         const { data: cfg } = await db.from("hk_auth_config").select("join_code").eq("id", 1).maybeSingle();
         if (!cfg?.join_code) return json(req, { success: false, message: "Sign-up is closed. Ask a manager." });
@@ -231,11 +261,11 @@ Deno.serve(async (req) => {
           kind: "personal", status: "pending",
         });
         await log("device_request", String(body?.requested_name || ""), device_id, ip);
-        // The key is handed over exactly once and only ever lives on that device.
+        // Handed over once, and only ever lives on that device.
         return json(req, { success: true, device_id, device_key });
       }
 
-      /* ---- 2. "Am I approved yet?" — the waiting screen polls this --------- */
+      /* ---- 2. "Am I approved yet?" — the waiting screen polls this ---------- */
       case "device-status": {
         if (!did) return json(req, { success: false });
         const { data } = await db.from("hk_devices").select("status,kind,owner_name,label").eq("device_id", did).maybeSingle();
@@ -243,23 +273,23 @@ Deno.serve(async (req) => {
         return json(req, { success: true, status: data.status, kind: data.kind, owner_name: data.owner_name, label: data.label });
       }
 
-      /* ---- 3. Choose a PIN -------------------------------------------------
-         Only reachable on an approved device, and only for an account flagged as
-         needing one — which is true when it is brand new and when you have reset
-         it. That flag is the entire reason a manager never has to invent a
-         temporary PIN and tell someone what it is. */
+      /* ---- 3. Choose a PIN --------------------------------------------------
+         Only on an approved device, and only for an account flagged as needing
+         one — true when it is new and when a manager has reset it. That flag is
+         the whole reason nobody ever has to invent a temporary PIN and tell
+         somebody what it is. */
       case "set-pin": {
         const dev = await approvedDevice();
         if (!dev) return json(req, { success: false, message: "This device isn't approved." });
         const name = String(body?.name || "");
         const pin  = String(body?.pin || "");
         if (!/^\d{4}$/.test(pin)) return json(req, { success: false, message: "PIN must be 4 digits." });
-        if (/^(\d)\1{3}$/.test(pin) || ["1234", "4321", "0123"].includes(pin))
+        if (/^(\d)\1{3}$/.test(pin) || ["1234", "4321", "0123", "1122"].includes(pin))
           return json(req, { success: false, message: "Too easy to guess — pick another." });
 
         const { data: acct } = await db.from("hk_accounts").select("*").eq("name", name).maybeSingle();
         if (!acct || acct.status !== "active") return json(req, { success: false, message: "No account for that name." });
-        if (!acct.must_set_pin)               return json(req, { success: false, message: "This account already has a PIN. Ask a manager to reset it." });
+        if (!acct.must_set_pin) return json(req, { success: false, message: "This account already has a PIN. Ask a manager to reset it." });
         if (dev.kind === "personal" && dev.owner_name && dev.owner_name !== name)
           return json(req, { success: false, message: "This device belongs to someone else." });
 
@@ -273,10 +303,11 @@ Deno.serve(async (req) => {
           await db.from("hk_devices").update({ owner_name: name }).eq("device_id", did);
 
         await log("pin_set", name, did, ip);
-        return json(req, { success: true, ...(await issue(acct, did)), name: acct.name, role: acct.app_role, site: acct.site, is_master: acct.is_master });
+        const fresh = { ...acct, must_set_pin: false };
+        return json(req, { success: true, ...(await issueSession(fresh, did)) });
       }
 
-      /* ---- 4. Log in ------------------------------------------------------- */
+      /* ---- 4. Log in -------------------------------------------------------- */
       case "login": {
         const dev = await approvedDevice();
         if (!dev) return json(req, { success: false, code: "device", message: "This device isn't approved yet." });
@@ -285,9 +316,8 @@ Deno.serve(async (req) => {
 
         const { data: acct } = await db.from("hk_accounts").select("*").eq("name", name).maybeSingle();
 
-        /* Same answer, whether the account is missing, disabled or the PIN is
-           wrong. Different messages would let anyone with the app confirm who
-           works here and who has been removed. */
+        /* One answer whichever way it failed. Different messages would let anyone
+           with the app confirm who works here and who has been removed. */
         const no = () => json(req, { success: false, message: "That PIN doesn't match." });
         if (!acct || acct.status !== "active") { await log("login_fail", name, did, ip, { reason: "no-account" }); return no(); }
 
@@ -303,8 +333,8 @@ Deno.serve(async (req) => {
         const ok = acct.pin_hash && sameSecret(await hashSecret(pin, acct.pin_salt || ""), acct.pin_hash);
         if (!ok) {
           const fails = (acct.failed_count || 0) + 1;
-          /* Backs off per ACCOUNT, not per venue. All the workshop tablets share
-             one wifi address, so anything counted per network would let five fat
+          /* Backs off per ACCOUNT, not per venue. Every workshop tablet shares one
+             wifi address, so anything counted per network would let five fat
              fingers at shift open lock out the whole floor. */
           const patch: Record<string, unknown> = { failed_count: fails };
           if (fails >= MAX_FAILS) {
@@ -318,41 +348,10 @@ Deno.serve(async (req) => {
 
         await db.from("hk_accounts").update({ failed_count: 0, locked_until: null }).eq("id", acct.id);
         await log("login_ok", name, did, ip);
-        return json(req, { success: true, ...(await issue(acct, did)), name: acct.name, role: acct.app_role, site: acct.site, is_master: acct.is_master });
+        return json(req, { success: true, ...(await issueSession(acct, did)) });
       }
 
-      /* ---- 5. Stay logged in ------------------------------------------------
-         Swaps a renewal ticket for a fresh pass without asking for the PIN, so a
-         tablet left on all day never interrupts anyone. Re-checks the account is
-         still active on every renewal, which is what makes "remove someone" mean
-         removed rather than removed-once-their-app-closes. */
-      case "refresh": {
-        const dev = await approvedDevice();
-        if (!dev) return json(req, { success: false, code: "device" });
-        const rt = String(body?.refresh || "");
-        if (!rt) return json(req, { success: false });
-        const { data: sess } = await db.from("hk_sessions")
-          .select("*").eq("device_id", did).eq("revoked", false)
-          .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20);
-        const hash = await sha256(rt);
-        const match = (sess || []).find((s: any) => sameSecret(s.refresh_hash, hash));
-        if (!match) return json(req, { success: false, code: "reauth" });
-
-        const { data: acct } = await db.from("hk_accounts").select("*").eq("id", match.account_id).maybeSingle();
-        if (!acct || acct.status !== "active") {
-          await db.from("hk_sessions").update({ revoked: true }).eq("id", match.id);
-          return json(req, { success: false, code: "reauth" });
-        }
-        await db.from("hk_sessions").update({ last_used_at: new Date().toISOString() }).eq("id", match.id);
-        const pass = await signPass({
-          iss: "hk-auth", role: "authenticated", aud: "authenticated", sub: acct.id,
-          name: acct.name, app_role: acct.app_role, site: acct.site, is_master: !!acct.is_master,
-          device_id: did, iat: nowSec(), exp: nowSec() + PASS_MINUTES * 60,
-        });
-        return json(req, { success: true, pass, expires_in: PASS_MINUTES * 60, name: acct.name, role: acct.app_role, site: acct.site, is_master: !!acct.is_master });
-      }
-
-      /* ---- 6. Your Devices screen ------------------------------------------ */
+      /* ---- 5. Your Devices screen ------------------------------------------- */
       case "devices-list": {
         const mgr = await callerManager();
         if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
@@ -362,9 +361,9 @@ Deno.serve(async (req) => {
         return json(req, { success: true, devices: data || [] });
       }
 
-      /* ---- 7. Approve / revoke a device ------------------------------------
-         Where you choose personal or shared. Shared is the communal iPads: the
-         full staff picker and a shorter idle logout. Revoke is kept rather than
+      /* ---- 6. Approve / revoke a device --------------------------------------
+         Where you choose personal or shared. Shared is the communal iPads: full
+         staff picker and a shorter idle logout. Revoked is kept rather than
          deleted, so a lost phone stays on the record and cannot quietly return. */
       case "device-decide": {
         const mgr = await callerManager();
@@ -378,6 +377,7 @@ Deno.serve(async (req) => {
           patch.kind = body?.kind === "shared" ? "shared" : "personal";
           patch.label = String(body?.label || "").slice(0, 60) || null;
           if (patch.kind === "personal" && body?.owner_name) patch.owner_name = String(body.owner_name).slice(0, 60);
+          if (patch.kind === "shared") patch.owner_name = null;
         }
         await db.from("hk_devices").update(patch).eq("device_id", target);
         if (decision === "revoked") await db.from("hk_sessions").update({ revoked: true }).eq("device_id", target);
@@ -385,34 +385,44 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       }
 
-      /* ---- 8. Create an account, and reset a forgotten PIN -------------------
-         A reset CLEARS the PIN, it does not set one. The person picks the new one
-         themselves on their own device. That is the difference between you being
-         unable to see their PIN and you merely promising not to look. */
+      /* ---- 7. Create an account, disable one, reset a forgotten PIN -----------
+         A reset CLEARS the PIN, it does not set one. The person chooses the new
+         one themselves on their own device. That is the difference between being
+         unable to see a colleague's PIN and merely promising not to look. */
       case "account-upsert": {
         const mgr = await callerManager();
         if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
         const name = String(body?.name || "").trim().slice(0, 60);
         if (!name) return json(req, { success: false, message: "Name required" });
+        const disabling = body?.status === "disabled";
         await db.from("hk_accounts").upsert({
           name,
           app_role: String(body?.app_role || "Mechanic"),
           site: String(body?.site || "sydney"),
-          status: body?.status === "disabled" ? "disabled" : "active",
+          status: disabling ? "disabled" : "active",
           updated_at: new Date().toISOString(),
         }, { onConflict: "name" });
-        if (body?.status === "disabled") {
-          const { data: a } = await db.from("hk_accounts").select("id").eq("name", name).maybeSingle();
-          if (a) await db.from("hk_sessions").update({ revoked: true }).eq("account_id", a.id);
+
+        if (disabling) {
+          const { data: a } = await db.from("hk_accounts").select("id,auth_user_id").eq("name", name).maybeSingle();
+          if (a) {
+            await db.from("hk_sessions").update({ revoked: true }).eq("account_id", a.id);
+            /* Ban the underlying login as well. Without this the person keeps
+               working until their token expires AND can renew it indefinitely —
+               "removed" would mean "removed once they close the app". */
+            if (a.auth_user_id) {
+              try { await db.auth.admin.updateUserById(a.auth_user_id, { ban_duration: "876000h", password: randHex(24) }); } catch { /* best effort */ }
+            }
+          }
         }
-        await log("account_upsert", mgr.name, null, ip, { target: name, status: body?.status || "active" });
+        await log("account_upsert", mgr.name, null, ip, { target: name, status: disabling ? "disabled" : "active" });
         return json(req, { success: true });
       }
       case "reset-pin": {
         const mgr = await callerManager();
         if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
         const name = String(body?.target_name || "");
-        const { data: a } = await db.from("hk_accounts").select("id").eq("name", name).maybeSingle();
+        const { data: a } = await db.from("hk_accounts").select("id,auth_user_id").eq("name", name).maybeSingle();
         if (!a) return json(req, { success: false, message: "No such account" });
         await db.from("hk_accounts").update({
           pin_hash: null, pin_salt: null, must_set_pin: true,
@@ -423,7 +433,7 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       }
 
-      /* ---- 9. The join code ------------------------------------------------- */
+      /* ---- 8. The join code --------------------------------------------------- */
       case "set-join-code": {
         const mgr = await callerManager();
         if (!mgr) return json(req, { success: false, message: "Managers only." }, 403);
@@ -434,12 +444,12 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       }
 
-      /* ---- 10. Break glass ---------------------------------------------------
-         For one situation: every device has forgotten, or your phone is gone, and
-         there is nobody left who can approve you. Approves the device it is typed
-         on, logs you in as master, and burns itself so the same code can never be
-         used twice. This exists so that no step of this rollout can ever leave
-         you locked out of your own system with no way back. */
+      /* ---- 9. Break glass -----------------------------------------------------
+         For exactly one situation: every device has forgotten, or your phone is
+         gone, and there is nobody left who can approve you. Approves the device it
+         is typed on, logs you in as master, and burns itself so it can never be
+         reused. This exists so no step of this rollout can leave you locked out of
+         your own system with no way back. */
       case "recovery": {
         const { data: cfg } = await db.from("hk_auth_config").select("recovery_hash").eq("id", 1).maybeSingle();
         if (!cfg?.recovery_hash) return json(req, { success: false, message: "No recovery code set." });
@@ -448,7 +458,8 @@ Deno.serve(async (req) => {
           await log("recovery_fail", null, did, ip);
           return json(req, { success: false, message: "Not recognised." });
         }
-        const { data: master } = await db.from("hk_accounts").select("*").eq("is_master", true).eq("status", "active").limit(1).maybeSingle();
+        const { data: master } = await db.from("hk_accounts").select("*")
+          .eq("is_master", true).eq("status", "active").limit(1).maybeSingle();
         if (!master) return json(req, { success: false, message: "No master account." });
 
         const device_key = dkey || randHex(32);
@@ -460,19 +471,33 @@ Deno.serve(async (req) => {
         }, { onConflict: "device_id" });
         await db.from("hk_auth_config").update({ recovery_hash: null }).eq("id", 1);   // single use
         await log("recovery_used", master.name, device_id, ip);
-        return json(req, { success: true, device_id, device_key, ...(await issue(master, device_id)),
-                           name: master.name, role: master.app_role, site: master.site, is_master: true,
-                           must_set_pin: master.must_set_pin,
+
+        if (master.must_set_pin) {
+          // No PIN yet, so there is no session to give — send them to set one.
+          return json(req, { success: true, device_id, device_key, must_set_pin: true, name: master.name,
+                             message: "Recovery accepted. Set your PIN, then set a new recovery code." });
+        }
+        return json(req, { success: true, device_id, device_key, ...(await issueSession(master, device_id)),
                            message: "Recovery used. Set a new recovery code from Master Access." });
       }
       case "set-recovery": {
         const mgr = await callerManager();
         if (!mgr?.is_master) return json(req, { success: false, message: "Master only." }, 403);
-        const code = randHex(16);   // generated here so a weak one can never be chosen
+        const code = randHex(16);   // generated here, so a weak one can never be chosen
         await db.from("hk_auth_config").update({ recovery_hash: await sha256(code), recovery_set_at: new Date().toISOString() }).eq("id", 1);
         await log("recovery_set", mgr.name, null, ip);
-        // Shown once, never stored in the clear, never retrievable again.
+        // Shown once. Only its hash is kept, so it can never be retrieved again.
         return json(req, { success: true, code });
+      }
+
+      /* ---- 10. Bootstrap check — is anything set up yet? ---------------------
+         Read-only and harmless: the first-run screen uses it to decide whether to
+         show "set the join code" or the normal login. */
+      case "status": {
+        const { data: cfg } = await db.from("hk_auth_config").select("join_code,recovery_hash").eq("id", 1).maybeSingle();
+        const { count: approved } = await db.from("hk_devices").select("*", { count: "exact", head: true }).eq("status", "approved");
+        return json(req, { success: true,
+          join_code_set: !!cfg?.join_code, recovery_set: !!cfg?.recovery_hash, approved_devices: approved || 0 });
       }
 
       default:
@@ -480,8 +505,8 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error("[hk-auth]", e);
-    /* Deliberately vague to the caller, detailed in the logs. An error message
-       that names a table or a column is free reconnaissance. */
+    /* Vague to the caller, detailed in the logs. An error naming a table or a
+       column is free reconnaissance for anyone probing the endpoint. */
     return json(req, { success: false, message: "Something went wrong." }, 500);
   }
 });

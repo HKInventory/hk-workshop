@@ -21232,51 +21232,47 @@ function mrPushLoad(){
 })();
 </script>
 <style>
-/* ===== NEW LOGIN (hk-auth) — off unless ?newauth=1 ================================== */
-#hka{position:fixed;inset:0;z-index:9000;background:#000;display:none;flex-direction:column;
-     align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-#hka.on{display:flex}
-@media (min-width:820px) and (min-height:700px){
-  .hka-h{font-size:30px}
-  .hka-k{padding:20px 0;font-size:23px}
-  .hka-pad{gap:12px}
-}
-.hka-w{width:100%;max-width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
-/* One column width for everything. It was 420/520 wide while the keypad inside it
-   was capped at 300, so the pad, the buttons and the name chips were three
-   different widths stacked down the middle of a large screen. */
-@media (min-width:820px){ .hka-w{max-width:400px} }
-.hka-h{font-size:clamp(21px,5.4vw,27px);font-weight:800;letter-spacing:-.4px;color:#fff}
-.hka-p{font-size:13.5px;color:#8a93a0;line-height:1.5}
-.hka-err{font-size:13px;color:#ff6b6b;min-height:18px;font-weight:600}
-.hka-ok{font-size:13px;color:#34d399;min-height:18px;font-weight:600}
-.hka-in{width:100%;box-sizing:border-box;background:#111;border:1px solid #2a2a2a;border-radius:12px;
-        color:#fff;padding:14px;font-size:17px;text-align:center;letter-spacing:5px;font-family:Monaco,Consolas,monospace}
-.hka-in:focus{outline:none;border-color:#00CFFF}
-.hka-btn{width:100%;box-sizing:border-box;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;
-         color:#fff;background:linear-gradient(135deg,#00CFFF,#7C3AED);cursor:pointer}
-.hka-btn[disabled]{opacity:.5}
-.hka-btn2{background:#161616;border:1px solid #2a2a2a;color:#9aa4b2}
+/* ===== NEW SIGN-IN — built from the app's OWN pieces =========================
+   The first version was a separate black overlay with its own buttons, fonts and
+   spacing. It worked and it looked nothing like the app: no header, no animated
+   accent, no splash, generic grey rectangles. Next to the screen it replaced it
+   read as cheap, and it was — a different designer's screen bolted onto the front
+   door of a carefully made app.
+   It now renders INSIDE #s-pin and uses .pin-h2, .pin-p, .dots, .dot, .perr,
+   .pad and .k — the same classes the old keypad used. So it inherits the header,
+   the flowing accent line, the fade-up entry and every future styling change for
+   free, and there is only one keypad design in this file rather than two.
+   Everything below is additions the old screen had no need for; nothing here
+   restyles what already exists. */
+.hka-in{width:100%;max-width:300px;box-sizing:border-box;background:var(--card);border:1px solid var(--b1);
+        border-radius:14px;color:var(--t1);padding:14px;font-size:17px;text-align:center;letter-spacing:5px;
+        font-family:Monaco,Consolas,monospace;transition:border-color .18s}
+.hka-in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.12)}
+.hka-in::placeholder{letter-spacing:1px;color:var(--t3)}
+.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:none;border-radius:14px;padding:15px;
+         font-size:15px;font-weight:800;color:#fff;background:var(--grad);cursor:pointer;
+         transition:transform .08s,filter .15s}
+.hka-btn:active{transform:scale(.97)}
+.hka-btn[disabled]{opacity:.45}
+.hka-btn2{background:var(--card);border:1px solid var(--b1);color:var(--t2);font-weight:600}
+.hka-seg{display:flex;gap:8px;width:100%;max-width:300px}
+.hka-seg>div{flex:1;background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:12px 8px;
+             font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;
+             transition:all .16s}
+.hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.08)}
 .hka-names{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
-.hka-name{background:#121212;border:1px solid #262626;border-radius:12px;padding:11px 14px;font-size:14px;
-          font-weight:600;color:#e7e9ee;cursor:pointer;display:flex;align-items:center;justify-content:center;
-          text-align:center;line-height:1.25}
-.hka-name:active{transform:scale(.97)}
-.hka-name.on{border-color:#00CFFF;color:#00CFFF}
-.hka-dots{display:flex;gap:14px;justify-content:center;margin:2px 0}
-.hka-dot{width:14px;height:14px;border-radius:50%;background:#1e1e1e;border:1px solid #333}
-.hka-dot.on{background:#00CFFF;border-color:#00CFFF}
-.hka-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
-.hka-k{background:#121212;border:1px solid #262626;border-radius:14px;padding:16px 0;font-size:21px;
-       font-weight:700;color:#fff;cursor:pointer}
-.hka-k:active{background:#1c1c1c}
-.hka-k.blank{background:none;border:none;cursor:default}
-.hka-code{font-family:Monaco,Consolas,monospace;font-size:12px;color:#00CFFF;word-break:break-all;
-          background:#0d0d0d;border:1px dashed #2a2a2a;border-radius:10px;padding:10px;width:100%;box-sizing:border-box}
-.hka-shake{animation:hkaShake .4s}
-@keyframes hkaShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.hka-name{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:11px 15px;font-size:14px;
+          font-weight:700;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;
+          gap:5px;transition:transform .08s,border-color .16s}
+.hka-name:active{transform:scale(.96)}
+.hka-name.on{border-color:var(--acc);color:var(--acc)}
+.hka-note{font-size:13px;color:var(--t2);line-height:1.65;text-align:left;max-width:340px}
+.hka-note b{color:var(--t1)}
+.hka-code{font-size:30px;font-weight:900;letter-spacing:7px;color:var(--acc);font-family:Monaco,Consolas,monospace;
+          text-shadow:0 0 26px rgba(0,207,255,.4)}
+.hka-tiny{font-size:11px;color:var(--t3);font-family:Monaco,Consolas,monospace;word-break:break-all;
+          background:var(--card);border:1px dashed var(--b2);border-radius:12px;padding:9px 11px;max-width:320px;cursor:pointer}
 </style>
-<div id="hka"><div class="hka-w" id="hka-w"></div></div>
 <script>
 /* ============================================================================
    NEW LOGIN — pick your name, then your own PIN, on a device we approved.
@@ -21373,9 +21369,23 @@ function mrPushLoad(){
   } catch(e){}
 
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function el(){ return document.getElementById('hka-w'); }
-  function show(){ var o=document.getElementById('hka'); if(o) o.classList.add('on'); }
-  function hide(){ var o=document.getElementById('hka'); if(o) o.classList.remove('on'); }
+  /* Lives INSIDE the app's own PIN screen, as a second .pin-wrap beside the
+     original. That is what gives it the header, the flowing accent line, the
+     splash and the fade-up entry — none of which a separate overlay could have
+     without duplicating them. The old keypad markup stays in the DOM untouched,
+     just hidden, so the functions that still reference #pd and #pe do not break. */
+  function el(){
+    var w = document.getElementById('hka-w');
+    if (w) return w;
+    var scr = document.getElementById('s-pin'); if (!scr) return null;
+    var old = scr.querySelector('.pin-wrap'); if (old) old.style.display = 'none';
+    w = document.createElement('div');
+    w.className = 'pin-wrap'; w.id = 'hka-w';
+    scr.appendChild(w);
+    return w;
+  }
+  function show(){ var w=el(); if(w) w.style.display=''; }
+  function hide(){ var w=document.getElementById('hka-w'); if(w) w.style.display='none'; }
 
   /* The device's own secret. Asking the browser to keep its storage permanently
      matters more here than anywhere else in the app: iOS clears storage for web
@@ -21450,125 +21460,100 @@ function mrPushLoad(){
   // ---- screens -------------------------------------------------------------
   function go(stage){ S.stage=stage; S.err=''; render(); }
   function fail(m){ S.err=m||'Something went wrong.'; render();
-    var w=el(); if(w){ w.classList.remove('hka-shake'); void w.offsetWidth; w.classList.add('hka-shake'); } }
+    // The app already has a shake for a wrong PIN — use it rather than inventing one.
+    var d=document.querySelector('#hka-w .dots');
+    if(d){ d.classList.remove('sh'); void d.offsetWidth; d.classList.add('sh'); } }
 
   function render(){
     var w = el(); if (!w) return;
     show();
     var h = '';
+    var head = function(t, p){ return '<div><div class="pin-h2">'+t+'</div><div class="pin-p">'+p+'</div></div>'; };
+    var pad  = function(){
+      return '<div class="dots" id="hka-dots">'+[0,1,2,3].map(function(i){
+                return '<div class="dot" data-i="'+i+'"></div>'; }).join('')+'</div>'
+           + '<div class="perr">'+esc(S.err)+'&nbsp;</div>'
+           + '<div class="pad">'
+           +   [1,2,3,4,5,6,7,8,9].map(function(d){ return '<div class="k" data-d="'+d+'">'+d+'</div>'; }).join('')
+           +   '<div class="k emp"></div><div class="k" data-d="0">0</div><div class="k del" data-d="del">\u232b</div>'
+           + '</div>';
+    };
+
     if (S.stage === 'boot'){
-      h = '<div class="hka-h">HK Workshop</div><div class="hka-p">Checking this device…</div>';
+      h = head('HK Workshop', 'Checking this device\u2026');
     }
     else if (S.stage === 'offline'){
-      h = '<div class="hka-h">Can\'t reach the server</div>'
-        + '<div class="hka-p">This device is still set up \u2014 nothing has been lost. It just could not check in '
-        +   'just now. Check the connection and try again.</div>'
+      h = head('Can\'t reach the server', 'This device is still set up \u2014 nothing has been lost.')
         + '<button class="hka-btn" id="hka-retry">Try again</button>';
     }
     else if (S.stage === 'join'){
-      /* A WORKSHOP IPAD IS NOT A PERSON, AND ENROLLING IT AS ONE WAS THE ONLY OPTION.
-         Without this you had to pick somebody's name to set up a shared Mac, which
-         then had to be corrected at approval and left the device labelled "Harvey's
-         device". Saying so up front means the request arrives already describing
-         what it is, and the approver just confirms. */
-      h = '<div class="hka-h">Set up this device</div>'
-        + '<div class="hka-p">Enter the join code a manager gave you, then say who this device is for.</div>'
+      h = head('Set up this device', 'Enter the join code, then say who this device is for.')
         + '<input class="hka-in" id="hka-code" inputmode="numeric" maxlength="8" placeholder="Join code">'
-        + '<div style="display:flex;gap:8px;width:100%">'
-        +   '<div class="hka-name'+(S.shared?'':' on')+'" id="hka-mode-me" style="flex:1;text-align:center">One person</div>'
-        +   '<div class="hka-name'+(S.shared?' on':'')+'" id="hka-mode-shared" style="flex:1;text-align:center">Shared workshop device</div>'
+        + '<div class="hka-seg">'
+        +   '<div id="hka-mode-me"'+(S.shared?'':' class="on"')+'>One person</div>'
+        +   '<div id="hka-mode-shared"'+(S.shared?' class="on"':'')+'>Shared workshop device</div>'
         + '</div>'
         + (S.shared
            ? '<input class="hka-in" id="hka-label" maxlength="40" placeholder="Workshop iPad 1" style="letter-spacing:0;font-family:inherit">'
-             + '<div class="hka-p" style="margin-top:-6px">Anyone approved can sign in on it with their own PIN, and it logs out sooner because it gets left on a bench.</div>'
-           /* TYPE YOUR NAME, DO NOT PICK IT OFF A LIST.
-              The list is gone from this screen for two reasons. It handed every
-              visitor the name and role of all staff before anyone had signed in, and
-              it meant accounts had to exist before they were asked for — pre-made,
-              with a role inherited from an old roster. Typing it means the manager
-              approving decides, in the same tap, whether this person gets an account
-              and what they are. */
-           : '<input class="hka-in" id="hka-who" maxlength="60" placeholder="Your full name" '
-             + 'value="'+esc(S.name)+'" autocomplete="name" style="letter-spacing:0;font-family:inherit">'
-             + '<div class="hka-p" style="margin-top:-6px">Use the name your manager knows you by \u2014 they confirm it when approving.</div>')
-        + '<div class="hka-err">'+esc(S.err)+'</div>'
-        + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending…':'Request access')+'</button>'
-        /* Never a dead end. Someone who taps the button without a join code, or whose
-           device gets revoked, must be able to get back to the pad that still works. */
+             + '<div class="pin-p">Anyone approved can sign in with their own PIN. It logs out sooner.</div>'
+           : '<input class="hka-in" id="hka-who" maxlength="60" placeholder="Your full name" value="'+esc(S.name)+'" autocomplete="name" style="letter-spacing:0;font-family:inherit">'
+             + '<div class="pin-p">Use the name your manager knows you by.</div>')
+        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>'
+        + '<button class="hka-btn" id="hka-req"'+(S.busy?' disabled':'')+'>'+(S.busy?'Sending\u2026':'Request access')+'</button>'
         + (legacyOff ? '' : '<button class="hka-btn hka-btn2" id="hka-back">Use the old sign-in</button>');
     }
     else if (S.stage === 'wait'){
-      /* A 32-CHARACTER ID IS NOT SOMETHING A HUMAN SHOULD RETYPE.
-         The first version printed the raw device id and the very first person to use
-         it dropped a character copying it off a phone, so the approval matched no rows
-         and the screen simply sat there — with nothing on either end saying why.
-         Now the big text is a short reference for reading aloud ("it says 7C87CF"),
-         the full id is one tap to copy, and after this first device nobody sees either
-         again: approvals happen in Master Access -> Devices. */
       var _id = S.dev ? S.dev.device_id : '';
-      h = '<div class="hka-h">Waiting for approval</div>'
-        + '<div class="hka-p">A manager needs to approve this device. It updates on its own — you can leave this screen open.</div>'
-        + '<div class="hka-p" style="color:#5a6270">Show a manager this code</div>'
-        + '<div style="font-size:30px;font-weight:800;letter-spacing:6px;color:#00CFFF;font-family:Monaco,Consolas,monospace">'
-        +   esc(_id.slice(-6).toUpperCase()) + '</div>'
-        + '<div class="hka-code" id="hka-copy" title="Tap to copy">'+esc(_id)+'<div style="color:#5a6270;margin-top:6px;letter-spacing:0">tap to copy</div></div>'
-        + '<div class="hka-ok">'+esc(S.msg)+'</div>'
+      h = head('Waiting for approval', 'A manager needs to approve this device. This updates on its own.')
+        + '<div class="hka-code">'+esc(_id.slice(-6).toUpperCase())+'</div>'
+        + '<div class="pin-p">Show a manager this code</div>'
+        + '<div class="hka-tiny" id="hka-copy">'+esc(_id)+'<br>tap to copy</div>'
+        + '<div class="perr" style="color:var(--grn)">'+esc(S.msg)+'&nbsp;</div>'
         + '<button class="hka-btn hka-btn2" id="hka-start-over">Start over</button>';
     }
     else if (S.stage === 'pick'){
-      h = '<div class="hka-h">Who\'s this?</div>'
+      h = head('Who\'s this?', 'Tap your name, then enter your PIN.')
         + '<div class="hka-names">'
         + S.roster.map(function(x){
             return '<div class="hka-name" data-n="'+esc(x.name)+'">'+esc(emoOf(x)+' '+x.name)+'</div>';
           }).join('')
+        + (S.roster.length ? '' : '<div class="pin-p">No accounts yet.</div>')
         + '</div>'
-        + '<div class="hka-err">'+esc(S.err)+'</div>';
+        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>';
     }
     else if (S.stage === 'forgot'){
-      /* Nobody is left stranded at a pad they cannot get past. Asking here reaches
-         all three managers at once, so a mechanic on a Sunday is not hunting for one
-         particular person. Note what it does NOT do: it does not clear anything and
-         it does not let anyone in. A manager still has to act, and even then the new
-         PIN is chosen by the person, never issued to them. */
-      h = '<div class="hka-h">We\'ve told the managers</div>'
-        + '<div class="hka-p">Harvey, Ross and Andrew can clear your PIN. Once one of them has, come back here — '
-        +   'you will be asked to choose a new one.<br><br>Nobody sees your old PIN, and nobody sees the new one either.</div>'
+      h = head('We\'ve told the managers', 'They can clear your PIN.')
+        + '<div class="hka-note">Once one of them has, come back here \u2014 you will be asked to choose a new one.'
+        +   '<br><br>Nobody sees your old PIN, and nobody sees the new one either.</div>'
         + '<button class="hka-btn" id="hka-forgot-back">Back to sign in</button>';
     }
     else if (S.stage === 'notice'){
-      /* SAY WHAT THE PROMISE ACTUALLY IS, BEFORE THEY PICK.
-         Staff have every reason to assume the boss can see their PIN, because in
-         this app he genuinely could — the old staff screen printed the lot. Asking
-         people to trust a change they cannot inspect only works if you tell them
-         plainly what it now does, so this is deliberately specific rather than
-         reassuring noise. Every line is literally true of the system behind it. */
-      h = '<div class="hka-h">Your PIN is yours alone</div>'
-        + '<div class="hka-p" style="text-align:left;line-height:1.75">'
-        +   '<b style="color:#e7e9ee">Nobody can see it.</b> Not a manager, not the owner, not whoever built this app.<br><br>'
-        +   '<b style="color:#e7e9ee">It is scrambled before it is saved</b>, so it cannot be read back out of the system.<br><br>'
-        +   '<b style="color:#e7e9ee">Forgot it?</b> A manager clears it and you choose a new one yourself. They never see that one either.<br><br>'
-        +   '<b style="color:#e7e9ee">It only works on approved devices.</b> Someone who watched you type it still cannot use it from their own phone.'
+      h = head('Your PIN is yours alone', 'Read this once, then pick your PIN.')
+        + '<div class="hka-note">'
+        +   '<b>Nobody can see it.</b> Not a manager, not the owner, not whoever built this app.<br><br>'
+        +   '<b>It is scrambled before it is saved</b>, so it cannot be read back out.<br><br>'
+        +   '<b>Forgot it?</b> A manager clears it and you choose a new one yourself.<br><br>'
+        +   '<b>Only on approved devices.</b> Someone who watched you type it still cannot use it elsewhere.'
         + '</div>'
-        + '<div class="hka-p" style="color:#e88b8a">Do not reuse an old workshop PIN, your bank PIN, or your birthday.</div>'
+        + '<div class="pin-p" style="color:var(--red)">Don\'t reuse an old workshop PIN or your bank PIN.</div>'
         + '<button class="hka-btn" id="hka-notice-ok">Got it \u2014 choose my PIN</button>';
     }
     else if (S.stage === 'pin' || S.stage === 'setpin' || S.stage === 'setpin2'){
-      var title, sub;
-      if (S.stage === 'pin'){ title = 'Hey ' + (S.name.split(' ')[0]||''); sub = 'Enter your PIN'; }
-      else if (S.stage === 'setpin'){ title = 'Create your PIN'; sub = 'Pick 4 digits only you know. Nobody can see it — not even a manager.'; }
-      else { title = 'Once more'; sub = 'Type the same 4 digits again to confirm.'; }
-      var n = (S.stage==='setpin2' ? S.pin2 : S.pin).length;
-      h = '<div class="hka-h">'+esc(title)+'</div><div class="hka-p">'+esc(sub)+'</div>'
-        + '<div class="hka-dots">'+[0,1,2,3].map(function(i){ return '<div class="hka-dot'+(i<n?' on':'')+'"></div>'; }).join('')+'</div>'
-        + '<div class="hka-err">'+esc(S.err)+'</div>'
-        + '<div class="hka-pad">'
-        + [1,2,3,4,5,6,7,8,9].map(function(d){ return '<div class="hka-k" data-d="'+d+'">'+d+'</div>'; }).join('')
-        + '<div class="hka-k blank"></div><div class="hka-k" data-d="0">0</div><div class="hka-k" data-d="del">⌫</div>'
-        + '</div>'
-        + (S.stage==='pin' ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>'
-                            + '<button class="hka-btn hka-btn2" id="hka-forgot" style="margin-top:-8px">Forgotten your PIN?</button>' : '');
+      var t, sub;
+      if (S.stage === 'pin'){ t = 'Hey ' + esc(S.name.split(' ')[0]||''); sub = 'Enter your PIN'; }
+      else if (S.stage === 'setpin'){ t = 'Create your PIN'; sub = 'Pick 4 digits only you know'; }
+      else { t = 'Once more'; sub = 'Type the same 4 digits to confirm'; }
+      h = head(t, sub) + pad()
+        + (S.stage==='pin'
+            ? '<button class="hka-btn hka-btn2" id="hka-notme">Not you?</button>'
+              + '<button class="hka-btn hka-btn2" id="hka-forgot">Forgotten your PIN?</button>'
+            : '');
     }
     w.innerHTML = h;
+    // Light the dots for whatever has been typed so far.
+    var n = (S.stage==='setpin2' ? S.pin2 : S.pin).length;
+    var ds = w.querySelectorAll('.dot');
+    for (var i=0;i<ds.length;i++) ds[i].classList.toggle('on', i<n);
   }
 
   // ---- actions -------------------------------------------------------------
@@ -21692,7 +21677,8 @@ function mrPushLoad(){
 
   // ---- one delegated handler for everything --------------------------------
   document.addEventListener('click', function(ev){
-    var o = document.getElementById('hka'); if (!o || !o.classList.contains('on')) return;
+    var w = document.getElementById('hka-w'); if (!w || w.style.display === 'none') return;
+    if (!w.contains(ev.target)) return;
     var t = ev.target;
     /* Only chips that carry a person match here. The shared/personal toggles reuse
        the same class for styling, and without this guard they were swallowed by the
@@ -21735,7 +21721,7 @@ function mrPushLoad(){
   }, true);
 
   document.addEventListener('keydown', function(ev){
-    var o = document.getElementById('hka'); if (!o || !o.classList.contains('on')) return;
+    var w = document.getElementById('hka-w'); if (!w || w.style.display === 'none') return;
     if (S.stage !== 'pin' && S.stage !== 'setpin' && S.stage !== 'setpin2') return;
     var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
     if (ev.key >= '0' && ev.key <= '9'){

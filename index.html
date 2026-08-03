@@ -21244,6 +21244,17 @@ function mrPushLoad(){
    gradients give the same bloom for nothing, and the only animation is a
    transform, which the compositor handles on its own thread. */
 
+/* ---- LAYOUT ---------------------------------------------------------------
+   One centred column. An earlier attempt put a brand panel and a paragraph about
+   security beside it — a generic SaaS sign-in, decorative filler that belonged to
+   no particular app. This borrows the vocabulary the welcome screen already uses
+   two seconds later: oversized name, tracked caption, short gradient rule. That
+   is what makes it look like THIS app rather than a template. */
+#hka-w{justify-content:center}
+.hka-card{width:100%;max-width:330px;box-sizing:border-box;display:flex;flex-direction:column;
+          align-items:center;gap:16px;animation:hkaCard .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes hkaCard{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
 /* Kills the flash of the old keypad before this one mounts — the double-draw.
    Set from script the moment we know the new sign-in is on, so it applies before
    the first paint rather than after the old markup has already been shown. */
@@ -21254,9 +21265,8 @@ function mrPushLoad(){
 .hka-on #s-pin::before{
   content:'';position:absolute;inset:-25%;z-index:0;pointer-events:none;
   background:
-    radial-gradient(38% 34% at 24% 26%, rgba(0,207,255,.20), rgba(0,207,255,0) 70%),
-    radial-gradient(36% 32% at 76% 74%, rgba(110,66,255,.20), rgba(110,66,255,0) 70%),
-    radial-gradient(60% 50% at 50% 50%, rgba(0,207,255,.05), rgba(0,0,0,0) 75%);
+    radial-gradient(45% 40% at 20% 18%, rgba(0,207,255,.16), rgba(0,207,255,0) 70%),
+    radial-gradient(45% 40% at 80% 84%, rgba(110,66,255,.16), rgba(110,66,255,0) 70%);
   animation:hkaDrift 22s ease-in-out infinite alternate;
   will-change:transform;
 }
@@ -21265,16 +21275,19 @@ function mrPushLoad(){
 #hka-w{position:relative;z-index:1}
 
 /* The mark, so the screen is branded rather than anonymous. */
-.hka-mark{width:60px;height:60px;border-radius:17px;object-fit:cover;
-          box-shadow:0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,207,255,.22);
-          animation:hkaMark .7s cubic-bezier(.34,1.56,.64,1) both}
-@keyframes hkaMark{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:none}}
+/* No entry animation. The header already shows the mark, and anything animated
+   inside a container that can be re-rendered will replay that animation every
+   time it is. Belt and braces alongside the re-render fix. */
+.hka-mark{display:none}
 
 /* Typography: the name carries the screen, the label sits under it as a quiet
    tracked caption — the same treatment the welcome screen already uses. */
-#hka-w .pin-h2{font-size:clamp(26px,6.2vw,34px);text-shadow:0 0 42px rgba(0,207,255,.30)}
-.hka-cap{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:3px;
-         color:rgba(0,207,255,.85);text-align:center;margin-top:7px}
+/* .wname / .wrole / .wbar, exactly — the treatment the welcome screen uses. */
+#hka-w .pin-h2{font-size:clamp(28px,8vw,38px);font-weight:900;letter-spacing:-.9px;
+               text-shadow:0 0 40px rgba(0,207,255,.40)}
+.hka-cap{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;
+         color:rgba(0,207,255,.85);text-align:center;margin-top:5px}
+.hka-bar{width:32px;height:2px;background:var(--grad);border-radius:2px;margin:13px auto 0}
 
 /* Bigger targets with a lit ring as they fill, rather than four flat circles. */
 #hka-w .dots{gap:16px}
@@ -21283,13 +21296,13 @@ function mrPushLoad(){
                box-shadow:0 0 18px rgba(0,207,255,.55),0 0 40px rgba(0,207,255,.22)}
 
 /* Keys get a top-lit edge and a real pressed state. Still the app's .k geometry. */
-#hka-w .pad{max-width:290px;gap:11px}
+#hka-w .pad{max-width:270px;gap:10px}
 #hka-w .k{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
           border:1px solid rgba(255,255,255,.09);border-radius:19px;font-weight:600;
           box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 10px rgba(0,0,0,.35)}
 #hka-w .k:active{background:rgba(0,207,255,.14);border-color:rgba(0,207,255,.45);transform:scale(.9)}
 #hka-w .k.del{color:var(--red);font-size:20px}
-@media (min-width:820px) and (min-height:700px){ #hka-w .pad{max-width:310px} }
+@media (min-width:820px) and (min-height:700px){ #hka-w .pad{max-width:280px} }
 
 /* Inputs, primary action, segmented control and name chips — one family. */
 .hka-in{width:100%;max-width:300px;box-sizing:border-box;
@@ -21528,9 +21541,13 @@ function mrPushLoad(){
     var w = el(); if (!w) return;
     show();
     var h = '';
+    /* No logo here. The header above already shows it, and a second one was just
+       ornament — the kind of thing that gets added when a screen feels empty and
+       the real problem is that nothing on it has any weight. */
     var head = function(t, p){
-      return '<img class="hka-mark" src="icon-192.png" alt="">'
-           + '<div><div class="pin-h2">'+t+'</div><div class="hka-cap">'+p+'</div></div>'; };
+      return '<div><div class="pin-h2">'+t+'</div><div class="hka-cap">'+p+'</div>'
+           + '<div class="hka-bar"></div></div>'; };
+
     var pad  = function(){
       return '<div class="dots" id="hka-dots">'+[0,1,2,3].map(function(i){
                 return '<div class="dot" data-i="'+i+'"></div>'; }).join('')+'</div>'
@@ -21616,8 +21633,26 @@ function mrPushLoad(){
               + '</div>'
             : '');
     }
-    w.innerHTML = h;
-    // Light the dots for whatever has been typed so far.
+    /* A COLUMN OF CONTROLS FLOATING IN BLACK IS A PHONE SCREEN ON A MONITOR.
+       That was the actual problem — not the colours. There was no frame, no
+       composition and no hierarchy: a small stack of grey boxes adrift in a very
+       large dark space, which reads as unfinished however nicely the parts are
+       styled.
+       It is now a real sign-in layout. On a wide screen the brand sits on the left
+       and the card on the right, which is what gives the page a subject and stops
+       the keypad being the loudest thing on it. On a phone the brand panel drops
+       away and the card fills the screen, which is the right answer there. */
+    w.innerHTML = '<div class="hka-card">' + h + '</div>';
+    paintDots();
+  }
+  /* TYPING A DIGIT MUST NOT REBUILD THE SCREEN.
+     render() replaces the whole card, so every keypress recreated the heading and
+     the mark — and both carry entry animations, which therefore replayed on every
+     digit. That is the "logo spazzes out" and the heading glitching: not an
+     animation bug, a re-render bug. The dots are the only thing that changes while
+     someone types, so the dots are the only thing that gets touched. */
+  function paintDots(){
+    var w = document.getElementById('hka-w'); if (!w) return;
     var n = (S.stage==='setpin2' ? S.pin2 : S.pin).length;
     var ds = w.querySelectorAll('.dot');
     for (var i=0;i<ds.length;i++) ds[i].classList.toggle('on', i<n);
@@ -21783,9 +21818,9 @@ function mrPushLoad(){
     if (k && !k.classList.contains('emp')){
       var d = k.getAttribute('data-d');
       var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
-      if (d === 'del'){ S[field] = S[field].slice(0,-1); return render(); }
+      if (d === 'del'){ S[field] = S[field].slice(0,-1); return paintDots(); }
       if (S[field].length >= 4 || S.busy) return;
-      S[field] += d; render();
+      S[field] += d; paintDots();
       if (S[field].length === 4) setTimeout(submitPin, 120);
     }
   }, true);
@@ -21796,9 +21831,9 @@ function mrPushLoad(){
     var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
     if (ev.key >= '0' && ev.key <= '9'){
       if (S[field].length >= 4 || S.busy) return;
-      S[field] += ev.key; render();
+      S[field] += ev.key; paintDots();
       if (S[field].length === 4) setTimeout(submitPin, 120);
-    } else if (ev.key === 'Backspace'){ S[field] = S[field].slice(0,-1); render(); }
+    } else if (ev.key === 'Backspace'){ S[field] = S[field].slice(0,-1); paintDots(); }
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

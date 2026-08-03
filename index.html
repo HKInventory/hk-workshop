@@ -21232,46 +21232,102 @@ function mrPushLoad(){
 })();
 </script>
 <style>
-/* ===== NEW SIGN-IN — built from the app's OWN pieces =========================
-   The first version was a separate black overlay with its own buttons, fonts and
-   spacing. It worked and it looked nothing like the app: no header, no animated
-   accent, no splash, generic grey rectangles. Next to the screen it replaced it
-   read as cheap, and it was — a different designer's screen bolted onto the front
-   door of a carefully made app.
-   It now renders INSIDE #s-pin and uses .pin-h2, .pin-p, .dots, .dot, .perr,
-   .pad and .k — the same classes the old keypad used. So it inherits the header,
-   the flowing accent line, the fade-up entry and every future styling change for
-   free, and there is only one keypad design in this file rather than two.
-   Everything below is additions the old screen had no need for; nothing here
-   restyles what already exists. */
-.hka-in{width:100%;max-width:300px;box-sizing:border-box;background:var(--card);border:1px solid var(--b1);
-        border-radius:14px;color:var(--t1);padding:14px;font-size:17px;text-align:center;letter-spacing:5px;
-        font-family:Monaco,Consolas,monospace;transition:border-color .18s}
-.hka-in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.12)}
+/* ===== SIGN-IN =============================================================
+   Built on the app's own components — .pin-h2, .pin-p, .dots, .dot, .perr,
+   .pad, .k — so the keypad, the header and the accent line are the ones that
+   were already here, not a second set. What follows is the depth the old screen
+   never had: it was flat black with a keypad on it, which read as unfinished on
+   a large display where there is a lot of black to fill.
+
+   No filter/blur anywhere. Blur on a layer inside this app's transformed screen
+   stack caused full-layer re-rasters on macOS Chrome once before; soft radial
+   gradients give the same bloom for nothing, and the only animation is a
+   transform, which the compositor handles on its own thread. */
+
+/* Kills the flash of the old keypad before this one mounts — the double-draw.
+   Set from script the moment we know the new sign-in is on, so it applies before
+   the first paint rather than after the old markup has already been shown. */
+.hka-on #s-pin > .pin-wrap:not(#hka-w){display:none !important}
+
+/* Two slow colour fields, drifting against each other. Low enough to read as
+   depth rather than decoration. */
+.hka-on #s-pin::before{
+  content:'';position:absolute;inset:-25%;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(38% 34% at 24% 26%, rgba(0,207,255,.20), rgba(0,207,255,0) 70%),
+    radial-gradient(36% 32% at 76% 74%, rgba(110,66,255,.20), rgba(110,66,255,0) 70%),
+    radial-gradient(60% 50% at 50% 50%, rgba(0,207,255,.05), rgba(0,0,0,0) 75%);
+  animation:hkaDrift 22s ease-in-out infinite alternate;
+  will-change:transform;
+}
+@keyframes hkaDrift{ from{transform:translate3d(-2.5%,-1.5%,0) scale(1)}
+                     to  {transform:translate3d(2.5%,1.5%,0)  scale(1.07)} }
+#hka-w{position:relative;z-index:1}
+
+/* The mark, so the screen is branded rather than anonymous. */
+.hka-mark{width:60px;height:60px;border-radius:17px;object-fit:cover;
+          box-shadow:0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,207,255,.22);
+          animation:hkaMark .7s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes hkaMark{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:none}}
+
+/* Typography: the name carries the screen, the label sits under it as a quiet
+   tracked caption — the same treatment the welcome screen already uses. */
+#hka-w .pin-h2{font-size:clamp(26px,6.2vw,34px);text-shadow:0 0 42px rgba(0,207,255,.30)}
+.hka-cap{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:3px;
+         color:rgba(0,207,255,.85);text-align:center;margin-top:7px}
+
+/* Bigger targets with a lit ring as they fill, rather than four flat circles. */
+#hka-w .dots{gap:16px}
+#hka-w .dot{width:15px;height:15px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16)}
+#hka-w .dot.on{background:var(--acc);border-color:var(--acc);
+               box-shadow:0 0 18px rgba(0,207,255,.55),0 0 40px rgba(0,207,255,.22)}
+
+/* Keys get a top-lit edge and a real pressed state. Still the app's .k geometry. */
+#hka-w .pad{max-width:290px;gap:11px}
+#hka-w .k{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+          border:1px solid rgba(255,255,255,.09);border-radius:19px;font-weight:600;
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 10px rgba(0,0,0,.35)}
+#hka-w .k:active{background:rgba(0,207,255,.14);border-color:rgba(0,207,255,.45);transform:scale(.9)}
+#hka-w .k.del{color:var(--red);font-size:20px}
+@media (min-width:820px) and (min-height:700px){ #hka-w .pad{max-width:310px} }
+
+/* Inputs, primary action, segmented control and name chips — one family. */
+.hka-in{width:100%;max-width:300px;box-sizing:border-box;
+        background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+        border:1px solid rgba(255,255,255,.10);border-radius:15px;color:var(--t1);padding:15px;
+        font-size:17px;text-align:center;letter-spacing:5px;font-family:Monaco,Consolas,monospace;
+        transition:border-color .18s,box-shadow .18s}
+.hka-in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.14)}
 .hka-in::placeholder{letter-spacing:1px;color:var(--t3)}
-.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:none;border-radius:14px;padding:15px;
-         font-size:15px;font-weight:800;color:#fff;background:var(--grad);cursor:pointer;
-         transition:transform .08s,filter .15s}
-.hka-btn:active{transform:scale(.97)}
-.hka-btn[disabled]{opacity:.45}
-.hka-btn2{background:var(--card);border:1px solid var(--b1);color:var(--t2);font-weight:600}
-.hka-seg{display:flex;gap:8px;width:100%;max-width:300px}
-.hka-seg>div{flex:1;background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:12px 8px;
-             font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;
-             transition:all .16s}
-.hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.08)}
-.hka-names{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
-.hka-name{background:var(--card);border:1px solid var(--b1);border-radius:14px;padding:11px 15px;font-size:14px;
+.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:none;border-radius:15px;padding:16px;
+         font-size:15px;font-weight:800;letter-spacing:.2px;color:#fff;background:var(--grad);
+         cursor:pointer;box-shadow:0 8px 26px rgba(0,207,255,.20);transition:transform .08s,box-shadow .18s}
+.hka-btn:active{transform:scale(.97);box-shadow:0 4px 14px rgba(0,207,255,.16)}
+.hka-btn[disabled]{opacity:.45;box-shadow:none}
+.hka-btn2{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+          border:1px solid rgba(255,255,255,.10);color:var(--t2);font-weight:700;box-shadow:none}
+.hka-seg{display:flex;gap:9px;width:100%;max-width:300px}
+.hka-seg>div{flex:1;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+             border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:13px 8px;font-size:13px;
+             font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;transition:all .16s}
+.hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.10);
+                box-shadow:0 0 0 3px rgba(0,207,255,.10)}
+.hka-names{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;width:100%;max-width:340px}
+.hka-name{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+          border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:12px 16px;font-size:14px;
           font-weight:700;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;
-          gap:5px;transition:transform .08s,border-color .16s}
+          gap:6px;transition:transform .08s,border-color .16s,box-shadow .16s}
 .hka-name:active{transform:scale(.96)}
-.hka-name.on{border-color:var(--acc);color:var(--acc)}
-.hka-note{font-size:13px;color:var(--t2);line-height:1.65;text-align:left;max-width:340px}
+.hka-name.on{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.10)}
+.hka-note{font-size:13.5px;color:var(--t2);line-height:1.7;text-align:left;max-width:330px;
+          background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+          border-radius:16px;padding:16px 18px}
 .hka-note b{color:var(--t1)}
-.hka-code{font-size:30px;font-weight:900;letter-spacing:7px;color:var(--acc);font-family:Monaco,Consolas,monospace;
-          text-shadow:0 0 26px rgba(0,207,255,.4)}
+.hka-code{font-size:34px;font-weight:900;letter-spacing:8px;color:var(--acc);
+          font-family:Monaco,Consolas,monospace;text-shadow:0 0 30px rgba(0,207,255,.45)}
 .hka-tiny{font-size:11px;color:var(--t3);font-family:Monaco,Consolas,monospace;word-break:break-all;
-          background:var(--card);border:1px dashed var(--b2);border-radius:12px;padding:9px 11px;max-width:320px;cursor:pointer}
+          background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:13px;
+          padding:10px 12px;max-width:320px;cursor:pointer}
 </style>
 <script>
 /* ============================================================================
@@ -21331,6 +21387,10 @@ function mrPushLoad(){
 
   /* Not on? Offer the way in, once, on the pad people already use. Without this
      there is no route to the new login from inside an installed app at all. */
+  /* Before anything paints. Doing this inside el(), on the first render, meant the
+     original keypad was already on screen and got replaced — the double draw. */
+  if (ON){ try { document.documentElement.classList.add('hka-on'); } catch(e){} }
+
   if (!ON){
     var mountEntry = function(){
       if (document.getElementById('hka-entry')) return;
@@ -21468,7 +21528,9 @@ function mrPushLoad(){
     var w = el(); if (!w) return;
     show();
     var h = '';
-    var head = function(t, p){ return '<div><div class="pin-h2">'+t+'</div><div class="pin-p">'+p+'</div></div>'; };
+    var head = function(t, p){
+      return '<img class="hka-mark" src="icon-192.png" alt="">'
+           + '<div><div class="pin-h2">'+t+'</div><div class="hka-cap">'+p+'</div></div>'; };
     var pad  = function(){
       return '<div class="dots" id="hka-dots">'+[0,1,2,3].map(function(i){
                 return '<div class="dot" data-i="'+i+'"></div>'; }).join('')+'</div>'

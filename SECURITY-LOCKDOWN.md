@@ -108,24 +108,46 @@ delete is recoverable rather than fatal.
 
 ## Stage 1 — The wall. Real logins.
 
-This is the part that actually fixes the problem. Staged so the floor never breaks: the old and new
-systems run **side by side** until the new one is proven, and every step is reversible on its own.
+This is the part that actually fixes the problem. The old and new systems run **side by side** until
+the new one is proven, and every step is reversible on its own.
 
 **None of this changes anything for a mechanic. Still four digits.**
 
+### How a person gets in, once this is live
+
+1. They open the app on their phone. It doesn't know them, so it asks for the **join code** — a
+   number you read out to the team. Strangers can't get past this, so your approval queue never
+   fills with requests from the internet.
+2. They pick their name from the roster you maintain in Master Access.
+3. You get a **Devices** notification: *"iPhone · Safari · requested by Alex Harper"*.
+4. You tap **Approve**, and choose **Personal** (their phone — only ever logs in them) or
+   **Shared** (a communal iPad — full staff picker, shorter idle logout).
+5. Back on their device it flips straight to **"Create your PIN"**. They pick it. It's stored
+   scrambled. **Nobody can read it back, including you.**
+6. Done. From then on it's tap-your-name-and-four-digits, exactly as fast as today.
+
+The same flow covers **forgotten PIN** (you reset → it clears, they choose a new one — you never
+issue a temporary), **new phone**, and **new starter**. One mechanism, four problems.
+
+### What gets built
+
 | # | Step | Who | Reversible |
 |---|------|-----|-----------|
-| 1.1 | Rewrite `verify-pin` so a correct PIN issues a short-lived signed pass carrying who/where/what-role/which-device, plus a quiet renew so a tablet left on all day never re-asks | CLAUDE | n/a — new code, not yet used |
-| 1.2 | Paste the new function into Supabase → Edge Functions, and add the signing secret | YOU | delete it, old one stays live |
-| 1.3 | App starts using the pass for data, with a **kill-switch** to fall back instantly | CLAUDE | flip the switch |
-| 1.4 | Approve the tablets and phones already in use, so nobody is locked out on day one | YOU | one list, editable |
-| 1.5 | Add the new database rules **alongside** the old open ones — nothing breaks | CLAUDE + YOU | drop the new rules |
-| 1.6 | Watch a full day of racing to confirm all real traffic is on the new path | BOTH | — |
-| 1.7 | **Only then** close the old open access, one table at a time | YOU | re-open that table |
-| 1.8 | Retire the old public key | YOU | last step, off-race |
+| 1.1 | New tables for accounts, devices, sessions — all locked to the server, nothing in the browser can touch them | CLAUDE ✅ `security_stage1_schema.sql` | drop them; old login untouched |
+| 1.2 | The `hk-auth` server function: request, approve, set PIN, log in, stay logged in, reset, recovery | CLAUDE ✅ `hk-auth.index.ts` | delete it; nothing calls it yet |
+| 1.3 | Run the schema, deploy the function, add the signing secret | YOU | undo block at the bottom of the file |
+| 1.4 | New login screen + the **Devices** tab in Master Access | CLAUDE | kill-switch reverts to old login |
+| 1.5 | You enrol the workshop iPads and Macs, and set your own PIN and recovery code | YOU | revoke any device with one tap |
+| 1.6 | Test end to end with **one** person while everyone else still logs in the old way | BOTH | — |
+| 1.7 | Everyone re-enrols. **Every old PIN dies here.** | YOU | — |
+| 1.8 | New database rules added **alongside** the old open ones — nothing breaks | CLAUDE + YOU | drop the new rules |
+| 1.9 | Watch a full race day to confirm real traffic is on the new path | BOTH | — |
+| 1.10 | **Only then** close the old open access, one table at a time | YOU | re-open that table |
+| 1.11 | Retire the old public key | YOU | last step, off-race |
 
-Two rules I will hold to: **the old access is not closed until the new path is proven on real
-traffic**, and **you get a switch you can flip yourself** if the floor jams — no waiting for me.
+Three rules I'll hold to: **the old access is not closed until the new path is proven on real
+traffic**; **you get a switch you can flip yourself** if the floor jams; and **you get a recovery
+code**, so no step can ever leave you locked out of your own system.
 
 After Stage 1: someone with the page source and the public key can do **nothing**. No reads, no
 writes. They need a valid PIN **on a device you approved**.

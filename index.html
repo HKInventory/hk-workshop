@@ -21270,193 +21270,75 @@ function mrPushLoad(){
    transform, which the compositor handles on its own thread. */
 
 /* ---- LAYOUT ---------------------------------------------------------------
-   One centred column. An earlier attempt put a brand panel and a paragraph about
-   security beside it — a generic SaaS sign-in, decorative filler that belonged to
-   no particular app. This borrows the vocabulary the welcome screen already uses
-   two seconds later: oversized name, tracked caption, short gradient rule. That
-   is what makes it look like THIS app rather than a template. */
+   THE ORIGINAL PIN SCREEN IS THE DESIGN. Everything below used to override it —
+   a lit backdrop, a glow, bigger dots, accent-bordered keys, a different heading
+   size, its own entry animation. Piece by piece that replaced a screen that was
+   already right with one that merely looked new, and it was rejected every time
+   it changed. It is gone.
+
+   What is left is the app's own .pin-wrap / .pin-h2 / .pin-p / .dots / .dot /
+   .pad / .k, untouched, so this renders as the screen that shipped and animates
+   with the fadeUp it always used. Only the screens that never existed before —
+   the join code, the staff picker, the notices — carry any styling of their own,
+   and they are built from the same tokens (var(--card), var(--b1)) as the keypad
+   they sit next to.
+
+   If you are tempted to make this look better: it was tried, five times. Don't. */
 #hka-w{justify-content:center}
-.hka-card{width:100%;max-width:330px;box-sizing:border-box;display:flex;flex-direction:column;
-          align-items:center;gap:16px;animation:hkaCard .45s cubic-bezier(.2,.8,.2,1) both}
-@keyframes hkaCard{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.hka-card{width:100%;max-width:340px;box-sizing:border-box;display:flex;flex-direction:column;
+          align-items:center;gap:18px}
 
 /* Kills the flash of the old keypad before this one mounts — the double-draw.
    Set from script the moment we know the new sign-in is on, so it applies before
    the first paint rather than after the old markup has already been shown. */
 .hka-on #s-pin > .pin-wrap:not(#hka-w){display:none !important}
 
-/* THE SITE CHOOSER IS THE REFERENCE, AND IT ALWAYS SHOULD HAVE BEEN.
-   Two coloured fields drifting in opposite corners read as two blobs in a large
-   black room, because nothing sat between them — the colour had no subject. The
-   screen two taps later solves exactly this problem and solves it well: one wash
-   falling from the top centre, and one soft glow directly behind the content. The
-   light points at the thing you are meant to look at. Same two rules here, same
-   values, so the sign-in and the site chooser are visibly one app.
-   No filter:blur — a radial gradient is already soft, and this layer lives inside
-   the sliding screen stack, where a blurred layer forces a full re-raster every
-   frame of the transition off this screen. */
-/* VERTICAL ONLY, AND THAT IS THE WHOLE TRICK.
-   The site chooser's wash is radial — fine there, because that screen FADES in and
-   never moves. These two SLIDE horizontally past each other, and a gradient that
-   varies across the screen can never line up with a copy of itself at a different
-   offset: you get a visible vertical edge travelling across the display, which is
-   exactly what the recording shows. A gradient that varies only top-to-bottom is
-   identical in every column, so the two screens match at every point of the slide
-   no matter where they are. Seamless by construction, not by tuning. */
-.hka-on #s-pin{
-  background:linear-gradient(180deg,#0b1722 0%,#05080c 60%,#000 100%);
-}
-.hka-on #s-pin::before{
-  content:'';position:absolute;z-index:0;pointer-events:none;
-  width:min(560px,92vw);height:min(560px,92vw);border-radius:50%;
-  top:46%;left:50%;transform:translate(-50%,-50%);
-  background:radial-gradient(circle,rgba(0,207,255,.15),rgba(0,207,255,.05) 45%,transparent 68%);
-  animation:hkaGlow 5s ease-in-out infinite;
-}
-@keyframes hkaGlow{ 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}
-                    50%    {opacity:.9;transform:translate(-50%,-50%) scale(1.1)} }
+/* #s-pin keeps its own background (#000) and #s-welcome keeps welIn, efloat and
+   its heading glow — the animation that shipped. Nothing here overrides either. */
 #hka-w{position:relative;z-index:1}
-
-/* ===== THE HANDOVER: SIGN-IN -> "HEY HARVEY" =========================
-   Filmed it a frame at a time. Three separate faults, compounding:
-
-   1. The card was deleted the instant the server said yes, so by the time the
-      slide started the departing screen was an EMPTY lit rectangle. The eye
-      follows the card; the card was not there.
-   2. The two screens had different backgrounds — this one a lit gradient, the
-      welcome flat #000 — so the slide dragged a HARD VERTICAL SEAM across the
-      display, lit on one side and black on the other. That is the "colours
-      don't flow smoothly": not a gradient problem, an edge between two of them.
-   3. .wel-content springs in from scale(.8) with an overshoot to 1.04 AT THE
-      SAME TIME as its screen slides in sideways. Two motions, same pixels,
-      different curves — which is what reads as wobbly rather than deliberate.
-
-   Fixed by making the two screens one continuous surface, and letting exactly
-   one thing move at a time. */
-
-/* 1. The card leaves under its own power, over the length of the slide. */
-#hka-w.hka-out .hka-card{
-  animation:hkaCardOut .3s cubic-bezier(.4,0,.7,.2) both;
-}
-@keyframes hkaCardOut{ from{opacity:1;transform:none}
-                       to  {opacity:0;transform:translateY(-10px) scale(.97)} }
-
-/* 2. The welcome wears the SAME backdrop, so there is no seam to see. Identical
-      values to #s-pin above — if one is ever changed, change both. */
-.hka-on #s-welcome{
-  background:linear-gradient(180deg,#0b1722 0%,#05080c 60%,#000 100%);
-  overflow:hidden;
-}
-.hka-on #s-welcome::before{
-  content:'';position:absolute;z-index:0;pointer-events:none;
-  width:min(560px,92vw);height:min(560px,92vw);border-radius:50%;
-  top:46%;left:50%;transform:translate(-50%,-50%);
-  background:radial-gradient(circle,rgba(0,207,255,.15),rgba(0,207,255,.05) 45%,transparent 68%);
-  animation:hkaGlow 5s ease-in-out infinite;
-}
-
-/* 3. One motion at a time. The screen slides (420ms); the content waits for it
-      and then fades up gently. No scale, no overshoot, nothing to fight. */
-.hka-on .wel-content{ animation:hkaWelIn .42s cubic-bezier(.2,.8,.2,1) .16s both }
-@keyframes hkaWelIn{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
-/* The emoji bobbing on an infinite loop is the third thing moving. It settles
-   in, once, and then holds still. */
-.hka-on .we{ animation:none }
-/* Same heading treatment as the sign-in one it replaces — the 40px cyan bloom
-   softened its own edges, and these two are seen back to back. */
-.hka-on .wname{ text-shadow:none; letter-spacing:-.02em }
-.hka-on .wrole{ letter-spacing:2px; color:#8aa3b0 }
-
-/* The mark, so the screen is branded rather than anonymous. */
-/* No entry animation. The header already shows the mark, and anything animated
-   inside a container that can be re-rendered will replay that animation every
-   time it is. Belt and braces alongside the re-render fix. */
 .hka-mark{display:none}
 
-/* Typography: the name carries the screen, the label sits under it as a quiet
-   tracked caption — the same treatment the welcome screen already uses. */
-/* .wname / .wrole / .wbar, exactly — the treatment the welcome screen uses. */
-/* Matched to .sc-h / .sc-p rather than invented again. The heading carried a
-   40px cyan bloom that softened its own edges — it read as blurred, not as lit,
-   and the caption's cyan-on-cyan tracking fought the keypad underneath for the
-   same colour. The reference screen states the question in plain white and keeps
-   the accent for the things you actually press. */
-#hka-w .pin-h2{font-size:clamp(26px,7vw,32px);font-weight:900;letter-spacing:-.02em;
-               line-height:1.05}
-.hka-cap{font-size:13px;font-weight:600;letter-spacing:.01em;
-         color:#8aa3b0;text-align:center;margin-top:7px}
-.hka-bar{width:30px;height:2px;background:var(--grad);border-radius:2px;margin:16px auto 0;opacity:.8}
+/* The caption under the heading is the app's own .pin-p, to the pixel. */
+.hka-cap{font-size:14px;color:var(--t2);text-align:center;margin-top:4px}
+.hka-bar{display:none}
 
-/* Bigger targets with a lit ring as they fill, rather than four flat circles. */
-#hka-w .dots{gap:16px}
-#hka-w .dot{width:15px;height:15px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16)}
-#hka-w .dot.on{background:var(--acc);border-color:var(--acc);
-               box-shadow:0 0 18px rgba(0,207,255,.55),0 0 40px rgba(0,207,255,.22)}
-
-/* Keys get a top-lit edge and a real pressed state. Still the app's .k geometry. */
-#hka-w .pad{max-width:270px;gap:10px}
-/* THE SITE CARDS ARE THE REFERENCE. They read as solid because of three things
-   the keypad had none of: a 1.5px border in the accent colour, a fill tinted from
-   that same accent rather than neutral grey, and an inset ring on press. Copied
-   here so the sign-in belongs to the same app as the screen two taps later. */
-#hka-w .k{background:linear-gradient(135deg,rgba(0,207,255,.10),rgba(110,66,255,.07));
-          border:1.5px solid rgba(0,207,255,.30);border-radius:19px;font-weight:700;
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.4)}
-#hka-w .k:active{background:linear-gradient(135deg,rgba(0,207,255,.26),rgba(110,66,255,.18));
-                 border-color:var(--acc);transform:scale(.93);
-                 box-shadow:inset 0 0 0 1.5px var(--acc),0 0 22px rgba(0,207,255,.35)}
-/* Backspace is not a warning. In red it was the loudest element on the screen —
-   brighter than the name, brighter than the keys you are meant to press. It keeps
-   the same shape as every other key and simply reads quieter. */
-#hka-w .k.del{color:rgba(255,255,255,.55);font-size:20px}
-/* A 330px column centred in a 2000px window is a phone screen on a monitor. The
-   site chooser widens on desktop for the same reason; this follows it. */
-@media (min-width:820px) and (min-height:700px){
-  .hka-card{max-width:376px;gap:18px}
-  #hka-w .pad{max-width:300px}
-}
-
-/* Inputs, primary action, segmented control and name chips — one family. */
+/* Inputs, buttons, the picker chips. Same tokens as the keypad beside them —
+   var(--card) fill, var(--b1) hairline, 18px radius, exactly like .k — so these
+   read as more of the original screen rather than a second design bolted on.
+   The accent appears only where something is selected or pressed. */
 .hka-in{width:100%;max-width:300px;box-sizing:border-box;
-        background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
-        border:1.5px solid rgba(0,207,255,.24);border-radius:18px;color:var(--t1);padding:16px;
+        background:var(--card);border:1px solid var(--b1);border-radius:18px;color:var(--t1);padding:16px;
         font-size:17px;text-align:center;letter-spacing:5px;font-family:Monaco,Consolas,monospace;
-        transition:border-color .18s,box-shadow .18s}
-.hka-in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.14)}
-.hka-in::placeholder{letter-spacing:1px;color:var(--t3)}
-.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:1.5px solid rgba(0,207,255,.55);
-         border-radius:18px;padding:17px;font-size:15px;font-weight:800;letter-spacing:.2px;color:#fff;
-         background:linear-gradient(135deg,rgba(0,207,255,.30),rgba(110,66,255,.26));
-         cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10);
-         transition:transform .08s,box-shadow .18s}
-.hka-btn:active{transform:scale(.97);box-shadow:0 4px 14px rgba(0,207,255,.16)}
-.hka-btn[disabled]{opacity:.45;box-shadow:none}
-.hka-btn2{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
-          border:1px solid rgba(255,255,255,.10);color:var(--t2);font-weight:700;box-shadow:none}
-.hka-seg{display:flex;gap:9px;width:100%;max-width:300px}
+        transition:border-color .18s}
+.hka-in:focus{outline:none;border-color:var(--acc)}
+.hka-in::placeholder{letter-spacing:1px;color:var(--t2)}
+.hka-btn{width:100%;max-width:300px;box-sizing:border-box;border:none;
+         border-radius:18px;padding:17px;font-size:15px;font-weight:700;color:#fff;
+         background:var(--grad);cursor:pointer;transition:transform .08s}
+.hka-btn:active{transform:scale(.97)}
+.hka-btn[disabled]{opacity:.45}
+.hka-btn2{background:var(--card);border:1px solid var(--b1);color:var(--t2);font-weight:700}
+.hka-seg{display:flex;gap:10px;width:100%;max-width:300px}
 /* Both halves stretch to the tallest, and on a phone "Shared workshop device"
    wraps to two lines while "One person" stays on one — so as a plain block its
    single line sat hard against the top of its box while its neighbour filled the
    height. Centred on both axes, not just horizontally. */
 .hka-seg>div{flex:1;display:flex;align-items:center;justify-content:center;
-             background:linear-gradient(135deg,rgba(0,207,255,.07),rgba(110,66,255,.05));
-             border:1.5px solid rgba(0,207,255,.22);border-radius:18px;padding:14px 8px;font-size:13px;
-             font-weight:700;color:var(--t2);cursor:pointer;text-align:center;line-height:1.3;transition:all .16s}
-.hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:rgba(0,207,255,.10);
-                box-shadow:0 0 0 3px rgba(0,207,255,.10)}
-.hka-names{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;width:100%;max-width:340px}
-.hka-name{background:linear-gradient(135deg,rgba(0,207,255,.09),rgba(110,66,255,.06));
-          border:1.5px solid rgba(0,207,255,.26);border-radius:18px;padding:13px 17px;font-size:14px;
-          font-weight:700;color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;
-          gap:6px;transition:transform .08s,border-color .16s,box-shadow .16s}
-.hka-name:active{transform:scale(.96)}
-.hka-name.on{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 3px rgba(0,207,255,.10)}
+             background:var(--card);border:1px solid var(--b1);border-radius:18px;padding:14px 8px;
+             font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;text-align:center;
+             line-height:1.3;transition:border-color .16s,color .16s}
+.hka-seg>div.on{border-color:var(--acc);color:var(--acc);background:var(--acc2)}
+.hka-names{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;max-width:340px}
+.hka-name{background:var(--card);border:1px solid var(--b1);border-radius:18px;padding:13px 17px;
+          font-size:14px;font-weight:600;color:var(--t1);cursor:pointer;display:flex;
+          align-items:center;justify-content:center;gap:6px;transition:transform .08s,background .1s}
+.hka-name:active{transform:scale(.96);background:var(--card2)}
+.hka-name.on{border-color:var(--acc);color:var(--acc)}
 .hka-note{font-size:13.5px;color:var(--t2);line-height:1.7;text-align:left;max-width:330px;
-          background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
-          border-radius:16px;padding:16px 18px}
+          background:var(--card);border:1px solid var(--b1);border-radius:18px;padding:16px 18px}
 .hka-note b{color:var(--t1)}
 .hka-code{font-size:34px;font-weight:900;letter-spacing:8px;color:var(--acc);
-          font-family:Monaco,Consolas,monospace;text-shadow:0 0 30px rgba(0,207,255,.45)}
+          font-family:Monaco,Consolas,monospace}
 .hka-tiny{font-size:11px;color:var(--t3);font-family:Monaco,Consolas,monospace;word-break:break-all;
           background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:13px;
           padding:10px 12px;max-width:320px;cursor:pointer}
@@ -21577,16 +21459,15 @@ function mrPushLoad(){
     return w;
   }
   function show(){ var w=el(); if(w) w.style.display=''; }
-  /* THE SCREEN THAT SLIDES AWAY MUST STILL HAVE SOMETHING ON IT.
-     This was display:none, fired the instant the server said yes — so the card
-     vanished, and what slid off to the left was an empty lit rectangle. That is
-     most of why the handover read as cheap: the eye tracks the card, the card is
-     deleted, and then a blank panel moves. It leaves under its own power now,
-     over the same 420ms the slide takes, and is only removed once it has gone. */
+  /* THE SCREEN THAT SLIDES AWAY MUST STILL HAVE THE KEYPAD ON IT.
+     This was display:none fired the instant the server said yes, so what slid off
+     to the left was an empty rectangle — the eye tracks the keypad, and the
+     keypad had been deleted. The original screen simply slid away with its keypad
+     still on it, which is what this restores: stay put, and disappear later, once
+     the screen is off-view and nobody can see it go. */
   function hide(){
     var w = document.getElementById('hka-w'); if (!w) return;
-    w.classList.add('hka-out');
-    setTimeout(function(){ w.style.display = 'none'; w.classList.remove('hka-out'); }, 300);
+    setTimeout(function(){ w.style.display = 'none'; }, 700);
   }
 
   /* The device's own secret. Asking the browser to keep its storage permanently
@@ -22176,6 +22057,28 @@ function mrPushLoad(){
     var revoked  = list.filter(function(d){ return d.status === 'revoked'; });
 
     var h = '';
+
+    /* ---- what the badge on the tab is actually counting --------------------
+       "Devices (1)" with "Nothing waiting" underneath reads as a bug, and it was
+       nearly one: the badge adds up THREE separate queues — devices waiting, people
+       asking for an account, and forgotten PINs — but only the first is at the top
+       of this screen. The other two sit below the fold, so the number pointed at
+       something you could not see. It now says what it is counting and where it is. */
+    var _qPend  = pending.length;
+    var _qAcct  = accounts.filter(function(a){ return a.status === 'pending'; }).length;
+    var _qReset = accounts.filter(function(a){ return a.reset_requested_at; }).length;
+    var _bits = [];
+    if (_qPend)  _bits.push(_qPend  + (_qPend===1  ? ' device waiting to be approved' : ' devices waiting to be approved'));
+    if (_qAcct)  _bits.push(_qAcct  + (_qAcct===1  ? ' person asking for an account'   : ' people asking for an account'));
+    if (_qReset) _bits.push(_qReset + (_qReset===1 ? ' forgotten PIN to clear'         : ' forgotten PINs to clear'));
+    if (_bits.length){
+      h += '<div style="background:rgba(0,207,255,.07);border:1px solid rgba(0,207,255,.35);border-radius:12px;'
+         + 'padding:11px 13px;margin-bottom:16px">'
+         + '<div style="font-size:11px;color:var(--acc);font-weight:700;letter-spacing:.5px;margin-bottom:5px">NEEDS YOU</div>'
+         + _bits.map(function(t){ return '<div style="font-size:13.5px;color:var(--t1);line-height:1.7">· '+t+'</div>'; }).join('')
+         + (_qPend ? '' : '<div style="font-size:11.5px;color:var(--t2);margin-top:6px">Scroll down — it’s further down this screen, not in the list below.</div>')
+         + '</div>';
+    }
 
     // ---- join code -------------------------------------------------------
     h += '<div style="background:var(--card);border:1px solid var(--b2);border-radius:12px;padding:13px;margin-bottom:16px">'

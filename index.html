@@ -21498,7 +21498,8 @@ function mrPushLoad(){
        gets an empty list and types a name instead — which is the whole point: the
        staff list is no longer readable by anyone who opens the page. */
     call('roster', {}).then(function(r){
-      S.roster = (r && r.success && r.roster) ? r.roster.map(function(x){ return { name:x.name, role:x.app_role }; }) : [];
+      S.roster = (r && r.success && r.roster)
+        ? r.roster.map(function(x){ return { name:x.name, role:x.app_role, must_set_pin:!!x.must_set_pin }; }) : [];
       cb();
     });
   }
@@ -21670,6 +21671,7 @@ function mrPushLoad(){
 
   // ---- actions -------------------------------------------------------------
   function boot(){
+    _handedOver = false;
     S.dev = loadDev();
     go('boot');
     roster(function(){
@@ -21731,6 +21733,7 @@ function mrPushLoad(){
   }
 
   function submitPin(){
+    if (S.busy) return;            // a queued second submit would log in twice
     if (S.stage === 'setpin'){ S.pin2=''; return go('setpin2'); }
     if (S.stage === 'setpin2'){
       if (S.pin !== S.pin2){ S.pin=''; S.pin2=''; go('setpin'); return fail('Those didn\'t match. Try again.'); }
@@ -21776,7 +21779,16 @@ function mrPushLoad(){
     }
     finish(r);
   }
+  var _handedOver = false;
   function finish(r){
+    /* THE WHOLE POST-LOGIN SEQUENCE WAS RUNNING TWICE — welcome, site chooser and
+       the tile reveal, all of it. That is onLoginOk being called twice, and rather
+       than chase which of several paths fires it (setSession's promise settling,
+       a queued submit, a retry) the handover is simply made once and once only.
+       Signing in twice is never correct, whatever the route in, so the guard
+       belongs here rather than at each call site. */
+    if (_handedOver) return;
+    _handedOver = true;
     hide();
     var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
     /* The existing master screens still authorise with cu.pin, so it is passed
@@ -21800,7 +21812,15 @@ function mrPushLoad(){
     if (nameEl){
       var nm = nameEl.getAttribute('data-n') || '';
       if (S.stage === 'join'){ S.name = nm; return render(); }
-      if (S.stage === 'pick'){ S.name = nm; S.pin=''; return go('pin'); }
+      if (S.stage === 'pick'){
+        S.name = nm; S.pin = '';
+        /* ASK FOR A PIN THEY HAVE NOT GOT YET, AND THEY WILL TRY TO GUESS ONE.
+           Tapping a name went to the keypad, which then bounced to "create a PIN"
+           once the server said they had none. The roster now says who still needs
+           one, so a new person is taken straight to creating theirs. */
+        var who = S.roster.filter(function(x){ return x.name === nm; })[0];
+        return go(who && who.must_set_pin ? 'notice' : 'pin');
+      }
     }
     if (t.id === 'hka-notice-ok'){ S.pin=''; S.pin2=''; return go('setpin'); }
     if (t.closest && t.closest('#hka-copy')){
@@ -22013,7 +22033,11 @@ function mrPushLoad(){
         h += '<div style="background:var(--card);border:1px solid rgba(0,207,255,.35);border-radius:12px;padding:12px;margin-bottom:10px">'
            + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">'+esc(d.requested_name || d.label || '(unnamed device)')+'</div>'
            + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">'
-           +   (wantsShared ? '👥 asking to be a shared device · ' : (known ? 'already has an account · ' : '🆕 new person · '))
+           /* "already has an account" was read as "they can already get in", which is
+              not what it meant — the row exists, with no PIN on it. Say the thing
+              that actually matters to the person approving. */
+           +   (wantsShared ? '👥 asking to be a shared device · '
+                : (known ? (known.must_set_pin ? '🆕 will choose a PIN · ' : 'has a PIN already · ') : '🆕 new person · '))
            +   esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
            + (wantsShared ? '' :
                '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.4px;margin-bottom:5px">ROLE</div>'

@@ -400,7 +400,11 @@ Deno.serve(async (req) => {
           user_agent: String(req.headers.get("user-agent") || "").slice(0, 300),
           platform: String(body?.platform || "").slice(0, 80),
           label: String(body?.label || "").slice(0, 60) || null,
-          kind: "personal", status: "pending",
+          /* A wall display enrols the same way a phone does — join code, then a
+             manager approves it in Devices. It is marked here so the approval
+             screen can show it for what it is and give it the read-only display
+             account rather than a person's. */
+          kind: body?.kind === "display" ? "display" : "personal", status: "pending",
         });
         await log("device_request", String(body?.requested_name || ""), device_id, ip);
         pushAdmins("New device waiting",
@@ -438,6 +442,60 @@ Deno.serve(async (req) => {
         const { data } = await db.from("hk_accounts")
           .select("name,app_role,must_set_pin").eq("status", "active").order("name");
         return json(req, { success: true, roster: data || [] });
+      }
+
+      /* ---- 1c. The wall display signs itself in ------------------------------
+         No PIN, because there is nobody standing at it. The device secret IS the
+         credential, and that is acceptable here in a way it would not be for a
+         person: what it unlocks is a read-only account, scoped to one site, that
+         a manager can revoke in one tap — and revoking bites immediately,
+         because the device is re-checked on every renewal rather than trusted
+         for the life of a token.
+
+         Deliberately NOT reusing a staff account. A board left on a wall must
+         never be able to do anything a person can do, and the only way to
+         guarantee that is for it to be a different account with different
+         rights. It has no entry in hk_accounts and cannot sign in anywhere else. */
+      case "display-signin": {
+        const dev = await approvedDevice();
+        if (!dev) {
+          // Say which of the two it is, so the board can put it on screen.
+          const { data: d } = await db.from("hk_devices").select("status").eq("device_id", did).maybeSingle();
+          return json(req, { success: false, status: d?.status || "unknown" });
+        }
+        if (dev.kind !== "display") return json(req, { success: false, message: "Not a display device." }, 403);
+
+        const email  = `display-${dev.device_id}@${MAIL_DOMAIN}`;
+        const secret = dev.display_secret || randHex(24);
+        if (!dev.display_secret) await db.from("hk_devices").update({ display_secret: secret }).eq("device_id", dev.device_id);
+
+        let userId = dev.display_user_id as string | null;
+        const meta = { hk_display: true, hk_site: dev.site || "sydney", hk_name: dev.label || "Wall display" };
+        if (!userId) {
+          const { data, error } = await db.auth.admin.createUser({
+            email, password: secret, email_confirm: true,
+            app_metadata: meta, user_metadata: { display_name: dev.label || "Wall display" },
+          });
+          if (error || !data?.user) {
+            const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+            const found = (list?.users || []).find((u: any) => u.email === email);
+            if (!found) return json(req, { success: false, message: "Could not create the display login." });
+            userId = found.id;
+            await db.auth.admin.updateUserById(userId, { password: secret, app_metadata: meta });
+          } else userId = data.user.id;
+          await db.from("hk_devices").update({ display_user_id: userId }).eq("device_id", dev.device_id);
+        } else {
+          await db.auth.admin.updateUserById(userId, { password: secret, app_metadata: meta, ban_duration: "none" });
+        }
+
+        const { data: sess, error: se } = await pub.auth.signInWithPassword({ email, password: secret });
+        if (se || !sess?.session) return json(req, { success: false, message: "Could not start the display session." });
+        await log("display_signin", dev.label || "Wall display", dev.device_id, ip);
+        return json(req, {
+          success: true, status: "approved", site: dev.site || "sydney",
+          access_token: sess.session.access_token,
+          refresh_token: sess.session.refresh_token,
+        });
       }
 
       /* ---- 2. "Am I approved yet?" — the waiting screen polls this ---------- */
@@ -585,7 +643,12 @@ Deno.serve(async (req) => {
 
         const patch: Record<string, unknown> = { status: decision, approved_by: mgr.name, approved_at: new Date().toISOString() };
         if (decision === "approved") {
-          patch.kind = body?.kind === "shared" ? "shared" : "personal";
+          /* A display stays a display. Falling through to "personal" would have
+             turned the wall board into somebody's phone on approval, and then
+             display-signin would refuse the very device that was just approved. */
+          patch.kind = body?.kind === "display" ? "display"
+                     : body?.kind === "shared"  ? "shared" : "personal";
+          if (patch.kind === "display") { patch.owner_name = null; patch.site = String(body?.site || "sydney").slice(0, 40); }
           patch.label = String(body?.label || "").slice(0, 60) || null;
           if (patch.kind === "personal" && body?.owner_name) patch.owner_name = String(body.owner_name).slice(0, 60);
           if (patch.kind === "shared") patch.owner_name = null;

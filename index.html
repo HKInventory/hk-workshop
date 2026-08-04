@@ -6438,7 +6438,7 @@ function logout(){
   try{ if(_presenceT){ clearInterval(_presenceT); _presenceT=null; } }catch(e){}
   try{ if(cu&&cu.name&&typeof SBC!=='undefined'&&SBC) SBC.from('presence').delete().eq('name',cu.name).then(function(){},function(){}); }catch(e){}
   try{ if(typeof sessionClose==='function') sessionClose(); }catch(e){}   // stamp the sign-out time for Last online
-  TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;_loginRan=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
+  TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;_loginRan=false;masterPin='';masterViaKey=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
 /* Auto sign-out after inactivity (security). Default 30 min; AUTO_LOGOUT_MIN can be
    driven from an owner setting later. Only runs for a signed-in user — never the
    TV board, never the PIN screen. Any tap/key/scroll resets the countdown. */
@@ -14203,9 +14203,32 @@ var mEditSku=null;  // sku being edited (null = adding new)
 // Master Access entry: a granted account opens the admin tools and authorises every master
 // action with their OWN staff PIN — the edge functions check that PIN is a master admin
 // server-side. No rotating code. The owner key (owner panel) still works as a skeleton key.
+/* THE SESSION IS THE CREDENTIAL, NOT THE PIN.
+   This sent cu.pin, which the master functions checked against a cleartext PIN in
+   the old `staff` table. That one line is behind most of a very long day: reset
+   your PIN in the new system and you silently lost your own Master Access,
+   because nothing kept the two in step; every master credential was a 4-digit
+   number sitting readable in a table, including the eight that were published;
+   and clearing that table so people could re-register took Master Access off
+   Ross and Andrew even though the Owner Access list still named them.
+   The functions now verify the Supabase session the sign-in already issues —
+   signed by the auth server, carrying the person's name, checked against
+   hk_accounts and the Owner Access list on every single call. The PIN is kept
+   only as a fallback for a device still holding an old session, and goes when
+   `staff` does. */
+function masterCred(){
+  try { if (typeof tok === 'function'){ var t = tok(); if (t) return t; } } catch(e){}
+  try { var t2 = sessionStorage.getItem('hk_tok_v1'); if (t2) return t2; } catch(e){}
+  return (cu && cu.pin) ? String(cu.pin) : '';
+}
+var masterViaKey=false;   // the owner key was entered this session — never overwrite it
 function masterAccessOpen(){
   openMaster();                                          // slide in immediately, like any other tab
-  if(!masterPin && cu && cu.pin) masterPin=String(cu.pin);   // your PIN is the credential now
+  /* Refresh every time rather than only when empty. A session token expires after
+     an hour; a value captured once at first open would go stale mid-shift and
+     start answering "Not authorised" for no visible reason. The owner key is the
+     one thing that must survive, because owner-set-pin only accepts it. */
+  if(!masterViaKey){ var _c=masterCred(); if(_c) masterPin=_c; }
   if(typeof mToolsStats==='function') mToolsStats();
 }
 
@@ -14271,7 +14294,7 @@ function ownerLoad(){
   fetch(SB_FN+'master-access',{method:'POST',headers:HDRS,body:JSON.stringify({ownerKey:key,op:'list'})})
     .then(function(r){return r.json();}).then(function(res){
       if(res&&res.success){
-        masterPin=key;   // owner override: the key authorises every master function server-side
+        masterPin=key; masterViaKey=true;   // owner override: the key authorises every master function server-side
         document.getElementById('ogate-stage').style.display='';
         document.getElementById('ogate-list').value=(res.admins||[]).join('\n');
         _ownerMsg('Owner key accepted \u2014 you can now use every master tool. Edit the list to change who has access.',true);

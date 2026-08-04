@@ -17411,9 +17411,104 @@ function tvKeepAwake(){
     document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') req(); });
   }catch(e){}
 }
+/* ===== THE WALL DISPLAY'S OWN ACCOUNT ==============================
+   Today the board reads with the public key that is printed in the page source.
+   That is the single reason the key still needs read access to nine tables, and
+   therefore the reason a stranger can read repairs, karts, notes and stock
+   without signing in to anything. The board is the last thing holding the door.
+
+   So it gets an account of its own: enrolled once from this screen, approved by
+   a manager in Devices like any other device, and signed in from then on with a
+   session it renews itself. After that the public key can be revoked outright.
+
+   COMPLETELY INERT UNTIL SOMEBODY ENROLS A SCREEN. If there are no display
+   credentials in this browser, every line below returns immediately and the TV
+   behaves exactly as it does today. Nothing changes for an unenrolled board. */
+/* THE KEY IS A LITERAL, NOT A var, AND THAT MATTERS HERE.
+   bootTvDisplay() is called by the boot IIFE while the page is still parsing —
+   long before a `var TVKEY = ...` further down the file has been assigned. Read
+   through a var, the lookup was localStorage.getItem(undefined), which returns
+   null, so an enrolled board looked unenrolled and silently carried on using the
+   public key. Exactly the failure this whole exercise exists to remove, and it
+   would have shown up as "the TV still works" — the most convincing way for
+   something to be broken. Function declarations hoist; var assignments do not. */
+function TVKEY(){ return 'hk_tvdev_v1'; }
+function tvDev(){ try{ return JSON.parse(localStorage.getItem(TVKEY())||'null'); }catch(e){ return null; } }
+function tvSaveDev(d){ try{ localStorage.setItem(TVKEY(), JSON.stringify(d)); }catch(e){} }
+function tvDropDev(){ try{ localStorage.removeItem(TVKEY()); }catch(e){} }
+function tvAuthCall(op, extra){
+  var d=tvDev()||{}, body=Object.assign({op:op, device_id:d.device_id, device_key:d.device_key}, extra||{});
+  return fetch(SB_FN+'hk-auth',{method:'POST',headers:HDRS,body:JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {success:false, message:'offline'}; });
+}
+/* Sign the board in, and keep it signed in.
+   Two things make this different from a person signing in. The session has to
+   renew with nobody present to retype anything — so the watchdog below drives it
+   rather than relying on the library's own ticker, which STOPS whenever the
+   browser reports the tab hidden, and a screen-blanked Mac reports exactly that
+   for hours at a time. And a failure must be visible: once the public key is
+   revoked, a board that quietly falls back to it shows an empty screen with no
+   explanation, so the state is put on the board itself. */
+var _tvAuthState='none';
+function tvSignIn(){
+  var d=tvDev(); if(!d||!d.device_id) return Promise.resolve(false);
+  return tvAuthCall('display-signin', {}).then(function(r){
+    if(!r||!r.success||!r.access_token){
+      _tvAuthState=(r&&r.status==='pending')?'pending':'failed';
+      if(r&&(r.status==='unknown'||r.status==='revoked')) tvDropDev();
+      tvAuthBadge(); return false;
+    }
+    return Promise.resolve(SBC.auth.setSession({access_token:r.access_token, refresh_token:r.refresh_token}))
+      .then(function(){ _tvAuthState='ok'; tvAuthBadge(); return true; },
+            function(){ _tvAuthState='failed'; tvAuthBadge(); return false; });
+  });
+}
+function tvAuthWatch(){
+  setInterval(function(){
+    if(!tvDev()) return;
+    try{
+      var p=SBC.auth.getSession&&SBC.auth.getSession();
+      if(p&&p.then){ p.then(function(res){ var s=res&&res.data&&res.data.session; if(!s) tvSignIn(); }, function(){ tvSignIn(); }); }
+    }catch(e){ tvSignIn(); }
+  }, 60000);
+}
+function tvAuthBadge(){
+  try{
+    var el=document.getElementById('tv-authbadge');
+    if(!tvDev()||_tvAuthState==='ok'){ if(el) el.remove(); return; }
+    if(!el){ el=document.createElement('div'); el.id='tv-authbadge';
+      el.style.cssText='position:fixed;left:1.2vmin;bottom:1.2vmin;z-index:200;font:600 1.5vmin/1.3 Inter,system-ui,sans-serif;'
+        +'padding:.8vmin 1.2vmin;border-radius:.8vmin;background:rgba(255,82,82,.16);border:1px solid rgba(255,82,82,.5);color:#FF8A8A';
+      document.body.appendChild(el); }
+    el.textContent = _tvAuthState==='pending'
+      ? 'Waiting for a manager to approve this display — Master Access → Devices'
+      : 'This display is not signed in. Master Access → Devices.';
+  }catch(e){}
+}
+/* Enrol this screen. Deliberately manual: open the board with #tv-enrol=JOINCODE
+   once, and it asks for approval. Nothing automatic, nothing on by default. */
+function tvEnrol(code){
+  return fetch(SB_FN+'hk-auth',{method:'POST',headers:HDRS,body:JSON.stringify({
+      op:'request-device', join_code:code, requested_name:'', kind:'display',
+      label:'Wall display · '+(window.__tvSite||'sydney'),
+      platform:(navigator.platform||''), display:true })})
+    .then(function(r){ return r.json(); }).then(function(r){
+      if(r&&r.success&&r.device_id){ tvSaveDev({device_id:r.device_id, device_key:r.device_key});
+        _tvAuthState='pending'; tvAuthBadge(); return true; }
+      alert((r&&r.message)||'Could not enrol this display.'); return false;
+    });
+}
+
 function bootTvDisplay(){
   try{
     currentSite=(window.__tvSite||currentSite||'sydney');   // which site this TV shows (from the URL)
+    /* Enrolment and sign-in, both no-ops on a board nobody has enrolled. */
+    try{
+      var _en=(location.hash||'').match(/tv-enrol=([A-Za-z0-9]+)/);
+      if(_en){ tvEnrol(_en[1]); }
+      if(tvDev()){ tvSignIn(); tvAuthWatch(); }
+    }catch(e){}
     try{ document.title='HK Workshop · TV'; }catch(e){}
     // The board uses its OWN pulse overlay, not the cold-open splash. The splash
     // (heavy SVG mask + perspective animation, z-index above the board) has been
@@ -22427,8 +22522,29 @@ function mrPushLoad(){
       h += '<div style="color:var(--t2);font-size:13px;margin-bottom:18px">Nothing waiting.</div>';
     } else {
       pending.forEach(function(d){
+        /* A wall display asks for a different thing from a person, so it must not
+           be offered a person's buttons. Approving it as "personal" or "shared"
+           would hand a screen on a wall the rights of a staff member — and would
+           also stop display-signin working, because it checks the kind. */
+        var wantsDisplay = d.kind === 'display';
         // No name on the request means it asked to be a shared device — lead with that.
         var wantsShared = !d.requested_name;
+        if (wantsDisplay){
+          h += '<div style="background:var(--card);border:1px solid rgba(0,207,255,.35);border-radius:12px;padding:12px;margin-bottom:10px">'
+             + '<div style="font-size:14.5px;font-weight:700;color:var(--t1)">📺 '+esc(d.label || 'Wall display')+'</div>'
+             + '<div style="font-size:12px;color:var(--t2);margin:3px 0 10px">Read-only wall display · '
+             +   esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
+             + '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:10px">'
+             +   'It gets its own read-only account — it can show the board and nothing else. '
+             +   'No PIN, no staff access, and revoking it here stops it within the minute.</div>'
+             + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
+             +   '<button class="m-add" data-ok="'+esc(d.device_id)+'" data-kind="display" '
+             +     'data-label="'+esc(d.label||'Wall display')+'" data-keeprole="1">✓ Approve as a display</button>'
+             +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
+             +     'data-no="'+esc(d.device_id)+'">✕ Reject</button>'
+             + '</div></div>';
+          return;
+        }
         var known = accounts.filter(function(a){ return a.name === d.requested_name; })[0];
         /* THE ROLE IS CHOSEN HERE, AT THE MOMENT OF APPROVAL.
            Somebody asking for access types their name; what they ARE is the manager's

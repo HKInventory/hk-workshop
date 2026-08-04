@@ -293,11 +293,28 @@ async function issueSession(acct: any, device_id: string) {
     expires_at: new Date(Date.now() + 14 * 86400000).toISOString(),
   });
 
+  /* WHO SEES THE MASTER ACCESS TAB IS DECIDED BY THE OWNER ACCESS LIST, AND THAT
+     LIST HAS TO ACTUALLY REACH THE BROWSER.
+     The app read app_access itself, which means it depended on that table's
+     grants and its RLS — and RLS with no policy returns EMPTY rather than an
+     error, so the read "succeeded" with nothing in it. The app then fell back to
+     its built-in default of [owner], and every other admin was silently told
+     they had no Master Access. Ross was on the list the whole time.
+     It travels with the session now, read here with the service key, which
+     answers to neither grants nor policies. One source of truth: a name on the
+     Owner Access list, delivered by the server that just authenticated them. */
+  let master_admins: string[] = [];
+  try {
+    const { data: acc } = await db.from("app_access").select("master_admins").eq("id", 1).maybeSingle();
+    if (Array.isArray(acc?.master_admins)) master_admins = acc!.master_admins as string[];
+  } catch { /* the tab is decided from this list; an empty one is handled by the app */ }
+
   return {
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
     expires_at: data.session.expires_at,
     name: acct.name, role: acct.app_role, site: acct.site, is_master: !!acct.is_master,
+    master_admins,
   };
 }
 

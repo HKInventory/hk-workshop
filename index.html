@@ -5968,7 +5968,15 @@ function effectiveTabs(user){
   keys=keys.filter(function(k){ return String(k).indexOf('hide:')!==0; });
   // Master Access is never granted by role/override — only by the owner-controlled master_admins list.
   keys=keys.filter(function(k){return k!=='masteraccess';});
-  if((MASTER_ADMINS||[]).indexOf(user.name)>=0) keys.push('masteraccess');
+  /* The list the SERVER handed over at sign-in wins over anything the browser
+     managed to read for itself. A direct read of app_access can come back empty
+     without erroring — RLS with no policy does exactly that — and the fallback
+     it lands on is [owner], which shows the tab to Harvey and hides it from
+     every other admin with nothing to say why. The signed-in copy comes from
+     the service key and cannot be emptied by a grant or a policy. */
+  var admins = (user && Array.isArray(user.master_admins) && user.master_admins.length)
+    ? user.master_admins : (MASTER_ADMINS||[]);
+  if(admins.indexOf(user.name)>=0) keys.push('masteraccess');
   return keys;
 }
 // Capability: who may create / assign Tasks. Stored as a "cap:settask" key in the SAME app_access
@@ -22045,6 +22053,16 @@ function mrPushLoad(){
     _handedOver = true;
     hide();
     var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
+    /* THE OWNER ACCESS LIST, DELIVERED BY THE SERVER THAT JUST AUTHENTICATED THEM.
+       The app used to read app_access itself, so who could see Master Access
+       depended on that table's grants AND its RLS — and RLS with no policy
+       returns EMPTY rather than an error, so the read "succeeded" holding
+       nothing, the app fell back to its built-in [owner] default, and every
+       other admin was quietly told they had no access. Ross was on the list the
+       whole time. This copy is read with the service key, which answers to
+       neither grants nor policies. Kept on cu so it survives a page reload,
+       because cu is what gets stored. */
+    if (Array.isArray(r.master_admins) && r.master_admins.length) m.master_admins = r.master_admins.slice();
     /* The existing master screens still authorise with cu.pin, so it is passed
        through unchanged. During the changeover those screens only work if this
        PIN also matches the old staff table — they move onto the session in the

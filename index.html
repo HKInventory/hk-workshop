@@ -5306,6 +5306,31 @@ function startRealtimeOnce(){
   try{ rtDialLoad(); }catch(e){}      // shared dial setting before the first subscribe
   try{ startRealtime(); }catch(e){}
 }
+/* THE WALL DISPLAY WAS SUBSCRIBED TO STAFF CHAT.
+   The TV called startRealtimeOnce(), which subscribes to all twelve channels —
+   including `messages` and `chat_reads`. Every DM and every group message in the
+   business was being delivered, live, to a browser on a screen in the workshop
+   that anybody can walk up to. It draws none of it, so nothing was ever visible;
+   the data arrived all the same, and "it doesn't render it" is not a security
+   boundary. Anyone with the devtools on that machine had the lot.
+
+   It subscribes to what the board actually shows and nothing else. Everything
+   here is already on the screen for the room to read; the two chat tables and
+   the staff-facing ones are not. Also cheaper: every row written to a published
+   table multiplies by every connected device, and this is a device that never
+   sleeps. */
+function startRealtimeTv(){
+  if(_rtStarted) return;
+  _rtStarted=true;
+  try{ rtDialLoad(); }catch(e){}
+  try{
+    SBC.channel('tv-karts').on('postgres_changes',{event:'*',schema:'public',table:'rf_karts'},function(){ _tvHook('karts'); }).subscribe();
+    SBC.channel('tv-reps').on('postgres_changes',{event:'*',schema:'public',table:'rf_repairs'},function(p){ try{_rtRepairMerge(p);}catch(e){} _tvHook('reps'); }).subscribe();
+    SBC.channel('tv-notes').on('postgres_changes',{event:'*',schema:'public',table:'rf_kart_notes'},function(p){ try{_rtNoteMerge(p);}catch(e){} _tvHook('notes'); }).subscribe();
+    SBC.channel('tv-tasks').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},function(){ _tvHook('tasks'); }).subscribe();
+    SBC.channel('tv-ramp').on('postgres_changes',{event:'*',schema:'public',table:'ramp_events'},function(){ _tvHook('ramp'); }).subscribe();
+  }catch(e){}
+}
 if(typeof cu!=='undefined' && cu) startRealtimeOnce();
 
 /* Managers-only unread badge on the Racefacer tile: count of today's unresolved discrepancies. */
@@ -17424,7 +17449,9 @@ function bootTvDisplay(){
       setTimeout(function(){ try{ clearInterval(_tvConnT); }catch(e){} },20000);
     }
     _tvBootAt=Date.now();
-    try{ startRealtimeOnce(); }catch(e){}   // the TV has no PIN, so this is its hook
+    /* Its OWN start, not the app's. See startRealtimeTv — the shared one subscribes
+       the board to staff chat, which it must never have been able to see. */
+    try{ startRealtimeTv(); }catch(e){}   // the TV has no PIN, so this is its hook
     tvSyncTimer=setInterval(tvSyncView,15000);     // catch scheduled messages + the morning cut-off
     // NOTE: the HK logo no longer pops on a blind 60s timer (which made it appear mid-scene at random).
     // It now shows only as the hand-off at the END of a kart-type's screen time — see tvAdvance().

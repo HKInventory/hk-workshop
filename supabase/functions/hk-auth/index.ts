@@ -127,6 +127,29 @@ async function sha256(s: string): Promise<string> {
    asking, because it decided.
    Never allowed to fail a request. A push that does not send is a missed
    notification; a push that throws would be a staff member unable to sign up. */
+/* KEEP THE OLD DIRECTORY IN STEP, WITHOUT PUTTING A PIN BACK IN IT.
+   The `staff` table is what the master-* functions and the @mention roster still
+   read, and master-access refuses to grant Master Access to a name that is not in
+   it — so someone who signs up only in the new system is invisible to all of that.
+   This adds the row when an account is approved.
+
+   The pin column is filled with a long random string, NOT a 4-digit PIN. That is
+   deliberate: it satisfies the column, it can never be typed on a keypad, and it
+   means this bridge cannot quietly become a way to read somebody's PIN. Nobody
+   sees anyone's PIN, including the owner — that promise does not bend for
+   convenience. An existing row's pin is never touched, so the accounts still
+   using master tools keep working.
+
+   This is a bridge, not a design. It comes out when master-* moves onto the new
+   session and `staff` is dropped. */
+async function mirrorToStaff(name: string, role: string) {
+  try {
+    const { data: row } = await db.from("staff").select("name").eq("name", name).maybeSingle();
+    if (row) { await db.from("staff").update({ role, active: true }).eq("name", name); return; }
+    await db.from("staff").insert({ name, role, active: true, pin: randHex(16) });
+  } catch { /* the old table is on its way out; never fail a sign-up over it */ }
+}
+
 async function pushAdmins(title: string, body: string, tag: string) {
   try {
     /* Named vapidPub, not pub: there is a module-level `pub` holding the anon
@@ -549,6 +572,7 @@ Deno.serve(async (req) => {
             }, { onConflict: "name" });
             if (patch.kind === "personal") patch.owner_name = nm;
             await log("account_created", mgr.name, target, ip, { target: nm, role: body?.account_role });
+            await mirrorToStaff(nm, String(body?.account_role || "Mechanic"));
           }
         }
         await db.from("hk_devices").update(patch).eq("device_id", target);
@@ -760,6 +784,7 @@ Deno.serve(async (req) => {
           site: String(body?.site || "sydney").slice(0, 40),
           updated_at: new Date().toISOString(),
         }).eq("name", name).eq("status", "pending");
+        await mirrorToStaff(name, String(body?.app_role || "Mechanic"));
         await log("account_approved", mgr.name, null, ip, { target: name, role: body?.app_role });
         return json(req, { success: true });
       }

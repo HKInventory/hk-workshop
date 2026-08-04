@@ -3996,7 +3996,15 @@
   <div class="mgate-box" style="max-width:430px">
     <div class="mgate-h">Owner controls</div>
     <div class="mgate-sub">Manage who has Master Access. Owner only.</div>
-    <input class="mgate-input" id="ogate-key" type="password" maxlength="80" placeholder="Owner key" style="letter-spacing:2px;font-size:18px" onkeydown="if(event.key==='Enter')ownerLoad()">
+    <!-- A type=password field on a page the browser has saved a login for gets
+         AUTOFILLED with that saved password. This one wants the OWNER_KEY secret,
+         which no password manager has ever seen — so the box arrives looking full,
+         you press the button, and the server correctly answers "Not authorised"
+         about a string you never typed. Opted out of every autofill mechanism. -->
+    <input class="mgate-input" id="ogate-key" type="password" maxlength="80" placeholder="Owner key"
+           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+           name="hk-owner-key-noautofill" data-1p-ignore data-lpignore="true" data-bwignore
+           style="letter-spacing:2px;font-size:18px" onkeydown="if(event.key==='Enter')ownerLoad()">
     <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerLoad()">Load list</button></div>
     <div id="ogate-stage" style="display:none;margin-top:14px;text-align:left">
       <div style="font-size:11px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Accounts with Master Access</div>

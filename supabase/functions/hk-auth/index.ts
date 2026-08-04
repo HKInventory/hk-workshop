@@ -309,12 +309,33 @@ async function issueSession(acct: any, device_id: string) {
     if (Array.isArray(acc?.master_admins)) master_admins = acc!.master_admins as string[];
   } catch { /* the tab is decided from this list; an empty one is handled by the app */ }
 
+  /* A BRIDGE FOR THE FUNCTIONS THAT STILL ASK FOR A PIN.
+     stock-move, notify-user, hk-ai and master-pin authorise by matching whatever
+     the app sends against staff.pin. Anyone who signed up on the new system has a
+     long random value there — deliberately, because their real PIN is hashed and
+     nobody, the owner included, can read it. So the moment they scanned a part
+     tomorrow, stock-move would compare a 4-digit PIN against that random string
+     and refuse them. It would have looked fine to Harvey all day, because his row
+     still carries his real PIN.
+
+     So the app is handed the random value itself. Those functions keep working
+     untouched, and the thing travelling to them is a per-person secret that is
+     not, and never was, anybody's PIN — so a leaked one grants what that person
+     already had and reveals nothing they type on a keypad.
+     Temporary. It goes when those four move onto the session, the same way the
+     master functions just did. */
+  let legacy_key = "";
+  try {
+    const { data: st } = await db.from("staff").select("pin").eq("name", acct.name).maybeSingle();
+    if (st?.pin) legacy_key = String(st.pin);
+  } catch { /* no bridge available; the app falls back to what was typed */ }
+
   return {
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
     expires_at: data.session.expires_at,
     name: acct.name, role: acct.app_role, site: acct.site, is_master: !!acct.is_master,
-    master_admins,
+    master_admins, legacy_key,
   };
 }
 

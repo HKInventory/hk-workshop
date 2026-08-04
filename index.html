@@ -15856,7 +15856,18 @@ function msRender(){
       +    msRoleOpts(x.role)
       +  '</select></div>'
       +'</div>'
-      +'<input class="pin-input" type="password" autocomplete="new-password" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="\u2022\u2022\u2022\u2022"'+(lockPin?' readonly title="Harvey\u2019s PIN is changed from Owner controls only"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+      /* A NEW-SYSTEM ACCOUNT HAS NO PIN TO SHOW HERE, AND MUST NOT GET AN EDIT BOX.
+         Their real PIN is hashed and unreadable \u2014 this column holds a long random
+         value instead. Rendering it into a maxlength=4, digits-only input meant the
+         box showed a truncated version of a secret, and one keystroke in it would
+         strip the letters and overwrite the value the older functions match on:
+         stock-move would then refuse that person, with nothing on screen connecting
+         the two. It is stated rather than editable, and cannot be damaged by a
+         stray click. They set their own PIN on their own device; nobody types it
+         here, which was the entire point of the exercise. */
+      +( /^\d{4}$/.test(String(x.pin||'')) || !x.pin
+         ? '<input class="pin-input" type="password" autocomplete="new-password" maxlength="4" inputmode="numeric" value="'+(x.pin||'')+'" placeholder="\u2022\u2022\u2022\u2022"'+(lockPin?' readonly title="Harvey\u2019s PIN is changed from Owner controls only"':'')+' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');msField('+i+',\'pin\',this.value)">'
+         : '<div class="pin-input" style="display:flex;align-items:center;justify-content:center;font-size:10.5px;line-height:1.25;color:var(--t2);text-align:center;padding:4px" title="This person set their own PIN on their own device. Nobody can read it, including you.">own<br>PIN</div>')
       +'<div class="staff-sites"><span class="staff-sites-label">Site access'+(_isMgr(x.role)?' · managers get all':'')+'</span>'+ mMasterSites.map(function(s){ var on=_isMgr(x.role)||((x.sites||[]).indexOf(s.id)>=0); return '<button type="button" class="ssite'+(on?' on':'')+(_isMgr(x.role)?' lock':'')+'" style="--ac:'+s.accent+'" onclick="msToggleSite('+i+',\''+s.id+'\')">'+s.label+'</button>'; }).join('')+'</div>'
       +'</div>';
   }).join('');
@@ -16386,9 +16397,20 @@ function msSave(){
   msg.style.color='';
   for(var i=0;i<mStaffDraft.length;i++){ var st=mStaffDraft[i];
     if(!st.name){ msg.style.color='var(--red)'; msg.textContent='Every staff member needs a name.'; return; }
-    if(!/^\d{4}$/.test(st.pin)){ msg.style.color='var(--red)'; msg.textContent=(st.name||'A staff member')+' needs a 4-digit PIN.'; return; }
-    if(pins[st.pin]){ msg.style.color='var(--red)'; msg.textContent='PIN '+st.pin+' is used more than once.'; return; }
-    pins[st.pin]=1; if(st.role==='Manager'||st.role==='Assistant Manager') mgr++;
+    /* A ROW WITHOUT FOUR DIGITS IS NORMAL NOW, NOT AN ERROR.
+       Anyone who signed up on the new system has a long random value here rather
+       than a PIN — deliberately, because their real PIN is hashed and nobody, the
+       owner included, can read it. Demanding four digits of every row made this
+       screen impossible to save the moment one new person joined: it refused
+       before it even called the server, which is why deploying the fixed
+       master-staff appeared to change nothing. Four-digit PINs are still checked
+       and still have to be unique; anything else is left alone. */
+    if(!st.pin){ msg.style.color='var(--red)'; msg.textContent=(st.name||'A staff member')+' has no PIN on record.'; return; }
+    if(/^\d{4}$/.test(st.pin)){
+      if(pins[st.pin]){ msg.style.color='var(--red)'; msg.textContent='PIN '+st.pin+' is used more than once.'; return; }
+      pins[st.pin]=1;
+    }
+    if(st.role==='Manager'||st.role==='Assistant Manager') mgr++;
   }
   if(!mgr){ msg.style.color='var(--red)'; msg.textContent='Keep at least one Manager.'; return; }
   msg.textContent=''; btn.textContent='Saving…'; btn.disabled=true;
@@ -22063,11 +22085,19 @@ function mrPushLoad(){
        neither grants nor policies. Kept on cu so it survives a page reload,
        because cu is what gets stored. */
     if (Array.isArray(r.master_admins) && r.master_admins.length) m.master_admins = r.master_admins.slice();
-    /* The existing master screens still authorise with cu.pin, so it is passed
-       through unchanged. During the changeover those screens only work if this
-       PIN also matches the old staff table — they move onto the session in the
-       next step, and that is the point at which the old table stops mattering. */
-    try { onLoginOk(m, S.pin); } catch(e){ try{ cu=m; showRoot('home'); }catch(_){ } }
+    /* WHAT GOES INTO cu.pin, AND WHY IT IS NOT A PIN ANY MORE.
+       stock-move, notify-user, hk-ai and master-pin still authorise by matching
+       cu.pin against staff.pin. Anyone who signed up on the new system has a long
+       random value there, so sending the four digits they typed would have been
+       refused — and refused only for them, because Harvey's row still carries his
+       real PIN and everything would have looked fine to him all day. A mechanic
+       unable to move stock on a Saturday is how that gets discovered.
+       The server hands over that random value and it travels instead. Those
+       functions keep working untouched, and what crosses the wire is a per-person
+       secret that is not anybody's PIN — so it cannot leak one. Falls back to the
+       typed PIN only for an account with no staff row at all.
+       The master screens no longer read this: masterCred() sends the session. */
+    try { onLoginOk(m, r.legacy_key || S.pin); } catch(e){ try{ cu=m; showRoot('home'); }catch(_){ } }
     S.pin=''; S.pin2='';
   }
 

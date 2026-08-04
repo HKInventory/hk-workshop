@@ -6063,7 +6063,14 @@ function loadAccessCfg(cb){
        IS the fallback, and everyone else is quietly told they do not have access
        they were granted. Identical on screen to being taken off the list. Same
        family as the site chooser losing Melbourne. Say so, loudly, in the log. */
+    /* AND THE QUIETER HALF: RLS DOES NOT RETURN AN ERROR, IT RETURNS NOTHING.
+       Row-level security switched on with no policy is indistinguishable from an
+       empty table — no error code, no message, just data:null. So checking only
+       res.error catches a revoked GRANT and misses the case that actually looks
+       like this. Both are reported now, because "we were refused" and "the row
+       does not exist" need different fixes and neither is "you lost access". */
     if(res&&res.error){ try{ console.error('[access] app_access read FAILED — Master Access will show for the owner only:', res.error.code, res.error.message); }catch(e){} }
+    else if(!res||!res.data){ try{ console.error('[access] app_access returned NO ROW (id=1). Either the row is missing, or RLS is on with no policy — which returns empty rather than an error. Master Access will show for the owner only.'); }catch(e){} }
     _settle();
     if(cu) applyRoleVisibility();   // re-apply once real access lands — this is the pass that reveals
     if(cb) cb();

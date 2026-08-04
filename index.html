@@ -4005,6 +4005,14 @@
            autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
            name="hk-owner-key-noautofill" data-1p-ignore data-lpignore="true" data-bwignore
            style="letter-spacing:2px;font-size:18px" onkeydown="if(event.key==='Enter')ownerLoad()">
+    <!-- You cannot debug a box you cannot see into. This key is typed rarely, from
+         a password manager or a note, and when it is refused there is no way to
+         tell a wrong key from a browser-filled one from a stray space. Show it. -->
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:8px">
+      <button class="train-link" id="ogate-show" onclick="ownerKeyToggle()">Show key</button>
+      <button class="train-link" id="ogate-clear" onclick="ownerKeyClear()">Clear</button>
+      <span id="ogate-len" style="font-size:11.5px;color:var(--t2)"></span>
+    </div>
     <div class="mgate-row" style="margin-top:10px"><button class="mgate-btn mgate-go" onclick="ownerLoad()">Load list</button></div>
     <div id="ogate-stage" style="display:none;margin-top:14px;text-align:left">
       <div style="font-size:11px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Accounts with Master Access</div>
@@ -14208,9 +14216,53 @@ function openOwnerPanel(){
   document.getElementById('ogate-otp').style.display='none';
   document.getElementById('ogate-key').value='';
   _ownerMsg('');
-  setTimeout(function(){try{document.getElementById('ogate-key').focus();}catch(e){}},120);
+  /* Cleared three times on purpose. Chrome's autofill lands on its own schedule,
+     after the panel has opened, so a single clear at open loses the race. */
+  [120, 400, 900].forEach(function(ms){
+    setTimeout(function(){
+      try{
+        var el=document.getElementById('ogate-key'); if(!el) return;
+        var o2=document.getElementById('ogate'); if(!o2||!o2.classList.contains('show')) return;
+        if(!el._hkTouched) el.value='';
+        if(ms===120){
+          el.focus();
+          el.addEventListener('input', function(){ el._hkTouched=true; ownerKeyLen(); });
+          el.addEventListener('focus', function(){ try{ el.select(); }catch(e){} });
+        }
+        ownerKeyLen();
+      }catch(e){}
+    }, ms);
+  });
 }
 function closeOwnerPanel(){ var o=document.getElementById('ogate'); if(o) o.classList.remove('show'); }
+/* Chrome fills a saved password into a type=password box ASYNCHRONOUSLY, which is
+   after openOwnerPanel() has cleared and focused it. So the box ends up holding a
+   password nobody typed, backspace appears to do nothing because the fill keeps
+   winning, and the server answers "Not authorised" about a string that was never
+   the owner key. Clearing again on a later tick beats the fill; selecting on focus
+   means whatever survives is replaced by the first character you type. */
+function ownerKeyClear(){
+  var el=document.getElementById('ogate-key'); if(!el) return;
+  el.value=''; el.type='password';
+  var b=document.getElementById('ogate-show'); if(b) b.textContent='Show key';
+  try{ el.focus(); }catch(e){}
+  ownerKeyLen();
+}
+function ownerKeyToggle(){
+  var el=document.getElementById('ogate-key'), b=document.getElementById('ogate-show'); if(!el) return;
+  var showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  if(b) b.textContent = showing ? 'Show key' : 'Hide key';
+  try{ el.focus(); }catch(e){}
+}
+/* The character count is the tell for the one failure nobody can see: master-access
+   compares with a length check first, and Deno hands back the secret verbatim while
+   the app trims what you type. A trailing space on the secret in Supabase makes the
+   two lengths differ forever, however carefully you type. */
+function ownerKeyLen(){
+  var el=document.getElementById('ogate-key'), s=document.getElementById('ogate-len'); if(!el||!s) return;
+  var n=(el.value||'').length; s.textContent = n ? (n+' characters') : '';
+}
 function _ownerKey(){ return (document.getElementById('ogate-key').value||'').trim(); }
 function _ownerMsg(t,ok){ var m=document.getElementById('ogate-msg'); if(m){ m.textContent=t||''; m.style.color=(ok===true)?'var(--grn)':((ok===false)?'var(--red)':'var(--t2)'); } }
 function ownerLoad(){
@@ -22037,6 +22089,22 @@ function mrPushLoad(){
 
   document.addEventListener('keydown', function(ev){
     var w = document.getElementById('hka-w'); if (!w || w.style.display === 'none') return;
+    /* THIS HANDLER WAS EATING DIGITS AND BACKSPACE ACROSS THE WHOLE APP.
+       It runs in the capture phase and calls preventDefault, which is right while
+       the keypad is the thing on screen — it is what stops one typed PIN reaching
+       both pads and signing you in twice. But the only thing switching it off was
+       hide(), and hide() only runs when a login happens on THIS page load. Reload
+       the page while already signed in and the sign-in stays mounted, never
+       hidden, still on stage 'pin' — so from then on every 0-9 and every Backspace
+       anywhere in the app was swallowed. That is the owner key box refusing to
+       backspace, and it would have been every quantity, search and PIN field too.
+       Two guards, both of which should always have been here: the sign-in has to
+       be the screen you are actually looking at, and a keystroke aimed at a text
+       field is never ours. */
+    var scr = document.getElementById('s-pin');
+    if (!scr || !scr.classList.contains('active')) return;
+    var t = ev.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     if (S.stage !== 'pin' && S.stage !== 'setpin' && S.stage !== 'setpin2') return;
     var field = (S.stage === 'setpin2') ? 'pin2' : 'pin';
     /* This pad owns the keyboard while it is up. Consuming the event keeps the digit

@@ -6056,10 +6056,19 @@ function loadAccessCfg(cb){
       if(rn.length) MROLES=rn;
       if(Array.isArray(res.data.master_admins)){ MASTER_ADMINS=res.data.master_admins.slice(); if(MASTER_ADMINS.indexOf(MASTER_OWNER)<0) MASTER_ADMINS.unshift(MASTER_OWNER); }
     }
+    /* A FAILED READ HERE SILENTLY REMOVES EVERYONE'S MASTER ACCESS BUT THE OWNER.
+       MASTER_ADMINS defaults to [MASTER_OWNER], so if this select is refused —
+       and it can be now that a signed-in app queries as `authenticated` rather
+       than `anon` — the list never loads, Harvey still sees the tab because he
+       IS the fallback, and everyone else is quietly told they do not have access
+       they were granted. Identical on screen to being taken off the list. Same
+       family as the site chooser losing Melbourne. Say so, loudly, in the log. */
+    if(res&&res.error){ try{ console.error('[access] app_access read FAILED — Master Access will show for the owner only:', res.error.code, res.error.message); }catch(e){} }
     _settle();
     if(cu) applyRoleVisibility();   // re-apply once real access lands — this is the pass that reveals
     if(cb) cb();
-  }, function(){ _settle(); try{ homeGridReveal(); }catch(e){} if(cb) cb(); });
+  }, function(e){ try{ console.error('[access] app_access read threw — Master Access will show for the owner only:', e); }catch(_){}
+      _settle(); try{ homeGridReveal(); }catch(e2){} if(cb) cb(); });
 }
 var _rvSig=null;
 function applyRoleVisibility(force){

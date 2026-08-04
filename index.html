@@ -22085,6 +22085,17 @@ function mrPushLoad(){
     var body = Object.assign({ op:op, token:tok() }, extra||{});
     return fetch(FN, { method:'POST', headers:HDRS, body:JSON.stringify(body) })
       .then(function(r){ return r.json(); })
+      .then(function(r){
+        /* THE PAGE AND THE SERVER SHIP SEPARATELY, AND SOMETIMES THEY DIVERGE.
+           The app deploys itself on every push; hk-auth is deployed by hand. So a
+           new button can exist on screen days before the server knows the word for
+           it, and the raw answer for that is "Unknown op" — which reads as a bug in
+           the button rather than the one thing it is: an old server. Say that. */
+        if (r && !r.success && /unknown op/i.test(r.message || ''))
+          r.message = 'This button needs the hk-auth function redeployed — the app is newer than the server right now.\n\n'
+                    + 'Supabase → Edge Functions → hk-auth → paste supabase/functions/hk-auth/index.ts → Deploy.';
+        return r;
+      })
       .catch(function(){ return { success:false, message:'Connection error' }; });
   }
   function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

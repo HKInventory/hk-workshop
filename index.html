@@ -11204,7 +11204,9 @@ function intelRender(){
 }
 function intelAiRun(){
   var out=document.getElementById('intel-ai-out'), btn=document.getElementById('intel-ai-btn');
-  if(!cu||!cu.pin){ if(out) out.innerHTML='<div class="m-empty">Sign in first.</div>'; return; }
+  // Signed in = has a credential to send, which since the new sign-in is the
+  // session token. cu.pin alone is the legacy bridge and not what gets sent.
+  if(!cu||!masterCred()){ if(out) out.innerHTML='<div class="m-empty">Sign in first.</div>'; return; }
   function go(){
     var q=(document.getElementById('intel-ai-q')?document.getElementById('intel-ai-q').value.trim():'');
     var summary={ since:INTEL.summary.since, layouts:INTEL.summary.tracks.map(function(t){ return {name:t.name, days:Math.round(t.days*10)/10, repairs:t.reps, repairsPerDay:Math.round(t.rate*100)/100, costPerDay:Math.round(t.costRate), live:t.live, damageFingerprint:_iTop(t.buckets,6), breaksKartsLike:(t.like?{layout:t.like.name,patternMatch:Math.round(t.like.sim*100)+'%'}:null), cornerMentions:_iTop(t.corners,6)}; }), biggestMorningCheckBatches:(INTEL.summary.spikes||[]).map(function(d){return {date:d.date,found:d.n,layout:d.layout,mostly:_iTop(d.buckets,2)};}), damageByWeekday:INTEL.summary.wdNames.map(function(n,i){return [n,INTEL.summary.weekdays[i]];}) };
@@ -11212,7 +11214,10 @@ function intelAiRun(){
       +'\n\nUse ONLY this engine data (from our layout timeline, repairs and kart notes). Be specific, quantify, and give a clear recommendation:\n'+JSON.stringify(summary);
     if(btn){ btn.disabled=true; btn.textContent='Thinking\u2026'; }
     if(out) out.innerHTML='<div class="m-empty">HK AI is reading the engine data\u2026</div>';
-    fetch(SB_FN+'hk-ai',{method:'POST',headers:HDRS,body:JSON.stringify({pin:cu.pin,question:question,site:(currentSite||'sydney'),history:[]})})
+    /* Sends the session, not cu.pin. masterCred() returns the live Supabase token
+       and falls back to the legacy bridge key for a device still on an old
+       session — the same credential the master screens use. */
+    fetch(SB_FN+'hk-ai',{method:'POST',headers:HDRS,body:JSON.stringify({token:masterCred(),question:question,site:(currentSite||'sydney'),history:[]})})
       .then(function(r){return r.json();}).then(function(res){
         if(btn){ btn.disabled=false; btn.textContent='\ud83e\udde0 Run deep analysis'; }
         if(res&&res.success){ if(out) out.innerHTML='<div class="mc" style="text-align:left"><div class="mct">HK AI \u00b7 deep analysis</div><div style="font-size:13.5px;line-height:1.9;color:var(--t1);white-space:pre-wrap">'+_iEsc(res.answer)+'</div></div>'; }
@@ -21067,20 +21072,44 @@ function loadUserColors(cb){
 function openAccount(){ if(!cu) return; try{accountRender();}catch(e){} go('account'); }
 function setTextSize(v){ v=+v||0; try{ document.body.classList.toggle('bigtext',v===1); document.body.classList.toggle('hugetext',v>=2); localStorage.setItem('hk_txtsz',String(v)); }catch(e){} }
 (function(){ try{ var v=localStorage.getItem('hk_txtsz'); if(v==null&&localStorage.getItem('hk_bigtext')==='1') v='1'; if(v&&document.body) setTextSize(v); }catch(e){} })();
+/* CHANGING YOUR OWN PIN DID NOT WORK, AT EITHER END.
+   This compared the four digits you typed against cu.pin and refused if they
+   differed. Since accounts moved to hk_accounts, cu.pin has held a 32-character
+   random key (the legacy bridge for the master functions), never a PIN \u2014 so the
+   comparison could never be true and a correct PIN was answered with "Current
+   PIN is wrong". Exactly the msSave() fault again: the client refusing before
+   the server is ever asked.
+   Behind it, master-staff's `self-pin` had the same broken comparison against
+   `staff.pin`, and wrote the new PIN back to `staff` \u2014 a table that stopped
+   deciding sign-ins when hk_accounts took over. Had it matched, the change
+   would have looked like it worked and then not worked.
+   So: no client-side guess at whether the PIN is right. hk-auth owns the hash;
+   hk-auth is asked, on an approved device, and its answer is what the person
+   sees. cu.pin is left alone \u2014 it is the master-function bridge, not a PIN. */
 function acctChangePin(){
   var msgEl=document.getElementById('acct-pin-msg'); function say(t,c){ if(msgEl){ msgEl.textContent=t; msgEl.style.color=c||'#FF5A52'; } }
   var cur=(document.getElementById('acct-pin-cur').value||'').trim(), nw=(document.getElementById('acct-pin-new').value||'').trim();
   if(!cu){ say('Not signed in'); return; }
   if(cu.name===MASTER_OWNER){ say('The owner PIN is changed from Master Access \u2192 Owner controls (with your Owner key), not here.'); return; }
   if(!/^\d{4}$/.test(cur)||!/^\d{4}$/.test(nw)){ say('Both PINs need to be 4 digits'); return; }
-  if(cur!==(cu.pin||'')){ say('Current PIN is wrong'); return; }
   if(cur===nw){ say('New PIN is the same as the current one'); return; }
+  var dev=null; try{ dev=JSON.parse(localStorage.getItem('hk_dev_v1')||'null'); }catch(e){}
+  if(!dev||!dev.device_id){ say('This device isn\u2019t set up for secure sign-in yet \u2014 sign out and back in first.'); return; }
   say('Changing\u2026','var(--t2)');
-  fetch(SB_FN+'master-staff',{method:'POST',headers:HDRS,body:JSON.stringify({op:'self-pin',name:cu.name,pin:cur,newPin:nw})})
+  fetch(SB_FN+'hk-auth',{method:'POST',headers:HDRS,body:JSON.stringify({
+    op:'change-pin', name:cu.name, pin:cur, new_pin:nw,
+    device_id:dev.device_id, device_key:dev.device_key })})
     .then(function(r){return r.json();}).then(function(res){
-      if(res&&res.success){ cu.pin=nw; try{sessionStorage.setItem('hk_u',JSON.stringify(cu));}catch(e){} document.getElementById('acct-pin-cur').value=''; document.getElementById('acct-pin-new').value=''; say('\u2713 PIN changed \u2014 use it next time you sign in','#22C55E'); }
-      else say((res&&res.message)||'Couldn\u2019t change PIN \u2014 redeploy master-staff');
-    }).catch(function(){ say('Connection error \u2014 is master-staff deployed?'); });
+      if(res&&res.success){
+        document.getElementById('acct-pin-cur').value=''; document.getElementById('acct-pin-new').value='';
+        say('\u2713 PIN changed \u2014 use it next time you sign in','#22C55E');
+      }
+      /* Same reason the master screens say this: the app deploys on every push,
+         hk-auth is deployed by hand, so "Unknown op" means an old server, not a
+         broken button. */
+      else if(res&&/unknown op/i.test(res.message||'')) say('This needs hk-auth redeployed \u2014 the app is newer than the server right now.');
+      else say((res&&res.message)||'Couldn\u2019t change PIN');
+    }).catch(function(){ say('Connection error \u2014 try again'); });
 }
 function accountRender(){
   if(!cu) return;

@@ -565,6 +565,93 @@ Deno.serve(async (req) => {
         return json(req, { success: true, ...(await issueSession(fresh, did)) });
       }
 
+      /* ---- 3b. Change a PIN you still know ----------------------------------
+         THERE WAS NO WAY TO DO THIS. Account -> Change PIN called master-staff's
+         `self-pin`, which compared four digits against `staff.pin` and wrote the
+         new one back there. Two things were wrong with that. `staff.pin` has held
+         a 32-character random string since accounts moved to hk_accounts, so the
+         comparison could never match and the screen answered "Current PIN is
+         wrong" to a correct PIN. And even had it matched, it would have updated a
+         table that no longer decides anything — sign-in reads hk_accounts.pin_hash
+         — so the change would have appeared to work and then not worked.
+
+         `set-pin` could not stand in for it either: it refuses an account that
+         already has one ("Ask a manager to reset it"), which is right for a
+         first-time PIN and wrong as the only route. Knowing your own PIN should
+         not need a manager.
+
+         So this is the missing op. Same shape as login — approved device, current
+         PIN checked against the hash, same lockout on repeated failures so it
+         cannot be used to guess around the sign-in screen's backoff — then the
+         same rules set-pin applies to the new one.
+
+         The owner is deliberately excluded and sent to the Owner box instead.
+         Harvey's PIN is changed by Harvey holding the Owner key, and that stays
+         the one path, exactly as reset-pin and account-upsert already have it. */
+      case "change-pin": {
+        const dev = await approvedDevice();
+        if (!dev) return json(req, { success: false, message: "This device isn't approved." });
+        const name = String(body?.name || "");
+        const cur  = String(body?.pin || "");
+        const nw   = String(body?.new_pin || "");
+
+        if (dev.kind === "personal" && dev.owner_name && dev.owner_name !== name)
+          return json(req, { success: false, message: "This device belongs to someone else." });
+        if (!/^\d{4}$/.test(cur) || !/^\d{4}$/.test(nw))
+          return json(req, { success: false, message: "Both PINs need to be 4 digits." });
+        if (cur === nw)
+          return json(req, { success: false, message: "That's the PIN you already have." });
+
+        const { data: acct } = await db.from("hk_accounts").select("*").eq("name", name).maybeSingle();
+        if (!acct || acct.status !== "active") return json(req, { success: false, message: "No account for that name." });
+        if (acct.is_master)
+          return json(req, { success: false, message: "The owner PIN is changed from Master Access → Owner controls, with your Owner key." });
+        if (acct.must_set_pin)
+          return json(req, { success: false, code: "set-pin", message: "You haven't chosen a PIN yet." });
+        if (acct.locked_until && new Date(acct.locked_until) > new Date())
+          return json(req, { success: false, message: "Too many wrong tries — wait a minute and try again." });
+
+        const ok = acct.pin_hash && sameSecret(await hashSecret(cur, acct.pin_salt || ""), acct.pin_hash);
+        if (!ok) {
+          // Counted the same way login counts it, against the same account. Otherwise
+          // this screen would be a way to sit and guess a PIN with no backoff at all.
+          const fails = (acct.failed_count || 0) + 1;
+          const patch: Record<string, unknown> = { failed_count: fails };
+          if (fails >= MAX_FAILS) {
+            const wait = Math.min(LOCK_SECONDS * Math.pow(2, fails - MAX_FAILS), LOCK_CAP_SECONDS);
+            patch.locked_until = new Date(Date.now() + wait * 1000).toISOString();
+          }
+          await db.from("hk_accounts").update(patch).eq("id", acct.id);
+          await log("changepin_wrong", name, did, ip, { fails });
+          return json(req, { success: false, message: "Current PIN is wrong." });
+        }
+
+        // Same list the first-time screen enforces. A PIN changed later must not be
+        // allowed to land on one of the values that were published.
+        const BURNED = ["1234", "2345", "3456", "4567", "2075", "6969", "7890", "8901"];
+        const WEAK   = ["4321", "0123", "1122", "1212", "2580"];
+        if (/^(\d)\1{3}$/.test(nw) || WEAK.includes(nw))
+          return json(req, { success: false, message: "Too easy to guess — pick another." });
+        if (BURNED.includes(nw))
+          return json(req, { success: false, message: "That was an old workshop PIN and is public now. Pick a different one." });
+
+        const salt = randHex(16);
+        await db.from("hk_accounts").update({
+          pin_hash: await hashSecret(nw, salt), pin_salt: salt,
+          must_set_pin: false, pin_set_at: new Date().toISOString(),
+          failed_count: 0, locked_until: null, reset_requested_at: null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", acct.id);
+
+        /* Every OTHER device keeps working on its existing session; this one has
+           just proved who it is. Revoking the lot would sign someone out of their
+           own phone for changing their PIN on the workshop Mac, which is not what
+           anyone means by it. If the PIN is being changed because it leaked, the
+           manager's Reset is the tool that cuts every session. */
+        await log("pin_changed", name, did, ip);
+        return json(req, { success: true });
+      }
+
       /* ---- 4. Log in -------------------------------------------------------- */
       case "login": {
         const dev = await approvedDevice();

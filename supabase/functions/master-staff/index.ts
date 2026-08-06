@@ -91,23 +91,22 @@ Deno.serve(async (req) => {
     const { masterPin, op, staff, sites, access } = body;
     const OWNER_NAME = (Deno.env.get("OWNER_NAME") || "Harvey Betts").trim();
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    // Self-serve PIN change: authorised by the person's own CURRENT pin, not Master Access.
-    // Legacy. New accounts change their PIN through hk-auth, which never stores one in the clear.
-    if (op === "self-pin") {
-      const nm = String(body?.name ?? "").trim();
-      const cur = String(body?.pin ?? "").trim();
-      const nw = String(body?.newPin ?? "").trim();
-      if (!nm || !/^\d{4}$/.test(cur) || !/^\d{4}$/.test(nw)) return json({ success: false, message: "PINs must be 4 digits" });
-      if (nm === OWNER_NAME) return json({ success: false, message: "The owner's PIN can only be changed from the Owner box (with the Owner key)." });
-      const { data: row } = await sb.from("staff").select("name, pin").eq("name", nm).maybeSingle();
-      if (!row || String(row.pin) !== cur) return json({ success: false, message: "Current PIN is wrong" });
-      const { data: clash } = await sb.from("staff").select("name").eq("pin", nw).neq("name", nm).maybeSingle();
-      if (clash) return json({ success: false, message: "That PIN is already taken — pick another" });
-      const { error } = await sb.from("staff").update({ pin: nw }).eq("name", nm);
-      if (error) return json({ success: false, message: error.message });
-      return json({ success: true });
-    }
-
+    /* `self-pin` WAS HERE, ABOVE THE AUTHORISE CALL. It is gone.
+       It sat in front of the only authentication this function does, so it was an
+       unauthenticated write: name + current PIN + new PIN, and it wrote straight
+       to staff.pin. Not exploitable in practice — since accounts moved to
+       hk_accounts, staff.pin holds a 32-character random value nobody can guess,
+       and that same value is what its own check demanded. But that is an accident
+       of the migration, not a design, and it is exactly the kind of thing that
+       stops being true the next time something changes.
+       It could not work anyway: it compared four typed digits against that
+       32-character value, so it answered "Current PIN is wrong" to a correct PIN.
+       And it wrote the new one to `staff`, which stopped deciding sign-ins when
+       hk_accounts took over — so a match would have looked like it worked and
+       then not worked.
+       Changing your own PIN now goes to hk-auth's `change-pin`, which owns the
+       hash, checks it on an approved device, and applies the same lockout and
+       burned-PIN rules as the sign-in screen. */
     const auth = await authorise(sb, String(masterPin));
     if (!auth.ok) return json({ success: false, message: "Not authorised for Master Access" });
     const viaKey = auth.viaKey;

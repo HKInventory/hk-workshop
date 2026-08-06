@@ -22562,6 +22562,27 @@ function mrPushLoad(){
            +   (wantsShared ? '👥 asking to be a shared device · '
                 : (known ? (known.must_set_pin ? '🆕 will choose a PIN · ' : 'has a PIN already · ') : '🆕 new person · '))
            +   esc(kindOf(d.user_agent,d.platform))+' · asked '+esc(ago(d.created_at))+'</div>'
+           /* SECOND DEVICE, SLIGHTLY DIFFERENT NAME, SECOND ACCOUNT.
+              Safari and the installed app are separate browsers, so enrolling a
+              phone AND the home-screen app means typing your name twice — and
+              "Andrew Richardson Computer" becomes a whole second person, with
+              their own PIN and their own row in every list. Nothing was wrong
+              with the typing; the screen just never mentioned that a very
+              similar name already existed. It does now, before you approve. */
+           + (function(){
+               if (wantsShared || known) return '';
+               var want=String(d.requested_name||'').toLowerCase().replace(/[^a-z]/g,'');
+               var near=accounts.filter(function(a){
+                 var h=String(a.name||'').toLowerCase().replace(/[^a-z]/g,'');
+                 return h && want && (h.indexOf(want)===0 || want.indexOf(h)===0);
+               }).map(function(a){ return a.name; });
+               if (!near.length) return '';
+               return '<div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.45);border-radius:10px;'
+                 + 'padding:9px 11px;margin-bottom:10px;font-size:12.5px;color:var(--t1);line-height:1.6">'
+                 + '⚠️ <b>'+esc(near.join(', '))+'</b> already has an account. If this is the same person on a second '
+                 + 'device, approve it below and then set the owner to their existing name — otherwise they end up with '
+                 + 'two accounts and two PINs.</div>';
+             })()
            + (wantsShared ? '' :
                '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.4px;margin-bottom:5px">ROLE</div>'
                + '<select data-role="'+esc(d.device_id)+'" style="width:100%;background:var(--card2);border:1px solid var(--b2);'
@@ -22626,11 +22647,25 @@ function mrPushLoad(){
            + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
            +   '<div style="min-width:0">'
            +     '<div style="font-size:14px;font-weight:600;color:var(--t1)">'+esc(d.label || d.owner_name || d.requested_name || 'Device')+'</div>'
-           +     '<div style="font-size:11.5px;color:var(--t2);margin-top:2px">'
-           +       esc(kindOf(d.user_agent,d.platform)) + ' · seen ' + esc(ago(d.last_seen)) + '</div>'
+           /* A DEVICE APPROVED BUT NEVER USED IS ALMOST ALWAYS A DUPLICATE.
+              Enrolling twice is easy — Safari and the installed app are separate
+              browsers, so one person gets two requests, and a request that seems
+              to fail gets retried. The approval that never got used then sits in
+              this list forever looking like a second real device. It is called
+              what it is, and can be cleared in one tap instead of revoke-then-✕. */
+           +     '<div style="font-size:11.5px;color:'+(d.last_seen?'var(--t2)':'#FBBF24')+';margin-top:2px">'
+           +       esc(kindOf(d.user_agent,d.platform)) + ' · '
+           +       (d.last_seen ? 'seen ' + esc(ago(d.last_seen))
+                                : 'never used — most likely a duplicate approval')
+           +     '</div>'
            +   '</div>'
-           +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4);flex-shrink:0" '
+           +   '<div style="display:flex;gap:6px;flex-shrink:0">'
+           +   (d.last_seen ? ''
+                : '<button class="m-add" style="background:var(--card2);color:var(--t2);border:1px solid var(--b2)" '
+                  + 'data-scrap="'+esc(d.device_id)+'">Remove duplicate</button>')
+           +   '<button class="m-add" style="background:var(--card2);color:#FF5252;border:1px solid rgba(255,82,82,.4)" '
            +     'data-no="'+esc(d.device_id)+'">Revoke</button>'
+           +   '</div>'
            + '</div>'
            + '<select data-owner="'+esc(d.device_id)+'" style="margin-top:9px;width:100%;background:var(--card2);'
            +   'border:1px solid var(--b2);border-radius:9px;color:var(--t1);padding:8px 10px;font-size:13px">'+opts+'</select>'
@@ -22856,6 +22891,20 @@ function mrPushLoad(){
         if (!r || !r.success) alert((r&&r.message) || 'Could not approve.');
         load();
       });
+    }
+
+    /* Revoke then forget, in one tap. Two steps for a row that was never used is
+       friction with no safety in it — the device has never once connected. */
+    var scrap = t.getAttribute && t.getAttribute('data-scrap');
+    if (scrap){
+      if (!confirm('Remove this approval?\n\nThis device has never connected, so nothing is using it. If it ever does ask for access it comes back as a fresh request you have to approve.')) return;
+      t.disabled = true; t.textContent = '…';
+      return call('device-decide', { target_device_id: scrap, decision: 'revoked' })
+        .then(function(){ return call('device-forget', { target_device_id: scrap }); })
+        .then(function(r){
+          if (!r || !r.success) alert((r&&r.message) || 'Could not remove it.');
+          load();
+        });
     }
 
     var fgt = t.getAttribute && t.getAttribute('data-forget');

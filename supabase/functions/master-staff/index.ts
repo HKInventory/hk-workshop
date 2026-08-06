@@ -234,6 +234,28 @@ Deno.serve(async (req) => {
       if (del.error) return json({ success: false, message: del.error.message });
       const ins = await sb.from("staff").insert(rows);
       if (ins.error) return json({ success: false, message: ins.error.message });
+
+      /* A ROLE CHANGED HERE HAS TO REACH THE ACCOUNT, OR IT DID NOTHING.
+         This screen wrote roles to `staff` only, while everything a person can
+         actually DO is decided from hk_accounts.app_role — what they see on the
+         home screen, their emoji, and whether callerManager() lets them near the
+         master tools. So promoting Alex to Assistant Manager here changed a row
+         nobody consults: he kept a mechanic's tiles, a mechanic's spanner, and no
+         Devices tab, and the screen showed the new role back to whoever set it.
+         A change that appears to work and does nothing is worse than one that
+         fails, because nobody goes looking.
+         The role is mirrored onto the account. Names are the join between the two
+         tables; a name with no account is simply skipped — plenty of `staff` rows
+         are people who have not signed up yet. */
+      try {
+        const { data: accts } = await sb.from("hk_accounts").select("name,app_role").eq("status", "active");
+        const byName = new Map((accts || []).map((a: any) => [String(a.name), String(a.app_role || "")]));
+        for (const r of rows) {
+          const want = String(r.role || "");
+          if (!byName.has(r.name) || byName.get(r.name) === want) continue;
+          await sb.from("hk_accounts").update({ app_role: want, updated_at: new Date().toISOString() }).eq("name", r.name);
+        }
+      } catch { /* the roster save must not fail over the mirror */ }
       // replace account_sites
       await sb.from("account_sites").delete().neq("staff_name", " __none__");
       if (accessRows.length) { const ai = await sb.from("account_sites").insert(accessRows); if (ai.error) return json({ success: false, message: ai.error.message }); }

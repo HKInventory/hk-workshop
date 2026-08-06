@@ -16004,6 +16004,75 @@ function vhStart(){
   vhRefresh();
   // A minute is plenty — the boundary only moves once a day, and this costs nothing.
   _vhTimer=setInterval(vhRefresh,60000);
+  try{ sessWatchStart(); }catch(e){}
+}
+/* ===== THE SESSION, AND THE FALLBACK THAT HIDES ITS DEATH ==================
+   A Supabase access token lasts an hour. The library renews it in the
+   background — but when it CANNOT (offline through the expiry, a revoked
+   account, storage cleared), supabase-js does something worth knowing about:
+   _getAccessToken() is `(await getSessionToken()) ?? this.supabaseKey`. With no
+   session it silently falls back to THE ANON KEY.
+
+   So today an expired session looks like nothing at all: the anon key still has
+   read grants, so the screens keep filling and only the calls that carry the
+   token — Devices, saving the roster, editing a part — start refusing, with no
+   connection between the two. That is exactly how "Managers only" arrived on a
+   screen that had worked all morning.
+
+   And the day the anon key is retired it gets worse: the same silent fallback
+   produces a blank app instead of an explanation.
+
+   So the session is checked out loud. Renew it if it can be renewed; if it
+   cannot, say so plainly and offer the one action that fixes it. Never guess,
+   never degrade quietly. */
+/* STARTED ON ITS OWN, NOT HUNG OFF ANOTHER FUNCTION'S FIRST CALL.
+   This was kicked off by vhStart(), which returns early if it is already
+   running — so depending on the order the two got called, the watchdog either
+   started or silently never did. A guard that sometimes does not exist is worse
+   than no guard, because you stop looking. It owns its own timer, and sessCheck
+   decides for itself whether there is anyone to check. */
+var _sessTimer=null;
+function sessWatchStart(){
+  if(_sessTimer) return;
+  _sessTimer=setInterval(sessCheck,60000);
+  setTimeout(sessCheck,3000);
+}
+try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ try{sessWatchStart();}catch(e){} });
+     else sessWatchStart(); }catch(e){}
+function sessCheck(){
+  if(!cu||TRAINING){ return; }
+  try{
+    if(!(SBC&&SBC.auth&&SBC.auth.getSession)) return;
+    Promise.resolve(SBC.auth.getSession()).then(function(res){
+      var s=res&&res.data&&res.data.session;
+      if(s&&s.access_token){ try{ if(window.hkaSetToken) window.hkaSetToken(s.access_token); }catch(e){} return sessBanner(false); }
+      // No session. Try once to bring it back before troubling anyone.
+      if(SBC.auth.refreshSession){
+        Promise.resolve(SBC.auth.refreshSession()).then(function(r2){
+          var s2=r2&&r2.data&&r2.data.session;
+          if(s2&&s2.access_token){ try{ if(window.hkaSetToken) window.hkaSetToken(s2.access_token); }catch(e){} return sessBanner(false); }
+          sessBanner(true);
+        }, function(){ sessBanner(true); });
+      } else sessBanner(true);
+    }, function(){ /* could not ask — say nothing rather than accuse */ });
+  }catch(e){}
+}
+function sessBanner(show){
+  try{
+    var el=document.getElementById('sessbar');
+    if(!show){ if(el) el.remove(); return; }
+    if(el) return;
+    el=document.createElement('div'); el.id='sessbar';
+    el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9000;padding:12px 16px;'
+      +'background:rgba(255,82,82,.14);border-top:1px solid rgba(255,82,82,.5);color:#FF8A8A;'
+      +'font:600 13px/1.5 Inter,system-ui,sans-serif;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap';
+    el.innerHTML='<span>Your sign-in has expired. Anything you save now may be refused.</span>'
+      +'<button id="sessbar-go" style="background:var(--grad);border:none;border-radius:9px;color:#fff;'
+      +'font-weight:700;font-size:13px;padding:8px 14px;cursor:pointer;font-family:inherit">Sign in again</button>';
+    document.body.appendChild(el);
+    var b=document.getElementById('sessbar-go');
+    if(b) b.onclick=function(){ try{ logout(); }catch(e){ location.reload(); } };
+  }catch(e){}
 }
 /* Is data actually flowing? The runner writes a health snapshot every 30 minutes while it is awake
    and stops when it stands down, so a snapshot older than that means collection has stopped —
@@ -17469,7 +17538,24 @@ function tvAuthWatch(){
     if(!tvDev()) return;
     try{
       var p=SBC.auth.getSession&&SBC.auth.getSession();
-      if(p&&p.then){ p.then(function(res){ var s=res&&res.data&&res.data.session; if(!s) tvSignIn(); }, function(){ tvSignIn(); }); }
+      if(!(p&&p.then)) return tvSignIn();
+      p.then(function(res){
+        var s=res&&res.data&&res.data.session;
+        if(!s) return tvSignIn();
+        /* CHECKING IS NOT RENEWING, AND ON THIS DEVICE NOBODY IS WATCHING.
+           auth-js stops its own refresh ticker whenever the browser reports the
+           tab hidden — which is exactly what a screen-blanked Mac reports, for
+           hours. So the board could sit holding a session that was valid when
+           last looked at and long dead by the time it mattered, then fall back
+           to the anon key without a word. Renewed here, ahead of expiry, by the
+           one thing on this device that is definitely still running. */
+        var exp=(s.expires_at||0)*1000;
+        if(exp && (exp - Date.now()) < 300000 && SBC.auth.refreshSession){
+          Promise.resolve(SBC.auth.refreshSession()).then(function(r2){
+            if(!(r2&&r2.data&&r2.data.session)) tvSignIn();
+          }, function(){ tvSignIn(); });
+        }
+      }, function(){ tvSignIn(); });
     }catch(e){ tvSignIn(); }
   }, 60000);
 }

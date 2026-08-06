@@ -741,6 +741,20 @@ Deno.serve(async (req) => {
             if (a.auth_user_id) {
               try { await db.auth.admin.updateUserById(a.auth_user_id, { ban_duration: "876000h", password: randHex(24) }); } catch { /* best effort */ }
             }
+            /* A PERSON LIVES IN MORE THAN ONE LIST, AND REMOVING THEM ONLY EVER
+               TOUCHED ONE OF THEM.
+               push_subs is the one that matters: it is keyed by name and it is
+               what notify-user sends to, so someone removed from the app went on
+               receiving ramp reminders, task assignments and CHAT MESSAGES on
+               their phone. Rafael Hewitt was still on that list days after his
+               account went. Their phone kept a live feed out of the business.
+               account_sites is the same story, quieter: stale venue access rows
+               for people who no longer exist.
+               Deliberately NOT deleted: anything they wrote. Chat messages,
+               repairs and notes are the workshop's record and stay. Removing
+               someone ends their access; it does not rewrite history. */
+            try { await db.from("push_subs").delete().eq("name", name); } catch { /* best effort */ }
+            try { await db.from("account_sites").delete().eq("staff_name", name); } catch { /* best effort */ }
           }
         }
         await log("account_upsert", mgr.name, null, ip, { target: name, status: disabling ? "disabled" : "active" });
@@ -876,6 +890,8 @@ Deno.serve(async (req) => {
 
         if (decision === "declined") {
           await db.from("hk_accounts").delete().eq("name", name).eq("status", "pending");
+          // Nothing agreed to, nothing left behind — including any push registration.
+          try { await db.from("push_subs").delete().eq("name", name); } catch { /* best effort */ }
           await log("account_declined", mgr.name, null, ip, { target: name });
           return json(req, { success: true });
         }

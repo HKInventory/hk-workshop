@@ -39,8 +39,11 @@ select 'hk_devices', d.owner_name, 'an approved device still bound to them'
  where d.owner_name is not null and d.status = 'approved'
    and d.owner_name not in (select name from acct)
 union all
+-- master_admins is JSONB, not a text[] — unnest() rejects it outright, and because
+-- the error aborts the whole batch the deletes below never ran the first time.
 select 'master_admins', x.nm, 'listed as having Master Access'
-  from public.app_access, lateral unnest(coalesce(master_admins, '{}')) as x(nm)
+  from public.app_access,
+       lateral jsonb_array_elements_text(coalesce(master_admins, '[]'::jsonb)) as x(nm)
  where id = 1 and x.nm not in (select name from acct)
 order by list, name;
 

@@ -57,14 +57,43 @@ function statusClass(code: number | null, txt: string | null): "ok" | "maint" | 
   return "ok";
 }
 
-// Authenticate the asking user by reusing the existing verify-pin function, so this
-// function never needs to know how PINs are stored — and gets the authoritative role.
-async function verifyUser(pin: string): Promise<{ name: string; role: string } | null> {
+/* HK AI HAS BEEN ANSWERING "Sign in first." TO EVERYONE.
+   The guard below used to be `if (!/^\d{4,8}$/.test(pin)) return "Sign in first."`,
+   and the app stopped sending a PIN some time ago. cu.pin now carries the legacy
+   bridge key — 32 hex characters — so that test was false for every account
+   created on the new sign-in, and the request was rejected before anything was
+   even asked. Nothing said so; the answer just looked like a session problem.
+
+   Fixed by asking the right question. The Supabase session the sign-in already
+   issues is verified here, and the name on it is looked up in hk_accounts for the
+   authoritative role — the same source the rest of the app now trusts. The legacy
+   key is still accepted underneath so a device holding an old session is not cut
+   off mid-shift; that path goes when `staff` does. */
+async function verifyUser(token: string): Promise<{ name: string; role: string } | null> {
+  if (!token) return null;
+  const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+  // 1. A Supabase session token. Signed by the auth server, so it cannot be forged.
+  if (token.split(".").length === 3) {
+    try {
+      const { data } = await db.auth.getUser(token);
+      const uid = data?.user?.id;
+      if (uid) {
+        const { data: a } = await db.from("hk_accounts")
+          .select("name, app_role, status").eq("auth_user_id", uid).maybeSingle();
+        if (a && a.status === "active")
+          return { name: String(a.name || "there"), role: String(a.app_role || "Mechanic") };
+      }
+    } catch { /* fall through to the legacy path */ }
+    return null;
+  }
+
+  // 2. Legacy: the bridge key, or an old 4-digit PIN, still checked by verify-pin.
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
-      body: JSON.stringify({ pin }),
+      body: JSON.stringify({ pin: token }),
     });
     const m = await r.json().catch(() => ({} as any));
     if (m && m.success) return { name: String(m.name || "there"), role: String(m.role || "Mechanic") };
@@ -79,15 +108,19 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return json({ success: false, message: "Bad JSON" }, 400); }
 
-  const pin      = String(body?.pin ?? "");
+  // `token` from the current app, `pin` from anything still on the old payload.
+  const cred     = String(body?.token ?? body?.pin ?? "");
   const question = String(body?.question ?? "").trim();
   const site     = String(body?.site ?? "sydney").toLowerCase();
   const history  = Array.isArray(body?.history) ? body.history : [];
   if (!question) return json({ success: false, message: "Ask me a question." }, 400);
-  if (!/^\d{4,8}$/.test(pin)) return json({ success: false, message: "Sign in first." }, 401);
+  // No shape test on the credential. The old `/^\d{4,8}$/` here is the whole bug:
+  // it rejected every current sign-in before verifyUser was ever called. Let the
+  // thing that can actually tell — the auth server — be the one that decides.
+  if (!cred) return json({ success: false, message: "Sign in first." }, 401);
 
-  const user = await verifyUser(pin);
-  if (!user) return json({ success: false, message: "Couldn't verify your PIN — sign in again." }, 401);
+  const user = await verifyUser(cred);
+  if (!user) return json({ success: false, message: "Couldn't verify your sign-in — sign out and back in." }, 401);
   const mgr = isMgr(user.role);
 
   if (!ANTHROPIC_KEY) {

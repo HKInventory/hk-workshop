@@ -22364,6 +22364,27 @@ function mrPushLoad(){
   var TOKKEY = 'hk_tok_v1';
   function tok(){ try { return sessionStorage.getItem(TOKKEY) || ''; } catch(e){ return ''; } }
   window.hkaSetToken = function(t){ try { t ? sessionStorage.setItem(TOKKEY,t) : sessionStorage.removeItem(TOKKEY); } catch(e){} };
+  /* THIS COPY WAS TAKEN ONCE AT SIGN-IN AND NEVER UPDATED AGAIN.
+     A Supabase access token lasts an hour. The library renews its own session in
+     the background quite happily — but nothing was telling this stored copy, so
+     after an hour it held a token that no longer verified. Every call that
+     carries it then failed: Devices answered "Managers only", to the owner, on a
+     screen he had been using all morning. Nothing had changed except the clock,
+     which is the worst kind of fault to be handed with no explanation.
+     Now it follows the session. TOKEN_REFRESHED fires on every renewal, and
+     SIGNED_OUT clears it so a stale token cannot outlive the session it came
+     from. Registered once, and never allowed to throw during boot. */
+  try {
+    if (typeof SBC !== 'undefined' && SBC && SBC.auth && SBC.auth.onAuthStateChange && !window.__hkTokWatch){
+      window.__hkTokWatch = true;
+      SBC.auth.onAuthStateChange(function(evt, session){
+        try {
+          if (evt === 'SIGNED_OUT') return window.hkaSetToken('');
+          if (session && session.access_token) window.hkaSetToken(session.access_token);
+        } catch(e){}
+      });
+    }
+  } catch(e){}
 
   var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
   function call(op, extra){

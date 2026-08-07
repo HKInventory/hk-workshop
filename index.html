@@ -8977,7 +8977,12 @@ function todoLoad(){
   var q=[
     SBC.from('rf_kart_types').select('uuid,type,site,rf_type_id').then(function(r){return r;},function(){return {data:null};}),
     SBC.from('part_aliases').select('rf_part_name,sku').is('sku',null).limit(200).then(function(r){return r;},function(){return {data:null};}),
-    SBC.from('staff').select('name,role').limit(300).then(function(r){return r;},function(){return {data:null};}),
+    /* staff_public, not staff. The browser has no privilege on the staff table at all — that is
+       deliberate, it is the table holding PINs — so this read has been failing silently since the
+       grant was removed, and the "Staff member with no role" check below has simply never run.
+       It degrades to {data:null} on error, so nothing ever said so. staff_public exposes exactly
+       name, role and emoji over the same rows, which is all this check needs. */
+    SBC.from('staff_public').select('name,role').limit(300).then(function(r){return r;},function(){return {data:null};}),
     SBC.from('rf_sync_state').select('k,v').eq('k','last_status').limit(1).then(function(r){return r;},function(){return {data:null};})
   ];
   Promise.all(q).then(function(rs){

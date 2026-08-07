@@ -103,12 +103,24 @@ Deno.serve(async (req) => {
       const minsUntilEnd = dd * 1440 + hm(ev.end_t) - now.minutes;
       if (minsUntilEnd < -5) continue;                          // over
       const notified = (ev.notified && typeof ev.notified === "object") ? ev.notified : {};
-      let due: [string, string] | null = null;
-      for (const [thresh, key, word] of STEPS) {
-        if (minsUntilStart <= thresh && !notified[key]) { due = [key, word(minsUntilStart)]; }
-      }
-      if (!due) continue;
-      const [key, word] = due;
+
+      /* PICK THE MOST URGENT STEP THAT APPLIES, THEN REFUSE TO SEND A STALE ONE.
+         This used to take the last step matching `minsUntilStart <= thresh && !notified[key]`,
+         which skipped over an already-sent step to a LESS urgent one that had never been sent.
+         Caught live on 7 Aug: event 14 started at 13:00, only its "now" step was marked, and at
+         15:35 — two and a half hours after the ramp was due clear — the ladder selected "m30" and
+         was about to push "Ramp clearance in 30 minutes" to every phone. A safety reminder that
+         arrives after the deadline, describing a deadline that has passed, teaches people to
+         ignore the next one.
+         Now: take the most urgent applicable step. If it has already gone out, send nothing. If a
+         MORE urgent step has already gone out, every gentler step is history by definition. */
+      let target: [number, string, (m: number) => string] | null = null;
+      for (const step of STEPS) if (minsUntilStart <= step[0]) target = step;
+      if (!target) continue;
+      const [tThresh, tKey, tWord] = target;
+      if (notified[tKey]) continue;                                        // this step already sent
+      if (STEPS.some(([th, k]) => th < tThresh && notified[k])) continue;  // a sharper one already went
+      const key = tKey, word = tWord(minsUntilStart);
       const title = key === "now" ? "🚧 Ramp must be clear NOW" : `🚧 Ramp clearance ${word}`;
       const body = `${ev.name} — clear the ramp by ${ev.start_t} on ${ev.date.split("-").reverse().join("/")} (needed ${ev.start_t}–${ev.end_t}).`;
 

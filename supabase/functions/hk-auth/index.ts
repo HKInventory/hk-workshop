@@ -652,6 +652,81 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       }
 
+      /* ---- 3c. The owner changes their own PIN, holding the Owner key --------
+         THIS USED TO LIVE IN master-staff AND IT DID NOT WORK. It wrote the new
+         PIN to `staff.pin` — the table that stopped deciding sign-ins when
+         hk_accounts took over — so Owner controls answered "saved" and the
+         owner's actual sign-in PIN never moved. Exactly the same fault as the
+         old Change PIN screen, one screen along, and invisible because the owner
+         is the only person who ever opens it.
+
+         It lives here because this function owns the hash. master-staff still
+         checks the Owner key — that gate does not move — and forwards to this.
+         The hashing below is the *same* hashSecret that set-pin and change-pin
+         call, which is the point: a second PBKDF2 implementation that drifted
+         from this one would lock the master account out of its own system, and
+         there is no recovery code set to climb back in with.
+
+         Owner-key-only, deliberately. change-pin refuses is_master on purpose
+         and that stays the rule — the owner's PIN is changed by the owner
+         holding the key, and by nothing else. */
+      case "owner-set-pin": {
+        const OWNER_KEY = Deno.env.get("OWNER_KEY") || "";
+        if (!OWNER_KEY) return json(req, { success: false, message: "No Owner key is configured on the server." }, 403);
+        if (!sameSecret(String(body?.owner_key || ""), OWNER_KEY)) {
+          await log("owner_setpin_bad_key", null, did, ip);
+          return json(req, { success: false, message: "That Owner key isn't right." }, 403);
+        }
+        const nw = String(body?.new_pin || "");
+        if (!/^\d{4}$/.test(nw)) return json(req, { success: false, message: "PIN must be 4 digits." });
+
+        // The same two lists set-pin and change-pin enforce. The owner is not
+        // exempt from the burned PINs — those are the ones that were published.
+        const BURNED = ["1234", "2345", "3456", "4567", "2075", "6969", "7890", "8901"];
+        const WEAK   = ["4321", "0123", "1122", "1212", "2580"];
+        if (/^(\d)\1{3}$/.test(nw) || WEAK.includes(nw))
+          return json(req, { success: false, message: "Too easy to guess — pick another." });
+        if (BURNED.includes(nw))
+          return json(req, { success: false, message: "That was an old workshop PIN and is public now. Pick a different one." });
+
+        const { data: master } = await db.from("hk_accounts").select("*")
+          .eq("is_master", true).eq("status", "active").limit(1).maybeSingle();
+        if (!master) return json(req, { success: false, message: "No master account." });
+
+        const salt = randHex(16);
+        await db.from("hk_accounts").update({
+          pin_hash: await hashSecret(nw, salt), pin_salt: salt,
+          must_set_pin: false, pin_set_at: new Date().toISOString(),
+          failed_count: 0, locked_until: null, reset_requested_at: null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", master.id);
+
+        /* AND TAKE THE PLAINTEXT COPY OUT OF `staff` WHILE WE ARE HERE.
+           Every other account got a 32-character random placeholder in staff.pin
+           when they moved to the new sign-in. The owner's row predates that and
+           still held their real four digits — which meant master-staff's `list`
+           handed the owner's actual PIN to anyone with Master Access, and
+           issueSession sent it to the owner's own browser on every sign-in as
+           legacy_key. That bridge was explicitly designed to carry something
+           that is not anybody's PIN. For one account it was carrying exactly
+           that.
+           Replaced with a placeholder like everyone else's, which is what makes
+           "nobody sees anybody's PIN, including the owner" true rather than
+           nearly true. Only ever touches a value that IS four digits, so
+           re-running this is harmless. */
+        let staff_pin_replaced = false;
+        try {
+          const { data: st } = await db.from("staff").select("pin").eq("name", master.name).maybeSingle();
+          if (st && /^\d{4}$/.test(String(st.pin ?? ""))) {
+            await db.from("staff").update({ pin: randHex(16) }).eq("name", master.name);
+            staff_pin_replaced = true;
+          }
+        } catch { /* the bridge is on its way out; never fail a PIN change over it */ }
+
+        await log("owner_pin_changed", master.name, did, ip, { staff_pin_replaced });
+        return json(req, { success: true, staff_pin_replaced });
+      }
+
       /* ---- 4. Log in -------------------------------------------------------- */
       case "login": {
         const dev = await approvedDevice();

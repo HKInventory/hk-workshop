@@ -111,15 +111,40 @@ Deno.serve(async (req) => {
     if (!auth.ok) return json({ success: false, message: "Not authorised for Master Access" });
     const viaKey = auth.viaKey;
 
+    /* THIS WROTE THE OWNER'S NEW PIN TO `staff.pin` AND REPORTED SUCCESS.
+       `staff.pin` stopped deciding sign-ins when hk_accounts took over, so Owner
+       controls said "saved" and the owner's actual sign-in PIN never changed —
+       they carried on signing in with the old one. The same fault as the old
+       Change PIN screen, and it survived longer because the owner is the only
+       person who ever opens this screen.
+       It also checked the new PIN against other rows in `staff` for a clash,
+       which is meaningless now: every other row holds a 32-character random
+       placeholder, and hk_accounts stores a hash, not a PIN, so there is nothing
+       to clash with.
+       The Owner-key gate stays exactly where it was — `viaKey` above is still
+       what decides. Only the write moved, to hk-auth, which owns the hash and
+       uses the very same hashSecret as set-pin and change-pin. One
+       implementation, so it cannot drift out of step with sign-in. */
     if (op === "owner-set-pin") {
       if (!viaKey) return json({ success: false, message: "Enter your Owner key first — the owner PIN can only be changed with it." });
       const nw = String(body?.newPin ?? "").trim();
       if (!/^\d{4}$/.test(nw)) return json({ success: false, message: "PIN must be 4 digits" });
-      const { data: clash } = await sb.from("staff").select("name").eq("pin", nw).neq("name", OWNER_NAME).maybeSingle();
-      if (clash) return json({ success: false, message: "That PIN is already used by " + clash.name });
-      const { error } = await sb.from("staff").update({ pin: nw }).eq("name", OWNER_NAME);
-      if (error) return json({ success: false, message: error.message });
-      return json({ success: true });
+      try {
+        const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/hk-auth`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")!}`,
+          },
+          body: JSON.stringify({ op: "owner-set-pin", owner_key: Deno.env.get("OWNER_KEY") || "", new_pin: nw }),
+        });
+        const m = await r.json().catch(() => ({} as any));
+        if (!m?.success) return json({ success: false, message: String(m?.message ?? "Could not change the owner PIN.") });
+        return json({ success: true, staff_pin_replaced: !!m.staff_pin_replaced });
+      } catch {
+        return json({ success: false, message: "Could not reach the sign-in service — try again in a moment." });
+      }
     }
 
     if (op === "list") {

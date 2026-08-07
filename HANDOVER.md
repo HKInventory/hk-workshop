@@ -235,11 +235,29 @@ and C ran straight through `execute_sql` / `apply_migration`.
 
 ### 5.3 Close the last public read — the big one
 
-**Step 1 of the order below is already done** (see §5.2 — Part D was already
-applied). All nine tables `anon` can read are already readable by
-`authenticated`, and the three `hk_devices` columns exist. The *only* thing
-holding the public key open is that the TV has no account: `display_enrolled`
-was still 0 on 7 August. Steps 2–4 remain and need Harvey at the board.
+**Steps 1 and 2 are DONE as of 7 August.** Part D was already applied (§5.2), and
+the wall display is now enrolled and signing itself in:
+
+```
+label "Wall display · sydney"  kind display  status approved  site sydney
+display_secret SET   display_user_id SET   display_enrolled = 1
+```
+
+Two `display_signin` events logged at 02:49 and 02:50, the second one the
+watchdog renewing on its own. **`display_enrolled` was 0 from the day this
+started; that is the number that had to move, and it has.**
+
+**What remains: step 3 (watch it a full day, no red badge) then step 4, the
+revoke.** Do the revoke and the `security_invoker` flip on `staff_public` /
+`repair_totals_public` in the SAME sitting, with the board in front of you —
+those two views are the other thing that can blank it.
+
+⚠️ **Enrolment had a bug, now fixed** — see the comment at the `_tvm` match in
+`index.html`. `#tv-enrol=CODE` set `__tvSite` to the string `"enrol=555678"`,
+so the board asked for a site that does not exist and came up fully drawn with
+no data in it, and the join code got stamped into the device label. Nothing
+errored. If a board ever shows its layout with empty panels, check
+`window.__tvSite` before anything else.
 
 **`anon` can still SELECT nine tables** using the key printed in the page
 source: `rf_karts`, `rf_repairs`, `rf_kart_notes`, `tasks`, `stock`, `tv_state`,

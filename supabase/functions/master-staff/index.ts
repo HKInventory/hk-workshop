@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
         for (const site of uniq) if (allSiteIds.indexOf(site) >= 0) accessRows.push({ staff_name: name, site });
       }
 
-      const del = await sb.from("staff").delete().neq("name", " __none__");
+      const del = await sb.from("staff").delete().neq("name", "__none__");
       if (del.error) return json({ success: false, message: del.error.message });
       const ins = await sb.from("staff").insert(rows);
       if (ins.error) return json({ success: false, message: ins.error.message });
@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
         }
       } catch { /* the roster save must not fail over the mirror */ }
       // replace account_sites
-      await sb.from("account_sites").delete().neq("staff_name", " __none__");
+      await sb.from("account_sites").delete().neq("staff_name", "__none__");
       if (accessRows.length) { const ai = await sb.from("account_sites").insert(accessRows); if (ai.error) return json({ success: false, message: ai.error.message }); }
       return json({ success: true, count: rows.length });
     }

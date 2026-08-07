@@ -55,7 +55,7 @@
    line so a deploy is reproducible: the same source deploys to the same thing
    tomorrow as it did today. */
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
-import webpush from "npm:web-push@3";
+import webpush from "npm:web-push@3.6.7";   // pinned 7 Aug — "@3" is a RANGE, see notify-user
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

@@ -5463,7 +5463,25 @@ var stk=[];
   // A site can be appended for per-TV displays: …/#tv-melbourne (or #tv/melbourne, #tv=melbourne).
   var _hh=(location.hash||'').replace(/^#/,'').split(/[?&]/)[0].toLowerCase();
   var _tvm=_hh.match(/^tv(?:[-\/=:](.+))?$/);
-  if(_tvm){ window.__tvSite=(_tvm[1]||'sydney'); bootTvDisplay(); return; }
+  if(_tvm){
+    /* THE ENROL TOKEN IS NOT A SITE NAME.
+       This captured everything after "tv-", so enrolling a board at
+       #tv-enrol=555678 set __tvSite to the string "enrol=555678". The device row
+       was fine — the approval screen sets the real site — but the BOARD then asked
+       the database for site "enrol=555678", every query matched nothing, and the
+       screen came up with its layout drawn and no data in it. It also stamped the
+       join code into the device label, so a live credential ended up printed in
+       the Devices list.
+       Nothing errored. It looked like a board that had failed to load, which is
+       the same shape as half the other bugs in this system: the failure arrived
+       as a plausible wrong answer rather than as an error.
+       Enrolment still boots the board here — it has to, that is how a screen gets
+       enrolled at all — the token is just no longer mistaken for a venue. */
+    var _site=(_tvm[1]||'');
+    if(/^enrol=/.test(_site)) _site='';
+    window.__tvSite=(_site||'sydney');
+    bootTvDisplay(); return;
+  }
   var u=sessionStorage.getItem('hk_u'),ud=sessionStorage.getItem('hk_ud');
   // Pre-fetch staff in background immediately
   fetchStaff(null);

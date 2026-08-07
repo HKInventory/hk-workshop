@@ -13,7 +13,7 @@ nothing.
 
 ## Run status
 
-Checked against the live database on **6 August 2026**, not from memory.
+Checked against the live database on **7 August 2026**, not from memory.
 
 | File | Status | How that was checked |
 |---|---|---|
@@ -23,11 +23,34 @@ Checked against the live database on **6 August 2026**, not from memory.
 | `staff_fresh_start.sql` | run | `staff` matches the account list |
 | `security_orphans.sql` | run | `push_subs` holds only active accounts |
 | `security_authenticated_writes.sql` | **Part 1 run** | no TRUNCATE/TRIGGER/REFERENCES left for anon or authenticated |
-| `security_audit_findings.sql` | **partly superseded** | Tier 1 search_path pinning and Tier 2 function revokes are now applied; the `staff_pin_backup` drop is still outstanding |
+| `security_audit_findings.sql` | **run** | Tier 1 search_path pinning and Tier 2 function revokes applied; `staff_pin_backup` dropped 7 Aug |
 | `security_display_account.sql` | **NOT run** | no device has a `display_secret`, no display auth user exists |
 | `rimo_bms_retention.sql` | **superseded** | replaced by `rimo_bms_retention_v2.sql` |
-| `rimo_bms_retention_v2.sql` | **steps 1–3 applied, step 4 outstanding** | new function and BRIN index are live; 1.13M rows still waiting to be reclaimed |
+| `rimo_bms_retention_v2.sql` | **steps 1–3 applied, step 4 declined** | function and BRIN index live; hard retention is holding on its own (rows past cutoff = 0, oldest 31 July). Harvey chose on 7 Aug NOT to thin the 48h–7d band |
+| `RUN-THIS-2026-08-06.sql` | **B, C run; D was already true; A declined** | see below |
 | `UNLOCK-HARVEY.sql` | run, one-off | recovery script, keep for reference |
+
+### `RUN-THIS-2026-08-06.sql`, part by part — 7 August
+
+- **Part A — NOT run, by Harvey's decision.** It thins battery readings older
+  than 48 h to one per 10 s. The *delete* half it was also written to do is
+  already being done by the runner: rows past the 7-day cutoff measured **0**,
+  oldest **31 July**. So the only thing Part A had left to do was the thinning,
+  and Harvey chose to keep full resolution. `rimo_bms_history` stays ~1055 MB of
+  a 1148 MB database. Retention holds the 7-day line, so it does not grow without
+  bound. Re-runnable any time — the decision is reversible in one direction only.
+- **Part B — run.** Check returned zero rows. Cleared: Jayden Aginsky and Rafael
+  Hewitt from `presence`, Rafael Hewitt from `user_prefs`, "Andrew Richardson
+  Computer" from `staff` and from two `account_sites` rows, Charbel Tawk from
+  `app_access.overrides`. All five real accounts verified still present in every
+  one of those lists afterwards.
+- **Part C — run** as a migration, `drop_staff_pin_backup`. The table is gone.
+  It was **not read first**, deliberately. `stock_backup_20260728` still exists;
+  Harvey chose to keep it.
+- **Part D — was already true before I touched it.** All three `hk_devices`
+  columns (`display_secret`, `display_user_id`, `site`) already existed, and
+  `authenticated` already held SELECT on all ten tables. The handover said this
+  was outstanding; it was not. Running it would have been a no-op.
 
 Everything else (`kart_checks.sql`, `presence.sql`, `rf_*.sql`, `rimo_control.sql`,
 `session_reset.sql`, `stock_reset.sql`) predates the security work and is long

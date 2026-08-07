@@ -46,9 +46,18 @@
 // The rate-limit read fails OPEN on purpose. A broken count must not take sign-in down; this is
 // defence in depth, not the primary control.
 //
-// WHAT WAS DELIBERATELY NOT CHANGED. Which credentials are accepted is untouched. Refusing to match
-// four-digit values would close the landmine properly, but it changes who can sign in, and that is
-// the owner's call, not mine. See HANDOVER.md.
+// GUESSABLE VALUES ARE NOW REFUSED OUTRIGHT. Added on Harvey's instruction, 7 Aug.
+// The rate limit slows a brute force; it does not stop one. So this endpoint no longer compares
+// short values at all: anything under MIN_SECRET_LEN is rejected before any row is read, and any
+// STORED value that short is skipped even if something later writes one. A four-digit PIN can
+// therefore never be confirmed here again regardless of what ends up in staff.pin.
+//
+// Both halves matter and neither is sufficient alone. master-staff now refuses to let a four-digit
+// value INTO staff.pin (the server picks the value; the client no longer supplies it); this refuses
+// to VALIDATE one that is already there. Belt and braces, because the two paths fail differently.
+//
+// Nothing legitimate is affected: all six active rows hold 32-character values, and hk-ai passes a
+// long bridge token. Measured before shipping, not assumed.
 // ---------------------------------------------------------------------------------------------
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 
@@ -62,6 +71,10 @@ const json = (o: unknown) =>
 
 const MAX_FAILS_PER_IP = 40;   // see the note above on why this is not 10
 const WINDOW_MIN       = 10;
+/* Shorter than this is guessable by exhaustion, so it is not a secret and is never compared.
+   16 sits well above any PIN or short code and well below the 32-character values actually in
+   use, so it rejects the dangerous shapes without being tuned to one particular format. */
+const MIN_SECRET_LEN   = 16;
 
 const enc = new TextEncoder();
 /* Constant-time compare — same reasoning as hk-auth's sameSecret. A plain === stops at the first
@@ -100,8 +113,15 @@ Deno.serve(async (req) => {
       return json({ success: false, message: "Too many tries — wait a few minutes." });
     }
 
-    if (!entered) {
-      try { await sb.from("hk_auth_log").insert({ event: "verifypin_fail", ip, detail: { why: "empty" } }); } catch { /* best effort */ }
+    /* Refused before any row is read, so a short guess costs an attacker a round trip and
+       tells them nothing about whether such a value exists. */
+    if (entered.length < MIN_SECRET_LEN) {
+      try {
+        await sb.from("hk_auth_log").insert({
+          event: "verifypin_fail", ip,
+          detail: { why: entered ? "too short to be a secret" : "empty", len: entered.length },
+        });
+      } catch { /* best effort */ }
       return json({ success: false });
     }
 
@@ -112,7 +132,10 @@ Deno.serve(async (req) => {
        list the match sits. Constant-time per comparison, constant count of comparisons. */
     let hit: { name?: unknown; role?: unknown; emoji?: unknown } | null = null;
     for (const s of data || []) {
-      if (sameSecret(String(s.pin ?? "").trim(), entered) && !hit) hit = s;
+      const stored = String(s.pin ?? "").trim();
+      // A stored value too short to be a secret is never matchable, whatever wrote it.
+      if (stored.length < MIN_SECRET_LEN) continue;
+      if (sameSecret(stored, entered) && !hit) hit = s;
     }
 
     if (!hit) {

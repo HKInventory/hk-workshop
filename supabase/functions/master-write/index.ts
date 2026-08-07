@@ -37,6 +37,55 @@ function eqKey(a: string, b: string): boolean {
   return r === 0;
 }
 
+/* ---------------------------------------------------------------------------
+   HARDENED 7 AUGUST 2026. THIS FUNCTION IS THE ORACLE, NOT master-karts.
+
+   An audit flagged master-karts as an unauthenticated yes/no oracle against the
+   master credential. It is — but it gets that by forwarding here, and THIS
+   endpoint is itself verify_jwt=false with CORS "*", so op:"verify" already
+   answers {success:true|false} to anyone on the internet with no key at all,
+   directly, from their own address. Fixing master-karts alone would have moved
+   the oracle, not closed it. The control belongs at the bottom of the stack.
+
+   Three changes, all in the legacy staff.pin branch:
+
+   1. SHORT VALUES ARE REFUSED. Every active staff.pin is a 32-character random
+      value (measured 7 Aug: 6 of 6, zero four-digit). A credential shorter than
+      MIN_SECRET_LEN therefore CANNOT match anything, so refusing it removes
+      only failures and cannot change who gets in. This is what actually kills
+      the oracle — a rate limit slows a brute force, this makes it pointless.
+
+   2. THE NULL COERCION IS CLOSED. staff.pin is nullable, and the old compare was
+      String(s.pin).trim() === c — so a row with a NULL pin stringified to the
+      literal "null" and would have matched a caller sending masterPin "null".
+      Inert today (0 of 6 rows are NULL) and reachable with no credential at all.
+      Now NULL and short stored values are skipped outright.
+
+   3. CONSTANT-TIME COMPARE. `===` inside .find() short-circuits on both the
+      first differing character and the row position, and .find() stopped early
+      on a match. Every row is now compared, byte by byte, every time.
+
+   The per-IP backoff is defence in depth behind those. It fails OPEN: a logging
+   outage must not take the master tools down. Note that master-karts and
+   master-tracks call this server-to-server from the edge runtime, so their
+   failures all land on one platform address — the threshold is set well above
+   any plausible legitimate failure rate for that reason. */
+const MAX_FAILS_PER_IP = 20;
+const WINDOW_MIN       = 10;
+const MIN_SECRET_LEN   = 16;
+
+const enc = new TextEncoder();
+function sameSecret(a: string, b: string): boolean {
+  const x = enc.encode(a), y = enc.encode(b);
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
+const ipOf = (req: Request) =>
+  (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+
 /* ============================================================================
    AUTHORISE A MASTER ACTION.  See supabase/functions/_shared/master-auth.md.
 
@@ -86,9 +135,17 @@ async function authorise(sb: any, cred: string): Promise<{ ok: boolean; owner: b
     } catch { return no; }
   }
 
-  // ---- 3. legacy: a 4-digit PIN in the old staff table ----
+  // ---- 3. legacy: the bridge key held in the old staff table ----
+  // Short values cannot match anything here (every stored value is 32 chars), so
+  // they are refused before the table is even read. See the note above.
+  if (c.length < MIN_SECRET_LEN) return no;
   const { data: staff } = await sb.from("staff").select("name, pin, active").eq("active", true);
-  const caller = (staff || []).find((s: any) => String(s.pin).trim() === c);
+  let caller: any = null;
+  for (const s of staff || []) {
+    const stored = s?.pin == null ? "" : String(s.pin).trim();   // NOT String(null) -> "null"
+    if (stored.length < MIN_SECRET_LEN) continue;
+    if (sameSecret(stored, c) && !caller) caller = s;            // every row compared, always
+  }
   if (!caller) return no;
   return { ok: permitted(caller.name), owner: caller.name === OWNER_NAME, viaKey: false, name: caller.name };
 }
@@ -98,8 +155,27 @@ Deno.serve(async (req) => {
   try {
     const { masterPin, op, part } = await req.json();
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Defence in depth behind the length floor above. Fails OPEN — a logging
+    // outage must never take the master tools off a workshop floor.
+    const ip = ipOf(req);
+    let recentFails = 0;
+    try {
+      const since = new Date(Date.now() - WINDOW_MIN * 60000).toISOString();
+      const { count } = await sb.from("hk_auth_log")
+        .select("*", { count: "exact", head: true })
+        .eq("event", "masterwrite_fail").eq("ip", ip).gte("at", since);
+      recentFails = count || 0;
+    } catch { /* best effort */ }
+    if (recentFails >= MAX_FAILS_PER_IP) {
+      return json({ success: false, message: "Too many tries — wait a few minutes." });
+    }
+
     const auth = await authorise(sb, String(masterPin));
-    if (!auth.ok) return json({ success: false, message: "Not authorised for Master Access" });
+    if (!auth.ok) {
+      try { await sb.from("hk_auth_log").insert({ event: "masterwrite_fail", ip, detail: { op: String(op ?? "") } }); } catch { /* best effort */ }
+      return json({ success: false, message: "Not authorised for Master Access" });
+    }
     const isOwner = auth.owner;
     if (op === "verify") return json({ success: true, owner: isOwner });
 

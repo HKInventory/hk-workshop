@@ -20384,7 +20384,11 @@ function aiRender(){
   var box=document.getElementById('ai-msgs'); if(!box) return;
   var html=AI_MSGS.map(function(m){
     if(m.who==='think'){
-      return '<div class="ai-row bot"><span class="ai-av bot">\ud83e\udd16</span><div class="ai-bub"><span class="ai-think"><span></span><span></span><span></span></span></div></div>';
+      /* A think row can carry a note, so a slow question can say so without the row stopping being
+         a think row \u2014 _aiReplace() finds the last think row to drop the answer into, so turning it
+         into a bot message to show progress would orphan the answer when it arrives. */
+      return '<div class="ai-row bot"><span class="ai-av bot">\ud83e\udd16</span><div class="ai-bub"><span class="ai-think"><span></span><span></span><span></span></span>'+
+             (m.note?'<div style="opacity:.7;font-size:12px;margin-top:6px">'+_aiEsc(m.note)+'</div>':'')+'</div></div>';
     }
     var av=m.who==='me'?'<span class="ai-av usr">'+userEmoji(cu||{})+'</span>':'<span class="ai-av bot">\ud83e\udd16</span>';
     return '<div class="ai-row '+(m.who==='me'?'me':'bot')+'">'+av+'<div class="ai-bub">'+_aiFmt(m.text)+'</div></div>';
@@ -20434,19 +20438,65 @@ function _aiReplace(text){
   aiRender();
   var send=document.getElementById('ai-send'); if(send) send.disabled=false;
 }
+/* HOW LONG A QUESTION MAY TAKE, AND WHAT WE SAY WHILE IT TAKES IT.
+
+   This used to give up after 60 tries x 1.2s = 72 seconds and then say "the runner may be busy or
+   offline. Try again in a moment." On 7 Aug 2026 Harvey asked for an in-depth analysis of the
+   workshop; it read 72,109 tokens and answered in 74 SECONDS. Two seconds past the deadline. So the
+   app announced a failure about a request that was working perfectly, discarded an answer that
+   landed moments later, and recommended the one action that makes it worse \u2014 asking again re-runs
+   the entire 72k-token read for an answer already sitting in ai_queue.
+
+   Three things are wrong with that and all three are fixed here:
+
+   1. THE BUDGET. 72 seconds is not long for a question that reads the whole workshop. It is now ten
+      minutes. Slow is not the same as broken.
+   2. THE COST OF WAITING. A fixed 1.2s poll means a long question fires hundreds of requests. The
+      interval now backs off \u2014 1s, 2s, 5s, 10s \u2014 so ten minutes costs about seventy requests rather
+      than five hundred.
+   3. THE MESSAGE. It no longer reports failure for a row that is still pending or working. "The
+      runner is offline" and "this is taking a while" are different claims, and only the row itself
+      can tell them apart, so only row.status==='error' now produces an error. Nothing is ever
+      thrown away: the answer lands in ai_queue regardless, and re-opening the conversation replays
+      it through aiResumePending().
+
+   The send button is released once the note appears rather than at the very end \u2014 being locked out
+   of the box for ten minutes would be a worse bug than the one this replaces. */
 function aiPollAnswer(id){
   clearInterval(_aiPoll);
-  var tries=0, MAX=60;   // ~72s at 1.2s
+  var t0=Date.now(), nextAt=0;
+  var HARD_MS=600000;   // 10 min. Past this we stop polling, but still do not call it a failure.
+  var NOTE_MS=20000;    // reassure before anyone starts wondering whether it has hung
+  function gap(el){ return el<20000?1000:(el<60000?2000:(el<180000?5000:10000)); }
+  function note(txt){
+    for(var i=AI_MSGS.length-1;i>=0;i--){
+      if(AI_MSGS[i].who==='think'){
+        if(AI_MSGS[i].note!==txt){ AI_MSGS[i].note=txt; aiRender(); }
+        return;
+      }
+    }
+  }
   _aiPoll=setInterval(function(){
-    tries++;
-    if(typeof _hkScr==='function'&&_hkScr()!=='hkai'){ clearInterval(_aiPoll); return; }   // left the screen
-    if(tries>MAX){ clearInterval(_aiPoll); _aiReplace('That\u2019s taking longer than expected \u2014 the runner may be busy or offline. Try again in a moment.'); return; }
+    // Left the screen \u2014 stop polling. aiOpenConvo()/aiResumePending() pick it back up on return.
+    if(typeof _hkScr==='function'&&_hkScr()!=='hkai'){ clearInterval(_aiPoll); return; }
+    var el=Date.now()-t0;
+    if(el>=NOTE_MS){
+      note('Still working \u2014 a big question reads a lot of the workshop\u2019s data. You can leave this screen; the answer will be here when you come back.');
+      var sb=document.getElementById('ai-send'); if(sb) sb.disabled=false;
+    }
+    if(el>HARD_MS){
+      clearInterval(_aiPoll);
+      _aiReplace('This one is still running after ' + Math.round(HARD_MS/60000) + ' minutes. It has not failed \u2014 re-open this chat and the answer will be here once it lands.');
+      return;
+    }
+    if(el<nextAt) return;
+    nextAt=el+gap(el);
     SBC.from('ai_queue').select('status,answer,error').eq('id',id).limit(1).then(function(r){
       var row=r&&r.data&&r.data[0]; if(!row) return;
       if(row.status==='done'){ clearInterval(_aiPoll); _aiReplace(row.answer||'(no answer)'); }
       else if(row.status==='error'){ clearInterval(_aiPoll); _aiReplace('\u26a0\ufe0f '+(row.error||'Something went wrong answering that.')); }
     },function(){});
-  },1200);
+  },500);
 }
 
 /* ---------- Chats ---------- */

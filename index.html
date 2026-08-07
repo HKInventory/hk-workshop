@@ -22751,9 +22751,9 @@ function mrPushLoad(){
        is set by onLoginOk from the server's own login response. */
     if (cu && cu.is_master){
       h += '<div style="background:var(--card);border:1px solid ' + (st.recovery_set ? 'var(--b2)' : 'rgba(251,191,36,.45)') + ';border-radius:12px;padding:13px;margin-bottom:16px">'
-         + '<div style="font-size:11px;color:' + (st.recovery_set ? 'var(--t2)' : '#FBBF24') + ';font-weight:700;letter-spacing:.5px;margin-bottom:6px">RECOVERY CODE'
+         + '<div id="hka-rec-lbl" style="font-size:11px;color:' + (st.recovery_set ? 'var(--t2)' : '#FBBF24') + ';font-weight:700;letter-spacing:.5px;margin-bottom:6px">RECOVERY CODE'
          + (st.recovery_set ? '' : ' · NOT SET') + '</div>'
-         + '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:9px">'
+         + '<div id="hka-rec-blurb" style="font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:9px">'
          +   (st.recovery_set
               ? 'A recovery code is set. It is stored as a one-way hash — nobody can read it back, including you, so it is only any use if you still have the copy you wrote down.'
               : 'If you lose your phone and no one is left who can approve you, there is currently <b>no way back into your own system</b>. Generate one and write it on paper.')
@@ -23129,7 +23129,18 @@ function mrPushLoad(){
             + 'device you type it on, then burns itself, so you would come straight back here for a new one.</div>'
             + '</div>';
         }
-        load();
+        /* NO load() HERE, AND THAT IS THE WHOLE POINT.
+           It was called here on the first cut of this panel, and load() does
+           b.innerHTML = render(...) — which replaces this entire block, including the
+           very div the code had just been written into. So the code was generated,
+           shown, and destroyed inside the same frame: the button appeared to do
+           nothing while actually setting a recovery code that NOBODY could read. That
+           is worse than no recovery code, because the system then looks armed.
+           Harvey hit exactly that on 7 Aug. The panel is updated in place instead. */
+        var lbl = document.getElementById('hka-rec-lbl');
+        if (lbl){ lbl.textContent = 'RECOVERY CODE'; lbl.style.color = 'var(--t2)'; }
+        var blurb = document.getElementById('hka-rec-blurb');
+        if (blurb){ blurb.textContent = 'A recovery code is set. It is stored as a one-way hash — nobody can read it back, including you, so it is only any use if you still have the copy you wrote down.'; }
       });
     }
 

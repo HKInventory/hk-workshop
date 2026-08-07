@@ -28,7 +28,10 @@
 // ---------------------------------------------------------------------------------------------
 
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
-import webpush from "npm:web-push@3";
+// Pinned exactly, 7 Aug — "@3" is a major-version RANGE resolved fresh at deploy time, the same
+// class of specifier that failed a deploy outright on 2026-08-03. 3.6.7 is the version verified
+// working when ramp-tick was redeployed and invoked the same day.
+import webpush from "npm:web-push@3.6.7";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +39,9 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (o: unknown) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+
+// Shorter than this is guessable by exhaustion, so it is not a secret and is never compared.
+const MIN_SECRET_LEN = 16;
 
 const enc = new TextEncoder();
 function sameSecret(a: string, b: string): boolean {
@@ -56,8 +62,20 @@ Deno.serve(async (req) => {
     webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:workshop@hyperkarting.example", pub, priv);
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    /* Short values are refused before the table is read, matching master-write, verify-pin and
+       rimo-image-sync. Every active staff.pin is a 32-character random value, so a shorter
+       credential could never have matched — this removes only failures. Stored NULLs were already
+       safe here (`?? ""`, not String(null) -> "null"), which is the bug the others had. */
+    const cred = String(pin || "").trim();
+    if (cred.length < MIN_SECRET_LEN) return json({ success: false, message: "Not signed in" });
+
     const { data: staff } = await sb.from("staff").select("name, pin, active").eq("active", true);
-    const caller = (staff || []).find((s: any) => sameSecret(String(s.pin ?? "").trim(), String(pin || "").trim()));
+    let caller: any = null;
+    for (const s of staff || []) {
+      const stored = String(s?.pin ?? "").trim();
+      if (stored.length < MIN_SECRET_LEN) continue;
+      if (sameSecret(stored, cred) && !caller) caller = s;   // every row compared, always
+    }
     if (!caller) return json({ success: false, message: "Not signed in" });
 
     const to = String(toName || "").trim();

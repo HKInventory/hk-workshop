@@ -202,28 +202,55 @@ Deno.serve(async (req) => {
       const { data: siteRows } = await sb.from("sites").select("id").eq("active", true);
       const allSiteIds = (siteRows || []).map((s) => String(s.id));
 
-      const seen: Record<string, boolean> = {};
       let managers = 0;
       for (const s of staff) {
         const name = String(s?.name ?? "").trim();
-        const pin = String(s?.pin ?? "").trim();
         const role = String(s?.role ?? "Mechanic").trim();
         if (!name) return json({ success: false, message: "Every staff member needs a name" });
-        /* A ROW WITHOUT A 4-DIGIT PIN IS NORMAL NOW, NOT AN ERROR.
-           People who signed up on the new system have a long random placeholder here
-           instead of a PIN — deliberately, because their real PIN is hashed in
-           hk_accounts and nobody, the owner included, can read it. Demanding four
-           digits of every row would have made this screen impossible to save the
-           moment anyone new joined. Four-digit PINs are still validated and still
-           have to be unique; anything else is passed through untouched. */
-        if (!pin) return json({ success: false, message: `${name} has no PIN on record` });
-        if (/^\d{4}$/.test(pin)) {
-          if (seen[pin]) return json({ success: false, message: `PIN ${pin} is used more than once` });
-          seen[pin] = true;
-        }
+        /* THE CLIENT NO LONGER SENDS A PIN, AND IF IT DOES IT IS IGNORED. See the block
+           that builds `rows` below for why. Everything this used to validate — present,
+           four digits, unique — is meaningless once the value cannot come from outside. */
         if (isMgr(role)) managers++;
       }
       if (!managers) return json({ success: false, message: "Keep at least one Manager" });
+
+      /* ------------------------------------------------------------------------------
+         THE PIN IS NO LONGER TAKEN FROM THE CLIENT. Changed 7 August 2026.
+
+         This used to write `pin: String(s?.pin ?? "").trim()` — whatever the browser sent,
+         straight into staff.pin, in plaintext. Combined with verify-pin (unauthenticated,
+         CORS "*", plaintext compare) that made this screen able to arm a brute-force
+         oracle: a manager adding someone with a four-digit PIN created a 10,000-guess
+         account, reachable by anyone on the internet, that names its owner on success.
+
+         Nobody had done it — all six rows held 32-char random values when this was
+         measured — but that was luck, not a control, and this screen was the way to
+         spend it.
+
+         Now the server decides:
+           - an existing person keeps the value already in staff.pin, untouched
+           - a new person gets a fresh 32-char random one
+         So a four-digit value cannot enter this table through this path at all, and any
+         legacy four-digit row is upgraded to random the next time staff is saved.
+
+         staff.pin is NOT a credential anyone types any more. Real PINs are PBKDF2 hashes
+         in hk_accounts, set by each person on their own device. This column is only the
+         legacy bridge key that older functions still compare against, which is why it has
+         to stay populated and stay unguessable rather than simply being emptied.
+
+         CONSEQUENCE, STATED PLAINLY: somebody added here cannot sign in on the old keypad.
+         They sign up through hk-auth and choose their own PIN, which is how the new system
+         is meant to work — and is the only way "nobody sees anybody's PIN" can be true. */
+      const { data: existingStaff, error: exErr } = await sb.from("staff").select("name, pin");
+      if (exErr) return json({ success: false, message: exErr.message });
+      const pinByName: Record<string, string> = {};
+      for (const r of existingStaff || []) {
+        const n = String((r as Record<string, unknown>)?.name ?? "").trim();
+        if (n) pinByName[n] = String((r as Record<string, unknown>)?.pin ?? "");
+      }
+      const randHex = (n: number) =>
+        Array.from(crypto.getRandomValues(new Uint8Array(n)))
+          .map((b) => b.toString(16).padStart(2, "0")).join("");
 
       const rows = staff.map((s: Record<string, unknown>) => {
         const role = String(s?.role ?? "Mechanic").trim();
@@ -234,10 +261,14 @@ Deno.serve(async (req) => {
         const emoji = (typeof s?.emoji === "string" && (s.emoji as string).trim())
           ? (s.emoji as string).trim().slice(0, 12)
           : (isMgr(role) ? "⭐" : "🔧");
+        const name = String(s?.name ?? "").trim();
+        const kept = pinByName[name] || "";
         return {
-          name: String(s?.name ?? "").trim(),
+          name,
           role,
-          pin: String(s?.pin ?? "").trim(),
+          // Keep an existing unguessable value; replace anything else (four digits,
+          // empty, a new person) with a fresh random one.
+          pin: /^[0-9a-f]{32}$/.test(kept) ? kept : randHex(16),
           emoji,
           active: true,
         };

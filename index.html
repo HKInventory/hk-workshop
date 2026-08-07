@@ -22735,6 +22735,34 @@ function mrPushLoad(){
        + '<div id="hka-jc-msg" style="font-size:12px;margin-top:6px"></div>'
        + '</div>';
 
+    /* ---- recovery code ---------------------------------------------------
+       THE BREAK-GLASS HAD NO DOOR. hk-auth has implemented `set-recovery` and
+       `recovery` since the sign-in rollout — generated server-side so a weak one
+       can never be chosen, stored only as a SHA-256, single-use, and it approves
+       whatever device it is typed on. Of the 21 ops hk-auth implements, those two
+       were the ONLY pair the app never called. A working break-glass that nothing
+       could reach is the same as no break-glass, and status has been reporting
+       recovery_set:false since the day it shipped with nobody able to act on it.
+       Gated on cu.is_master, not st.is_master — `status` returns join_code_set,
+       recovery_set, approved_devices, legacy_login_off and the two account counts,
+       and nothing else. Reading st.is_master here would be undefined forever and
+       this block would simply never draw, which is exactly the kind of silent
+       nothing that let the feature sit unreachable in the first place. cu.is_master
+       is set by onLoginOk from the server's own login response. */
+    if (cu && cu.is_master){
+      h += '<div style="background:var(--card);border:1px solid ' + (st.recovery_set ? 'var(--b2)' : 'rgba(251,191,36,.45)') + ';border-radius:12px;padding:13px;margin-bottom:16px">'
+         + '<div style="font-size:11px;color:' + (st.recovery_set ? 'var(--t2)' : '#FBBF24') + ';font-weight:700;letter-spacing:.5px;margin-bottom:6px">RECOVERY CODE'
+         + (st.recovery_set ? '' : ' · NOT SET') + '</div>'
+         + '<div style="font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:9px">'
+         +   (st.recovery_set
+              ? 'A recovery code is set. It is stored as a one-way hash — nobody can read it back, including you, so it is only any use if you still have the copy you wrote down.'
+              : 'If you lose your phone and no one is left who can approve you, there is currently <b>no way back into your own system</b>. Generate one and write it on paper.')
+         + '</div>'
+         + '<button class="m-add" id="hka-rec-new">' + (st.recovery_set ? 'Generate a new one' : 'Generate recovery code') + '</button>'
+         + '<div id="hka-rec-msg" style="font-size:12px;margin-top:8px;line-height:1.6"></div>'
+         + '</div>';
+    }
+
     // ---- waiting ---------------------------------------------------------
     h += '<div style="font-size:11px;color:var(--t2);font-weight:700;letter-spacing:.5px;margin:0 0 8px">'
        + 'WAITING FOR APPROVAL' + (pending.length ? ' ('+pending.length+')' : '') + '</div>';
@@ -23074,6 +23102,37 @@ function mrPushLoad(){
         load();
       });
     }
+    /* Generate a break-glass code. hk-auth generates it, hashes it, and returns the plaintext
+       exactly ONCE — there is no second chance to read it and no way to recover it from the hash.
+       So it is shown large, on screen, until the page is left, with a confirm first: generating a
+       new one silently invalidates whatever is currently written on paper. */
+    if (t.id === 'hka-rec-new'){
+      var rm = document.getElementById('hka-rec-msg');
+      if (/new one/.test(t.textContent) &&
+          !confirm('Generate a new recovery code?\n\nThe one currently written down stops working immediately.')) return;
+      t.disabled = true; t.textContent = 'Generating…';
+      return call('set-recovery', {}).then(function(r){
+        t.disabled = false; t.textContent = 'Generate a new one';
+        if (!r || !r.success || !r.code){
+          if (rm){ rm.style.color = 'var(--red)'; rm.textContent = (r && r.message) || 'Could not generate a recovery code.'; }
+          return;
+        }
+        if (rm){
+          rm.style.color = 'var(--t1)';
+          rm.innerHTML = '<div style="background:var(--card2);border:1px solid rgba(251,191,36,.5);border-radius:10px;padding:11px;margin-top:4px">'
+            + '<div style="color:#FBBF24;font-weight:700;font-size:12px;margin-bottom:6px">WRITE THIS DOWN NOW — IT IS SHOWN ONCE</div>'
+            + '<div style="font-family:Monaco,Consolas,monospace;font-size:15px;letter-spacing:1.5px;word-break:break-all;color:var(--t1);user-select:all">'
+            + esc(r.code) + '</div>'
+            + '<div style="color:var(--t2);font-size:11.5px;margin-top:8px;line-height:1.6">'
+            + 'Only its hash is stored, so this can never be shown again — not by anyone, not by the database. '
+            + 'Keep it on paper somewhere away from the workshop. Using it signs you in and approves whatever '
+            + 'device you type it on, then burns itself, so you would come straight back here for a new one.</div>'
+            + '</div>';
+        }
+        load();
+      });
+    }
+
     if (t.id === 'hka-jc-save'){
       var v = (document.getElementById('hka-jc')||{}).value || '';
       var msg = document.getElementById('hka-jc-msg');

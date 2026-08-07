@@ -23117,6 +23117,23 @@ function mrPushLoad(){
           if (rm){ rm.style.color = 'var(--red)'; rm.textContent = (r && r.message) || 'Could not generate a recovery code.'; }
           return;
         }
+        /* THE CODE IS SHOWN IN A BLOCKING ALERT FIRST, AND THAT IS DELIBERATE.
+           Writing a once-only secret into a div and hoping nothing repaints is how this
+           went wrong twice on 7 Aug: the first cut called load() straight after, which
+           rebuilt the panel and ate the code inside the same frame, and Harvey generated
+           four codes that nobody will ever know. A value that CANNOT be shown again does
+           not belong somewhere a re-render, a poll, a tab switch or a stale cached page
+           can quietly remove. alert() blocks, cannot be repainted away, and has to be
+           dismissed by hand. Ugly beats unrecoverable. The panel box below is the copy you
+           can select from; this is the one that guarantees it was seen. */
+        try {
+          alert('RECOVERY CODE — WRITE IT DOWN NOW\n\n'
+              + r.code + '\n\n'
+              + 'This is the only time it is ever shown. Only a one-way hash is stored, so '
+              + 'nobody can read it back — not you, not the database, not me.\n\n'
+              + 'Keep it on paper, away from the workshop.');
+        } catch(e){}
+        try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(r.code); } catch(e){}
         if (rm){
           rm.style.color = 'var(--t1)';
           rm.innerHTML = '<div style="background:var(--card2);border:1px solid rgba(251,191,36,.5);border-radius:10px;padding:11px;margin-top:4px">'

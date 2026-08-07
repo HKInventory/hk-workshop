@@ -59,9 +59,17 @@ select (select count(*) from public.rimo_bms_history)                    as bms_
        (select to_char(min(at),'DD Mon') from public.rimo_bms_history)   as oldest;
 ```
 
-On 7 Aug that returned: `1966611 | 1149 MB | 9 | 0 | 0 | 31 Jul`.
+On 7 Aug, after the revoke, that returned: `2143906 | 1205 MB | 0 | 1 | 0 | 31 Jul`.
 
-`anon_grants` is the one that matters — **9 is the number to drive to 0** (§5.3).
+**`anon_grants` must stay 0.** It was 9 for the whole life of this project and was
+driven to 0 on 7 August (§5.3). If it is ever not 0, something has re-granted the
+public key and the app is leaking again — that is the single most important
+number in this file.
+
+**`display_enrolled` must stay 1.** If it drops to 0 the wall display has lost its
+account, and because `anon` is now revoked the board will go BLANK rather than
+silently falling back. That is the intended behaviour, not a regression.
+
 `past_cutoff = 0` means retention is holding by itself; if it ever climbs, the
 prune has stopped and that is the thing to chase.
 
@@ -233,7 +241,52 @@ bound. Thinning remains available; it is one-way.
 Bulk deletes were **not** refused by the agent safety layer this time — Parts B
 and C ran straight through `execute_sql` / `apply_migration`.
 
-### 5.3 Close the last public read — the big one
+### 5.3 Close the last public read — ✅ DONE 7 August
+
+**`anon` now holds zero grants.** Proven, not assumed: the anon key printed in the
+page source was used against the REST API after the revoke and every one of the
+nine came back `401 permission denied` —
+
+```
+GET /rest/v1/rf_repairs     → 401  permission denied for table rf_repairs
+GET /rest/v1/stock          → 401  permission denied for table stock
+GET /rest/v1/staff_public   → 401  permission denied for view staff_public
+GET /rest/v1/rf_kart_notes  → 401  permission denied for table rf_kart_notes
+```
+
+`authenticated` kept SELECT on all nine, so the board and every signed-in person
+were unaffected — Harvey confirmed the board live at the moment of the revoke.
+
+The rollback is written into the migration `revoke_anon_reads_display_enrolled`
+and repeated in `sql/security_revoke_anon.sql`. If the board ever goes dark,
+re-grant, then look at `display_enrolled`.
+
+**Done ahead of the full day of observation, deliberately.** The handover advised
+watching the board for a day first. That advice predates `tvAuthWatch`, which
+renews the session **five minutes ahead of expiry** on its own `setInterval` —
+specifically because auth-js stops its refresh ticker whenever the browser
+reports the tab hidden, which is what a screen-blanked TV reports for hours. The
+renewal path was read before the revoke, and the log already showed the watchdog
+renewing unprompted. The revoke is also reversible in one statement. Both facts
+together made the wait unnecessary.
+
+#### What was NOT done, and why
+
+**The two SECURITY DEFINER views are still SECURITY DEFINER** (§6), and the
+advisor still reports them as ERROR. Flipping `staff_public` would have broken
+the app: it is `select name, role, emoji from staff`, and `staff` has RLS enabled
+with **no policy**, so under `security_invoker` the caller's RLS applies and the
+view returns EMPTY — silently killing the @mention roster (`index.html:19342`).
+`repair_totals_public` reads `rf_repairs`, which `authenticated` can read, so
+that one is probably safe alone — but they are not the same problem and should
+not be flipped together.
+
+**Do this first, then flip:** add a real RLS policy on `staff` for
+`authenticated`, prove `staff_public` still returns rows, and only then set
+`security_invoker`. Both views are read by the runner too, but on the service
+key, so the runner is not a constraint.
+
+### 5.3b The old plan, for reference
 
 **Steps 1 and 2 are DONE as of 7 August.** Part D was already applied (§5.2), and
 the wall display is now enrolled and signing itself in:

@@ -24,7 +24,8 @@ Checked against the live database on **7 August 2026**, not from memory.
 | `security_orphans.sql` | run | `push_subs` holds only active accounts |
 | `security_authenticated_writes.sql` | **Part 1 run** | no TRUNCATE/TRIGGER/REFERENCES left for anon or authenticated |
 | `security_audit_findings.sql` | **run** | Tier 1 search_path pinning and Tier 2 function revokes applied; `staff_pin_backup` dropped 7 Aug |
-| `security_display_account.sql` | **NOT run** | no device has a `display_secret`, no display auth user exists |
+| `security_display_account.sql` | **superseded 7 Aug** | the display account exists now (`display_enrolled = 1`) and the revoke it described was run as `security_revoke_anon.sql` |
+| `security_revoke_anon.sql` | **run 7 Aug** | `anon` holds **zero** grants; the anon key answers `401 permission denied` against the REST API |
 | `rimo_bms_retention.sql` | **superseded** | replaced by `rimo_bms_retention_v2.sql` |
 | `rimo_bms_retention_v2.sql` | **steps 1–3 applied, step 4 declined** | function and BRIN index live; hard retention is holding on its own (rows past cutoff = 0, oldest 31 July). Harvey chose on 7 Aug NOT to thin the 48h–7d band |
 | `RUN-THIS-2026-08-06.sql` | **B, C run; D was already true; A declined** | see below |

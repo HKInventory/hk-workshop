@@ -10307,6 +10307,17 @@ function rcVerify(num, want, tries, qid){
   if(qid){
     SBC.from('rimo_control_queue').select('status,error').eq('id',qid).maybeSingle().then(function(q){
       var st=(q&&q.data&&q.data.status)||'';
+      if(st==='expired'){
+        /* The runner refused to send it because it had gone stale. Say so loudly and plainly: the
+           kart did NOT change, and the reason is that the press is no longer describing the moment
+           it was made. Pressing again against what you can see is the right move. */
+        RC_NOTE=(q.data.error||'Not sent — it went stale before the runner reached it.')+' Kart '+num+' is unchanged.';
+        RC_NOTE_OK=false;
+        delete RC_PENDING[String(num)];
+        if(RC_RIMO[String(num)]) rcVerifyKart(num,'__none__',99,null,'expired');
+        if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+        return;
+      }
       if(st==='failed'){
         RC_NOTE='Not sent: '+((q.data.error||'the runner refused it')); RC_NOTE_OK=false;
         delete RC_PENDING[String(num)];

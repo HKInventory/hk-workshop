@@ -10710,7 +10710,23 @@ function rcStartLive(){
         RC_RIMO[k]={ online:r.online, speedset:r.speedset };
         if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
       })
-      .on('postgres_changes',{event:'*',schema:'public',table:'rimo_control_queue'},function(){
+      .on('postgres_changes',{event:'*',schema:'public',table:'rimo_control_queue'},function(p){
+        /* PAINT FROM THE QUEUE, NOT FROM THE FLEET FEED — that is where the 3-8 seconds went.
+           A change made on the Mac reached the phone only after RiMO's fleet poller noticed it,
+           and that poller runs every 5s, so the phone was always 3-8s behind however fast the
+           command itself was. Measured, the command is the quick part: 1.1-1.6s from press to
+           RiMO's "ok" on eleven of twelve presses. The slow part was waiting for a confirmation
+           the other device did not need in order to draw a tile.
+           So a row going to `sent` paints that kart everywhere immediately, exactly as the sending
+           device already does for itself. RiMO's feed still arrives a few seconds later and remains
+           the authority — if it disagrees, it overwrites this. */
+        var r=p&&p.new;
+        if(r&&r.status==='sent'&&r.karts&&r.label){
+          var k=String(r.karts).trim();
+          if(k&&!RC_PENDING[k]&&k.indexOf(',')<0){
+            if(RC_RIMO[k]) RC_RIMO[k].speedset=r.label; else RC_RIMO[k]={online:null,speedset:r.label};
+          }
+        }
         if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') rcLoadFeed();
       })
       .subscribe();

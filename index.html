@@ -10272,7 +10272,17 @@ var RC_ARMED=null;             // {action, value, label, colour} — what the ne
    or BattleKart"; Twins are in, they are 111-114). The grid was drawing the WHOLE fleet, which is
    why it showed 1, 1, 2, 2, 2, 3, 3, 3, 3 — the same numbers repeated once per kart type. The
    runner refuses a non-RiMO kart anyway; this stops one being offered in the first place. */
-var RC_TYPES=['Adult Track','Intermediate Track','Twin'];
+/* MATCHED ON THE SHORT NAME, BECAUSE THAT IS WHAT KART_LIST HOLDS. mapRfKart runs every type
+   through rfTypeShort, which strips a trailing " Track" — so RaceFacer's "Adult Track" is "Adult"
+   here and "Intermediate Track" is "Intermediate". Written against the full RaceFacer names, this
+   matched only "Twin" (the one type with no suffix to strip) and the grid drew 3 karts instead of
+   118. Compared with the suffix stripped from both sides so either spelling works and it cannot
+   break again if one of them is renamed. */
+var RC_TYPES=['Adult','Intermediate','Twin'];
+function _rcTypeOk(t){
+  var s=String(t||'').replace(/\s*track\s*$/i,'').trim().toLowerCase();
+  return RC_TYPES.some(function(x){ return x.toLowerCase()===s; });
+}
 var RC_BUSY=null, RC_LAST=null, RC_FEED=[], RC_TIMER=null, RC_ERR='';
 
 /* RiMO's buttons, in RiMO's order. `v` is what goes on the wire; `c` tints the strip underneath,
@@ -10333,7 +10343,7 @@ function rcKarts(){
   return (typeof KART_LIST!=='undefined'&&KART_LIST?KART_LIST:[])
     .filter(function(k){
       if(k.longTerm||k.num==null||k.num==='') return false;
-      if(RC_TYPES.indexOf(k.type)<0) return false;      // RiMO karts only — see RC_TYPES
+      if(!_rcTypeOk(k.type)) return false;              // RiMO karts only — see RC_TYPES
       if(seen[k.num]) return false;                     // belt and braces against a repeated number
       seen[k.num]=1; return true;
     })

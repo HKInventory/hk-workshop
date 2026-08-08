@@ -6116,6 +6116,19 @@ function loadAccessCfg(cb){
       ACCESS_CFG={roles:Array.isArray(res.data.roles)?res.data.roles:[], overrides:(res.data.overrides&&typeof res.data.overrides==='object')?res.data.overrides:{}};
       var rn=ACCESS_CFG.roles.map(function(r){return r&&r.name;}).filter(Boolean);
       if(rn.length) MROLES=rn;
+      /* HAND THE ROLE EMOJIS TO THE SIGN-IN SCREEN, WHICH CANNOT GO AND GET THEM.
+         The emojis live in app_access and are edited in Master Access, but this read needs a
+         signed-in session — and the sign-in screen is by definition BEFORE one. So it fell back
+         to its own built-in map, which had drifted from the config on four of seven roles: Owner
+         showed 👑 not 😎, Mechanic 🔧 not 🛠️, Office 🗂️ not 💻, and Coding — not in the map at
+         all — landed on the wrench default, which is how Rob came to be a mechanic on the shared
+         iPads. Stashing them the moment they load means the NEXT sign-in on this device is right,
+         and it re-heals by itself whenever a role emoji is changed. It is only role names and
+         emojis, nothing about any person. */
+      try {
+        var _re={}; ACCESS_CFG.roles.forEach(function(r){ if(r&&r.name&&r.emoji) _re[r.name]=r.emoji; });
+        if(Object.keys(_re).length) localStorage.setItem('hk_role_emoji', JSON.stringify(_re));
+      } catch(e){}
       if(Array.isArray(res.data.master_admins)){ MASTER_ADMINS=res.data.master_admins.slice(); if(MASTER_ADMINS.indexOf(MASTER_OWNER)<0) MASTER_ADMINS.unshift(MASTER_OWNER); }
     }
     /* A FAILED READ HERE SILENTLY REMOVES EVERYONE'S MASTER ACCESS BUT THE OWNER.
@@ -15894,6 +15907,7 @@ function roleEmojiFor(r){
   if(/facilit|maint|clean|ground/.test(l)) return '\ud83c\udfd7\ufe0f';
   if(/office|admin|recept|front/.test(l)) return '\ud83d\uddc2\ufe0f';
   if(/instruct|marshal|track|race/.test(l)) return '\ud83c\udfc1';
+  if(/cod|develop|software|program|engineer|tech\b/.test(l)) return '\u2699\ufe0f';
   return '\ud83d\udd27';
 }
 /* ----- Staff editor (server-backed, authorised by your PIN) ----- */
@@ -16669,7 +16683,12 @@ function acRoleEmoji(i,v){ if(mAccessDraft.roles[i]) mAccessDraft.roles[i].emoji
 // Role emoji fills every account holding that role; the personal emoji is the fallback.
 function userEmoji(u){ u=u||cu; if(!u) return '🔧';
   try{ var rs=(typeof ACCESS_CFG!=='undefined'&&ACCESS_CFG&&ACCESS_CFG.roles)||[]; var r=rs.find(function(x){return x.name===u.role;}); if(r&&r.emoji) return r.emoji; }catch(e){}
-  return u.emoji||'🔧'; }
+  if(u.emoji) return u.emoji;
+  /* Was a bare wrench from here. Same defect as the sign-in screen: with no personal emoji and the
+     Access config not loaded yet, every unmapped role read as a mechanic. The role map at least
+     knows what the role is called. */
+  try{ return roleEmojiFor(u.role); }catch(e){}
+  return '🔧'; }
 function _acHomeToggle(arr,key){
   if(_isDefaultOnTab(key)){   // default-on tab: toggle a 'hide:<key>' token instead of the positive key
     var tok='hide:'+key, ti=arr.indexOf(tok);
@@ -22026,10 +22045,18 @@ function mrPushLoad(){
                     'Admin':'🔑', 'Mechanic':'🔧', 'Facilities':'🏗️',
                     'Office':'🗂️', 'Instructor':'🏁', 'Marshal':'🏁',
                     'Supervisor':'📋' };
+  /* What the last signed-in session saw in the Access config. Read once, because this runs for
+     every name on the picker and localStorage is synchronous. */
+  var HKA_CFG_EMOJI = (function(){
+    try { var j = JSON.parse(localStorage.getItem('hk_role_emoji') || 'null');
+          return (j && typeof j === 'object') ? j : null; } catch(e){ return null; }
+  })();
   function emoOf(x){
     if (!x) return '🔧';
     try { if (typeof roleEmojiFor === 'function'){ var e = roleEmojiFor(x.role); if (e) return e; } } catch(err){}
     var k = String(x.role || '').trim();
+    // What Master Access actually says, ahead of the built-in map — that map is the stopgap, not the answer.
+    if (HKA_CFG_EMOJI && HKA_CFG_EMOJI[k]) return HKA_CFG_EMOJI[k];
     if (HKA_EMOJI[k]) return HKA_EMOJI[k];
     var l = k.toLowerCase();
     if (/owner|director/.test(l))              return '👑';
@@ -22037,6 +22064,9 @@ function mrPushLoad(){
     if (/facilit|maint|clean|ground/.test(l))  return '🏗️';
     if (/office|admin|recept|front/.test(l))   return '🗂️';
     if (/instruct|marshal|track|race/.test(l)) return '🏁';
+    // A brand-new device has no cache yet, and calling the person who builds this a mechanic is
+    // the one fallback that is actively wrong rather than merely generic.
+    if (/cod|develop|software|program|engineer|tech\b/.test(l)) return '⚙️';
     return x.emoji || '🔧';
   }
   function emojiFor(n){

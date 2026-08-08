@@ -599,6 +599,8 @@
        expect" is its own state and colouring it red teaches people to ignore red. */
     .rc-warn{background:rgba(240,203,30,.12);border:1px solid rgba(240,203,30,.4);color:#F0CB1E;
       border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
+    .rc-ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);color:#5EEAD4;
+      border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
     .rc-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
     .rc-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
     .rc-b{position:relative;min-height:40px;border-radius:9px;border:1px solid var(--b2);
@@ -10278,7 +10280,32 @@ function kiOpenRef(which){
    No "Alle Karts": one request does move all 192, and Harvey's answer was "I'd rather get rid of
    the all karts button anyway". */
 var RC_ARMED=null;             // {action, value, label, colour} — what the next kart tap will send
-var RC_NOTE='';                // a true-but-easily-missed fact about the press just made, e.g. offline
+var RC_NOTE='', RC_NOTE_OK=false;   // what RiMO reports back about the press just made
+/* CHECK WITH RiMO, AND SAY WHAT RiMO SAYS.
+   "Sent" only means our request was accepted — RiMO answers "ok" to everything, so a green tick
+   there proves nothing. What settles it is RiMO's OWN fleet feed, which comes from a different host
+   (wfm.rimo-germany.com) than the one commanded and is therefore independent: if it reports the
+   kart on the setting just pressed, the command landed. That is how 8 Aug's "clicking a kart
+   changes nothing" was answered — kart 10 read "25 %" five seconds after the press — but only I
+   could see it, in a database. This puts the same evidence on the screen of whoever pressed it.
+   Ten seconds of checking, then it says plainly that RiMO has not taken it. Both outcomes are
+   stated; neither is guessed. */
+function rcVerify(num, want, tries){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('rimo_karts').select('speedset').eq('group_name','Moore Park').eq('kart_no',Number(num)).maybeSingle()
+    .then(function(r){
+      var got=(r&&r.data&&r.data.speedset)||'';
+      if(got&&RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;
+      if(got&&_rcSetKey(got)===_rcSetKey(want)){
+        RC_NOTE='RiMO reports kart '+num+' on '+got+'.'; RC_NOTE_OK=true;
+      } else if((tries||0)<5){
+        setTimeout(function(){ rcVerify(num,want,(tries||0)+1); },2000); return;
+      } else {
+        RC_NOTE='Sent, but after 10s RiMO still reports kart '+num+' on '+(got||'nothing')+'.'; RC_NOTE_OK=false;
+      }
+      if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+    },function(){});
+}
 /* Speed control is these three RaceFacer types and nothing else (Harvey, 8 Aug: "not Junior, Mini,
    or BattleKart"; Twins are in, they are 111-114). The grid was drawing the WHOLE fleet, which is
    why it showed 1, 1, 2, 2, 2, 3, 3, 3, 3 — the same numbers repeated once per kart type. The
@@ -10319,7 +10346,7 @@ function renderRimoCtlSection(){
         ? 'Armed: <b>'+kEsc(RC_ARMED.label)+'</b> — now tap a kart to send it. Tap the setting again to disarm.'
         : 'Pick a setting, then tap a kart. Every press is recorded against your name.')+'</div>'
     +(RC_ERR?('<div class="rc-err">'+kEsc(RC_ERR)+'</div>'):'')
-    +(RC_NOTE?('<div class="rc-warn">'+kEsc(RC_NOTE)+'</div>'):'')
+    +(RC_NOTE?('<div class="'+(RC_NOTE_OK?'rc-ok':'rc-warn')+'">'+kEsc(RC_NOTE)+'</div>'):'')
     +'<div class="rc-top">'
       +rcBtn('mode','standard','Standard','#9aa5b1','wide')
       +rcBtn('mode','stop','Stop','#E24B4A','wide')
@@ -10450,7 +10477,7 @@ function rcSendKart(num){
      the floor to distrust a command that had in fact gone through. The dot still shows online or
      offline, which is a fact; what that means for a speed change is his to know, not mine to
      assert. */
-  RC_NOTE='';
+  RC_NOTE=''; RC_NOTE_OK=false;
   RC_BUSY='kart:'+num; RC_ERR=''; renderRimoCtlSection();
   SBC.from('rimo_control_queue').insert({
       site:(currentSite||'sydney'), action:a.action, value:String(a.value), label:String(a.label||''),
@@ -10463,7 +10490,7 @@ function rcSendKart(num){
         RC_ERR=/relation|does not exist|schema cache/i.test(r.error.message||'')
           ? 'RIMO Control isn’t set up yet — run rimo_control.sql in Supabase.'
           : ('Couldn’t send: '+(r.error.message||''));
-      } else { RC_LAST='kart:'+num; }        // `action`/`value` are on RC_ARMED here, not arguments
+      } else { RC_LAST='kart:'+num; rcVerify(num, a.label, 0); }   // `action`/`value` are on RC_ARMED, not arguments
       renderRimoCtlSection(); rcLoadFeed();
     },function(){ RC_BUSY=null; RC_ERR='Couldn’t send — check the connection.'; renderRimoCtlSection(); });
 }

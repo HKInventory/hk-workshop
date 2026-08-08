@@ -21870,7 +21870,7 @@ function mrPushLoad(){
 (function(){
   var FN = (typeof SB_FN !== 'undefined' ? SB_FN : '') + 'hk-auth';
   var DEVKEY = 'hk_dev_v1', OPTKEY = 'hk_newauth_v1';
-  var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'', shared:false };
+  var S = { dev:null, roster:[], name:'', pin:'', pin2:'', stage:'', busy:false, poll:0, msg:'', err:'', shared:false, rec:'', recFrom:'' };
 
   function ls(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function loadDev(){ try { return JSON.parse(ls(DEVKEY)||'null'); } catch(e){ return null; } }
@@ -22101,7 +22101,11 @@ function mrPushLoad(){
         + '<div class="pin-p">Show a manager this code</div>'
         + '<div class="hka-tiny" id="hka-copy">'+esc(_id)+'<br>tap to copy</div>'
         + '<div class="perr" style="color:var(--grn)">'+esc(S.msg)+'&nbsp;</div>'
-        + '<button class="hka-btn hka-btn2" id="hka-start-over">Start over</button>';
+        + '<button class="hka-btn hka-btn2" id="hka-start-over">Start over</button>'
+        /* THE screen the recovery code was written for: a device sat waiting with
+           nobody left who can approve it. Without this the only way out is to find
+           an already-approved device, which is precisely what you have not got. */
+        + '<button class="train-link" id="hka-lockedout" style="margin-top:14px">Nobody to approve you? Use a recovery code</button>';
     }
     else if (S.stage === 'pick'){
       h = head('Who\'s this?', 'Tap your name, then enter your PIN.')
@@ -22137,7 +22141,31 @@ function mrPushLoad(){
       h = head('We\'ve told the managers', 'They can clear your PIN.')
         + '<div class="hka-note">Once one of them has, come back here \u2014 you will be asked to choose a new one.'
         +   '<br><br>Nobody sees your old PIN, and nobody sees the new one either.</div>'
-        + '<button class="hka-btn" id="hka-forgot-back">Back to sign in</button>';
+        + '<button class="hka-btn" id="hka-forgot-back">Back to sign in</button>'
+        + '<button class="train-link" id="hka-lockedout" style="margin-top:14px">Locked out? Use a recovery code</button>';
+    }
+    /* ---- BREAK GLASS ------------------------------------------------------
+       The one screen that exists for the situation where nothing else can help:
+       every device has been forgotten, or the phone with the only approved
+       device is gone, and there is nobody left who can approve anyone. Typing
+       the recovery code here approves THIS device and signs the owner in.
+       It had no way in. The code was generatable from Master Access and
+       checked by hk-auth's "recovery" op, but the sign-in screen never offered
+       anywhere to type it — which makes a break-glass code that cannot break
+       any glass. A one-line link is not the feature; the screen it opens is.
+       It is a plain text box, not the keypad, because the code is 32 hex
+       characters and nobody is thumbing that in on a number pad. */
+    else if (S.stage === 'recover'){
+      h = head('Recovery code', 'The long code from Master Access. It works once.')
+        + '<input class="hka-in" id="hka-reccode" maxlength="80" placeholder="Paste or type the code"'
+        +   ' value="'+esc(S.rec||'')+'" autocomplete="off" autocapitalize="off" autocorrect="off"'
+        +   ' spellcheck="false" inputmode="text"'
+        +   ' style="letter-spacing:1px;font-size:15px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">'
+        + '<div class="hka-note">This approves the device you are holding and signs you in as the owner.'
+        +   '<br><br>It then burns itself, so generate a new one from Master Access as soon as you are back in.</div>'
+        + '<div class="perr">'+esc(S.err)+'&nbsp;</div>'
+        + '<button class="hka-btn" id="hka-recgo"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Unlock')+'</button>'
+        + '<button class="hka-btn hka-btn2" id="hka-recback">Back</button>';
     }
     else if (S.stage === 'notice'){
       h = head('Your PIN is yours alone', 'Read this once, then pick your PIN.')
@@ -22177,6 +22205,12 @@ function mrPushLoad(){
               + (S.shared || S.roster.length > 1
                  ? '<button class="train-link" id="hka-notme">Not you?</button>' : '')
               + '<button class="train-link" id="hka-forgot">Forgotten your PIN?</button>'
+              /* Reachable from the keypad ITSELF, not only from behind "Forgotten
+                 your PIN?" — that route posts a reset request to the managers, and
+                 wanting the recovery code is not the same thing as wanting your PIN
+                 cleared. Worded flatly on purpose: what it opens explains itself, and
+                 anyone tapping it out of curiosity meets a box they cannot fill. */
+              + '<button class="train-link" id="hka-lockedout">Locked out?</button>'
               + '</div>'
             : '');
     }
@@ -22223,14 +22257,14 @@ function mrPushLoad(){
      clock, and it never runs on a screen where there is nothing private to abandon. */
   var IDLE_MS = 60000;
   var _idleT = null;
-  var IDLE_STAGES = { pin:1, setpin:1, setpin2:1, notice:1, askname:1, forgot:1, asked:1 };
+  var IDLE_STAGES = { pin:1, setpin:1, setpin2:1, notice:1, askname:1, forgot:1, asked:1, recover:1 };
   function idleClear(){ if (_idleT){ clearTimeout(_idleT); _idleT = null; } }
   function idleArm(){
     idleClear();
     if (!IDLE_STAGES[S.stage]) return;
     _idleT = setTimeout(function(){
       if (S.busy) return idleArm();        // a request is in flight — do not yank it out
-      S.pin = ''; S.pin2 = ''; S.err = ''; S.msg = '';
+      S.pin = ''; S.pin2 = ''; S.err = ''; S.msg = ''; S.rec = '';   // a written-down code must not sit on screen either
       boot();                              // back to whatever this device's start screen is
     }, IDLE_MS);
   }
@@ -22463,6 +22497,36 @@ function mrPushLoad(){
       S.pin=''; return go('forgot');
     }
     if (t.id === 'hka-forgot-back'){ S.pin=''; return go(S.name ? 'pin' : 'pick'); }
+    // Remember where this was opened from, so Back returns there rather than guessing —
+    // a device sat on "waiting for approval" must not be dropped onto the picker.
+    if (t.id === 'hka-lockedout'){ S.pin=''; S.rec=''; S.recFrom = S.stage; return go('recover'); }
+    if (t.id === 'hka-recback'){ S.rec=''; return go(S.recFrom || (S.name ? 'pin' : (S.dev ? 'pick' : 'join'))); }
+    if (t.id === 'hka-recgo'){
+      var ce = document.getElementById('hka-reccode');
+      // Written down by hand and read back off paper, so anything a pen or a copy-paste
+      // adds is stripped: spaces, dashes, and the case it was written in.
+      var code = ce ? ce.value.replace(/[\s-]+/g, '') : '';
+      S.rec = ce ? ce.value : '';                 // survive the re-render below
+      if (code.length < 8){ S.err = 'Type the whole code.'; return render(); }
+      if (S.busy) return;
+      S.busy = true; S.err = ''; render();
+      call('recovery', { code: code }).then(function(r){
+        S.busy = false;
+        if (!r || !r.success){ S.err = (r && r.message) || 'Not recognised.'; return render(); }
+        /* SAVE THE DEVICE FIRST. The server has just approved this device and handed
+           back its key; that key exists in exactly one place — this reply. Anything
+           that throws before it is stored loses it, and the code has already burned
+           itself server-side, so there is no second attempt. */
+        if (r.device_id && r.device_key) saveDev({ device_id:r.device_id, device_key:r.device_key });
+        S.rec = '';
+        /* No PIN on the master account yet — there is no session to hand over, so
+           send them to choose one. The roster is dropped because it was fetched by a
+           device that was not approved at the time and came back empty. */
+        if (r.must_set_pin){ S.name = r.name || S.name; S.pin=''; S.pin2=''; S.roster=[]; return go('notice'); }
+        return enter(r);
+      });
+      return;
+    }
     if (t.id === 'hka-askacct'){ S.err=''; S.name=''; return go('askname'); }
     if (t.id === 'hka-askback'){ S.err=''; return go('pick'); }
     if (t.id === 'hka-askdone'){ S.err=''; S.name=''; roster(function(){ go('pick'); }); return; }

@@ -10255,7 +10255,7 @@ function kiOpenRef(which){
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
-  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcEnsureKarts(); rcLoadFeed(); rcLoadRimo(); rcStartTimer(); }
+  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcEnsureKarts(); rcLoadFeed(); rcLoadRimo(); rcStartTimer(); rcStartLive(); }
   else renderHelpSection();
   go('kartref');
 }
@@ -10370,7 +10370,7 @@ function _rcTypeOk(t){
   var s=String(t||'').replace(/\s*track\s*$/i,'').trim().toLowerCase();
   return RC_TYPES.some(function(x){ return x.toLowerCase()===s; });
 }
-var RC_BUSY=null, RC_LAST=null, RC_FEED=[], RC_TIMER=null, RC_ERR='';
+var RC_BUSY=null, RC_LAST=null, RC_FEED=[], RC_TIMER=null, RC_ERR='', RC_CHAN=null;
 
 /* RiMO's buttons, in RiMO's order. `v` is what goes on the wire; `c` tints the strip underneath,
    matching the colour coding on their page so the muscle memory carries over too. */
@@ -10682,7 +10682,40 @@ function rcStartTimer(){
     rcLoadFeed();
   },4000);
 }
-function rcStopTimer(){ if(RC_TIMER){ clearInterval(RC_TIMER); RC_TIMER=null; } }
+function rcStopTimer(){
+  if(RC_TIMER){ clearInterval(RC_TIMER); RC_TIMER=null; }
+  if(RC_CHAN){ try{ SBC.removeChannel(RC_CHAN); }catch(e){} RC_CHAN=null; }
+}
+/* ONE SYSTEM, SO ONE PICTURE — WHICHEVER DEVICE IS LOOKING.
+   Harvey: "if i change on my mac app it should update on my phone app instant... same system." He
+   is right, and it was not: the panel read rimo_karts once when it opened and then only when the
+   person holding it pressed something. So a kart set to Pit from the Mac stayed the old colour on
+   the phone, and two people on the floor could be looking at two different fleets.
+   rimo_karts and rimo_control_queue are both in the realtime publication already, so this costs a
+   subscription and no polling. A change to a kart updates that tile in place — no re-read of the
+   fleet, no flicker — and a new queue row refreshes the Recent list so you can see somebody else's
+   press land. A kart with a press of OUR OWN still in flight is left alone: RC_PENDING means we are
+   deliberately showing the pressed colour until RiMO confirms it, and a feed row arriving mid-flight
+   would undo exactly that. */
+function rcStartLive(){
+  if(typeof SBC==='undefined'||!SBC||!SBC.channel) return;
+  if(RC_CHAN) return;
+  try {
+    RC_CHAN=SBC.channel('rimoctl-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'rimo_karts'},function(p){
+        var r=p&&p.new; if(!r||r.kart_no==null) return;
+        if(r.group_name && r.group_name!=='Moore Park') return;
+        var k=String(r.kart_no);
+        if(RC_PENDING[k]) return;                       // our own press is still being confirmed
+        RC_RIMO[k]={ online:r.online, speedset:r.speedset };
+        if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'rimo_control_queue'},function(){
+        if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') rcLoadFeed();
+      })
+      .subscribe();
+  } catch(e){ RC_CHAN=null; }
+}
 
 var _rimoDataT=null, RIMO_DATA_ROWS=[], RIMO_DATA_Q='';
 function renderRimoSection(){

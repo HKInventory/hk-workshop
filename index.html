@@ -10410,7 +10410,23 @@ function rcKartTile(k){
 }
 var RC_RIMO={};      // kart_no -> {online, speedset} straight from the RiMO fleet feed
 var RC_SETCOL={};    // normalised speedset label -> RiMO's own colour, from rimo_speedsets
-function _rcSetKey(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+/* THE TWO SIDES SPELL THE SAME SETTING DIFFERENTLY, AND THAT IS WHY MOST KARTS WERE BLANK.
+   control.php calls the button "Pit". The fleet feed calls the same setting "Pit (FN49)". Joining
+   on the raw label matched the percentages — "100 %" is "100 %" on both — and missed every named
+   mode, which is where nearly the whole fleet sits:
+
+     Pit (FN49)            117 karts    no match
+     Pit Entry (FN28)       13          no match
+     Pit Exit (FN12)         7          no match
+     Pit Exit Fast (FN13)    4          no match
+     Start (FN14) / Holding (FN30)      no match
+     40 % / 100 % / 30 % …              matched
+
+   143 of 166 karts blank, which is exactly kart 7 showing red Pit on RiMO and nothing here. The
+   FN code is RiMO's internal function number, not part of the name, so it comes off the key. */
+function _rcSetKey(s){
+  return String(s||'').toLowerCase().replace(/\s*\(fn\s*\d+\)\s*$/i,'').replace(/\s+/g,' ').trim();
+}
 /* RiMO'S COLOUR, NOT A TINT OF IT. First cut mixed the colour 26% into the dark card so the number
    would stay readable — which made a side-by-side with RiMO wrong on every tile: their cyan 5 came
    out teal, their pink 9 came out maroon. Harvey wants them identical, so the fill is the exact

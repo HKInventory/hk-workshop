@@ -595,6 +595,10 @@
     .rc-note{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:10px}
     .rc-err{background:rgba(226,75,74,.14);border:1px solid rgba(226,75,74,.45);color:#F09595;
       border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
+    /* Not an error — the command was accepted. Amber, because "it worked but not the way you
+       expect" is its own state and colouring it red teaches people to ignore red. */
+    .rc-warn{background:rgba(240,203,30,.12);border:1px solid rgba(240,203,30,.4);color:#F0CB1E;
+      border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
     .rc-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
     .rc-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
     .rc-b{position:relative;min-height:40px;border-radius:9px;border:1px solid var(--b2);
@@ -10274,6 +10278,7 @@ function kiOpenRef(which){
    No "Alle Karts": one request does move all 192, and Harvey's answer was "I'd rather get rid of
    the all karts button anyway". */
 var RC_ARMED=null;             // {action, value, label, colour} — what the next kart tap will send
+var RC_NOTE='';                // a true-but-easily-missed fact about the press just made, e.g. offline
 /* Speed control is these three RaceFacer types and nothing else (Harvey, 8 Aug: "not Junior, Mini,
    or BattleKart"; Twins are in, they are 111-114). The grid was drawing the WHOLE fleet, which is
    why it showed 1, 1, 2, 2, 2, 3, 3, 3, 3 — the same numbers repeated once per kart type. The
@@ -10314,6 +10319,7 @@ function renderRimoCtlSection(){
         ? 'Armed: <b>'+kEsc(RC_ARMED.label)+'</b> — now tap a kart to send it. Tap the setting again to disarm.'
         : 'Pick a setting, then tap a kart. Every press is recorded against your name.')+'</div>'
     +(RC_ERR?('<div class="rc-err">'+kEsc(RC_ERR)+'</div>'):'')
+    +(RC_NOTE?('<div class="rc-warn">'+kEsc(RC_NOTE)+'</div>'):'')
     +'<div class="rc-top">'
       +rcBtn('mode','standard','Standard','#9aa5b1','wide')
       +rcBtn('mode','stop','Stop','#E24B4A','wide')
@@ -10437,6 +10443,15 @@ function rcSendKart(num){
   if(typeof SBC==='undefined'||!SBC){ RC_ERR='Not connected.'; renderRimoCtlSection(); return; }
   if(!RC_ARMED){ RC_ERR='Pick a setting first, then tap the kart.'; renderRimoCtlSection(); return; }
   var a=RC_ARMED;
+  /* AN OFFLINE KART TAKES THE COMMAND AND DOES NOTHING WITH IT, AND RiMO STILL ANSWERS "ok".
+     That is exactly how 8 Aug ended: kart 10 was tapped to 25 %, the queue row read sent, RiMO
+     replied ok, RiMO's fleet feed came back five seconds later reporting the kart on 25 % — and
+     nothing changed on the track, because the kart was not listening. Everything had worked and it
+     looked broken. The dot already says offline; this says it in words at the moment it matters,
+     without blocking the send — storing the setting for when the kart wakes is legitimate. */
+  var _r=RC_RIMO[String(num)];
+  RC_NOTE=(_r&&_r.online===false)
+    ? 'Kart '+num+' is offline — RiMO will store '+a.label+' but the kart is not listening yet.' : '';
   RC_BUSY='kart:'+num; RC_ERR=''; renderRimoCtlSection();
   SBC.from('rimo_control_queue').insert({
       site:(currentSite||'sydney'), action:a.action, value:String(a.value), label:String(a.label||''),

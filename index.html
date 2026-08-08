@@ -10443,15 +10443,14 @@ function rcSendKart(num){
   if(typeof SBC==='undefined'||!SBC){ RC_ERR='Not connected.'; renderRimoCtlSection(); return; }
   if(!RC_ARMED){ RC_ERR='Pick a setting first, then tap the kart.'; renderRimoCtlSection(); return; }
   var a=RC_ARMED;
-  /* AN OFFLINE KART TAKES THE COMMAND AND DOES NOTHING WITH IT, AND RiMO STILL ANSWERS "ok".
-     That is exactly how 8 Aug ended: kart 10 was tapped to 25 %, the queue row read sent, RiMO
-     replied ok, RiMO's fleet feed came back five seconds later reporting the kart on 25 % — and
-     nothing changed on the track, because the kart was not listening. Everything had worked and it
-     looked broken. The dot already says offline; this says it in words at the moment it matters,
-     without blocking the send — storing the setting for when the kart wakes is legitimate. */
-  var _r=RC_RIMO[String(num)];
-  RC_NOTE=(_r&&_r.online===false)
-    ? 'Kart '+num+' is offline — RiMO will store '+a.label+' but the kart is not listening yet.' : '';
+  /* NO "THIS KART IS OFFLINE SO IT WILL NOT APPLY" WARNING HERE, DELIBERATELY.
+     I added one and Harvey corrected it: "it should work on offline karts too it does on RIMO
+     control." He operates this daily and I was reasoning from a reply code. A warning that states
+     something false about how the karts behave is worse than no warning, because it would teach
+     the floor to distrust a command that had in fact gone through. The dot still shows online or
+     offline, which is a fact; what that means for a speed change is his to know, not mine to
+     assert. */
+  RC_NOTE='';
   RC_BUSY='kart:'+num; RC_ERR=''; renderRimoCtlSection();
   SBC.from('rimo_control_queue').insert({
       site:(currentSite||'sydney'), action:a.action, value:String(a.value), label:String(a.label||''),

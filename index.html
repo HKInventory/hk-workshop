@@ -627,17 +627,17 @@
     .rc-kart{position:relative;min-height:42px;border-radius:9px;border:1px solid var(--b2);
       background:var(--card2,#141821);color:#fff;font-size:14px;font-weight:800;font-family:inherit;
       cursor:pointer;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
-    /* Only live once a setting is armed — an unarmed grid should not look like it does anything,
-       because it does not. */
-    .rc-karts.armed .rc-kart{border-color:rgba(45,212,191,.45);background:rgba(45,212,191,.07)}
-    .rc-karts.armed .rc-kart:hover{border-color:rgba(45,212,191,.9);background:rgba(45,212,191,.18)}
+    /* Armed means "these are tappable", NOT "these are all this colour". The first cut washed the
+       whole grid teal, which hid the one thing the grid is for — what setting each kart is on.
+       A ring says tappable and leaves every fill alone. */
+    .rc-karts.armed .rc-kart{outline:1.5px solid rgba(45,212,191,.55);outline-offset:-1.5px}
+    .rc-karts.armed .rc-kart:hover{outline-color:rgba(45,212,191,1)}
     .rc-kart.busy{opacity:.5}
     .rc-kart:active{transform:scale(.96)}
-    /* RiMO's own colour for the setting the kart is on. Kept as a wash rather than a solid fill so
-       the number stays readable on light settings — theirs is a light page, ours is not. */
-    .rc-kart.tinted{background:color-mix(in srgb, var(--sc) 26%, var(--card2,#141821));
-      border-color:color-mix(in srgb, var(--sc) 55%, transparent)}
-    .rc-karts.armed .rc-kart.tinted:hover{background:color-mix(in srgb, var(--sc) 45%, var(--card2,#141821))}
+    /* RiMO's colour, exactly. A side-by-side has to match theirs tile for tile, so no mixing with
+       the card underneath — the number changes colour instead (see _rcInk). */
+    .rc-kart.tinted{background:var(--sc);border-color:var(--sc);color:var(--ink)}
+    .rc-kart.tinted .rc-dot{box-shadow:0 0 0 1.5px var(--sc)}   /* keeps the dot legible on any fill */
     .rc-dot.unk{background:var(--t2);opacity:.5}   /* RiMO has not reported this kart at all */
     .rc-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%}
     .rc-dot.ok{background:#22C55E} .rc-dot.warn{background:#F0CB1E} .rc-dot.bad{background:#E24B4A}
@@ -10402,7 +10402,7 @@ function rcKartTile(k){
   var col=(r&&r.speedset&&RC_SETCOL[_rcSetKey(r.speedset)])||'';
   var busy=(RC_BUSY==='kart:'+k.num);
   return '<button class="rc-kart'+(busy?' busy':'')+(col?' tinted':'')+'" '
-    +(col?('style="--sc:'+kEsc(col)+'"'):'')
+    +(col?('style="--sc:'+kEsc(col)+';--ink:'+_rcInk(col)+'"'):'')
     +' '+_rcClick('rcSendKart',[String(k.num)])+' '
     +'title="'+kEsc(k.type||'')+(r&&r.speedset?(' · '+kEsc(r.speedset)):'')
       +' · '+(online===null?'RiMO state unknown':(online?'online':'offline'))+'">'
@@ -10411,6 +10411,18 @@ function rcKartTile(k){
 var RC_RIMO={};      // kart_no -> {online, speedset} straight from the RiMO fleet feed
 var RC_SETCOL={};    // normalised speedset label -> RiMO's own colour, from rimo_speedsets
 function _rcSetKey(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+/* RiMO'S COLOUR, NOT A TINT OF IT. First cut mixed the colour 26% into the dark card so the number
+   would stay readable — which made a side-by-side with RiMO wrong on every tile: their cyan 5 came
+   out teal, their pink 9 came out maroon. Harvey wants them identical, so the fill is the exact
+   value and the NUMBER moves instead: dark ink on a light setting, white on a dark one, chosen from
+   the colour's own luminance. Same rule their page uses. */
+function _rcInk(hex){
+  var m=String(hex||'').match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if(!m) return '#fff';
+  var h=m[1]; if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  return (0.299*r+0.587*g+0.114*b) > 150 ? '#14181f' : '#ffffff';
+}
 /* JSON.stringify QUOTES WITH DOUBLE QUOTES, AND SO DID THE ATTRIBUTE.
    onclick="rcSendKart(" + JSON.stringify("19") + ")" produces
 
@@ -10466,9 +10478,33 @@ function rcArm(action,value,label,colour){
    hand, and a dialog in front of a Stop button is worse than the mis-tap it is trying to prevent —
    RiMO's own page has none either. What it does instead is show, immediately and permanently, what
    was sent and whether RiMO took it. */
+/* ONE TAP MUST BE ONE COMMAND. THIS HAD NO GUARD AT ALL AND IT SHOWED.
+   The queue for a single test read: ids 9-14, all "25 %" to kart 10, five of them inside 1.5
+   seconds and two of them 20ms apart. Twenty milliseconds is not two presses by a human — the
+   handler was firing more than once per tap — and four of the six actually went to RiMO. Harvey:
+   "Cant have karts getting random speedsets randomly. One input per kart and thats it."
+   On something that sets how fast a kart carrying a person may go, a duplicate is not a cosmetic
+   problem: two rows racing means the order they land in decides the speed, and the runner's own
+   supersede logic only helps when they arrive together. So this refuses at the source, three ways:
+
+     1. A send is already in flight -> ignore. RC_BUSY is cleared on every path, success or error.
+     2. The same kart+setting within 2.5s -> ignore. Covers the double-fire and the impatient
+        second tap, and 2.5s is far below any legitimate "actually set it again".
+     3. Disarming after a successful send (below) means the NEXT tap cannot send anything at all
+        until a setting is deliberately chosen again.
+
+   Deliberately not a confirm dialog: this is used one-handed mid-session, and a dialog in front of
+   a Stop button is worse than the mis-tap it prevents. */
+var RC_SENT_AT={};   // "kart|setting" -> when it last actually left
 function rcSendKart(num){
   if(typeof SBC==='undefined'||!SBC){ RC_ERR='Not connected.'; renderRimoCtlSection(); return; }
   if(!RC_ARMED){ RC_ERR='Pick a setting first, then tap the kart.'; renderRimoCtlSection(); return; }
+  if(RC_BUSY) return;                                   // 1. one in flight at a time
+  var _k=String(num)+'|'+RC_ARMED.action+'|'+RC_ARMED.value;
+  // Test the RECORD, not a zero standing in for one: `Date.now()-0` only happens to be huge because
+  // the epoch is. Guarding on presence says what is meant and cannot be wrong under a fake clock.
+  if(RC_SENT_AT[_k] && Date.now()-RC_SENT_AT[_k] < 2500) return;   // 2. same kart+setting, just sent
+  RC_SENT_AT[_k]=Date.now();
   var a=RC_ARMED;
   /* NO "THIS KART IS OFFLINE SO IT WILL NOT APPLY" WARNING HERE, DELIBERATELY.
      I added one and Harvey corrected it: "it should work on offline karts too it does on RIMO
@@ -10490,7 +10526,15 @@ function rcSendKart(num){
         RC_ERR=/relation|does not exist|schema cache/i.test(r.error.message||'')
           ? 'RIMO Control isn’t set up yet — run rimo_control.sql in Supabase.'
           : ('Couldn’t send: '+(r.error.message||''));
-      } else { RC_LAST='kart:'+num; rcVerify(num, a.label, 0); }   // `action`/`value` are on RC_ARMED, not arguments
+      } else {
+        RC_LAST='kart:'+num;
+        /* ONE PRESS, ONE KART, THEN BACK TO THE OVERALL VIEW. Harvey: "I sent speed 100 to kart 19
+           then it should go back to overall view." Staying armed also leaves the grid ringed and
+           one stray tap away from sending again — which on a speed controller is the wrong default.
+           Arm again for the next one; that is one tap, and it is the tap that says what you meant. */
+        RC_ARMED=null;
+        rcVerify(num, a.label, 0);   // `action`/`value` are on the captured `a`, not on RC_ARMED
+      }
       renderRimoCtlSection(); rcLoadFeed();
     },function(){ RC_BUSY=null; RC_ERR='Couldn’t send — check the connection.'; renderRimoCtlSection(); });
 }

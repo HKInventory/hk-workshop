@@ -627,6 +627,12 @@
     .rc-karts.armed .rc-kart:hover{border-color:rgba(45,212,191,.9);background:rgba(45,212,191,.18)}
     .rc-kart.busy{opacity:.5}
     .rc-kart:active{transform:scale(.96)}
+    /* RiMO's own colour for the setting the kart is on. Kept as a wash rather than a solid fill so
+       the number stays readable on light settings — theirs is a light page, ours is not. */
+    .rc-kart.tinted{background:color-mix(in srgb, var(--sc) 26%, var(--card2,#141821));
+      border-color:color-mix(in srgb, var(--sc) 55%, transparent)}
+    .rc-karts.armed .rc-kart.tinted:hover{background:color-mix(in srgb, var(--sc) 45%, var(--card2,#141821))}
+    .rc-dot.unk{background:var(--t2);opacity:.5}   /* RiMO has not reported this kart at all */
     .rc-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%}
     .rc-dot.ok{background:#22C55E} .rc-dot.warn{background:#F0CB1E} .rc-dot.bad{background:#E24B4A}
     .rc-empty{text-align:center;color:var(--t2);font-size:12.5px;padding:18px 10px}
@@ -10237,7 +10243,7 @@ function kiOpenRef(which){
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
-  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcLoadFeed(); rcStartTimer(); }
+  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcLoadFeed(); rcLoadRimo(); rcStartTimer(); }
   else renderHelpSection();
   go('kartref');
 }
@@ -10349,16 +10355,55 @@ function rcKarts(){
     })
     .sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); });
 }
+/* THE TILE SHOWS WHAT RiMO SHOWS: the setting the kart is on, and whether it is listening.
+   Harvey, on the first cut: "the dots also are either red for offline or green for online. Not kart
+   status." He is right and the distinction matters — a damaged kart that is online will take a
+   command, and a perfectly good kart that is offline will not. Which of those is true is the one
+   thing worth knowing before you tap, and workshop status was answering a different question.
+   The fill is the kart's current speedset in RiMO's own colour, so the grid reads the same way
+   theirs does: you can see at a glance which karts are already on Pit. */
 function rcKartTile(k){
-  var dot=k.status==='damaged'?'bad':(k.status==='maint'?'warn':'ok');
+  var r=RC_RIMO[String(k.num)]||null;
+  var online=r?!!r.online:null;
+  var dot=online===null?'unk':(online?'ok':'bad');
+  var col=(r&&r.speedset&&RC_SETCOL[_rcSetKey(r.speedset)])||'';
   var busy=(RC_BUSY==='kart:'+k.num);
-  return '<button class="rc-kart'+(busy?' busy':'')+'" onclick="rcSendKart('+JSON.stringify(String(k.num))+')" '
-    +'title="'+kEsc(k.type||'')+' · '+kEsc(k.status||'')+'">'
+  return '<button class="rc-kart'+(busy?' busy':'')+(col?' tinted':'')+'" '
+    +(col?('style="--sc:'+kEsc(col)+'"'):'')
+    +' onclick="rcSendKart('+JSON.stringify(String(k.num))+')" '
+    +'title="'+kEsc(k.type||'')+(r&&r.speedset?(' · '+kEsc(r.speedset)):'')
+      +' · '+(online===null?'RiMO state unknown':(online?'online':'offline'))+'">'
     +kEsc(String(k.num))+'<i class="rc-dot '+dot+'"></i></button>';
+}
+var RC_RIMO={};      // kart_no -> {online, speedset} straight from the RiMO fleet feed
+var RC_SETCOL={};    // normalised speedset label -> RiMO's own colour, from rimo_speedsets
+function _rcSetKey(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+/* Both reads are best-effort and neither blocks a command: with no colours the tiles stay plain,
+   with no fleet feed the dots read "unknown" rather than claiming a kart is online. */
+function rcLoadRimo(){
+  if(typeof SBC==='undefined'||!SBC) return;
+  SBC.from('rimo_karts').select('kart_no,online,speedset').eq('group_name','Moore Park')
+    .then(function(r){
+      if(r&&!r.error&&r.data){
+        var m={}; r.data.forEach(function(x){ if(x.kart_no!=null) m[String(x.kart_no)]={online:x.online,speedset:x.speedset}; });
+        RC_RIMO=m; if(KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+      }
+    },function(){});
+  SBC.from('rimo_speedsets').select('label,colour')
+    .then(function(r){
+      if(r&&!r.error&&r.data){
+        var m={}; r.data.forEach(function(x){ if(x.label&&x.colour) m[_rcSetKey(x.label)]=x.colour; });
+        RC_SETCOL=m; if(KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+      }
+    },function(){});
 }
 /* Arming, not sending. Pressing a setting twice disarms it, so there is a way to put the page down
    without a kart tap going somewhere unintended. */
 function rcBtn(action,value,label,colour,cls){
+  /* RiMO's colour wins over ours. The palette below was picked by eye off a screenshot; once the
+     runner has read control.php these are RiMO's actual values, so the two pages match exactly
+     instead of approximately — and they keep matching if RiMO recolours a button. */
+  colour=RC_SETCOL[_rcSetKey(label)]||colour;
   var armed=!!(RC_ARMED&&RC_ARMED.action===action&&RC_ARMED.value===String(value));
   return '<button class="rc-b'+(cls?(' '+cls):'')+(armed?' on':'')+'" '
     +'onclick="rcArm('+JSON.stringify(action)+','+JSON.stringify(String(value))+','+JSON.stringify(label)+','+JSON.stringify(colour)+')">'

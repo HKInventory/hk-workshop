@@ -633,6 +633,12 @@
     .rc-karts.armed .rc-kart{outline:1.5px solid rgba(45,212,191,.55);outline-offset:-1.5px}
     .rc-karts.armed .rc-kart:hover{outline-color:rgba(45,212,191,1)}
     .rc-kart.busy{opacity:.5}
+    /* Shown in the pressed colour but not yet confirmed by RiMO's own feed. A slow pulse, because
+       the honest state here is "asked for, waiting" and a tile that looked settled would be a
+       claim we cannot make yet. */
+    .rc-kart.pending{animation:rcPend 1.1s ease-in-out infinite}
+    @keyframes rcPend{0%,100%{opacity:1}50%{opacity:.55}}
+    @media (prefers-reduced-motion:reduce){ .rc-kart.pending{animation:none;opacity:.8} }
     .rc-kart:active{transform:scale(.96)}
     /* RiMO's colour, exactly. A side-by-side has to match theirs tile for tile, so no mixing with
        the card underneath — the number changes colour instead (see _rcInk). */
@@ -10295,12 +10301,19 @@ function rcVerify(num, want, tries){
   SBC.from('rimo_karts').select('speedset').eq('group_name','Moore Park').eq('kart_no',Number(num)).maybeSingle()
     .then(function(r){
       var got=(r&&r.data&&r.data.speedset)||'';
-      if(got&&RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;
       if(got&&_rcSetKey(got)===_rcSetKey(want)){
+        if(RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;
+        delete RC_PENDING[String(num)];
         RC_NOTE='RiMO reports kart '+num+' on '+got+'.'; RC_NOTE_OK=true;
       } else if((tries||0)<5){
+        /* DO NOT WRITE THE OLD VALUE BACK WHILE WE ARE WAITING FOR THE NEW ONE. This assigned
+           whatever RiMO currently said on every poll, which undid the optimistic colour a fraction
+           of a second after the press and made the tile flick back to its old setting until the
+           round trip completed. Only the confirmed value, or the final answer, gets written. */
         setTimeout(function(){ rcVerify(num,want,(tries||0)+1); },2000); return;
       } else {
+        if(RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;   // the real answer, whatever it is
+        delete RC_PENDING[String(num)];
         RC_NOTE='Sent, but after 10s RiMO still reports kart '+num+' on '+(got||'nothing')+'.'; RC_NOTE_OK=false;
       }
       if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
@@ -10427,7 +10440,8 @@ function rcKartTile(k){
   var dot=online===null?'unk':(online?'ok':'bad');
   var col=(r&&r.speedset&&RC_SETCOL[_rcSetKey(r.speedset)])||'';
   var busy=(RC_BUSY==='kart:'+k.num);
-  return '<button class="rc-kart'+(busy?' busy':'')+(col?' tinted':'')+'" '
+  var pend=!!RC_PENDING[String(k.num)];
+  return '<button class="rc-kart'+(busy?' busy':'')+(col?' tinted':'')+(pend?' pending':'')+'" '
     +(col?('style="--sc:'+kEsc(col)+';--ink:'+_rcInk(col)+'"'):'')
     +' '+_rcClick('rcSendKart',[String(k.num)])+' '
     +'title="'+kEsc(k.type||'')+(r&&r.speedset?(' · '+kEsc(r.speedset)):'')
@@ -10435,6 +10449,7 @@ function rcKartTile(k){
     +kEsc(String(k.num))+'<i class="rc-dot '+dot+'"></i></button>';
 }
 var RC_RIMO={};      // kart_no -> {online, speedset} straight from the RiMO fleet feed
+var RC_PENDING={};   // kart_no -> shown in the pressed colour, not yet confirmed by RiMO's feed
 var RC_SETCOL={};    // normalised speedset label -> RiMO's own colour, from rimo_speedsets
 /* THE TWO SIDES SPELL THE SAME SETTING DIFFERENTLY, AND THAT IS WHY MOST KARTS WERE BLANK.
    control.php calls the button "Pit". The fleet feed calls the same setting "Pit (FN49)". Joining
@@ -10570,6 +10585,17 @@ function rcSendKart(num){
           : ('Couldn’t send: '+(r.error.message||''));
       } else {
         RC_LAST='kart:'+num;
+        /* PAINT IT NOW, CONFIRM IT AFTER. The tile took several seconds to change colour, and every
+           second of that is the runner draining the queue, RiMO applying it, RiMO's fleet poller
+           noticing, and this app reading it back — a real round trip that the person holding the
+           iPad has no way to distinguish from "nothing happened", which is how they end up pressing
+           it again. The colour goes on immediately and the tile is marked pending until RiMO's own
+           feed agrees. This is not the app marking its own homework: rcVerify still reports what
+           RiMO says, and if the two disagree after ten seconds the tile reverts to RiMO's answer and
+           says so in amber. */
+        RC_PENDING[String(num)]=1;
+        if(RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=a.label;
+        else RC_RIMO[String(num)]={ online:null, speedset:a.label };
         /* ONE PRESS, ONE KART, THEN BACK TO THE OVERALL VIEW. Harvey: "I sent speed 100 to kart 19
            then it should go back to overall view." Staying armed also leaves the grid ringed and
            one stray tap away from sending again — which on a speed controller is the wrong default.
@@ -21982,9 +22008,13 @@ function mrPushLoad(){
     (document.body||document.documentElement).appendChild(banner);
   }
   function check(){
-    var now=Date.now(); if(now-last<25000) return; last=now;   // throttle: at most every 25s
+    /* THE THROTTLE USED TO BURN ON A FAILED CHECK. `last` was stamped before the request, so a
+       fetch that failed — a phone waking on a weak connection, which is most of them — still cost
+       the next 25 seconds. Stamp it when something actually comes back. */
+    var now=Date.now(); if(now-last<25000) return;
     try{
       fetch(location.pathname+'?_hkv='+now,{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
+        last=Date.now();
         if(!t||t.length<1000) return;                            // a truncated or error body proves nothing
         var f=_fp(t);
         // The first successful check establishes what we are running; only a LATER change is a deploy.
@@ -21995,6 +22025,10 @@ function mrPushLoad(){
   }
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) check(); });
   window.addEventListener('focus',check);
+  /* Coming back from the back/forward cache does not fire load, and on iOS it is how a suspended
+     home-screen app usually resumes — so without this the one moment a phone is most likely to be
+     on a stale build is the one moment nothing checks. */
+  window.addEventListener('pageshow',function(ev){ if(ev.persisted) check(); });
   setInterval(check, 180000);                                    // and every 3 min while open
   setTimeout(check, 8000);                                       // one check shortly after load
 })();

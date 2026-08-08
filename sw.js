@@ -34,6 +34,21 @@ self.addEventListener('notificationclick', function(e){
 var IMG_CACHE='hk-img-v1';
 self.addEventListener('fetch', function(e){
   var req=e.request;
+  /* NAVIGATIONS GO TO THE NETWORK, EVERY TIME, WITH THE HTTP CACHE BYPASSED.
+     The comment at the top of this file says "network-only passthrough ... updates must land the
+     moment GitHub Pages serves them", and that was not true: returning without calling respondWith
+     hands the request to the BROWSER, which includes the browser's own HTTP cache. GitHub Pages
+     serves index.html with a ten-minute max-age, so a cold start — which on a phone is what opening
+     the installed app usually is — could legitimately be served a stale build from disk, with no
+     request reaching the network at all. On a Mac the tab stays open and the in-page update check
+     catches the change; a phone gets neither, which is exactly the reported symptom: "tap to update
+     doesnt show on my phone anymore only on mac browser", while the Mac sees every deploy.
+     A navigation is one small HTML request, so no-store costs nothing worth measuring, and any
+     network failure falls back to the browser's normal handling rather than a blank screen. */
+  if(req.mode==='navigate'){
+    e.respondWith(fetch(req.url, { cache:'no-store', credentials:'same-origin' }).catch(function(){ return fetch(req); }));
+    return;
+  }
   if(req.method!=='GET'||req.destination!=='image') return;   // passthrough for everything else
   e.respondWith(caches.open(IMG_CACHE).then(function(c){
     return c.match(req).then(function(hit){

@@ -22062,6 +22062,19 @@ function mrPushLoad(){
     try { var j = JSON.parse(localStorage.getItem('hk_role_emoji') || 'null');
           return (j && typeof j === 'object') ? j : null; } catch(e){ return null; }
   })();
+  /* WHOSE KEYPAD SHOULD OFFER THE RECOVERY CODE — one person's, not everybody's.
+     The recovery code belongs to the master account, so on a shared iPad every mechanic was
+     being shown a way in they cannot use and that is nobody's business but Harvey's. The
+     sign-in screen cannot ask who the master is: the roster op returns name, role and
+     must_set_pin, and adding is_master to it means redeploying hk-auth, which is the sign-in
+     path itself. It does not need to ask — the master signs in here like anyone else, and the
+     login reply already says so. Stashed then, read now. Same trick as the role emojis.
+     Read fresh rather than cached in a variable, so the very first master sign-in on a device
+     takes effect without a reload. */
+  function isMasterName(n){
+    try { var m = localStorage.getItem('hk_master_name') || ''; return !!m && String(n||'').trim() === m; }
+    catch(e){ return false; }
+  }
   function emoOf(x){
     if (!x) return '🔧';
     try { if (typeof roleEmojiFor === 'function'){ var e = roleEmojiFor(x.role); if (e) return e; } } catch(err){}
@@ -22183,6 +22196,12 @@ function mrPushLoad(){
         + '<div class="hka-note">Once one of them has, come back here \u2014 you will be asked to choose a new one.'
         +   '<br><br>Nobody sees your old PIN, and nobody sees the new one either.</div>'
         + '<button class="hka-btn" id="hka-forgot-back">Back to sign in</button>'
+        /* NOT gated to the master, deliberately, and this is the one place that must not be.
+           The keypad link reads localStorage, so an iPad Harvey has never signed in on does not
+           know he is master — and that is exactly the device he would be standing at when
+           locked out. Gate every route and the break-glass code becomes unreachable again,
+           which was the original bug. This screen is two taps down and only reached after
+           asking for a PIN reset, so it is rare rather than in everyone's face. */
         + '<button class="train-link" id="hka-lockedout" style="margin-top:14px">Locked out? Use a recovery code</button>';
     }
     /* ---- BREAK GLASS ------------------------------------------------------
@@ -22249,9 +22268,9 @@ function mrPushLoad(){
               /* Reachable from the keypad ITSELF, not only from behind "Forgotten
                  your PIN?" — that route posts a reset request to the managers, and
                  wanting the recovery code is not the same thing as wanting your PIN
-                 cleared. Worded flatly on purpose: what it opens explains itself, and
-                 anyone tapping it out of curiosity meets a box they cannot fill. */
-              + '<button class="train-link" id="hka-lockedout">Locked out?</button>'
+                 cleared. Only on the master's own keypad: it is his code, and on a
+                 shared iPad it was being offered to every mechanic who signed in. */
+              + (isMasterName(S.name) ? '<button class="train-link" id="hka-lockedout">Locked out?</button>' : '')
               + '</div>'
             : '');
     }
@@ -22471,6 +22490,12 @@ function mrPushLoad(){
     _handedOver = true;
     hide();
     var m = { name:r.name, role:r.role, emoji:emojiFor(r.name), site:r.site, is_master:!!r.is_master };
+    /* Remember, on this device only, who the master is — so the next sign-in screen knows whose
+       keypad should offer the recovery code. It comes from the server that just authenticated
+       them, which is the only thing that gets to say so. Just a name, and one already on the
+       picker. Cleared if the same person turns out not to be master any more. */
+    try { if (r.name){ if (r.is_master) localStorage.setItem('hk_master_name', r.name);
+                       else if (localStorage.getItem('hk_master_name') === r.name) localStorage.removeItem('hk_master_name'); } } catch(e){}
     /* THE OWNER ACCESS LIST, DELIVERED BY THE SERVER THAT JUST AUTHENTICATED THEM.
        The app used to read app_access itself, so who could see Master Access
        depended on that table's grants AND its RLS — and RLS with no policy

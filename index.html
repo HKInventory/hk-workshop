@@ -6399,6 +6399,13 @@ function onLoginOk(m,entered){
   if(_loginRan) return;
   _loginRan=true;
   var _pd=document.getElementById('pd');if(_pd)_pd.classList.remove('checking');
+  /* THE EXPIRED-SIGN-IN WARNING HAS TO GO THE MOMENT THE SIGN-IN SUCCEEDS.
+     It was left to the 60-second watchdog to notice, so signing back in cleared the
+     thing that caused the warning while the warning itself stayed on screen — which
+     reads as broken, and worse, teaches people to ignore it. Whoever fixes the
+     problem clears the message; the watchdog is for finding it, not for tidying up. */
+  try{ sessBanner(false); }catch(e){}
+  try{ setTimeout(sessCheck,1500); }catch(e){}   // and confirm for real, without waiting a minute
   m.pin=entered; // user's own PIN, kept in their session only, to authorise their stock moves
   cu=m;if(!TRAINING){try{sessionStorage.setItem('hk_u',JSON.stringify(m));sessionStorage.setItem('hk_ud',new Date().toDateString());}catch(e){}}try{loadAccessCfg();}catch(e){}applyRoleVisibility();try{rampCheck();notifCtaCheck();notifRefresh();loadAutoLogout();chatRefreshUnread();loadUserColors();loadRoster();}catch(e){}
   try{ resetIdleTimer(); }catch(e){}
@@ -6529,6 +6536,7 @@ function logout(){
   try{ if(_presenceT){ clearInterval(_presenceT); _presenceT=null; } }catch(e){}
   try{ if(cu&&cu.name&&typeof SBC!=='undefined'&&SBC) SBC.from('presence').delete().eq('name',cu.name).then(function(){},function(){}); }catch(e){}
   try{ if(typeof sessionClose==='function') sessionClose(); }catch(e){}   // stamp the sign-out time for Last online
+  try{ sessBanner(false); }catch(e){}   // signing out is not something to keep warning about
   TRAINING=false;stopKartAutoRefresh();showTrainingBanner(false);resetPinUI();cu=null;pin3='';homeAnimated=false;_loginRan=false;masterPin='';masterViaKey=false;sessionStorage.removeItem('hk_u');sessionStorage.removeItem('hk_ud');udots();document.getElementById('pe').innerHTML='&nbsp;';stk=['pin'];showRoot('pin');setTopAccent('flow');try{resetIdleTimer();}catch(e){}}
 /* Auto sign-out after inactivity (security). Default 30 min; AUTO_LOGOUT_MIN can be
    driven from an owner setting later. Only runs for a signed-in user — never the
@@ -16100,7 +16108,10 @@ function sessWatchStart(){
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ try{sessWatchStart();}catch(e){} });
      else sessWatchStart(); }catch(e){}
 function sessCheck(){
-  if(!cu||TRAINING){ return; }
+  /* Clear it, do not just decline to look. With nobody signed in there is no sign-in to
+     have expired, and this early return is how the banner survived a logout: it sat
+     behind the PIN pad for the whole of the next sign-in and came back out with it. */
+  if(!cu||TRAINING){ sessBanner(false); return; }
   try{
     if(!(SBC&&SBC.auth&&SBC.auth.getSession)) return;
     Promise.resolve(SBC.auth.getSession()).then(function(res){

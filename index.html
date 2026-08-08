@@ -10370,7 +10370,7 @@ function rcKartTile(k){
   var busy=(RC_BUSY==='kart:'+k.num);
   return '<button class="rc-kart'+(busy?' busy':'')+(col?' tinted':'')+'" '
     +(col?('style="--sc:'+kEsc(col)+'"'):'')
-    +' onclick="rcSendKart('+JSON.stringify(String(k.num))+')" '
+    +' '+_rcClick('rcSendKart',[String(k.num)])+' '
     +'title="'+kEsc(k.type||'')+(r&&r.speedset?(' · '+kEsc(r.speedset)):'')
       +' · '+(online===null?'RiMO state unknown':(online?'online':'offline'))+'">'
     +kEsc(String(k.num))+'<i class="rc-dot '+dot+'"></i></button>';
@@ -10378,6 +10378,20 @@ function rcKartTile(k){
 var RC_RIMO={};      // kart_no -> {online, speedset} straight from the RiMO fleet feed
 var RC_SETCOL={};    // normalised speedset label -> RiMO's own colour, from rimo_speedsets
 function _rcSetKey(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+/* JSON.stringify QUOTES WITH DOUBLE QUOTES, AND SO DID THE ATTRIBUTE.
+   onclick="rcSendKart(" + JSON.stringify("19") + ")" produces
+
+     onclick="rcSendKart("19")"
+
+   which the browser reads as onclick="rcSendKart(" and then two stray attributes. Every button on
+   this panel was inert — that is why tapping a speed and then a kart did nothing and why
+   rimo_control_queue had not a single row all day, while I was looking for the fault in the runner.
+   The handler goes in a SINGLE-quoted attribute so JSON's double quotes sit inside it safely, and
+   any single quote in a label is entity-escaped so it cannot close the attribute either. */
+function _rcClick(fn, args){
+  var js = fn + '(' + args.map(function(a){ return JSON.stringify(String(a)); }).join(',') + ')';
+  return "onclick='" + js.replace(/'/g, '&#39;') + "'";   // escape AFTER building, not just the ')'
+}
 /* Both reads are best-effort and neither blocks a command: with no colours the tiles stay plain,
    with no fleet feed the dots read "unknown" rather than claiming a kart is online. */
 function rcLoadRimo(){
@@ -10406,8 +10420,8 @@ function rcBtn(action,value,label,colour,cls){
   colour=RC_SETCOL[_rcSetKey(label)]||colour;
   var armed=!!(RC_ARMED&&RC_ARMED.action===action&&RC_ARMED.value===String(value));
   return '<button class="rc-b'+(cls?(' '+cls):'')+(armed?' on':'')+'" '
-    +'onclick="rcArm('+JSON.stringify(action)+','+JSON.stringify(String(value))+','+JSON.stringify(label)+','+JSON.stringify(colour)+')">'
-    +'<span>'+kEsc(label)+'</span><i style="background:'+colour+'"></i></button>';
+    +_rcClick('rcArm',[action,String(value),label,colour])+'>'
+    +'<span>'+kEsc(label)+'</span><i style="background:'+kEsc(colour)+'"></i></button>';
 }
 function rcArm(action,value,label,colour){
   RC_ARMED=(RC_ARMED&&RC_ARMED.action===action&&RC_ARMED.value===value)

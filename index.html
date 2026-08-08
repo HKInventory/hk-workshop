@@ -10296,8 +10296,30 @@ var RC_NOTE='', RC_NOTE_OK=false;   // what RiMO reports back about the press ju
    could see it, in a database. This puts the same evidence on the screen of whoever pressed it.
    Ten seconds of checking, then it says plainly that RiMO has not taken it. Both outcomes are
    stated; neither is guessed. */
-function rcVerify(num, want, tries){
+function rcVerify(num, want, tries, qid){
   if(typeof SBC==='undefined'||!SBC) return;
+  /* ASK THE QUEUE ROW TOO, BECAUSE "NOT SENT YET" AND "SENT BUT RiMO DISAGREES" ARE DIFFERENT
+     PROBLEMS AND THE FIRST MESSAGE BLAMED THE WRONG ONE. It said "after 10s RiMO still reports kart
+     84 on Pit" — true, and misleading: the command had not left the runner yet. Measured over every
+     press so far, ten of twelve landed in 1.0-1.8s and the two slow ones (9.6s and 102.7s) bracket a
+     runner redeploy. So the window is 30s rather than 10, and while the row is still pending it says
+     so instead of pointing at RiMO. */
+  if(qid){
+    SBC.from('rimo_control_queue').select('status,error').eq('id',qid).maybeSingle().then(function(q){
+      var st=(q&&q.data&&q.data.status)||'';
+      if(st==='failed'){
+        RC_NOTE='Not sent: '+((q.data.error||'the runner refused it')); RC_NOTE_OK=false;
+        delete RC_PENDING[String(num)];
+        if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+        return;
+      }
+      rcVerifyKart(num,want,tries,qid,st);
+    },function(){ rcVerifyKart(num,want,tries,qid,''); });
+    return;
+  }
+  rcVerifyKart(num,want,tries,qid,'');
+}
+function rcVerifyKart(num, want, tries, qid, qstatus){
   SBC.from('rimo_karts').select('speedset').eq('group_name','Moore Park').eq('kart_no',Number(num)).maybeSingle()
     .then(function(r){
       var got=(r&&r.data&&r.data.speedset)||'';
@@ -10305,16 +10327,19 @@ function rcVerify(num, want, tries){
         if(RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;
         delete RC_PENDING[String(num)];
         RC_NOTE='RiMO reports kart '+num+' on '+got+'.'; RC_NOTE_OK=true;
-      } else if((tries||0)<5){
+      } else if((tries||0)<14){
         /* DO NOT WRITE THE OLD VALUE BACK WHILE WE ARE WAITING FOR THE NEW ONE. This assigned
            whatever RiMO currently said on every poll, which undid the optimistic colour a fraction
            of a second after the press and made the tile flick back to its old setting until the
            round trip completed. Only the confirmed value, or the final answer, gets written. */
-        setTimeout(function(){ rcVerify(num,want,(tries||0)+1); },2000); return;
+        setTimeout(function(){ rcVerify(num,want,(tries||0)+1,qid); },2000); return;
       } else {
         if(RC_RIMO[String(num)]) RC_RIMO[String(num)].speedset=got;   // the real answer, whatever it is
         delete RC_PENDING[String(num)];
-        RC_NOTE='Sent, but after 10s RiMO still reports kart '+num+' on '+(got||'nothing')+'.'; RC_NOTE_OK=false;
+        RC_NOTE=(qstatus==='pending'||qstatus==='sending')
+          ? 'Still queued after 30s — the runner has not sent it to RiMO yet.'
+          : 'Sent, but after 30s RiMO still reports kart '+num+' on '+(got||'nothing')+'.';
+        RC_NOTE_OK=false;
       }
       if(typeof KI_REF_WHICH!=='undefined'&&KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
     },function(){});
@@ -10601,7 +10626,8 @@ function rcSendKart(num){
            one stray tap away from sending again — which on a speed controller is the wrong default.
            Arm again for the next one; that is one tap, and it is the tap that says what you meant. */
         RC_ARMED=null;
-        rcVerify(num, a.label, 0);   // `action`/`value` are on the captured `a`, not on RC_ARMED
+        var _qid=(r&&r.data&&r.data[0]&&r.data[0].id)||null;
+        rcVerify(num, a.label, 0, _qid);   // `action`/`value` are on the captured `a`, not on RC_ARMED
       }
       renderRimoCtlSection(); rcLoadFeed();
     },function(){ RC_BUSY=null; RC_ERR='Couldn’t send — check the connection.'; renderRimoCtlSection(); });

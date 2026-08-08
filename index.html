@@ -5955,7 +5955,14 @@ var DEFAULT_NONMGR_TABS=['scan','search','lowstock','order','hkai','tasks','chat
 // Newly-added tabs default to VISIBLE for everyone (even where a role/override config was saved before
 // they existed) and are hidden only when Master Access explicitly stores a 'hide:<key>' token for them.
 // This gives "seen by default, removable per role/staff" without a config migration.
-var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups'];
+/* ki:rimoctl is default-ON FOR EVERYONE, on Harvey's instruction: "RIMO Control should go to all
+   users but allow this to be edited like every other tab in MA". It was an allow-list key granted
+   only to Office and Facilities, which is the opposite — off for a mechanic unless someone
+   remembers to add it. Being on this list means the editor toggles 'hide:ki:rimoctl' and the
+   resolver looks for the same token, so a role CAN still have it taken away in Master Access, which
+   is the other half of what he asked for. It is deliberately not manager-only: the people who need
+   to drop a kart to Pit are the ones standing next to it. */
+var NEW_DEFAULT_TABS=['tools','kartcheck','handovers','bcn:layouts','bcn:dehaardt','bcn:pickups','ki:rimoctl'];
 /* DESELECTING APP HEALTH DID NOTHING, AND HERE IS WHY.
    Two mechanisms had grown up side by side. Most tabs are a plain allow-list: the key is in the
    array or it is not. A few are default-ON and store a 'hide:<key>' token instead, so a config

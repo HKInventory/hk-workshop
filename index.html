@@ -10249,7 +10249,7 @@ function kiOpenRef(which){
   else if(which==='notes') renderKartNotesFeed();
   else if(which==='repairs') renderRepairsSection();
   else if(which==='rimo') renderRimoSection();
-  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcLoadFeed(); rcLoadRimo(); rcStartTimer(); }
+  else if(which==='rimoctl'){ RC_ERR=''; renderRimoCtlSection(); rcEnsureKarts(); rcLoadFeed(); rcLoadRimo(); rcStartTimer(); }
   else renderHelpSection();
   go('kartref');
 }
@@ -10364,12 +10364,20 @@ function renderRimoCtlSection(){
         }
         return out;
       })()
+    /* DO NOT PRINT A COUNT YOU ARE NOT SURE OF. On a phone the fleet read takes a while, and this
+       said "27 RiMO karts" for a minute — a confident, specific, wrong number, on the screen you
+       use to decide which kart to touch. If someone's kart is not in a list that claims to be the
+       list, they conclude it cannot be controlled. Say it is still loading until it is loaded. */
     +'<div class="rc-sep">'+(RC_ARMED
         ? 'Tap a kart to set it to '+kEsc(RC_ARMED.label)
-        : 'Karts &middot; '+karts.length+' RiMO karts')+'</div>'
+        : (rcFleetLoading() ? 'Karts &middot; loading the fleet&hellip;'
+                            : 'Karts &middot; '+karts.length+' RiMO karts'))+'</div>'
     +(karts.length
         ? '<div class="rc-karts'+(RC_ARMED?' armed':'')+'">'+karts.map(rcKartTile).join('')+'</div>'
-        : '<div class="rc-empty">No karts loaded yet — the fleet list is still coming in.</div>')
+        : ('<div class="rc-empty">'+(rcFleetLoading()
+             ? 'Loading the fleet\u2026'
+             : 'No RiMO karts at this site. Speed control covers Adult, Intermediate and Twin only.')
+           +'</div>'))
     +rcFeed()
     +'</div>';
 }
@@ -10377,6 +10385,24 @@ function renderRimoCtlSection(){
 /* The kart grid comes from the app's own fleet, not from RiMO — this app already knows every kart,
    its number, its type and whether it is damaged or parked, and showing a kart here that is sitting
    in bits in the workshop would be worse than not showing it. */
+/* IS THE FLEET STILL COMING IN? loadRfKarts sets _rfBusy for the duration, so that is the honest
+   answer rather than a guess from how many karts happen to be in the array right now. */
+function rcFleetLoading(){
+  try { return (typeof _rfBusy!=='undefined' && _rfBusy) || !rcKarts().length; } catch(e){ return false; }
+}
+/* ASK FOR THE FLEET INSTEAD OF DRAWING WHATEVER WAS LYING AROUND.
+   This panel read KART_LIST and rendered it, whatever state it was in — so opening RIMO Control
+   before the app had finished its own fleet read showed a partial grid, with no indication it was
+   partial and nothing to make it fill in. It now triggers the read and redraws when it lands. */
+function rcEnsureKarts(){
+  if(typeof loadRfKarts!=='function') return;
+  if(rcKarts().length && !(typeof _rfBusy!=='undefined' && _rfBusy)) return;   // already have it
+  try {
+    loadRfKarts(function(){
+      if(typeof KI_REF_WHICH!=='undefined' && KI_REF_WHICH==='rimoctl') renderRimoCtlSection();
+    });
+  } catch(e){}
+}
 function rcKarts(){
   var seen={};
   return (typeof KART_LIST!=='undefined'&&KART_LIST?KART_LIST:[])

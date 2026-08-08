@@ -596,26 +596,36 @@
     .rc-err{background:rgba(226,75,74,.14);border:1px solid rgba(226,75,74,.45);color:#F09595;
       border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
     .rc-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-    .rc-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
-    .rc-b{position:relative;min-height:54px;border-radius:12px;border:1px solid var(--b2);
-      background:var(--card2,#141821);color:#fff;font-size:13px;font-weight:800;font-family:inherit;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px 6px 12px;
-      text-align:center;line-height:1.25;-webkit-tap-highlight-color:transparent}
-    .rc-b.wide{min-height:52px;font-size:14.5px}
+    .rc-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+    .rc-b{position:relative;min-height:40px;border-radius:9px;border:1px solid var(--b2);
+      background:var(--card2,#141821);color:#fff;font-size:12px;font-weight:800;font-family:inherit;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;padding:5px 4px 9px;
+      text-align:center;line-height:1.2;-webkit-tap-highlight-color:transparent}
+    .rc-b.wide{min-height:40px;font-size:13.5px}
+    /* The armed setting has to be unmistakable — it is the thing that decides what a kart tap does. */
+    .rc-b.on{border-color:rgba(45,212,191,.9);background:rgba(45,212,191,.18);color:#5EEAD4;
+      box-shadow:0 0 0 1px rgba(45,212,191,.5) inset}
     .rc-b i{position:absolute;left:12px;right:12px;bottom:8px;height:3px;border-radius:2px}
     .rc-b:active{transform:scale(.97)}
     .rc-b.busy{opacity:.55}
     .rc-b.last{border-color:rgba(45,212,191,.7);box-shadow:0 0 0 1px rgba(45,212,191,.35) inset}
     .rc-sep{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--t2);
       margin:14px 0 8px}
-    .rc-all{width:100%;min-height:44px;border-radius:12px;font-family:inherit;font-size:12.5px;font-weight:700;
-      cursor:pointer;border:1px solid var(--b2);background:var(--card2,#141821);color:var(--t2);margin-bottom:10px}
-    .rc-all.on{border-color:rgba(45,212,191,.5);background:rgba(45,212,191,.12);color:#5EEAD4}
-    .rc-karts{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:7px}
-    .rc-kart{position:relative;min-height:46px;border-radius:10px;border:1px solid var(--b2);
+    /* THE PAGE WAS TWO SCREENS TALL AND RiMO'S IS ONE.
+       Their controls sit in a ~400px column of small dense buttons; ours were full-width slabs
+       54px high, so the speeds alone filled the viewport and the karts — the half you actually aim
+       at — were below the fold. Same column width and the same 4-across grid, so a press lands
+       where the hand already expects it. */
+    .rc-wrap{max-width:440px;margin:0 auto}
+    .rc-karts{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px}
+    .rc-kart{position:relative;min-height:42px;border-radius:9px;border:1px solid var(--b2);
       background:var(--card2,#141821);color:#fff;font-size:14px;font-weight:800;font-family:inherit;
       cursor:pointer;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
-    .rc-kart.on{background:rgba(45,212,191,.20);border-color:rgba(45,212,191,.75);color:#5EEAD4}
+    /* Only live once a setting is armed — an unarmed grid should not look like it does anything,
+       because it does not. */
+    .rc-karts.armed .rc-kart{border-color:rgba(45,212,191,.45);background:rgba(45,212,191,.07)}
+    .rc-karts.armed .rc-kart:hover{border-color:rgba(45,212,191,.9);background:rgba(45,212,191,.18)}
+    .rc-kart.busy{opacity:.5}
     .rc-kart:active{transform:scale(.96)}
     .rc-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%}
     .rc-dot.ok{background:#22C55E} .rc-dot.warn{background:#F0CB1E} .rc-dot.bad{background:#E24B4A}
@@ -10249,7 +10259,20 @@ function kiOpenRef(which){
    the RiMO session and does the talking. That keeps RiMO credentials out of the browser entirely,
    and means a press from a tablet with a flaky connection either lands as a queued row or does not
    happen at all — never half of it. */
-var RC_SEL={};                 // kart_no -> selected. Empty = every kart, same as RiMO's "Alle Karts".
+/* IT WORKS THE WAY RiMO'S PAGE WORKS, BECAUSE THAT IS THE MUSCLE MEMORY ON THE FLOOR.
+   Harvey: "I click 100 speed and then click kart 19 and now 19 is on 100% speed."
+   The first cut had it backwards — tick a set of karts, then press a speed — which is a different
+   gesture, needs two hands and a confirm step, and left "Alle Karts" as the default when nothing
+   was ticked. A speed setting is ARMED and stays armed; each kart tap sends that setting to that
+   kart and nothing else. Arming sends nothing, so nothing happens until a kart is chosen.
+   No "Alle Karts": one request does move all 192, and Harvey's answer was "I'd rather get rid of
+   the all karts button anyway". */
+var RC_ARMED=null;             // {action, value, label, colour} — what the next kart tap will send
+/* Speed control is these three RaceFacer types and nothing else (Harvey, 8 Aug: "not Junior, Mini,
+   or BattleKart"; Twins are in, they are 111-114). The grid was drawing the WHOLE fleet, which is
+   why it showed 1, 1, 2, 2, 2, 3, 3, 3, 3 — the same numbers repeated once per kart type. The
+   runner refuses a non-RiMO kart anyway; this stops one being offered in the first place. */
+var RC_TYPES=['Adult Track','Intermediate Track','Twin'];
 var RC_BUSY=null, RC_LAST=null, RC_FEED=[], RC_TIMER=null, RC_ERR='';
 
 /* RiMO's buttons, in RiMO's order. `v` is what goes on the wire; `c` tints the strip underneath,
@@ -10270,10 +10293,10 @@ function _rcSpeedColour(p){
 function renderRimoCtlSection(){
   var b=document.getElementById('ki-ref-body'); if(!b) return;
   var karts=rcKarts();
-  var n=Object.keys(RC_SEL).length;
-  b.innerHTML=
-    '<div class="rc-note">Sends the command to RiMO through the runner. Every press is recorded '
-      +'against your name.</div>'
+  b.innerHTML='<div class="rc-wrap">'
+    +'<div class="rc-note">'+(RC_ARMED
+        ? 'Armed: <b>'+kEsc(RC_ARMED.label)+'</b> — now tap a kart to send it. Tap the setting again to disarm.'
+        : 'Pick a setting, then tap a kart. Every press is recorded against your name.')+'</div>'
     +(RC_ERR?('<div class="rc-err">'+kEsc(RC_ERR)+'</div>'):'')
     +'<div class="rc-top">'
       +rcBtn('mode','standard','Standard','#9aa5b1','wide')
@@ -10292,54 +10315,63 @@ function renderRimoCtlSection(){
         }
         return out;
       })()
-    +'<div class="rc-sep">'+(n?('Applying to '+n+' selected kart'+(n===1?'':'s')):'Applying to every kart')+'</div>'
-    +'<button class="rc-all'+(n?'':' on')+'" onclick="rcClearSel()">'
-      +(n?('Alle Karts — tap to clear the '+n+' selected'):'Alle Karts · all karts will be sent the command')+'</button>'
+    +'<div class="rc-sep">'+(RC_ARMED
+        ? 'Tap a kart to set it to '+kEsc(RC_ARMED.label)
+        : 'Karts &middot; '+karts.length+' RiMO karts')+'</div>'
     +(karts.length
-        ? '<div class="rc-karts">'+karts.map(rcKartTile).join('')+'</div>'
+        ? '<div class="rc-karts'+(RC_ARMED?' armed':'')+'">'+karts.map(rcKartTile).join('')+'</div>'
         : '<div class="rc-empty">No karts loaded yet — the fleet list is still coming in.</div>')
-    +rcFeed();
+    +rcFeed()
+    +'</div>';
 }
 
 /* The kart grid comes from the app's own fleet, not from RiMO — this app already knows every kart,
    its number, its type and whether it is damaged or parked, and showing a kart here that is sitting
    in bits in the workshop would be worse than not showing it. */
 function rcKarts(){
+  var seen={};
   return (typeof KART_LIST!=='undefined'&&KART_LIST?KART_LIST:[])
-    .filter(function(k){ return !k.longTerm && k.num!=null && k.num!==''; })
+    .filter(function(k){
+      if(k.longTerm||k.num==null||k.num==='') return false;
+      if(RC_TYPES.indexOf(k.type)<0) return false;      // RiMO karts only — see RC_TYPES
+      if(seen[k.num]) return false;                     // belt and braces against a repeated number
+      seen[k.num]=1; return true;
+    })
     .sort(function(a,b){ return (Number(a.num)||0)-(Number(b.num)||0); });
 }
 function rcKartTile(k){
-  var on=!!RC_SEL[k.num];
   var dot=k.status==='damaged'?'bad':(k.status==='maint'?'warn':'ok');
-  return '<button class="rc-kart'+(on?' on':'')+'" onclick="rcToggleKart('+JSON.stringify(String(k.num))+')" '
+  var busy=(RC_BUSY==='kart:'+k.num);
+  return '<button class="rc-kart'+(busy?' busy':'')+'" onclick="rcSendKart('+JSON.stringify(String(k.num))+')" '
     +'title="'+kEsc(k.type||'')+' · '+kEsc(k.status||'')+'">'
     +kEsc(String(k.num))+'<i class="rc-dot '+dot+'"></i></button>';
 }
+/* Arming, not sending. Pressing a setting twice disarms it, so there is a way to put the page down
+   without a kart tap going somewhere unintended. */
 function rcBtn(action,value,label,colour,cls){
-  var busy=(RC_BUSY===action+':'+value);
-  var last=(RC_LAST===action+':'+value);
-  return '<button class="rc-b'+(cls?(' '+cls):'')+(busy?' busy':'')+(last?' last':'')+'" '
-    +'onclick="rcSend('+JSON.stringify(action)+','+JSON.stringify(value)+','+JSON.stringify(label)+')">'
+  var armed=!!(RC_ARMED&&RC_ARMED.action===action&&RC_ARMED.value===String(value));
+  return '<button class="rc-b'+(cls?(' '+cls):'')+(armed?' on':'')+'" '
+    +'onclick="rcArm('+JSON.stringify(action)+','+JSON.stringify(String(value))+','+JSON.stringify(label)+','+JSON.stringify(colour)+')">'
     +'<span>'+kEsc(label)+'</span><i style="background:'+colour+'"></i></button>';
 }
-function rcToggleKart(num){
-  if(RC_SEL[num]) delete RC_SEL[num]; else RC_SEL[num]=1;
-  renderRimoCtlSection();
+function rcArm(action,value,label,colour){
+  RC_ARMED=(RC_ARMED&&RC_ARMED.action===action&&RC_ARMED.value===value)
+    ? null : {action:action,value:value,label:label,colour:colour};
+  RC_ERR=''; renderRimoCtlSection();
 }
-function rcClearSel(){ RC_SEL={}; renderRimoCtlSection(); }
 
 /* A press writes one queue row. No confirmation dialog on purpose: this is used mid-session with one
    hand, and a dialog in front of a Stop button is worse than the mis-tap it is trying to prevent —
    RiMO's own page has none either. What it does instead is show, immediately and permanently, what
    was sent and whether RiMO took it. */
-function rcSend(action,value,label){
+function rcSendKart(num){
   if(typeof SBC==='undefined'||!SBC){ RC_ERR='Not connected.'; renderRimoCtlSection(); return; }
-  var karts=Object.keys(RC_SEL);
-  RC_BUSY=action+':'+value; RC_ERR=''; renderRimoCtlSection();
+  if(!RC_ARMED){ RC_ERR='Pick a setting first, then tap the kart.'; renderRimoCtlSection(); return; }
+  var a=RC_ARMED;
+  RC_BUSY='kart:'+num; RC_ERR=''; renderRimoCtlSection();
   SBC.from('rimo_control_queue').insert({
-      site:(currentSite||'sydney'), action:action, value:String(value), label:String(label||''),
-      karts:(karts.length?karts.join(','):null),
+      site:(currentSite||'sydney'), action:a.action, value:String(a.value), label:String(a.label||''),
+      karts:String(num),                       // exactly one kart; the runner refuses anything else
       user_name:((typeof cu!=='undefined'&&cu&&cu.name)?cu.name:'')
     }).select('id')
     .then(function(r){
@@ -10348,7 +10380,7 @@ function rcSend(action,value,label){
         RC_ERR=/relation|does not exist|schema cache/i.test(r.error.message||'')
           ? 'RIMO Control isn’t set up yet — run rimo_control.sql in Supabase.'
           : ('Couldn’t send: '+(r.error.message||''));
-      } else { RC_LAST=action+':'+value; }
+      } else { RC_LAST='kart:'+num; }        // `action`/`value` are on RC_ARMED here, not arguments
       renderRimoCtlSection(); rcLoadFeed();
     },function(){ RC_BUSY=null; RC_ERR='Couldn’t send — check the connection.'; renderRimoCtlSection(); });
 }
@@ -10363,7 +10395,7 @@ function rcFeed(){
       var cls=st==='sent'?'ok':(st==='failed'?'bad':(st==='superseded'?'dim':'wait'));
       return '<div class="rc-fr '+cls+'">'
         +'<b>'+kEsc(r.label||((r.action||'')+' '+(r.value||'')))+'</b>'
-        +'<span>'+kEsc(r.karts?('karts '+r.karts):'all karts')+'</span>'
+        +'<span>'+kEsc(r.karts?('kart '+r.karts):'—')+'</span>'
         +'<span>'+kEsc(r.user_name||'')+'</span>'
         +'<span>'+kEsc(_sdSyd(r.created_at))+'</span>'
         +'<u>'+kEsc(st==='superseded'?'replaced by a newer press':st)+'</u>'
